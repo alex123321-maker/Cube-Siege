@@ -224,8 +224,10 @@ def main() -> None:
     state_mgr = StateManager()
 
     if args.reactivate:
-        state_mgr.mark_pr_status(args.reactivate, "watching")
-        print(f"[SUCCESS] Reactivated PR #{args.reactivate} to 'watching'.")
+        if state_mgr.reactivate_pr(args.reactivate):
+            print(f"[SUCCESS] Reactivated PR #{args.reactivate} to 'watching'.")
+        else:
+            print(f"[WARN] PR #{args.reactivate} was not registered.")
         return
 
     if args.allow_user:

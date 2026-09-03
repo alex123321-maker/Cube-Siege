@@ -110,8 +110,9 @@ class AgentResumer:
         self,
         conversation_id: str,
         pr_number: int,
+        run_id: int = 1,
         title: Optional[str] = None,
-        timeout: int = 120,
+        timeout: int = 300,
         max_retries: int = 3,
     ) -> Tuple[bool, str, Optional[int]]:
         """
@@ -128,7 +129,7 @@ class AgentResumer:
 
         if backend == BACKEND_AGY:
             return self._resume_via_agy(
-                cmd_list, conversation_id, pr_number, prompt, max_retries
+                cmd_list, conversation_id, pr_number, run_id, prompt, max_retries
             )
         else:
             return self._resume_via_agentapi(
@@ -140,6 +141,7 @@ class AgentResumer:
         cmd_list: List[str],
         conversation_id: str,
         pr_number: int,
+        run_id: int,
         prompt: str,
         max_retries: int,
     ) -> Tuple[bool, str, Optional[int]]:
@@ -149,7 +151,7 @@ class AgentResumer:
         agy --conversation <id> -p "<prompt>" --print-timeout <timeout>
         is synchronous — it blocks until the agent turn completes.
         We launch it detached and track PID instead of waiting.
-        Output is redirected to .review_loop/agy_pr_{pr_number}.log.
+        Output is redirected to .review_loop/agy_pr_{pr_number}_run_{run_id}.log.
         """
         full_cmd = cmd_list + [
             "--conversation",
@@ -160,7 +162,7 @@ class AgentResumer:
             DEFAULT_AGY_PRINT_TIMEOUT,
         ]
 
-        log_path = REVIEW_LOOP_DIR / f"agy_pr_{pr_number}.log"
+        log_path = REVIEW_LOOP_DIR / f"agy_pr_{pr_number}_run_{run_id}.log"
         log_path.parent.mkdir(parents=True, exist_ok=True)
 
         last_error = ""

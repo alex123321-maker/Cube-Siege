@@ -399,10 +399,77 @@ class TestReviewWatcher(unittest.TestCase):
         pr = self.state_mgr.get_pr(80)
         self.assertEqual(pr["status"], "error")
         self.assertEqual(pr["retry_count"], 3)
+        # Work is preserved in pending queue
+        self.assertEqual(len(pr["pending_events"]), 1)
 
         # Cycle after error: must NOT dispatch again!
         self.mock_resumer.reset_mock()
         self.watcher.run_cycle()
+        self.assertFalse(self.mock_resumer.resume_conversation.called)
+
+    def test_repeated_launch_failures_transition_to_error(self):
+        """
+        BLOCKER 2: If resume_conversation fails repeatedly (returns False),
+        watcher must increment retry_count and stop at MAX_AGENT_RETRIES.
+        """
+        self.state_mgr.register_pr(pr_number=85, conversation_id="c85", branch="b85")
+        self._setup_pr_mocks(85, reviews=[
+            {
+                "id": "rev_bad_launch",
+                "state": "REQUEST_CHANGES",
+                "author": {"login": "alex123321-maker"},
+                "body": "Launch will fail",
+            }
+        ], head="sha_85")
+
+        self.mock_resumer.resume_conversation.return_value = (False, "CLI crashed", None)
+
+        # Attempt 1
+        self.watcher.run_cycle()
+        pr = self.state_mgr.get_pr(85)
+        self.assertEqual(pr["retry_count"], 1)
+
+        # Attempt 2
+        self.watcher.run_cycle()
+        pr = self.state_mgr.get_pr(85)
+        self.assertEqual(pr["retry_count"], 2)
+
+        # Attempt 3 -> transitions to error
+        self.watcher.run_cycle()
+        pr = self.state_mgr.get_pr(85)
+        self.assertEqual(pr["status"], "error")
+        self.assertEqual(pr["retry_count"], 3)
+        self.assertEqual(len(pr["pending_events"]), 1)
+
+        # Subsequent cycle: does not launch again
+        self.mock_resumer.reset_mock()
+        self.watcher.run_cycle()
+        self.assertFalse(self.mock_resumer.resume_conversation.called)
+
+    def test_pr_closed_or_merged_transitions_to_closed_status(self):
+        """
+        BLOCKER 1: When an actively watched PR becomes CLOSED or MERGED,
+        watcher immediately sets status to 'closed' and halts processing.
+        """
+        self.state_mgr.register_pr(pr_number=86, conversation_id="c86", branch="b86")
+        self._setup_pr_mocks(86, head="sha_86")
+        self.mock_github.get_pr_details.return_value["state"] = "CLOSED"
+
+        self.watcher.run_cycle()
+
+        pr = self.state_mgr.get_pr(86)
+        self.assertEqual(pr["status"], "closed")
+        self.assertFalse(self.mock_resumer.resume_conversation.called)
+
+        # Same for MERGED
+        self.state_mgr.register_pr(pr_number=87, conversation_id="c87", branch="b87")
+        self._setup_pr_mocks(87, head="sha_87")
+        self.mock_github.get_pr_details.return_value["state"] = "MERGED"
+
+        self.watcher.run_cycle()
+
+        pr2 = self.state_mgr.get_pr(87)
+        self.assertEqual(pr2["status"], "closed")
         self.assertFalse(self.mock_resumer.resume_conversation.called)
 
     def test_design_decision_required_halts_loop(self):
@@ -425,8 +492,9 @@ class TestReviewWatcher(unittest.TestCase):
         self.mock_resumer.resume_conversation.return_value = (True, "launched", 404)
         self.watcher.run_cycle()
 
-        # Simulate agent writing DESIGN DECISION REQUIRED to log file
-        log_file = REVIEW_LOOP_DIR / "agy_pr_90.log"
+        # Simulate agent writing DESIGN DECISION REQUIRED to run-scoped log file
+        run_id = self.state_mgr.get_current_run_id(90)
+        log_file = REVIEW_LOOP_DIR / f"agy_pr_90_run_{run_id}.log"
         log_file.parent.mkdir(parents=True, exist_ok=True)
         log_file.write_text(f"Analyzed request.\n{DESIGN_DECISION_MARKER}: Missing formula.\n", encoding="utf-8")
 
@@ -436,15 +504,98 @@ class TestReviewWatcher(unittest.TestCase):
 
         pr = self.state_mgr.get_pr(90)
         self.assertEqual(pr["status"], "awaiting_design_decision")
+        # Work is preserved in pending_events
+        self.assertEqual(len(pr["pending_events"]), 1)
 
         # Subsequent cycle: must NOT retry!
         self.mock_resumer.reset_mock()
         self.watcher.run_cycle()
         self.assertFalse(self.mock_resumer.resume_conversation.called)
 
-        # Cleanup test log
         if log_file.exists():
             log_file.unlink()
+
+    def test_design_decision_run_scope_isolation(self):
+        """
+        BLOCKER 3: Run A contains design marker -> reactivate -> Run B fails without
+        marker -> Run B must follow failure/retry semantics, NOT awaiting_design_decision.
+        """
+        self.state_mgr.register_pr(pr_number=95, conversation_id="c95", branch="b95")
+        self.state_mgr.update_pr_fields(95, last_head_sha="sha_95")
+
+        self._setup_pr_mocks(95, reviews=[
+            {
+                "id": "rev_run_scope",
+                "state": "REQUEST_CHANGES",
+                "author": {"login": "alex123321-maker"},
+                "body": "Need design decision then normal bug",
+            }
+        ], head="sha_95")
+
+        # Run 1 dispatches
+        self.mock_resumer.resume_conversation.return_value = (True, "launched", 501)
+        self.watcher.run_cycle()
+
+        # Run 1 writes DESIGN DECISION REQUIRED
+        run_1_id = self.state_mgr.get_current_run_id(95)
+        log_file_1 = REVIEW_LOOP_DIR / f"agy_pr_95_run_{run_1_id}.log"
+        log_file_1.parent.mkdir(parents=True, exist_ok=True)
+        log_file_1.write_text(f"{DESIGN_DECISION_MARKER}: Which color?\n", encoding="utf-8")
+
+        with patch("tools.review_loop.watcher.is_pid_alive", return_value=False):
+            self.watcher.run_cycle()
+
+        pr = self.state_mgr.get_pr(95)
+        self.assertEqual(pr["status"], "awaiting_design_decision")
+
+        # User provides decision and reactivates PR
+        self.state_mgr.reactivate_pr(95)
+        self.assertEqual(self.state_mgr.get_pr(95)["status"], "watching")
+
+        # Run 2 dispatches (new run_id generated!)
+        self.mock_resumer.resume_conversation.return_value = (True, "launched", 502)
+        self.watcher.run_cycle()
+
+        run_2_id = self.state_mgr.get_current_run_id(95)
+        self.assertNotEqual(run_1_id, run_2_id)
+
+        # Run 2 log does NOT have design decision marker (it crashes cleanly)
+        log_file_2 = REVIEW_LOOP_DIR / f"agy_pr_95_run_{run_2_id}.log"
+        log_file_2.write_text("Fatal error: syntax error in script.\n", encoding="utf-8")
+
+        with patch("tools.review_loop.watcher.is_pid_alive", return_value=False):
+            self.watcher.run_cycle()
+
+        # Run 2 MUST be classified as failure/retry (status watching, retry 1), NOT awaiting_design_decision!
+        pr2 = self.state_mgr.get_pr(95)
+        self.assertEqual(pr2["status"], "watching")
+        self.assertEqual(pr2["retry_count"], 1)
+
+        # Cleanup
+        for lf in (log_file_1, log_file_2):
+            if lf.exists():
+                lf.unlink()
+
+    def test_error_state_preserves_work_and_reactivates_cleanly(self):
+        """
+        IMPORTANT: When PR reaches 'error', work items are preserved in pending_events,
+        and reactivate_pr allows immediate retry on the next cycle.
+        """
+        self.state_mgr.register_pr(pr_number=98, conversation_id="c98", branch="b98")
+        self.state_mgr.set_in_flight_events(98, [{"id": "ev_important"}])
+        self.state_mgr.mark_pr_status(98, "error")
+        self.state_mgr.restore_in_flight_to_pending(98)
+
+        pr = self.state_mgr.get_pr(98)
+        self.assertEqual(len(pr["pending_events"]), 1)
+        self.assertEqual(pr["status"], "error")
+
+        # Reactivate
+        self.state_mgr.reactivate_pr(98)
+        pr = self.state_mgr.get_pr(98)
+        self.assertEqual(pr["status"], "watching")
+        self.assertEqual(pr["retry_count"], 0)
+        self.assertEqual(len(pr["pending_events"]), 1)
 
     def test_approved_then_request_changes_wakes_agent(self):
         """Older APPROVED followed by newer REQUEST_CHANGES MUST wake the agent."""

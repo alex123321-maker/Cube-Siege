@@ -226,6 +226,7 @@ class StateManager:
                     "pending_events": [],
                     "in_flight_events": [],
                     "retry_count": 0,
+                    "current_run_id": 0,
                 }
 
     def unregister_pr(self, pr_number: int) -> bool:
@@ -252,6 +253,45 @@ class StateManager:
             key = str(pr_number)
             if key in self.state["prs"]:
                 self.state["prs"][key].update(fields)
+
+    def start_new_run(self, pr_number: int) -> int:
+        """Increment and return the run ID for the next agent execution (transactional)."""
+        with self._transact():
+            key = str(pr_number)
+            if key in self.state["prs"]:
+                run_id = self.state["prs"][key].get("current_run_id", 0) + 1
+                self.state["prs"][key]["current_run_id"] = run_id
+                return run_id
+        return 1
+
+    def get_current_run_id(self, pr_number: int) -> int:
+        """Get the current run ID for a PR (reloads from disk)."""
+        pr = self.get_pr(pr_number)
+        if not pr:
+            return 0
+        return pr.get("current_run_id", 0)
+
+    def reactivate_pr(self, pr_number: int) -> bool:
+        """
+        Reactivate a closed, approved, or error PR back to watching (transactional).
+        Preserves work by moving any left-over in-flight events back to pending_events.
+        """
+        with self._transact():
+            key = str(pr_number)
+            if key in self.state["prs"]:
+                self.state["prs"][key]["status"] = "watching"
+                self.state["prs"][key]["retry_count"] = 0
+                self.state["prs"][key]["processing_started_at"] = 0.0
+                self.state["prs"][key]["active_agent_pid"] = None
+                in_flight = self.state["prs"][key].get("in_flight_events", [])
+                pending = self.state["prs"][key].setdefault("pending_events", [])
+                for ev in reversed(in_flight):
+                    ev_id = ev.get("id")
+                    if not any(e.get("id") == ev_id for e in pending if ev_id):
+                        pending.insert(0, ev)
+                self.state["prs"][key]["in_flight_events"] = []
+                return True
+        return False
 
     def increment_retry_count(self, pr_number: int) -> int:
         """Increment and return retry count for PR (transactional)."""

@@ -289,6 +289,12 @@ class ReviewWatcher:
             logger.warning("Failed to fetch details for PR #%s: %s", pr_number, e)
             return
 
+        pr_state = pr_info.get("state", "").upper()
+        if pr_state in ["CLOSED", "MERGED"]:
+            logger.info("PR #%s is %s. Updating status and stopping watch.", pr_number, pr_state)
+            self.state.mark_pr_status(pr_number, "closed")
+            return
+
         current_head_sha = pr_info.get("headRefOid", "")
         last_head_sha = pr_entry.get("last_head_sha", "")
 
@@ -332,8 +338,9 @@ class ReviewWatcher:
                     self.state.release_lock(pr_number)
                     return
                 else:
-                    # Check agy log output for DESIGN DECISION REQUIRED or error diagnostics
-                    log_path = REVIEW_LOOP_DIR / f"agy_pr_{pr_number}.log"
+                    # Check run-scoped agy log output for DESIGN DECISION REQUIRED
+                    run_id = self.state.get_current_run_id(pr_number)
+                    log_path = REVIEW_LOOP_DIR / f"agy_pr_{pr_number}_run_{run_id}.log"
                     log_text = ""
                     if log_path.exists():
                         try:
@@ -347,6 +354,7 @@ class ReviewWatcher:
                             pr_number, DESIGN_DECISION_MARKER
                         )
                         self.state.mark_pr_status(pr_number, "awaiting_design_decision")
+                        self.state.restore_in_flight_to_pending(pr_number)
                         self.state.release_lock(pr_number)
                         return
 
@@ -358,6 +366,7 @@ class ReviewWatcher:
                             pr_number, MAX_AGENT_RETRIES
                         )
                         self.state.mark_pr_status(pr_number, "error")
+                        self.state.restore_in_flight_to_pending(pr_number)
                         self.state.release_lock(pr_number)
                         return
 
@@ -435,21 +444,32 @@ class ReviewWatcher:
         # Record events as in-flight BEFORE launch. They are NOT marked processed yet!
         self.state.set_in_flight_events(pr_number, all_events)
 
+        run_id = self.state.start_new_run(pr_number)
         logger.info(
-            "Waking Antigravity conversation %s for PR #%s with %d in-flight event(s)...",
-            conversation_id, pr_number, len(all_events)
+            "Waking Antigravity conversation %s for PR #%s (run %d) with %d in-flight event(s)...",
+            conversation_id, pr_number, run_id, len(all_events)
         )
-        success, out, active_pid = self.resumer.resume_conversation(conversation_id, pr_number)
+        success, out, active_pid = self.resumer.resume_conversation(
+            conversation_id, pr_number, run_id=run_id
+        )
 
         if not success:
-            logger.error(
-                "Failed to launch agent for conversation %s: %s. Restoring events to pending queue.",
-                conversation_id, out
-            )
+            retry_cnt = self.state.increment_retry_count(pr_number)
+            if retry_cnt >= MAX_AGENT_RETRIES:
+                logger.error(
+                    "PR #%s reached maximum retries (%d) on launch failures. Transitioning to 'error' state.",
+                    pr_number, MAX_AGENT_RETRIES
+                )
+                self.state.mark_pr_status(pr_number, "error")
+            else:
+                logger.warning(
+                    "Failed to launch agent for conversation %s (retry %d/%d): %s. Restoring events to pending.",
+                    conversation_id, retry_cnt, MAX_AGENT_RETRIES, out
+                )
             self.state.restore_in_flight_to_pending(pr_number)
             self.state.release_lock(pr_number)
         else:
-            logger.info("Agent successfully initiated for PR #%s (PID: %s).", pr_number, active_pid)
+            logger.info("Agent successfully initiated for PR #%s (run %d, PID: %s).", pr_number, run_id, active_pid)
             if active_pid:
                 self.state.update_pr_fields(pr_number, active_agent_pid=active_pid)
 
