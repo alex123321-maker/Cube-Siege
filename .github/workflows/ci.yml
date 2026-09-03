@@ -62,9 +62,9 @@ jobs:
         run: |
           godot --headless --editor --quit --path .
 
-      - name: Run GUT Automated Smoke Tests
+      - name: Run GUT Automated Tests
         run: |
-          godot --headless --path . -s addons/gut/gut_cmdln.gd -gdir=res://tests/smoke/ -gexit
+          godot --headless --path . -s addons/gut/gut_cmdln.gd -gconfig=res://.gutconfig.json
 
       - name: Headless Runtime Smoke Run (100 frames)
         run: |

@@ -108,6 +108,20 @@ def step_check_tools() -> Tuple[bool, Optional[str]]:
         log_step("Git CLI", "FAIL", "git not found in PATH")
         all_ok = False
 
+    # GitHub CLI (gh) for Issue-Driven Development
+    gh_path = shutil.which("gh")
+    if gh_path:
+        ok, out = run_command(["gh", "--version"], REPO_DIR, "gh version")
+        first_line = out.splitlines()[0] if out else "installed"
+        # Check auth
+        auth_ok, auth_out = run_command(["gh", "auth", "status"], REPO_DIR, "gh auth status")
+        if auth_ok:
+            log_step("GitHub CLI (gh)", "PASS", f"{first_line} (Authenticated)")
+        else:
+            log_step("GitHub CLI (gh)", "INFO", f"{first_line} (Not logged in. Run 'gh auth login' for Issue workflow)")
+    else:
+        log_step("GitHub CLI (gh)", "INFO", "Optional for local build, required for 'Implement issue #N'. Install via winget/apt/brew")
+
     # SCons
     scons_path = shutil.which("scons")
     if scons_path:
@@ -199,17 +213,16 @@ def step_run_gut_tests(godot_bin: str) -> bool:
         "--headless",
         "--path", str(REPO_DIR),
         "-s", gut_script,
-        "-gdir=res://tests/smoke/",
-        "-gexit"
+        "-gconfig=res://.gutconfig.json"
     ]
-    ok, out = run_command(cmd, REPO_DIR, "gut smoke tests")
+    ok, out = run_command(cmd, REPO_DIR, "gut full test suite")
     
     # Check if out contains "All tests passed"
     if "All tests passed" in out or ok:
-        log_step("GUT Smoke Tests", "PASS", "All tests passed cleanly")
+        log_step("GUT Test Suite", "PASS", "All tests passed cleanly (smoke, unit, integration)")
         return True
     else:
-        log_step("GUT Smoke Tests", "FAIL", "Tests failed")
+        log_step("GUT Test Suite", "FAIL", "Tests failed")
         print("\n--- GUT Output ---")
         print(out)
         return False

@@ -8,7 +8,20 @@ func test_core_game_scenes_loadable() -> void:
 		"res://scenes/card_draft_popup.tscn",
 		"res://scenes/game_over_overlay.tscn",
 		"res://scenes/skills_action_bar.tscn",
-		"res://scenes/floating_text.tscn"
+		"res://scenes/floating_text.tscn",
+		"res://scenes/map_generator.tscn",
+		"res://scenes/resource_tree.tscn",
+		"res://scenes/resource_stone.tscn",
+		"res://scenes/resource_iron.tscn",
+		"res://scenes/enemy_dummy.tscn",
+		"res://scenes/enemies/boss_gorgon.tscn",
+		"res://scenes/enemies/ranged_skirmisher.tscn",
+		"res://scenes/enemies/siege_breaker.tscn",
+		"res://scenes/prefabs/wood_wall.tscn",
+		"res://scenes/prefabs/iron_wall.tscn",
+		"res://scenes/prefabs/archer_tower.tscn",
+		"res://scenes/prefabs/ballista_tower.tscn",
+		"res://scenes/prefabs/workbench.tscn"
 	]
 	
 	for scene_path in core_scenes:

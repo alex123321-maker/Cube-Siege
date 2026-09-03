@@ -18,8 +18,9 @@ DEFAULT_URL = os.environ.get("GODOT_MCP_URL", "http://localhost:9080")
 DEFAULT_TOKEN = os.environ.get("GODOT_MCP_TOKEN", "")
 
 
-def send_cli_request(route: str, method: str = "GET", body: Optional[Dict[str, Any]] = None, timeout: int = 10) -> Dict[str, Any]:
-    url = f"{DEFAULT_URL.rstrip('/')}{route}"
+def send_cli_request(route: str, method: str = "GET", body: Optional[Dict[str, Any]] = None, timeout: int = 10, base_url: Optional[str] = None) -> Dict[str, Any]:
+    url_base = base_url or DEFAULT_URL
+    url = f"{url_base.rstrip('/')}{route}"
     headers = {
         "X-GDMCP-API-Version": "1",
         "Accept": "application/json"
@@ -43,19 +44,19 @@ def send_cli_request(route: str, method: str = "GET", body: Optional[Dict[str, A
         err_body = e.read().decode("utf-8", errors="replace")
         return {"error": f"HTTP {e.code}: {e.reason}", "detail": err_body}
     except urllib.error.URLError as e:
-        return {"error": f"Connection failed: {e.reason}", "reachable": False}
+        return {"error": f"Connection failed to {url}: {e.reason}", "reachable": False}
     except Exception as e:
         return {"error": str(e)}
 
 
-def send_mcp_rpc(method: str, params: Optional[Dict[str, Any]] = None, timeout: int = 10) -> Dict[str, Any]:
+def send_mcp_rpc(method: str, params: Optional[Dict[str, Any]] = None, timeout: int = 10, base_url: Optional[str] = None) -> Dict[str, Any]:
     payload = {
         "jsonrpc": "2.0",
         "method": method,
         "params": params or {},
         "id": 1
     }
-    return send_cli_request("/mcp", method="POST", body=payload, timeout=timeout)
+    return send_cli_request("/mcp", method="POST", body=payload, timeout=timeout, base_url=base_url)
 
 
 def main():
@@ -92,31 +93,29 @@ def main():
 
     args = parser.parse_args()
 
-    # Check for native gdmcp binary first if invoked with direct passthrough
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    gdmcp_bin = os.path.join(script_dir, "bin", "gdmcp.exe" if os.name == "nt" else "gdmcp")
-
     if not args.command:
         parser.print_help()
         sys.exit(0)
 
+    target_url = args.url
+
     if args.command == "doctor":
-        res = send_cli_request("/cli/v1/doctor")
+        res = send_cli_request("/cli/v1/doctor", base_url=target_url)
         print(json.dumps(res, indent=2, ensure_ascii=False))
     elif args.command == "catalog":
-        res = send_cli_request("/cli/v1/catalog")
+        res = send_cli_request("/cli/v1/catalog", base_url=target_url)
         print(json.dumps(res, indent=2, ensure_ascii=False))
     elif args.command == "search":
-        res = send_cli_request(f"/cli/v1/tools/search?q={urllib.parse.quote(args.query)}&limit={args.limit}")
+        res = send_cli_request(f"/cli/v1/tools/search?q={urllib.parse.quote(args.query)}&limit={args.limit}", base_url=target_url)
         print(json.dumps(res, indent=2, ensure_ascii=False))
     elif args.command == "schema":
-        res = send_cli_request(f"/cli/v1/tools/{args.tool_name}")
+        res = send_cli_request(f"/cli/v1/tools/{args.tool_name}", base_url=target_url)
         print(json.dumps(res, indent=2, ensure_ascii=False))
     elif args.command == "project-info":
-        res = send_cli_request("/cli/v1/tools/get_project_info/execute", method="POST", body={"arguments": {}})
+        res = send_cli_request("/cli/v1/tools/get_project_info/execute", method="POST", body={"arguments": {}}, base_url=target_url)
         print(json.dumps(res, indent=2, ensure_ascii=False))
     elif args.command == "tree":
-        res = send_cli_request("/cli/v1/tools/get_scene_tree/execute", method="POST", body={"arguments": {"max_depth": args.depth}})
+        res = send_cli_request("/cli/v1/tools/get_scene_tree/execute", method="POST", body={"arguments": {"max_depth": args.depth}}, base_url=target_url)
         print(json.dumps(res, indent=2, ensure_ascii=False))
     elif args.command == "call":
         try:
@@ -124,7 +123,7 @@ def main():
         except Exception as e:
             print(json.dumps({"error": f"Invalid JSON in --args: {e}"}))
             sys.exit(1)
-        res = send_cli_request(f"/cli/v1/tools/{args.tool_name}/execute", method="POST", body={"arguments": call_args})
+        res = send_cli_request(f"/cli/v1/tools/{args.tool_name}/execute", method="POST", body={"arguments": call_args}, base_url=target_url)
         print(json.dumps(res, indent=2, ensure_ascii=False))
 
 

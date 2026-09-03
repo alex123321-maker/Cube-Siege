@@ -12,6 +12,7 @@
 * **SCons**: 4.x+ (`pip install scons`).
 * **C++ компилятор**: MinGW-w64 (GCC 13+) / Clang / MSVC для Windows, GCC 11+ для Linux.
 * **Git**: 2.30+ с поддержкой submodule.
+* **GitHub CLI (`gh`)**: 2.30+ (**Обязательно для Issue-Driven Development** — чтение задач, создание PR).
 * **Blockbench** *(опционально для работы с 3D вокселями)*: 4.10+.
 
 ---
@@ -29,6 +30,19 @@ git submodule update --init --recursive
 # 2. Установка зависимостей сборки
 python -m pip install --upgrade pip
 python -m pip install scons
+
+# 3. Установка и авторизация GitHub CLI (gh)
+# Windows:
+winget install --id GitHub.cli
+# Linux (Ubuntu/Debian):
+sudo apt update && sudo apt install gh
+# macOS:
+brew install gh
+
+# Авторизация в GitHub (необходима для работы команды 'Implement issue #N'):
+gh auth login
+# Проверка статуса авторизации:
+gh auth status
 ```
 
 ---
