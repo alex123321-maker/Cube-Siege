@@ -28,3 +28,8 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+
+# Local tooling & dev paths
+tools/bin/
+.godot_path
+screenshots_debug/

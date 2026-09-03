@@ -1,0 +1,14 @@
+{
+  "dirs": [
+    "res://tests/smoke/",
+    "res://tests/unit/",
+    "res://tests/integration/"
+  ],
+  "include_subdirs": true,
+  "prefix": "test_",
+  "suffix": ".gd",
+  "log_level": 1,
+  "should_exit": true,
+  "should_maximize": false,
+  "compact_mode": true
+}

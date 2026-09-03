@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "godot": {
+      "serverUrl": "http://localhost:9080/mcp"
+    },
+    "blockbench": {
+      "serverUrl": "http://localhost:3000/bb-mcp"
+    }
+  }
+}
