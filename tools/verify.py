@@ -108,19 +108,26 @@ def step_check_tools() -> Tuple[bool, Optional[str]]:
         log_step("Git CLI", "FAIL", "git not found in PATH")
         all_ok = False
 
-    # GitHub CLI (gh) for Issue-Driven Development
+    # GitHub CLI (gh) - Mandatory for Issue-Driven Development
     gh_path = shutil.which("gh")
     if gh_path:
         ok, out = run_command(["gh", "--version"], REPO_DIR, "gh version")
         first_line = out.splitlines()[0] if out else "installed"
-        # Check auth
         auth_ok, auth_out = run_command(["gh", "auth", "status"], REPO_DIR, "gh auth status")
         if auth_ok:
-            log_step("GitHub CLI (gh)", "PASS", f"{first_line} (Authenticated)")
+            acct = "Authenticated"
+            for line in (auth_out or "").splitlines():
+                if "Logged in to" in line:
+                    clean = line.replace("✓", "").strip()
+                    acct = clean
+                    break
+            log_step("GitHub CLI (gh)", "PASS", f"{first_line} ({acct})")
         else:
-            log_step("GitHub CLI (gh)", "INFO", f"{first_line} (Not logged in. Run 'gh auth login' for Issue workflow)")
+            log_step("GitHub CLI (gh)", "FAIL", f"{first_line} (Not logged in. Run 'gh auth login' to enable Issue-Driven workflow)")
+            all_ok = False
     else:
-        log_step("GitHub CLI (gh)", "INFO", "Optional for local build, required for 'Implement issue #N'. Install via winget/apt/brew")
+        log_step("GitHub CLI (gh)", "FAIL", "gh not found in PATH. Required for Issue-Driven workflow. Run 'winget install GitHub.cli' or 'sudo apt install gh'")
+        all_ok = False
 
     # SCons
     scons_path = shutil.which("scons")

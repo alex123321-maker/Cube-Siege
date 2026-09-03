@@ -112,12 +112,17 @@ python tools/gdmcp.py tree
 
 Конфигурация MCP для Blockbench находится в `.agents/mcp_config.json` (`http://localhost:3000/bb-mcp`).
 
-Файл плагина скачан в каталог плагинов Blockbench:
-`%APPDATA%\Blockbench\plugins\mcp.js` (Windows) или `~/.config/Blockbench/plugins/mcp.js` (Linux).
+### Шаг 1: Автоматическая установка плагина
+Для загрузки плагина `mcp.js` в каталог плагинов Blockbench запустите скрипт установки:
+```bash
+python tools/install_blockbench_mcp.py
+```
+Скрипт автоматически определит директорию плагинов для Windows (`%APPDATA%\Blockbench\plugins`), Linux (`~/.config/Blockbench/plugins`) или macOS и скачает актуальный файл `mcp.js`.
 
+### Шаг 2: Активация в GUI Blockbench
 > [!IMPORTANT]
 > **Единственный ручной шаг в GUI Blockbench**:
-> 1. Откройте приложение Blockbench.
+> 1. Запустите настольное приложение Blockbench.
 > 2. Перейдите в меню: **File → Plugins → Installed** (Файл → Плагины → Установленные).
 > 3. Нажмите **Load Plugin from File** (Загрузить плагин из файла) и выберите файл `mcp.js` из папки плагинов (или включите тумблер плагина «Blockbench MCP Server», если он отобразился в списке).
 > 4. Убедитесь, что сервер сообщает о прослушивании порта `3000`.
@@ -133,11 +138,11 @@ python tools/verify.py
 ```
 
 Скрипт автоматически выполнит:
-1. Проверку компилятора, Python, SCons, Git и Godot.
+1. Проверку инструментов: компилятора, Python, SCons, Git, GitHub CLI (`gh`) и Godot.
 2. Проверку инициализации субмодуля `godot-cpp`.
 3. Сборку C++ GDExtension (`scons`).
 4. Headless-импорт проекта и валидацию GDScript-классов.
-5. Запуск набора дымовых тестов GUT (`res://tests/smoke/`).
+5. Запуск полного набора автотестов GUT (`res://tests/smoke/`, `res://tests/unit/`, `res://tests/integration/`) через `.gutconfig.json`.
 6. Симуляцию 100 кадров игры в headless-режиме (`--quit-after 100`).
 
 ---
@@ -147,8 +152,9 @@ python tools/verify.py
 | Действие | Команда |
 | :--- | :--- |
 | **Полная проверка проекта** | `python tools/verify.py` |
-| **Запуск GUT тестов** | `godot --headless --path . -s addons/gut/gut_cmdln.gd -gdir=res://tests/smoke/ -gexit` |
+| **Запуск всех тестов GUT** | `godot --headless --path . -s addons/gut/gut_cmdln.gd -gconfig=res://.gutconfig.json` |
 | **Сборка C++** | `scons custom_api_file=extension_api.json platform=windows target=template_debug` |
 | **Проверка статуса MCP** | `python tools/gdmcp.py doctor` |
 | **Инспекция дерева нод** | `python tools/gdmcp.py tree --depth 4` |
 | **Запуск игры (Headless smoke)** | `godot --headless --path . --quit-after 100` |
+| **Просмотр задачи GitHub** | `gh issue view <N>` |

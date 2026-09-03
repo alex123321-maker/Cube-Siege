@@ -13,6 +13,7 @@ concurrency:
 env:
   GODOT_VERSION: "4.6.1"
   GODOT_RELEASE_URL: "https://github.com/godotengine/godot/releases/download/4.6.1-stable/Godot_v4.6.1-stable_linux.x86_64.zip"
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
   verify:
