@@ -179,34 +179,39 @@ Gemini / Antigravity реализует фичу
   ↓
 Создание Pull Request (`gh pr create`)
   ↓
-Регистрация PR в review loop (`python tools/review_loop/register.py`)
+Автоматическая регистрация PR в review loop через Antigravity Hook (`.agents/hooks.json`)
   ↓
 Фоновый watcher отслеживает новые замечания
   ↓
 При обнаружении REQUEST_CHANGES / комментариев / тредов:
-автоматически возобновляет ту же сессию Antigravity (через agentapi send-message)
+автоматически возобновляет ту же сессию Antigravity (через официальный `agy --conversation <id> -p "..."`)
   ↓
 Агент исправляет замечания, прогоняет `python tools/verify.py` и пушит в ту же ветку
   ↓
-Watcher снимает блокировку и ожидает APPROVE или повторного ревью
+Watcher фиксирует появление нового head SHA, снимает блокировку и ожидает APPROVE или повторного ревью
 ```
 
 ### 9.2. Регистрация PR в цикле
 
-После создания PR в ветке задачи выполните в терминале агента (где установлена переменная `$ANTIGRAVITY_CONVERSATION_ID`):
+Регистрация происходит **автоматически** через штатный Antigravity Hook (`.agents/hooks.json`), который передаёт `conversationId` на `stdin` скрипту `register.py --from-hook` при остановке агента или завершении инструмента.
+
+При необходимости ручной регистрации или управления списком:
 
 ```bash
-# Автоматически определяет текущую ветку, открытый PR и conversation ID
-python tools/review_loop/register.py
+# Ручная регистрация открытого PR текущей ветки:
+python tools/review_loop/register.py --conversation-id <id>
 
 # Просмотр списка зарегистрированных PR и списка доверенных рецензентов
 python tools/review_loop/register.py --list
 
-# Добавление дополнительного рецензента в allowlist (по умолчанию автор репозитория)
+# Добавление дополнительного рецензента / бота в allowlist (по умолчанию автор репозитория)
 python tools/review_loop/register.py --allow-user <username>
 
 # Отмена отслеживания PR
 python tools/review_loop/register.py --unregister <pr_number>
+
+# Реактивация approved/closed PR обратно в статус watching
+python tools/review_loop/register.py --reactivate <pr_number>
 ```
 
 ### 9.3. Управление фоновой службой (Lifecycle)

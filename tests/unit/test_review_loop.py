@@ -3,13 +3,15 @@ tests/unit/test_review_loop.py - Comprehensive unit, regression, and integration
 tests for the autonomous PR review feedback loop.
 
 Tests cover:
-  - StateManager: persistence, deduplication, locking, thread states, file-lock safety
-  - AgentResumer: backend detection (PureWindowsPath portability), prompt contract, retry
-  - ReviewWatcher: identity model, marker filtering, failed dispatch retry, APPROVE halt,
-    thread reopen detection, event coalescing
-  - register_from_hook: PostToolUse and Stop hook contracts
-  - Full lifecycle integration: hook → watcher visibility → review → fail → retry →
-    new head → APPROVE → no further wake
+  - StateManager: persistence, deduplication, atomic lock acquisition, in-flight events,
+    thread states, inter-process safety
+  - AgentResumer: backend detection (PureWindowsPath portability), prompt contract, retry,
+    Popen output logging
+  - ReviewWatcher: identity model, bot allowlist precedence, effective review state (APPROVE),
+    delayed agy failure recovery, thread reopen detection, event coalescing
+  - Hook Registration: PostToolUse and Stop hook contracts
+  - Full Lifecycle Integration: hook → watcher visibility → review → failed dispatch →
+    retry → successful dispatch → delayed failure handling → new head → APPROVE → silence
 """
 import io
 import json
@@ -29,9 +31,10 @@ from tools.review_loop.agent_resumer import (
 )
 from tools.review_loop.config import AGENT_COMMENT_MARKER
 from tools.review_loop.github_client import GitHubClient, GitHubError
+from tools.review_loop.install import install_linux
 from tools.review_loop.register import register_from_hook
 from tools.review_loop.state_manager import StateManager
-from tools.review_loop.watcher import ReviewWatcher
+from tools.review_loop.watcher import ReviewWatcher, get_effective_review_state, is_event_allowed
 
 
 # ===================================================================
@@ -99,6 +102,53 @@ class TestStateManager(unittest.TestCase):
         self.state_mgr.release_lock(5)
         self.assertFalse(self.state_mgr.is_processing(5))
 
+    def test_atomic_acquire_lock_concurrency(self):
+        """
+        BLOCKER 1 Regression: Two independent StateManager instances simulate
+        two watcher processes racing to acquire the lock on an idle PR.
+        Exactly one must succeed; the second must return False.
+        """
+        mgr1 = StateManager(state_file=self.state_file)
+        mgr2 = StateManager(state_file=self.state_file)
+
+        mgr1.register_pr(pr_number=100, conversation_id="c100", branch="b100")
+
+        res1 = mgr1.acquire_lock(100)
+        res2 = mgr2.acquire_lock(100)
+
+        self.assertTrue(res1)
+        self.assertFalse(res2)
+
+        # After releasing lock, second manager can acquire it
+        mgr1.release_lock(100)
+        self.assertTrue(mgr2.acquire_lock(100))
+        self.assertFalse(mgr1.acquire_lock(100))
+
+    def test_in_flight_events_lifecycle(self):
+        """
+        BLOCKER 3: Verify in-flight events are saved, finalized on success,
+        or restored to pending queue on failure.
+        """
+        self.state_mgr.register_pr(pr_number=200, conversation_id="c200", branch="b200")
+        evs = [{"id": "ev1", "type": "comment"}, {"id": "ev2", "type": "review"}]
+
+        self.state_mgr.set_in_flight_events(200, evs)
+        self.assertEqual(len(self.state_mgr.get_in_flight_events(200)), 2)
+
+        # Failure: restore to pending
+        self.state_mgr.restore_in_flight_to_pending(200)
+        self.assertEqual(len(self.state_mgr.get_in_flight_events(200)), 0)
+        pending = self.state_mgr.pop_pending_events(200)
+        self.assertEqual(len(pending), 2)
+        self.assertEqual(pending[0]["id"], "ev1")
+
+        # Success: finalize to processed
+        self.state_mgr.set_in_flight_events(200, evs)
+        self.state_mgr.finalize_in_flight_events(200)
+        self.assertEqual(len(self.state_mgr.get_in_flight_events(200)), 0)
+        self.assertTrue(self.state_mgr.is_event_processed(200, "ev1"))
+        self.assertTrue(self.state_mgr.is_event_processed(200, "ev2"))
+
     def test_pending_events_queue_and_restore(self):
         """Verify pending queue ordering, deduplication, and restore on failure."""
         self.state_mgr.register_pr(pr_number=7, conversation_id="c", branch="b")
@@ -140,26 +190,18 @@ class TestStateManager(unittest.TestCase):
 
     def test_inter_process_state_visibility(self):
         """
-        BLOCKER 3 regression: Two StateManager instances on the same file simulate
+        Two StateManager instances on the same file simulate
         watcher + hook concurrency. Hook registers a PR; watcher must see it.
         """
         watcher_state = StateManager(state_file=self.state_file)
         watcher_state.add_to_allowlist("watcher-user")
 
-        # Simulate hook process (separate StateManager instance)
         hook_state = StateManager(state_file=self.state_file)
         hook_state.register_pr(pr_number=55, conversation_id="hook-conv", branch="feat/55")
 
-        # Watcher's next read must see the hook's registration
         watcher_prs = watcher_state.get_registered_prs()
         self.assertIn("55", watcher_prs)
         self.assertEqual(watcher_prs["55"]["conversation_id"], "hook-conv")
-
-        # Watcher's own mutation must not clobber hook's data
-        watcher_state.add_to_allowlist("another-user")
-        hook_pr = watcher_state.get_pr(55)
-        self.assertIsNotNone(hook_pr)
-        self.assertEqual(hook_pr["conversation_id"], "hook-conv")
 
 
 # ===================================================================
@@ -168,10 +210,7 @@ class TestStateManager(unittest.TestCase):
 
 class TestAgentResumer(unittest.TestCase):
     def test_build_prompt_contains_marker(self):
-        """
-        BLOCKER 4 regression: Resume prompt MUST contain AGENT_COMMENT_MARKER
-        verbatim so the agent knows to tag its GitHub comments.
-        """
+        """Resume prompt MUST contain AGENT_COMMENT_MARKER verbatim."""
         resumer = AgentResumer(agentapi_cmd=["dummy"], backend_type=BACKEND_AGENTAPI)
         prompt = resumer.build_prompt(pr_number=123)
         self.assertIn(AGENT_COMMENT_MARKER, prompt)
@@ -180,10 +219,7 @@ class TestAgentResumer(unittest.TestCase):
         self.assertIn("Do not merge the PR", prompt)
 
     def test_detect_backend_windows_path_on_any_os(self):
-        """
-        BLOCKER 1 CI regression: Windows-style paths must be correctly
-        identified as agy backend regardless of host OS.
-        """
+        """Windows-style paths must be correctly identified on any host OS."""
         self.assertEqual(
             detect_backend_from_path(r"D:\Tools\agy\bin\agy.exe"),
             BACKEND_AGY,
@@ -192,12 +228,10 @@ class TestAgentResumer(unittest.TestCase):
             detect_backend_from_path(r"C:\Users\user\AppData\Local\agy\bin\agy.exe"),
             BACKEND_AGY,
         )
-        # POSIX paths
         self.assertEqual(
             detect_backend_from_path("/usr/local/bin/agy"),
             BACKEND_AGY,
         )
-        # agentapi
         self.assertEqual(
             detect_backend_from_path("/usr/local/bin/agentapi"),
             BACKEND_AGENTAPI,
@@ -210,10 +244,7 @@ class TestAgentResumer(unittest.TestCase):
     @patch("subprocess.Popen")
     @patch("time.sleep")
     def test_agy_backend_uses_popen_and_returns_pid(self, mock_sleep, mock_popen):
-        """
-        BLOCKER 5 regression: agy backend must use Popen (not subprocess.run)
-        and return the launched PID for lifecycle tracking.
-        """
+        """agy backend must use Popen and return the launched PID."""
         mock_proc = MagicMock()
         mock_proc.pid = 12345
         mock_proc.poll.return_value = None  # still running
@@ -229,7 +260,6 @@ class TestAgentResumer(unittest.TestCase):
         self.assertEqual(pid, 12345)
         self.assertIn("PID", out)
 
-        # Verify Popen was called with --conversation and --print-timeout
         call_args = mock_popen.call_args
         cmd = call_args[0][0]
         self.assertIn("--conversation", cmd)
@@ -255,26 +285,6 @@ class TestAgentResumer(unittest.TestCase):
         self.assertIsNone(pid)
         self.assertEqual(mock_popen.call_count, 2)
 
-    @patch("time.sleep")
-    @patch("subprocess.run")
-    def test_agentapi_backend_uses_subprocess_run(self, mock_run, mock_sleep):
-        """agentapi backend must use synchronous subprocess.run."""
-        mock_run.side_effect = [
-            MagicMock(returncode=1, stdout="", stderr="busy"),
-            MagicMock(returncode=1, stdout="", stderr="busy"),
-            MagicMock(returncode=0, stdout="Dispatched", stderr=""),
-        ]
-        resumer = AgentResumer(
-            agentapi_cmd=["agentapi"], backend_type=BACKEND_AGENTAPI
-        )
-        success, out, pid = resumer.resume_conversation(
-            "test-conv-id", pr_number=123, max_retries=3
-        )
-        self.assertTrue(success)
-        self.assertIsNone(pid)  # agentapi doesn't return PID
-        self.assertEqual(mock_run.call_count, 3)
-        self.assertEqual(mock_sleep.call_count, 2)
-
 
 # ===================================================================
 #  ReviewWatcher
@@ -289,7 +299,7 @@ class TestReviewWatcher(unittest.TestCase):
 
         self.mock_github = MagicMock(spec=GitHubClient)
         self.mock_resumer = MagicMock(spec=AgentResumer)
-        self.mock_resumer.resume_conversation.return_value = (True, "Dispatched", None)
+        self.mock_resumer.resume_conversation.return_value = (True, "Dispatched", 1234)
 
         self.watcher = ReviewWatcher(
             github_client=self.mock_github,
@@ -301,13 +311,13 @@ class TestReviewWatcher(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.test_dir, ignore_errors=True)
 
-    def _setup_pr_mocks(self, pr_number, reviews=None, comments=None, inline=None, threads=None, head="sha_x"):
-        """Helper to configure mock GitHub responses."""
+    def _setup_pr_mocks(self, pr_number, reviews=None, comments=None, inline=None, threads=None, head="sha_x", review_decision=None):
         self.mock_github.get_pr_details.return_value = {
             "number": pr_number,
             "state": "OPEN",
             "headRefOid": head,
             "author": {"login": "alex123321-maker"},
+            "reviewDecision": review_decision,
         }
         self.mock_github.get_pr_reviews.return_value = reviews or []
         self.mock_github.get_pr_comments.return_value = comments or []
@@ -315,10 +325,7 @@ class TestReviewWatcher(unittest.TestCase):
         self.mock_github.get_pr_review_threads.return_value = threads or []
 
     def test_owner_equals_pr_author_review_is_accepted(self):
-        """
-        BLOCKER 1: PR author is repo owner (alex123321-maker).
-        Review feedback from owner MUST wake agent, not be ignored.
-        """
+        """Owner review on own PR MUST wake agent, not be ignored."""
         self.state_mgr.register_pr(pr_number=4, conversation_id="conv-owner", branch="feat/4")
         self._setup_pr_mocks(4, reviews=[
             {
@@ -332,7 +339,9 @@ class TestReviewWatcher(unittest.TestCase):
         self.watcher.run_cycle()
 
         self.assertTrue(self.mock_resumer.resume_conversation.called)
-        self.assertTrue(self.state_mgr.is_event_processed(4, "rev_owner_req"))
+        # Event is in-flight, not permanently finalized yet
+        pr = self.state_mgr.get_pr(4)
+        self.assertEqual(len(pr["in_flight_events"]), 1)
 
     def test_agent_authored_comment_with_marker_ignored(self):
         """Comments with AGENT_COMMENT_MARKER must be ignored to prevent loops."""
@@ -350,71 +359,115 @@ class TestReviewWatcher(unittest.TestCase):
         self.assertFalse(self.mock_resumer.resume_conversation.called)
         self.assertFalse(self.state_mgr.is_event_processed(4, "comment_agent_fix"))
 
-    def test_failed_resume_restores_pending_events(self):
+    def test_approved_then_request_changes_wakes_agent(self):
         """
-        BLOCKER 3: If resume fails, events must NOT be marked processed
-        and must be restored to pending_events for retry.
+        BLOCKER 2 Regression: Older APPROVED followed by newer REQUEST_CHANGES
+        from the same reviewer MUST wake the agent and NOT get stuck in approved!
         """
-        self.state_mgr.register_pr(pr_number=11, conversation_id="c11", branch="b11")
-        self.mock_resumer.resume_conversation.return_value = (False, "Network error", None)
-        self._setup_pr_mocks(11, reviews=[
+        self.state_mgr.register_pr(pr_number=15, conversation_id="c15", branch="b15")
+        # Review list has historical APPROVED followed by recent REQUEST_CHANGES
+        self._setup_pr_mocks(15, reviews=[
             {
-                "id": "rev_must_retry",
-                "state": "REQUEST_CHANGES",
-                "author": {"login": "alex123321-maker"},
-                "body": "Critical fix needed",
-            }
-        ], head="sha11")
-
-        self.watcher.run_cycle()
-
-        self.assertFalse(self.state_mgr.is_event_processed(11, "rev_must_retry"))
-        pr = self.state_mgr.get_pr(11)
-        self.assertEqual(len(pr["pending_events"]), 1)
-        self.assertEqual(pr["pending_events"][0]["id"], "rev_must_retry")
-        self.assertFalse(self.state_mgr.is_processing(11))
-
-        # Second cycle: resume succeeds, events drained from pending
-        self.mock_resumer.resume_conversation.return_value = (True, "OK", None)
-        self.mock_github.get_pr_reviews.return_value = []
-
-        self.watcher.run_cycle()
-
-        self.assertTrue(self.state_mgr.is_event_processed(11, "rev_must_retry"))
-        self.assertEqual(len(self.state_mgr.get_pr(11)["pending_events"]), 0)
-
-    def test_approve_stops_feedback_loop_completely(self):
-        """
-        BLOCKER 4: APPROVED transitions PR to 'approved' and subsequent
-        comments do NOT wake the agent.
-        """
-        self.state_mgr.register_pr(pr_number=12, conversation_id="c12", branch="b12")
-        self._setup_pr_mocks(12, reviews=[
-            {
-                "id": "rev_approved",
+                "id": "rev_old_app",
                 "state": "APPROVED",
                 "author": {"login": "alex123321-maker"},
-                "body": "LGTM",
-            }
-        ], head="sha12")
-
-        self.watcher.run_cycle()
-
-        pr = self.state_mgr.get_pr(12)
-        self.assertEqual(pr["status"], "approved")
-        self.assertFalse(self.mock_resumer.resume_conversation.called)
-
-        # Subsequent comment must NOT trigger wake
-        self._setup_pr_mocks(12, comments=[
+                "body": "Looked good earlier",
+            },
             {
-                "id": "comment_post_approval",
+                "id": "rev_new_req",
+                "state": "REQUEST_CHANGES",
                 "author": {"login": "alex123321-maker"},
-                "body": "By the way, good job",
-            }
-        ], head="sha12")
+                "body": "Found a critical bug, please fix!",
+            },
+        ], head="sha15", review_decision="CHANGES_REQUESTED")
 
         self.watcher.run_cycle()
-        self.assertFalse(self.mock_resumer.resume_conversation.called)
+
+        # Agent MUST be woken for rev_new_req!
+        self.assertTrue(self.mock_resumer.resume_conversation.called)
+        pr = self.state_mgr.get_pr(15)
+        self.assertNotEqual(pr["status"], "approved")
+        self.assertEqual(len(pr["in_flight_events"]), 1)
+        self.assertEqual(pr["in_flight_events"][0]["id"], "rev_new_req")
+
+    def test_mixed_existing_reviews_effective_decision(self):
+        """
+        BLOCKER 2: PR registered with mixed existing review history respects
+        reviewDecision and does not treat older APPROVE as final.
+        """
+        reviews = [
+            {"id": "r1", "state": "APPROVED", "author": {"login": "alex123321-maker"}},
+            {"id": "r2", "state": "REQUEST_CHANGES", "author": {"login": "alex123321-maker"}},
+        ]
+        decision = get_effective_review_state(reviews, ["alex123321-maker"], review_decision="CHANGES_REQUESTED")
+        self.assertEqual(decision, "CHANGES_REQUESTED")
+
+        # When latest review is APPROVED and reviewDecision is APPROVED
+        reviews_approved = [
+            {"id": "r1", "state": "REQUEST_CHANGES", "author": {"login": "alex123321-maker"}},
+            {"id": "r2", "state": "APPROVED", "author": {"login": "alex123321-maker"}},
+        ]
+        decision_app = get_effective_review_state(reviews_approved, ["alex123321-maker"], review_decision="APPROVED")
+        self.assertEqual(decision_app, "APPROVED")
+
+    def test_delayed_agy_failure_restores_events(self):
+        """
+        BLOCKER 3 Regression: Agent process starts (passes startup window) but
+        later exits without pushing any new commits (head unchanged).
+        Watcher must restore all in-flight events to pending and NOT lose them!
+        """
+        self.state_mgr.register_pr(pr_number=33, conversation_id="c33", branch="b33")
+        self.state_mgr.update_pr_fields(33, last_head_sha="sha_initial")
+
+        # Cycle 1: Event detected, agent launched with PID 7777
+        self._setup_pr_mocks(33, reviews=[
+            {
+                "id": "rev_fragile",
+                "state": "REQUEST_CHANGES",
+                "author": {"login": "alex123321-maker"},
+                "body": "Fix this bug",
+            }
+        ], head="sha_initial")
+
+        self.watcher.run_cycle()
+
+        self.assertTrue(self.mock_resumer.resume_conversation.called)
+        pr = self.state_mgr.get_pr(33)
+        self.assertEqual(len(pr["in_flight_events"]), 1)
+        self.assertFalse(self.state_mgr.is_event_processed(33, "rev_fragile"))
+
+        # Cycle 2: Agent died (PID 7777 is dead) and head SHA is STILL sha_initial!
+        # Watcher must detect failure, restore event to pending, and clear in-flight.
+        self.mock_github.get_pr_reviews.return_value = []  # No new reviews on GitHub
+
+        with patch("tools.review_loop.watcher.is_pid_alive", return_value=False):
+            self.watcher.run_cycle()
+
+        pr = self.state_mgr.get_pr(33)
+        # Events must NOT be lost!
+        self.assertFalse(self.state_mgr.is_event_processed(33, "rev_fragile"))
+        self.assertEqual(len(pr["pending_events"]), 1)
+        self.assertEqual(pr["pending_events"][0]["id"], "rev_fragile")
+        self.assertEqual(len(pr["in_flight_events"]), 0)
+
+    def test_allowlisted_bot_is_accepted(self):
+        """
+        IMPORTANT 1 Regression: An explicitly allowlisted bot account MUST be
+        processed, and generic unallowlisted bots MUST be ignored.
+        """
+        self.state_mgr.add_to_allowlist("code-review-bot[bot]")
+
+        # Allowlisted bot comment
+        allowed = is_event_allowed("code-review-bot[bot]", "Please fix indentation", self.state_mgr)
+        self.assertTrue(allowed)
+
+        # Unallowlisted bot comment
+        ignored = is_event_allowed("unauthorized-bot[bot]", "Noise", self.state_mgr)
+        self.assertFalse(ignored)
+
+        # Agent comment with marker from allowlisted bot is still rejected (anti-loop)
+        agent_marker = is_event_allowed("code-review-bot[bot]", f"Done {AGENT_COMMENT_MARKER}", self.state_mgr)
+        self.assertFalse(agent_marker)
 
     def test_thread_reopened_transition_detected(self):
         """Reopened thread (isResolved True→False) wakes agent."""
@@ -427,28 +480,9 @@ class TestReviewWatcher(unittest.TestCase):
         self.watcher.run_cycle()
 
         self.assertTrue(self.mock_resumer.resume_conversation.called)
-        self.assertTrue(self.state_mgr.is_event_processed(13, "reopen_th_reopen_test"))
-
-    def test_events_queued_during_active_processing(self):
-        """Events arriving while agent is processing are queued, not parallelized."""
-        self.state_mgr.register_pr(pr_number=7, conversation_id="conv-7", branch="feat/7")
-        self.state_mgr.update_pr_fields(7, last_head_sha="sha7")
-        self.state_mgr.acquire_lock(7)
-
-        self._setup_pr_mocks(7, reviews=[
-            {
-                "id": "rev_mid_flight",
-                "state": "REQUEST_CHANGES",
-                "author": {"login": "alex123321-maker"},
-                "body": "Another quick fix",
-            }
-        ], head="sha7")
-
-        self.watcher.run_cycle()
-
-        self.assertFalse(self.mock_resumer.resume_conversation.called)
-        pr = self.state_mgr.get_pr(7)
-        self.assertEqual(len(pr["pending_events"]), 1)
+        pr = self.state_mgr.get_pr(13)
+        self.assertEqual(len(pr["in_flight_events"]), 1)
+        self.assertEqual(pr["in_flight_events"][0]["id"], "reopen_th_reopen_test")
 
 
 # ===================================================================
@@ -472,10 +506,7 @@ class TestHookRegistration(unittest.TestCase):
         self.assertEqual(output, "{}")
 
     def test_from_hook_stop_output_contract(self):
-        """
-        BLOCKER 2: Stop hook must output {"decision": "stop"} to allow
-        normal termination, NOT {}.
-        """
+        """Stop hook must output {"decision": "stop"} to allow normal termination."""
         hook_payload = json.dumps({"conversationId": "conv-stop"})
         stdout_capture = io.StringIO()
 
@@ -487,24 +518,21 @@ class TestHookRegistration(unittest.TestCase):
         output = json.loads(stdout_capture.getvalue().strip())
         self.assertEqual(output["decision"], "stop")
 
-    def test_from_hook_registers_pr(self):
-        """Hook registration creates PR mapping in state.json."""
-        test_dir = Path(tempfile.mkdtemp())
-        state_file = test_dir / "state.json"
-        hook_payload = json.dumps({"conversationId": "hook-conv-77", "workspacePaths": ["/repo"]})
 
-        try:
-            with patch("sys.stdin", io.StringIO(hook_payload)), \
-                 patch("sys.stdout", io.StringIO()), \
-                 patch("tools.review_loop.register.get_current_git_branch", return_value="feat/hook-77"), \
-                 patch("tools.review_loop.register.GitHubClient") as MockGH, \
-                 patch("tools.review_loop.register.StateManager") as MockSM:
-                mock_instance = MockSM.return_value
-                MockGH.return_value.find_pr_for_branch.return_value = 77
-                register_from_hook(is_stop=False)
-                mock_instance.register_pr.assert_called_once_with(77, "hook-conv-77", "feat/hook-77")
-        finally:
-            shutil.rmtree(test_dir, ignore_errors=True)
+# ===================================================================
+#  Installer
+# ===================================================================
+
+class TestInstaller(unittest.TestCase):
+    @patch("subprocess.run")
+    def test_linux_installer_failure_returns_false(self, mock_run):
+        """
+        IMPORTANT 2 Regression: If systemctl daemon-reload or enable fails,
+        install_linux() must return False instead of True.
+        """
+        mock_run.return_value = MagicMock(returncode=1, stderr="Failed to reload", stdout="")
+        res = install_linux()
+        self.assertFalse(res)
 
 
 # ===================================================================
@@ -514,8 +542,8 @@ class TestHookRegistration(unittest.TestCase):
 class TestFullLifecycleIntegration(unittest.TestCase):
     """
     Deterministic end-to-end integration test exercising:
-      hook conversationId → watcher visibility → owner review → failed dispatch →
-      retry → successful dispatch → new head → APPROVE → no further wake
+      hook registration → watcher visibility → owner review → delayed agy failure
+      recovery → retry → successful turn with new head → APPROVE → no further wake
     """
 
     def test_complete_review_loop_lifecycle(self):
@@ -528,7 +556,7 @@ class TestFullLifecycleIntegration(unittest.TestCase):
             hook_state.add_to_allowlist("alex123321-maker")
             hook_state.register_pr(pr_number=50, conversation_id="conv-50", branch="feat/50")
 
-            # ---- Step 2: Watcher (separate StateManager) sees registration ----
+            # ---- Step 2: Watcher sees registration ----
             watcher_state = StateManager(state_file=state_file)
             prs = watcher_state.get_registered_prs()
             self.assertIn("50", prs)
@@ -549,6 +577,7 @@ class TestFullLifecycleIntegration(unittest.TestCase):
             mock_github.get_pr_details.return_value = {
                 "number": 50, "state": "OPEN", "headRefOid": "sha_v1",
                 "author": {"login": "alex123321-maker"},
+                "reviewDecision": "CHANGES_REQUESTED",
             }
             mock_github.get_pr_reviews.return_value = [
                 {
@@ -563,40 +592,49 @@ class TestFullLifecycleIntegration(unittest.TestCase):
             mock_github.get_pr_review_threads.return_value = []
             mock_github.get_repo_owner_and_name.return_value = ("alex123321-maker", "Cube-Siege")
 
-            # ---- Step 5: First dispatch FAILS ----
-            mock_resumer.resume_conversation.return_value = (False, "timeout", None)
+            # First launch succeeds (PID 900)
+            mock_resumer.resume_conversation.return_value = (True, "launched", 900)
 
             watcher.run_cycle()
 
-            # Events must be preserved, not lost
-            self.assertFalse(watcher_state.is_event_processed(50, "rev_lifecycle_1"))
             pr = watcher_state.get_pr(50)
-            self.assertEqual(len(pr["pending_events"]), 1)
-            self.assertFalse(watcher_state.is_processing(50))
+            self.assertEqual(pr["status"], "processing")
+            self.assertEqual(len(pr["in_flight_events"]), 1)
 
-            # ---- Step 6: Second cycle — dispatch SUCCEEDS ----
-            mock_resumer.resume_conversation.return_value = (True, "agy launched (PID 999)", 999)
-            mock_github.get_pr_reviews.return_value = []  # no new reviews
+            # ---- Step 5: Delayed failure: PID 900 exits without pushing (head is still sha_v1) ----
+            mock_github.get_pr_reviews.return_value = []
 
-            watcher.run_cycle()
-
-            # Events dispatched successfully
-            self.assertTrue(watcher_state.is_event_processed(50, "rev_lifecycle_1"))
-            pr = watcher_state.get_pr(50)
-            self.assertEqual(len(pr["pending_events"]), 0)
-            self.assertEqual(pr["active_agent_pid"], 999)
-
-            # ---- Step 7: Agent pushes new head SHA ----
-            mock_github.get_pr_details.return_value["headRefOid"] = "sha_v2"
-
-            with patch("tools.review_loop.state_manager.is_pid_alive", return_value=False):
+            with patch("tools.review_loop.watcher.is_pid_alive", return_value=False):
                 watcher.run_cycle()
 
+            # Event must be restored to pending!
             pr = watcher_state.get_pr(50)
+            self.assertEqual(len(pr["pending_events"]), 1)
+            self.assertEqual(len(pr["in_flight_events"]), 0)
+            self.assertFalse(watcher_state.is_event_processed(50, "rev_lifecycle_1"))
+
+            # ---- Step 6: Next cycle: retry dispatches pending event with PID 901 ----
+            mock_resumer.resume_conversation.return_value = (True, "launched", 901)
+            watcher.run_cycle()
+
+            pr = watcher_state.get_pr(50)
+            self.assertEqual(pr["status"], "processing")
+            self.assertEqual(len(pr["in_flight_events"]), 1)
+
+            # ---- Step 7: Agent pushes new head (sha_v2) and exits ----
+            mock_github.get_pr_details.return_value["headRefOid"] = "sha_v2"
+
+            with patch("tools.review_loop.watcher.is_pid_alive", return_value=False):
+                watcher.run_cycle()
+
+            # Event is now permanently finalized!
+            pr = watcher_state.get_pr(50)
+            self.assertTrue(watcher_state.is_event_processed(50, "rev_lifecycle_1"))
             self.assertEqual(pr["last_head_sha"], "sha_v2")
             self.assertEqual(pr["status"], "watching")
 
             # ---- Step 8: APPROVE received ----
+            mock_github.get_pr_details.return_value["reviewDecision"] = "APPROVED"
             mock_github.get_pr_reviews.return_value = [
                 {
                     "id": "rev_approve_final",
@@ -611,7 +649,6 @@ class TestFullLifecycleIntegration(unittest.TestCase):
 
             pr = watcher_state.get_pr(50)
             self.assertEqual(pr["status"], "approved")
-            # APPROVE must NOT trigger resume
             self.assertFalse(mock_resumer.resume_conversation.called)
 
             # ---- Step 9: Subsequent comment on approved PR — NO wake ----

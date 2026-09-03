@@ -27,6 +27,7 @@ from tools.review_loop.config import (
     DEFAULT_AGY_PRINT_TIMEOUT,
     REPO_ROOT,
     RESUME_PROMPT_TEMPLATE,
+    REVIEW_LOOP_DIR,
 )
 
 logger = logging.getLogger(__name__)
@@ -149,7 +150,7 @@ class AgentResumer:
 
         if backend == BACKEND_AGY:
             return self._resume_via_agy(
-                cmd_list, conversation_id, prompt, max_retries
+                cmd_list, conversation_id, pr_number, prompt, max_retries
             )
         else:
             return self._resume_via_agentapi(
@@ -160,6 +161,7 @@ class AgentResumer:
         self,
         cmd_list: List[str],
         conversation_id: str,
+        pr_number: int,
         prompt: str,
         max_retries: int,
     ) -> Tuple[bool, str, Optional[int]]:
@@ -169,6 +171,7 @@ class AgentResumer:
         agy --conversation <id> -p "<prompt>" --print-timeout <timeout>
         is synchronous — it blocks until the agent turn completes.
         We launch it detached and track PID instead of waiting.
+        Output is redirected to .review_loop/agy_pr_{pr_number}.log.
         """
         full_cmd = cmd_list + [
             "--conversation",
@@ -179,22 +182,30 @@ class AgentResumer:
             DEFAULT_AGY_PRINT_TIMEOUT,
         ]
 
+        log_path = REVIEW_LOOP_DIR / f"agy_pr_{pr_number}.log"
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+
         last_error = ""
         for attempt in range(1, max_retries + 1):
+            log_file = None
             try:
                 logger.info(
                     "Launching agy for conversation %s PR #%s (attempt %s/%s)...",
                     conversation_id,
-                    "?",
+                    pr_number,
                     attempt,
                     max_retries,
                 )
 
-                # Build Popen kwargs
+                log_file = open(str(log_path), "a", encoding="utf-8")
+                log_file.write(f"\n--- Launch attempt {attempt} at {time.strftime('%Y-%m-%d %H:%M:%S')} ---\n")
+                log_file.flush()
+
+                # Build Popen kwargs with output redirected to log file
                 popen_kwargs = {
                     "cwd": str(self.cwd),
-                    "stdout": subprocess.DEVNULL,
-                    "stderr": subprocess.DEVNULL,
+                    "stdout": log_file,
+                    "stderr": subprocess.STDOUT,
                     "stdin": subprocess.DEVNULL,
                 }
                 # On Windows, detach from parent console
@@ -207,6 +218,8 @@ class AgentResumer:
                     popen_kwargs["creationflags"] = creation_flags
 
                 proc = subprocess.Popen(full_cmd, **popen_kwargs)
+                if log_file and not log_file.closed:
+                    log_file.close()
 
                 # Brief grace period to detect instant crashes
                 time.sleep(AGY_STARTUP_GRACE_SECONDS)

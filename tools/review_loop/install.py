@@ -198,8 +198,17 @@ WantedBy=default.target
 """
     service_path.write_text(service_content, encoding="utf-8")
     print(f"[SUCCESS] Created systemd user unit at {service_path}")
-    subprocess.run(["systemctl", "--user", "daemon-reload"], cwd=str(REPO_ROOT), check=False)
-    subprocess.run(["systemctl", "--user", "enable", LINUX_SERVICE_NAME], cwd=str(REPO_ROOT), check=False)
+
+    res1 = subprocess.run(["systemctl", "--user", "daemon-reload"], cwd=str(REPO_ROOT), capture_output=True, text=True)
+    if res1.returncode != 0:
+        print(f"[ERROR] systemctl --user daemon-reload failed: {res1.stderr.strip() or res1.stdout.strip()}")
+        return False
+
+    res2 = subprocess.run(["systemctl", "--user", "enable", LINUX_SERVICE_NAME], cwd=str(REPO_ROOT), capture_output=True, text=True)
+    if res2.returncode != 0:
+        print(f"[ERROR] systemctl --user enable failed: {res2.stderr.strip() or res2.stdout.strip()}")
+        return False
+
     print(f"[SUCCESS] Enabled {LINUX_SERVICE_NAME}.")
     print("To start service: python tools/review_loop/install.py start")
     return True
@@ -321,16 +330,19 @@ def main() -> None:
     parser.add_argument("action", choices=["install", "uninstall", "start", "stop", "status"], help="Action to perform.")
     args = parser.parse_args()
 
+    success = True
     if args.action == "install":
-        install_service()
+        success = install_service()
     elif args.action == "uninstall":
-        uninstall_service()
+        success = uninstall_service()
     elif args.action == "start":
-        start_service()
+        success = start_service()
     elif args.action == "stop":
-        stop_service()
+        success = stop_service()
     elif args.action == "status":
         print_status()
+
+    sys.exit(0 if success else 1)
 
 if __name__ == "__main__":
     main()

@@ -3,7 +3,9 @@ tools/review_loop/state_manager.py - Persistent state and concurrency manager.
 
 Manages state.json safely with:
 - File-lock-guarded transactional mutations (inter-process safe)
+- Atomic check-and-set acquire_lock() preventing duplicate agent runs
 - Atomic writes via os.replace()
+- In-flight event tracking for reliable failure recovery
 - Per-PR concurrency locks with PID liveness checks
 - Event deduplication and queued event coalescing
 - Thread resolution tracking for reopen detection
@@ -213,6 +215,7 @@ class StateManager:
                 "active_agent_pid": None,
                 "thread_states": existing.get("thread_states", {}),
                 "pending_events": existing.get("pending_events", []),
+                "in_flight_events": existing.get("in_flight_events", []),
             }
 
     def unregister_pr(self, pr_number: int) -> bool:
@@ -259,6 +262,59 @@ class StateManager:
                 )
                 if event_id not in events:
                     events.append(event_id)
+
+    # ------------- In-Flight Events (Delayed Failure Safety) ------------- #
+
+    def set_in_flight_events(
+        self, pr_number: int, events: List[Dict[str, Any]]
+    ) -> None:
+        """Record events currently being worked on by an active agent turn (transactional)."""
+        with self._transact():
+            key = str(pr_number)
+            if key in self.state["prs"]:
+                self.state["prs"][key]["in_flight_events"] = list(events)
+
+    def get_in_flight_events(
+        self, pr_number: int
+    ) -> List[Dict[str, Any]]:
+        """Retrieve in-flight events for a PR (reloads from disk)."""
+        self._load_no_lock()
+        pr = self.state.get("prs", {}).get(str(pr_number))
+        if not pr:
+            return []
+        return list(pr.get("in_flight_events", []))
+
+    def finalize_in_flight_events(self, pr_number: int) -> None:
+        """
+        Mark all in-flight events as permanently processed and clear the list.
+        Called strictly after the agent has successfully pushed a new head SHA (transactional).
+        """
+        with self._transact():
+            key = str(pr_number)
+            if key in self.state["prs"]:
+                in_flight = self.state["prs"][key].get("in_flight_events", [])
+                processed = self.state["prs"][key].setdefault("processed_event_ids", [])
+                for ev in in_flight:
+                    ev_id = ev.get("id")
+                    if ev_id and ev_id not in processed:
+                        processed.append(ev_id)
+                self.state["prs"][key]["in_flight_events"] = []
+
+    def restore_in_flight_to_pending(self, pr_number: int) -> None:
+        """
+        Move in-flight events back into the pending_events queue.
+        Called when an agent process exits without pushing fixes (transactional).
+        """
+        with self._transact():
+            key = str(pr_number)
+            if key in self.state["prs"]:
+                in_flight = self.state["prs"][key].get("in_flight_events", [])
+                pending = self.state["prs"][key].setdefault("pending_events", [])
+                for ev in reversed(in_flight):
+                    ev_id = ev.get("id")
+                    if not any(e.get("id") == ev_id for e in pending if ev_id):
+                        pending.insert(0, ev)
+                self.state["prs"][key]["in_flight_events"] = []
 
     # ------------- Thread Resolution Tracking ------------- #
 
@@ -322,18 +378,38 @@ class StateManager:
         lease_seconds: float = DEFAULT_LOCK_LEASE_SECONDS,
         pid: Optional[int] = None,
     ) -> bool:
-        """Attempt to acquire processing lock for PR (transactional)."""
-        if self.is_processing(pr_number, lease_seconds):
-            return False
-
+        """
+        Attempt to acquire processing lock for PR (atomic & transactional).
+        Both liveness/lease check AND lock acquisition are executed within
+        the SAME file-locked transaction to prevent race conditions.
+        """
         with self._transact():
             key = str(pr_number)
-            if key in self.state["prs"]:
-                self.state["prs"][key]["status"] = "processing"
-                self.state["prs"][key]["processing_started_at"] = time.time()
-                self.state["prs"][key]["active_agent_pid"] = pid
-                return True
-        return False
+            pr = self.state["prs"].get(key)
+            if not pr:
+                return False
+
+            if pr.get("status") == "processing":
+                tracked_pid = pr.get("active_agent_pid")
+                if tracked_pid and is_pid_alive(tracked_pid):
+                    return False
+
+                started = pr.get("processing_started_at", 0.0)
+                if time.time() - started < lease_seconds:
+                    return False
+
+                logger.warning(
+                    "Processing lease for PR #%s expired after %ss and no alive "
+                    "process. Reclaiming lock.",
+                    pr_number,
+                    lease_seconds,
+                )
+
+            # Claim lock atomically within this transaction
+            pr["status"] = "processing"
+            pr["processing_started_at"] = time.time()
+            pr["active_agent_pid"] = pid
+            return True
 
     def release_lock(self, pr_number: int) -> None:
         """Release processing lock (transactional)."""

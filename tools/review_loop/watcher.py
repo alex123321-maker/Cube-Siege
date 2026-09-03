@@ -3,6 +3,7 @@ tools/review_loop/watcher.py - Main review loop polling daemon.
 
 Monitors registered PRs on GitHub for review feedback, REQUEST_CHANGES,
 thread reopenings, and wakes the mapped Antigravity agent context.
+Tracks full agent lifecycle with zero feedback loss on delayed failures.
 """
 import argparse
 import logging
@@ -30,7 +31,7 @@ from tools.review_loop.config import (
     REPO_ROOT,
 )
 from tools.review_loop.github_client import GitHubClient, GitHubError
-from tools.review_loop.state_manager import StateManager
+from tools.review_loop.state_manager import StateManager, is_pid_alive
 
 logger = logging.getLogger("review_loop.watcher")
 
@@ -40,12 +41,61 @@ def is_agent_generated(body: str) -> bool:
         return False
     return AGENT_COMMENT_MARKER in body or "<!-- agent:" in body or "<!-- antigravity:" in body
 
-def is_bot_noise(author: str) -> bool:
-    """Check if commenter is an automated bot that should be ignored by default."""
+def is_event_allowed(author: str, body: str, state_mgr: StateManager) -> bool:
+    """
+    Check if a review or comment event should be processed.
+    - Agent-generated comments are always ignored to prevent infinite loops.
+    - Explicitly allowlisted users (including explicitly allowed bots) are permitted.
+    - Generic bot noise and unallowlisted users are ignored.
+    """
+    if is_agent_generated(body):
+        return False
     if not author:
-        return True
-    author_lower = author.lower()
-    return author_lower.endswith("[bot]") or "copilot" in author_lower
+        return False
+    return state_mgr.is_user_allowed(author)
+
+def get_effective_review_state(
+    reviews: List[Dict[str, Any]],
+    allowlist: List[str],
+    review_decision: Optional[str] = None
+) -> str:
+    """
+    Determine the effective review state for the PR.
+    Returns: 'APPROVED', 'CHANGES_REQUESTED', or 'NEUTRAL'.
+    """
+    # 1. If GitHub reports explicit overall reviewDecision, check that first
+    if review_decision:
+        decision_upper = review_decision.upper()
+        if decision_upper in ("CHANGES_REQUESTED", "REQUEST_CHANGES"):
+            return "CHANGES_REQUESTED"
+        if decision_upper == "APPROVED":
+            return "APPROVED"
+
+    # 2. Check latest review per allowlisted reviewer
+    latest_reviews: Dict[str, Dict[str, Any]] = {}
+    for rev in reviews:
+        author = rev.get("author", {}).get("login", "")
+        if not author:
+            continue
+        if not any(u.lower() == author.lower() for u in allowlist):
+            continue
+        latest_reviews[author.lower()] = rev
+
+    if not latest_reviews:
+        return "NEUTRAL"
+
+    has_approval = False
+    for rev in latest_reviews.values():
+        state = (rev.get("state") or "").upper()
+        if state in ("REQUEST_CHANGES", "CHANGES_REQUESTED"):
+            return "CHANGES_REQUESTED"
+        if state == "APPROVED":
+            has_approval = True
+
+    if has_approval:
+        return "APPROVED"
+
+    return "NEUTRAL"
 
 class ReviewWatcher:
     def __init__(
@@ -78,7 +128,7 @@ class ReviewWatcher:
         """
         Inspect PR for new, unhandled, allowed review events.
         Accepts feedback from allowlisted reviewers even if reviewer == PR author.
-        Ignores agent-marked comments and bot noise.
+        Ignores agent-marked comments and unallowlisted bot noise.
         """
         new_events: List[Dict[str, Any]] = []
 
@@ -87,30 +137,23 @@ class ReviewWatcher:
             reviews = self.github.get_pr_reviews(pr_number)
             for rev in reviews:
                 rev_id = rev.get("id")
-                rev_state = rev.get("state")
+                rev_state = (rev.get("state") or "").upper()
                 rev_author = rev.get("author", {}).get("login", "")
                 rev_body = rev.get("body", "")
 
                 if not rev_id or self.state.is_event_processed(pr_number, rev_id):
                     continue
 
-                if is_bot_noise(rev_author) or is_agent_generated(rev_body):
-                    continue
-
-                # Allowlist check: allowlisted reviewer feedback has highest priority
-                if not self.state.is_user_allowed(rev_author):
-                    logger.debug("Skipping review from non-allowlisted user: %s", rev_author)
+                if not is_event_allowed(rev_author, rev_body, self.state):
                     continue
 
                 if rev_state == "APPROVED":
-                    logger.info("PR #%s received APPROVE from %s. Setting status to approved.", pr_number, rev_author)
+                    # Mark review ID as seen, but DO NOT unilaterally declare PR approved here.
+                    # Effective review state is evaluated holistically in process_registered_pr.
                     self.state.mark_event_processed(pr_number, rev_id)
-                    self.state.mark_pr_status(pr_number, "approved")
-                    # Clear any pending events since PR is approved
-                    self.state.pop_pending_events(pr_number)
                     continue
 
-                if rev_state == "REQUEST_CHANGES":
+                if rev_state in ("REQUEST_CHANGES", "CHANGES_REQUESTED"):
                     logger.info("Detected REQUEST_CHANGES on PR #%s by %s", pr_number, rev_author)
                     new_events.append({
                         "id": rev_id,
@@ -142,10 +185,7 @@ class ReviewWatcher:
                 if not c_id or self.state.is_event_processed(pr_number, c_id):
                     continue
 
-                if is_bot_noise(c_author) or is_agent_generated(c_body):
-                    continue
-
-                if not self.state.is_user_allowed(c_author):
+                if not is_event_allowed(c_author, c_body, self.state):
                     continue
 
                 body = c_body.strip()
@@ -171,10 +211,7 @@ class ReviewWatcher:
                 if not ic_id or self.state.is_event_processed(pr_number, ic_id):
                     continue
 
-                if is_bot_noise(ic_author) or is_agent_generated(ic_body):
-                    continue
-
-                if not self.state.is_user_allowed(ic_author):
+                if not is_event_allowed(ic_author, ic_body, self.state):
                     continue
 
                 body = ic_body.strip()
@@ -211,7 +248,6 @@ class ReviewWatcher:
                                 "thread_id": th_id,
                                 "body": "Review thread was reopened."
                             })
-                    # Update tracked thread state
                     self.state.set_thread_is_resolved(pr_number, th_id, is_resolved)
 
                 # Check unresolved thread's latest comment
@@ -224,22 +260,21 @@ class ReviewWatcher:
                         th_body = last_c.get("body", "")
 
                         if th_c_id and not self.state.is_event_processed(pr_number, th_c_id):
-                            if not is_bot_noise(th_author) and not is_agent_generated(th_body):
-                                if self.state.is_user_allowed(th_author):
-                                    if not any(e.get("id") == th_c_id for e in new_events):
-                                        new_events.append({
-                                            "id": th_c_id,
-                                            "type": "THREAD_COMMENT",
-                                            "author": th_author,
-                                            "body": th_body
-                                        })
+                            if is_event_allowed(th_author, th_body, self.state):
+                                if not any(e.get("id") == th_c_id for e in new_events):
+                                    new_events.append({
+                                        "id": th_c_id,
+                                        "type": "THREAD_COMMENT",
+                                        "author": th_author,
+                                        "body": th_body
+                                    })
         except Exception as e:
             logger.debug("Review threads query for PR #%s: %s", pr_number, e)
 
         return new_events
 
     def process_registered_pr(self, pr_number: int, pr_entry: Dict[str, Any]) -> None:
-        """Process a single registered PR."""
+        """Process a single registered PR with full terminal completion and failure handling."""
         conversation_id = pr_entry.get("conversation_id")
         if not conversation_id:
             logger.warning("PR #%s has no mapped conversation ID. Skipping.", pr_number)
@@ -260,72 +295,117 @@ class ReviewWatcher:
         current_head_sha = pr_info.get("headRefOid", "")
         last_head_sha = pr_entry.get("last_head_sha", "")
 
-        # Check if an approved PR was reactivated by a new commit
+        # ---------------- 1. Active Processing Check & Completion ----------------
+        if self.state.is_processing(pr_number):
+            pid = pr_entry.get("active_agent_pid")
+            if pid and is_pid_alive(pid):
+                # Agent process is actively running. Queue any new incoming review events.
+                new_events = self.check_pr_events(pr_number, pr_info)
+                if new_events:
+                    logger.info("PR #%s is currently being processed. Queuing %d new event(s).", pr_number, len(new_events))
+                    for ev in new_events:
+                        self.state.queue_pending_event(pr_number, ev)
+                return
+            else:
+                # Process has EXITED. Check terminal outcome by inspecting headRefOid:
+                in_flight = self.state.get_in_flight_events(pr_number)
+                if current_head_sha and last_head_sha and current_head_sha != last_head_sha:
+                    # SUCCESS: Agent completed turn and pushed fixes to GitHub!
+                    logger.info(
+                        "Agent run succeeded for PR #%s (new head %s -> %s). Finalizing %d in-flight event(s).",
+                        pr_number, last_head_sha, current_head_sha, len(in_flight)
+                    )
+                    self.state.finalize_in_flight_events(pr_number)
+                    self.state.update_pr_fields(pr_number, last_head_sha=current_head_sha)
+                    self.state.release_lock(pr_number)
+                    return
+                else:
+                    # FAILURE: Process terminated without pushing commits (crash, error, soft-deny).
+                    logger.warning(
+                        "Agent process for PR #%s exited without pushing new commits. "
+                        "Restoring %d in-flight event(s) to pending queue for retry.",
+                        pr_number, len(in_flight)
+                    )
+                    self.state.restore_in_flight_to_pending(pr_number)
+                    self.state.release_lock(pr_number)
+                    return
+
+        # ---------------- 2. Approved PR Handling ----------------
         if pr_entry.get("status") == "approved":
+            # If developer pushed new commit, approval baseline is invalidated: reactivate!
             if current_head_sha and last_head_sha and current_head_sha != last_head_sha:
                 logger.info("Approved PR #%s received new commit (%s -> %s). Reactivating watch.", pr_number, last_head_sha, current_head_sha)
                 self.state.update_pr_fields(pr_number, last_head_sha=current_head_sha, status="watching")
+                pr_entry = self.state.get_pr(pr_number) or pr_entry
             else:
-                # PR is approved and head SHA hasn't changed. Feedback loop is completely stopped.
-                return
+                # Check if reviewDecision or latest review changed back to CHANGES_REQUESTED
+                try:
+                    reviews = self.github.get_pr_reviews(pr_number)
+                    effective_state = get_effective_review_state(
+                        reviews,
+                        self.state.get_allowlist(),
+                        pr_info.get("reviewDecision")
+                    )
+                except Exception:
+                    effective_state = "NEUTRAL"
 
-        # Check if agent pushed fixes while processing (head changed from baseline)
-        if self.state.is_processing(pr_number):
-            if current_head_sha and last_head_sha and current_head_sha != last_head_sha:
-                logger.info("PR #%s head SHA changed (%s -> %s). Agent completed run.", pr_number, last_head_sha, current_head_sha)
-                self.state.update_pr_fields(pr_number, last_head_sha=current_head_sha)
-                self.state.release_lock(pr_number)
+                if effective_state == "CHANGES_REQUESTED":
+                    logger.info("Approved PR #%s received new CHANGES_REQUESTED. Reactivating watch.", pr_number)
+                    self.state.update_pr_fields(pr_number, status="watching")
+                    pr_entry = self.state.get_pr(pr_number) or pr_entry
+                else:
+                    # Still approved: comments or neutral events on approved PR do NOT wake agent!
+                    return
 
-        # Detect new review events
+        # ---------------- 3. Collect Actionable Events ----------------
         new_events = self.check_pr_events(pr_number, pr_info)
-
-        # Reload fresh state — check_pr_events may have set status to 'approved'
-        fresh_pr = self.state.get_pr(pr_number)
-        if fresh_pr and fresh_pr.get("status") == "approved":
-            return
-
-        # Handle concurrency and locking
-        if self.state.is_processing(pr_number):
-            if new_events:
-                logger.info("PR #%s is currently being processed. Queuing %d new event(s).", pr_number, len(new_events))
-                for ev in new_events:
-                    self.state.queue_pending_event(pr_number, ev)
-            return
-
-        # PR is idle. Collect new and pending events
         pending_events = self.state.pop_pending_events(pr_number)
         all_events = new_events + pending_events
 
+        # ---------------- 4. Effective Review State Evaluation ----------------
         if not all_events:
+            try:
+                reviews = self.github.get_pr_reviews(pr_number)
+                effective_state = get_effective_review_state(
+                    reviews,
+                    self.state.get_allowlist(),
+                    pr_info.get("reviewDecision")
+                )
+                if effective_state == "APPROVED":
+                    if pr_entry.get("status") != "approved":
+                        logger.info("PR #%s effective review state is APPROVED. Setting status to approved.", pr_number)
+                        self.state.mark_pr_status(pr_number, "approved")
+            except Exception as e:
+                logger.debug("Error checking effective review state for PR #%s: %s", pr_number, e)
             return
 
-        # Acquire lock before attempting resume
+        # ---------------- 5. Acquire Lock & Dispatch ----------------
         if not self.state.acquire_lock(pr_number):
-            logger.warning("Failed to acquire lock for PR #%s. Skipping.", pr_number)
-            # Put events back so they are not lost
+            logger.warning("Failed to acquire lock for PR #%s. Restoring events to pending.", pr_number)
             self.state.restore_pending_events(pr_number, all_events)
             return
 
-        # Update last known head SHA
         if current_head_sha:
             self.state.update_pr_fields(pr_number, last_head_sha=current_head_sha)
 
+        # Record events as in-flight BEFORE launch. They are NOT marked processed yet!
+        self.state.set_in_flight_events(pr_number, all_events)
+
         logger.info(
-            "Waking Antigravity conversation %s for PR #%s with %d event(s)...",
+            "Waking Antigravity conversation %s for PR #%s with %d in-flight event(s)...",
             conversation_id, pr_number, len(all_events)
         )
         success, out, active_pid = self.resumer.resume_conversation(conversation_id, pr_number)
 
         if not success:
-            logger.error("Failed to wake conversation %s: %s. Restoring events and releasing lock for retry.", conversation_id, out)
-            # CRITICAL: DO NOT lose events on failure! Restore them to pending queue!
-            self.state.restore_pending_events(pr_number, all_events)
+            logger.error(
+                "Failed to launch agent for conversation %s: %s. Restoring events to pending queue.",
+                conversation_id, out
+            )
+            self.state.restore_in_flight_to_pending(pr_number)
             self.state.release_lock(pr_number)
         else:
-            logger.info("Successfully signaled agent for PR #%s.", pr_number)
-            # Only mark events as processed AFTER successful dispatch!
-            for ev in all_events:
-                self.state.mark_event_processed(pr_number, ev["id"])
+            logger.info("Agent successfully initiated for PR #%s (PID: %s).", pr_number, active_pid)
             if active_pid:
                 self.state.update_pr_fields(pr_number, active_agent_pid=active_pid)
 
