@@ -1,0 +1,30 @@
+# Godot 4
+.godot/
+*.translation
+
+# Build artifacts (SCons, C++)
+.sconsign.dblite
+*.obj
+*.o
+*.os
+*.a
+*.lib
+*.exp
+*.ilk
+*.pdb
+
+# Binaries (keep .gdextension, ignore built dlls)
+bin/*.dll
+bin/*.so
+bin/*.dylib
+
+# godot-cpp generated files if building locally
+godot-cpp/bin/
+godot-cpp/gen/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp

@@ -1,0 +1,58 @@
+[gd_scene load_steps=8 format=3 uid="uid://csiegebreaker01"]
+
+[ext_resource type="Script" path="res://scripts/siege_breaker.gd" id="1_breaker"]
+[ext_resource type="Script" path="res://scripts/hurtbox_area.gd" id="2_hurtbox"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_root"]
+size = Vector3(1.4, 2.4, 1.4)
+
+[sub_resource type="StandardMaterial3D" id="Mat_SiegeRock"]
+albedo_color = Color(0.32, 0.28, 0.35, 1.0)
+roughness = 0.95
+
+[sub_resource type="BoxMesh" id="BoxMesh_Torso"]
+material = SubResource("Mat_SiegeRock")
+size = Vector3(1.4, 1.3, 0.9)
+
+[sub_resource type="BoxMesh" id="BoxMesh_Head"]
+material = SubResource("Mat_SiegeRock")
+size = Vector3(0.8, 0.7, 0.8)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_hurt"]
+size = Vector3(1.6, 2.5, 1.6)
+
+[node name="SiegeBreaker" type="CharacterBody3D" groups=["enemies", "siege"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0)
+collision_layer = 4
+collision_mask = 1
+script = ExtResource("1_breaker")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_root")
+
+[node name="Visuals" type="Node3D" parent="."]
+
+[node name="Body" type="MeshInstance3D" parent="Visuals"]
+mesh = SubResource("BoxMesh_Torso")
+
+[node name="Head" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+mesh = SubResource("BoxMesh_Head")
+
+[node name="HPLabel" type="Label3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
+billboard = 1
+no_depth_test = true
+font_size = 30
+outline_size = 8
+outline_color = Color(0, 0, 0, 1)
+text = "220/220"
+
+[node name="Hurtbox" type="Area3D" parent="."]
+collision_layer = 8
+collision_mask = 0
+script = ExtResource("2_hurtbox")
+mesh_to_flash_path = NodePath("../Visuals/Body")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Hurtbox"]
+shape = SubResource("BoxShape3D_hurt")

@@ -1,0 +1,13 @@
+[gd_scene load_steps=3 format=3 uid="uid://cdueltether01"]
+
+[ext_resource type="Script" path="res://scripts/duel_tether.gd" id="1_tether"]
+
+[sub_resource type="StandardMaterial3D" id="Mat_TetherGold"]
+shading_mode = 0
+albedo_color = Color(1.0, 0.8, 0.15, 1.0)
+
+[node name="DuelTether" type="Node3D"]
+script = ExtResource("1_tether")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+material_override = SubResource("Mat_TetherGold")

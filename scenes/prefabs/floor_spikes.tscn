@@ -1,0 +1,72 @@
+[gd_scene load_steps=8 format=3 uid="uid://cfloorspikes01"]
+
+[ext_resource type="Script" path="res://scripts/floor_spikes.gd" id="1_spikes"]
+[ext_resource type="Script" path="res://scripts/hurtbox_area.gd" id="2_hurtbox"]
+
+[sub_resource type="StandardMaterial3D" id="Mat_WoodPlank"]
+albedo_color = Color(0.38, 0.28, 0.18, 1.0)
+roughness = 0.9
+
+[sub_resource type="BoxMesh" id="BoxMesh_Plate"]
+material = SubResource("Mat_WoodPlank")
+size = Vector3(1.0, 0.08, 1.0)
+
+[sub_resource type="StandardMaterial3D" id="Mat_IronSpikes"]
+albedo_color = Color(0.7, 0.72, 0.75, 1.0)
+metallic = 0.8
+roughness = 0.3
+
+[sub_resource type="BoxMesh" id="BoxMesh_Spikes"]
+material = SubResource("Mat_IronSpikes")
+size = Vector3(0.8, 0.3, 0.8)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_trigger"]
+size = Vector3(1.0, 0.8, 1.0)
+
+[node name="FloorSpikes" type="StaticBody3D" groups=["buildings", "traps"]]
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("1_spikes")
+spike_damage = 25.0
+building_name = "Floor Spikes"
+max_health = 100.0
+wood_cost = 2
+stone_cost = 1
+
+[node name="Visuals" type="Node3D" parent="."]
+
+[node name="Plate" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.04, 0)
+mesh = SubResource("BoxMesh_Plate")
+
+[node name="SpikesMesh" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
+mesh = SubResource("BoxMesh_Spikes")
+
+[node name="DamageArea" type="Area3D" parent="."]
+collision_layer = 0
+collision_mask = 8
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DamageArea"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, 0)
+shape = SubResource("BoxShape3D_trigger")
+
+[node name="Hurtbox" type="Area3D" parent="."]
+collision_layer = 8
+collision_mask = 0
+script = ExtResource("2_hurtbox")
+mesh_to_flash_path = NodePath("../Visuals/Plate")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Hurtbox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0)
+shape = SubResource("BoxShape3D_trigger")
+
+[node name="HPLabel" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0)
+visible = false
+billboard = 1
+no_depth_test = true
+font_size = 24
+outline_size = 6
+outline_color = Color(0, 0, 0, 1)
+text = "100/100"

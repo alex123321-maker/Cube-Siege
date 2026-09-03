@@ -1,0 +1,208 @@
+[gd_scene load_steps=5 format=3 uid="uid://card_draft_001"]
+
+[ext_resource type="Script" path="res://scripts/card_draft_popup.gd" id="1_script"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_MainPanel"]
+bg_color = Color(0.1, 0.12, 0.16, 0.95)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.3, 0.6, 0.9, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+shadow_size = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_Card"]
+bg_color = Color(0.15, 0.18, 0.24, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.4, 0.5, 0.7, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[node name="CardDraftPopup" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="Dimmer" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.65)
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="CenterContainer"]
+custom_minimum_size = Vector2(860, 420)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBox_MainPanel")
+
+[node name="VBox" type="VBoxContainer" parent="CenterContainer/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 24
+alignment = 1
+
+[node name="TitleLabel" type="Label" parent="CenterContainer/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.2, 1)
+theme_override_font_sizes/font_size = 24
+text = "★ НОВЫЙ УРОВЕНЬ! ВЫБЕРИТЕ УЛУЧШЕНИЕ ★"
+horizontal_alignment = 1
+
+[node name="CardsContainer" type="HBoxContainer" parent="CenterContainer/Panel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="Card1" type="PanelContainer" parent="CenterContainer/Panel/VBox/CardsContainer"]
+custom_minimum_size = Vector2(240, 280)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBox_Card")
+
+[node name="VBox" type="VBoxContainer" parent="CenterContainer/Panel/VBox/CardsContainer/Card1"]
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="IconLabel" type="Label" parent="CenterContainer/Panel/VBox/CardsContainer/Card1/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+text = "⚔️"
+horizontal_alignment = 1
+
+[node name="NameLabel" type="Label" parent="CenterContainer/Panel/VBox/CardsContainer/Card1/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Острый клинок"
+horizontal_alignment = 1
+
+[node name="DescLabel" type="Label" parent="CenterContainer/Panel/VBox/CardsContainer/Card1/VBox"]
+custom_minimum_size = Vector2(200, 60)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.88, 0.92, 1)
+theme_override_font_sizes/font_size = 13
+text = "+25% урона мечом"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="KeyHint" type="Label" parent="CenterContainer/Panel/VBox/CardsContainer/Card1/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.6, 0.7, 1)
+theme_override_font_sizes/font_size = 12
+text = "Клавиша [1]"
+horizontal_alignment = 1
+
+[node name="BtnSelect" type="Button" parent="CenterContainer/Panel/VBox/CardsContainer/Card1/VBox"]
+custom_minimum_size = Vector2(160, 36)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "ВЫБРАТЬ"
+
+[node name="Card2" type="PanelContainer" parent="CenterContainer/Panel/VBox/CardsContainer"]
+custom_minimum_size = Vector2(240, 280)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBox_Card")
+
+[node name="VBox" type="VBoxContainer" parent="CenterContainer/Panel/VBox/CardsContainer/Card2"]
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="IconLabel" type="Label" parent="CenterContainer/Panel/VBox/CardsContainer/Card2/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+text = "🛡️"
+horizontal_alignment = 1
+
+[node name="NameLabel" type="Label" parent="CenterContainer/Panel/VBox/CardsContainer/Card2/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Камень стойкости"
+horizontal_alignment = 1
+
+[node name="DescLabel" type="Label" parent="CenterContainer/Panel/VBox/CardsContainer/Card2/VBox"]
+custom_minimum_size = Vector2(200, 60)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.88, 0.92, 1)
+theme_override_font_sizes/font_size = 13
+text = "+50 к HP"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="KeyHint" type="Label" parent="CenterContainer/Panel/VBox/CardsContainer/Card2/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.6, 0.7, 1)
+theme_override_font_sizes/font_size = 12
+text = "Клавиша [2]"
+horizontal_alignment = 1
+
+[node name="BtnSelect" type="Button" parent="CenterContainer/Panel/VBox/CardsContainer/Card2/VBox"]
+custom_minimum_size = Vector2(160, 36)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "ВЫБРАТЬ"
+
+[node name="Card3" type="PanelContainer" parent="CenterContainer/Panel/VBox/CardsContainer"]
+custom_minimum_size = Vector2(240, 280)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBox_Card")
+
+[node name="VBox" type="VBoxContainer" parent="CenterContainer/Panel/VBox/CardsContainer/Card3"]
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="IconLabel" type="Label" parent="CenterContainer/Panel/VBox/CardsContainer/Card3/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+text = "⚡"
+horizontal_alignment = 1
+
+[node name="NameLabel" type="Label" parent="CenterContainer/Panel/VBox/CardsContainer/Card3/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Поступь ветра"
+horizontal_alignment = 1
+
+[node name="DescLabel" type="Label" parent="CenterContainer/Panel/VBox/CardsContainer/Card3/VBox"]
+custom_minimum_size = Vector2(200, 60)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.88, 0.92, 1)
+theme_override_font_sizes/font_size = 13
+text = "+20% скорости"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="KeyHint" type="Label" parent="CenterContainer/Panel/VBox/CardsContainer/Card3/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.6, 0.7, 1)
+theme_override_font_sizes/font_size = 12
+text = "Клавиша [3]"
+horizontal_alignment = 1
+
+[node name="BtnSelect" type="Button" parent="CenterContainer/Panel/VBox/CardsContainer/Card3/VBox"]
+custom_minimum_size = Vector2(160, 36)
+layout_mode = 2
+size_flags_horizontal = 4
+text = "ВЫБРАТЬ"

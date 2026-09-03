@@ -1,0 +1,216 @@
+[gd_scene load_steps=3 format=3 uid="uid://cworkbenchmodal01"]
+
+[ext_resource type="Script" path="res://scripts/workbench_modal.gd" id="1_modal"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_modal"]
+bg_color = Color(0.1, 0.12, 0.16, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.3, 0.7, 0.9, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[node name="WorkbenchModal" type="Control"]
+process_mode = 3
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_modal")
+
+[node name="Dimmer" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.6)
+
+[node name="Panel" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = -220.0
+offset_right = 300.0
+offset_bottom = 220.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_modal")
+
+[node name="Title" type="Label" parent="Panel"]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -200.0
+offset_top = 16.0
+offset_right = 200.0
+offset_bottom = 44.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(0.3, 0.9, 1, 1)
+theme_override_font_sizes/font_size = 18
+text = "🛠 ВЕРСТАК ЭКИПИРОВКИ И МАСТЕРСТВА"
+horizontal_alignment = 1
+
+[node name="TabContainer" type="TabContainer" parent="Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = 56.0
+offset_right = -20.0
+offset_bottom = -60.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Crafting" type="Control" parent="Panel/TabContainer"]
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="Panel/TabContainer/Crafting"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="BtnWeapon" type="Button" parent="Panel/TabContainer/Crafting/VBox"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+text = "⚔ Острый клинок (+15 Урона)\n[4 Камня + 4 Железа]"
+
+[node name="BtnArmor" type="Button" parent="Panel/TabContainer/Crafting/VBox"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+text = "🛡 Латный доспех (+60 HP, -15% урона)\n[6 Железа]"
+
+[node name="BtnBoots" type="Button" parent="Panel/TabContainer/Crafting/VBox"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+text = "👢 Сапоги странника (+25% Скорости, +2м рывок)\n[4 Дерева + 2 Железа]"
+
+[node name="Salvage" type="Control" parent="Panel/TabContainer"]
+visible = false
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="Panel/TabContainer/Salvage"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 14
+alignment = 1
+
+[node name="BtnWood" type="Button" parent="Panel/TabContainer/Salvage/VBox"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+text = "🪵 Переплавить 10 Дерева -> 1 Железо"
+
+[node name="BtnStone" type="Button" parent="Panel/TabContainer/Salvage/VBox"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+text = "🪨 Переплавить 10 Камня -> 1 Железо"
+
+[node name="Mastery" type="Control" parent="Panel/TabContainer"]
+visible = false
+layout_mode = 2
+
+[node name="VBox" type="VBoxContainer" parent="Panel/TabContainer/Mastery"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 10.0
+offset_right = -16.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 10
+
+[node name="PointsLabel" type="Label" parent="Panel/TabContainer/Mastery/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
+text = "ДОСТУПНО ОЧКОВ: 5"
+horizontal_alignment = 1
+
+[node name="Grid" type="GridContainer" parent="Panel/TabContainer/Mastery/VBox"]
+layout_mode = 2
+theme_override_constants/h_separation = 12
+theme_override_constants/v_separation = 10
+columns = 2
+
+[node name="BtnBlood" type="Button" parent="Panel/TabContainer/Mastery/VBox/Grid"]
+custom_minimum_size = Vector2(250, 48)
+layout_mode = 2
+text = "🩸 Кровожадность (0/25)\n[+2% Урона per rank]"
+
+[node name="BtnSurv" type="Button" parent="Panel/TabContainer/Mastery/VBox/Grid"]
+custom_minimum_size = Vector2(250, 48)
+layout_mode = 2
+text = "🛡 Выживаемость (0/25)\n[+4 HP, +1% Защита]"
+
+[node name="BtnAgil" type="Button" parent="Panel/TabContainer/Mastery/VBox/Grid"]
+custom_minimum_size = Vector2(250, 48)
+layout_mode = 2
+text = "⚡ Проворство (0/25)\n[+1.5% Скорость, -1.5% Откат]"
+
+[node name="BtnCraft" type="Button" parent="Panel/TabContainer/Mastery/VBox/Grid"]
+custom_minimum_size = Vector2(250, 48)
+layout_mode = 2
+text = "🔨 Ремесло (0/25)\n[+3% Сбор, +4% HP Зданий]"
+
+[node name="BtnReset" type="Button" parent="Panel/TabContainer/Mastery/VBox"]
+layout_mode = 2
+text = "Сбросить все очки мастерства"
+
+[node name="BtnClose" type="Button" parent="Panel"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -80.0
+offset_top = -46.0
+offset_right = 80.0
+offset_bottom = -14.0
+grow_horizontal = 2
+grow_vertical = 0
+text = "ЗАКРЫТЬ [ESC]"
+
+[connection signal="pressed" from="Panel/TabContainer/Crafting/VBox/BtnWeapon" to="." method="_on_craft_weapon_pressed"]
+[connection signal="pressed" from="Panel/TabContainer/Crafting/VBox/BtnArmor" to="." method="_on_craft_armor_pressed"]
+[connection signal="pressed" from="Panel/TabContainer/Crafting/VBox/BtnBoots" to="." method="_on_craft_boots_pressed"]
+[connection signal="pressed" from="Panel/TabContainer/Salvage/VBox/BtnWood" to="." method="_on_salvage_wood_pressed"]
+[connection signal="pressed" from="Panel/TabContainer/Salvage/VBox/BtnStone" to="." method="_on_salvage_stone_pressed"]
+[connection signal="pressed" from="Panel/TabContainer/Mastery/VBox/Grid/BtnBlood" to="." method="_on_invest_blood_pressed"]
+[connection signal="pressed" from="Panel/TabContainer/Mastery/VBox/Grid/BtnSurv" to="." method="_on_invest_surv_pressed"]
+[connection signal="pressed" from="Panel/TabContainer/Mastery/VBox/Grid/BtnAgil" to="." method="_on_invest_agil_pressed"]
+[connection signal="pressed" from="Panel/TabContainer/Mastery/VBox/Grid/BtnCraft" to="." method="_on_invest_craft_pressed"]
+[connection signal="pressed" from="Panel/TabContainer/Mastery/VBox/BtnReset" to="." method="_on_reset_mastery_pressed"]
+[connection signal="pressed" from="Panel/BtnClose" to="." method="close"]

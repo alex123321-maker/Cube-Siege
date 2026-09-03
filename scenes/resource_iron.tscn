@@ -1,0 +1,60 @@
+[gd_scene load_steps=7 format=3 uid="uid://cironrock01"]
+
+[ext_resource type="Script" path="res://scripts/resource_rock.gd" id="1_rock"]
+[ext_resource type="Script" path="res://scripts/hurtbox_area.gd" id="2_hurtbox"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_iron"]
+size = Vector3(1.2, 1.0, 1.2)
+
+[sub_resource type="StandardMaterial3D" id="Mat_IronOre"]
+albedo_color = Color(0.28, 0.25, 0.22, 1.0)
+metallic = 0.85
+roughness = 0.45
+emission_enabled = true
+emission = Color(0.8, 0.45, 0.1, 1.0)
+emission_energy_multiplier = 0.3
+
+[sub_resource type="BoxMesh" id="BoxMesh_IronRock"]
+material = SubResource("Mat_IronOre")
+size = Vector3(1.0, 1.0, 1.0)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_hurt"]
+size = Vector3(1.1, 1.1, 1.1)
+
+[node name="ResourceIron" type="StaticBody3D" groups=["interactables", "resource_nodes"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+collision_layer = 1
+collision_mask = 0
+script = ExtResource("1_rock")
+rock_type = 1
+max_health = 120.0
+resource_yield = 2
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+shape = SubResource("BoxShape3D_iron")
+
+[node name="Visuals" type="Node3D" parent="."]
+
+[node name="RockMesh" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+mesh = SubResource("BoxMesh_IronRock")
+
+[node name="Hurtbox" type="Area3D" parent="."]
+collision_layer = 8
+collision_mask = 0
+script = ExtResource("2_hurtbox")
+mesh_to_flash_path = NodePath("../Visuals/RockMesh")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Hurtbox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+shape = SubResource("BoxShape3D_hurt")
+
+[node name="PromptLabel" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.3, 0)
+billboard = 1
+no_depth_test = true
+font_size = 28
+outline_size = 6
+outline_color = Color(0, 0, 0, 1)
+text = "[E] HARVEST"

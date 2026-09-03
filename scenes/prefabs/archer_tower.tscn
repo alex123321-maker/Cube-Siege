@@ -1,0 +1,79 @@
+[gd_scene load_steps=10 format=3 uid="uid://carchertower01"]
+
+[ext_resource type="Script" path="res://scripts/archer_tower.gd" id="1_tower"]
+[ext_resource type="Script" path="res://scripts/hurtbox_area.gd" id="2_hurtbox"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_tower"]
+size = Vector3(1.2, 3.5, 1.2)
+
+[sub_resource type="StandardMaterial3D" id="Mat_TowerWood"]
+albedo_color = Color(0.4, 0.28, 0.16, 1.0)
+roughness = 0.85
+
+[sub_resource type="BoxMesh" id="BoxMesh_Shaft"]
+material = SubResource("Mat_TowerWood")
+size = Vector3(1.0, 3.0, 1.0)
+
+[sub_resource type="StandardMaterial3D" id="Mat_Platform"]
+albedo_color = Color(0.55, 0.4, 0.22, 1.0)
+
+[sub_resource type="BoxMesh" id="BoxMesh_Platform"]
+material = SubResource("Mat_Platform")
+size = Vector3(1.5, 0.3, 1.5)
+
+[sub_resource type="BoxMesh" id="BoxMesh_Bow"]
+material = SubResource("Mat_Platform")
+size = Vector3(0.15, 0.3, 0.8)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_hurt"]
+size = Vector3(1.3, 3.6, 1.3)
+
+[node name="ArcherTower" type="StaticBody3D" groups=["buildings", "towers"]]
+collision_layer = 1
+collision_mask = 0
+script = ExtResource("1_tower")
+building_name = "Archer Tower"
+max_health = 350.0
+wood_cost = 6
+stone_cost = 2
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.75, 0)
+shape = SubResource("BoxShape3D_tower")
+
+[node name="Visuals" type="Node3D" parent="."]
+
+[node name="Shaft" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+mesh = SubResource("BoxMesh_Shaft")
+
+[node name="Platform" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.0, 0)
+mesh = SubResource("BoxMesh_Platform")
+
+[node name="BowPivot" type="Node3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.25, 0)
+
+[node name="BowModel" type="MeshInstance3D" parent="Visuals/BowPivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.4)
+mesh = SubResource("BoxMesh_Bow")
+
+[node name="Hurtbox" type="Area3D" parent="."]
+collision_layer = 8
+collision_mask = 0
+script = ExtResource("2_hurtbox")
+mesh_to_flash_path = NodePath("../Visuals/Shaft")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Hurtbox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.75, 0)
+shape = SubResource("BoxShape3D_hurt")
+
+[node name="HPLabel" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.8, 0)
+visible = false
+billboard = 1
+no_depth_test = true
+font_size = 24
+outline_size = 6
+outline_color = Color(0, 0, 0, 1)
+text = "350/350"

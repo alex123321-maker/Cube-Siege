@@ -1,0 +1,82 @@
+[gd_scene load_steps=10 format=3 uid="uid://cballistatower01"]
+
+[ext_resource type="Script" path="res://scripts/ballista_tower.gd" id="1_ballista"]
+[ext_resource type="Script" path="res://scripts/hurtbox_area.gd" id="2_hurtbox"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_tower"]
+size = Vector3(1.2, 2.8, 1.2)
+
+[sub_resource type="StandardMaterial3D" id="Mat_BallistaStone"]
+albedo_color = Color(0.3, 0.32, 0.35, 1.0)
+roughness = 0.9
+
+[sub_resource type="BoxMesh" id="BoxMesh_Shaft"]
+material = SubResource("Mat_BallistaStone")
+size = Vector3(1.2, 2.0, 1.2)
+
+[sub_resource type="StandardMaterial3D" id="Mat_BallistaMetal"]
+albedo_color = Color(0.2, 0.22, 0.25, 1.0)
+metallic = 0.8
+roughness = 0.3
+
+[sub_resource type="BoxMesh" id="BoxMesh_Platform"]
+material = SubResource("Mat_BallistaMetal")
+size = Vector3(1.4, 0.25, 1.4)
+
+[sub_resource type="BoxMesh" id="BoxMesh_Crossbow"]
+material = SubResource("Mat_BallistaMetal")
+size = Vector3(1.2, 0.25, 0.5)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_hurt"]
+size = Vector3(1.3, 2.9, 1.3)
+
+[node name="BallistaTower" type="StaticBody3D" groups=["buildings", "towers"]]
+collision_layer = 1
+collision_mask = 0
+script = ExtResource("1_ballista")
+building_name = "Heavy Ballista"
+max_health = 600.0
+wood_cost = 0
+stone_cost = 4
+iron_cost = 4
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4, 0)
+shape = SubResource("BoxShape3D_tower")
+
+[node name="Visuals" type="Node3D" parent="."]
+
+[node name="Shaft" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, 0)
+mesh = SubResource("BoxMesh_Shaft")
+
+[node name="Platform" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.1, 0)
+mesh = SubResource("BoxMesh_Platform")
+
+[node name="BowPivot" type="Node3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.35, 0)
+
+[node name="CrossbowModel" type="MeshInstance3D" parent="Visuals/BowPivot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.3)
+mesh = SubResource("BoxMesh_Crossbow")
+
+[node name="Hurtbox" type="Area3D" parent="."]
+collision_layer = 8
+collision_mask = 0
+script = ExtResource("2_hurtbox")
+mesh_to_flash_path = NodePath("../Visuals/Shaft")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Hurtbox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4, 0)
+shape = SubResource("BoxShape3D_hurt")
+
+[node name="HPLabel" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.0, 0)
+visible = false
+billboard = 1
+no_depth_test = true
+font_size = 24
+outline_size = 6
+outline_color = Color(0, 0, 0, 1)
+text = "600/600"

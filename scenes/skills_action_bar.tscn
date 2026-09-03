@@ -1,0 +1,488 @@
+[gd_scene load_steps=3 format=3 uid="uid://cskillsbar01"]
+
+[ext_resource type="Script" path="res://scripts/skills_action_bar.gd" id="1_skills"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_slot"]
+bg_color = Color(0.08, 0.1, 0.14, 0.9)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.25, 0.55, 0.85, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[node name="SkillsActionBar" type="HBoxContainer"]
+custom_minimum_size = Vector2(400, 64)
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -200.0
+offset_top = -76.0
+offset_right = 200.0
+offset_bottom = -12.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_constants/separation = 10
+alignment = 1
+script = ExtResource("1_skills")
+
+[node name="SlotLMB" type="Panel" parent="."]
+custom_minimum_size = Vector2(62, 64)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_slot")
+
+[node name="IconLabel" type="Label" parent="SlotLMB"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -22.0
+offset_right = 20.0
+offset_bottom = 8.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 22
+text = "⚔"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="NameLabel" type="Label" parent="SlotLMB"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -28.0
+offset_top = -18.0
+offset_right = 28.0
+offset_bottom = -2.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.8, 0.85, 0.9, 1)
+theme_override_font_sizes/font_size = 9
+text = "АТАКА"
+horizontal_alignment = 1
+
+[node name="KeyLabel" type="Label" parent="SlotLMB"]
+layout_mode = 1
+offset_left = 4.0
+offset_top = 2.0
+offset_right = 38.0
+offset_bottom = 16.0
+theme_override_colors/font_color = Color(0.4, 0.85, 1, 1)
+theme_override_font_sizes/font_size = 9
+text = "[ЛКМ]"
+
+[node name="CDOverlay" type="ColorRect" parent="SlotLMB"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.75)
+
+[node name="CDLabel" type="Label" parent="SlotLMB"]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -25.0
+offset_top = -12.0
+offset_right = 25.0
+offset_bottom = 12.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.2, 1)
+theme_override_font_sizes/font_size = 14
+text = "0.4s"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SlotRMB" type="Panel" parent="."]
+custom_minimum_size = Vector2(62, 64)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_slot")
+
+[node name="IconLabel" type="Label" parent="SlotRMB"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -22.0
+offset_right = 20.0
+offset_bottom = 8.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 22
+text = "⚡"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="NameLabel" type="Label" parent="SlotRMB"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -28.0
+offset_top = -18.0
+offset_right = 28.0
+offset_bottom = -2.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.8, 0.85, 0.9, 1)
+theme_override_font_sizes/font_size = 9
+text = "СПЕЦ"
+horizontal_alignment = 1
+
+[node name="KeyLabel" type="Label" parent="SlotRMB"]
+layout_mode = 1
+offset_left = 4.0
+offset_top = 2.0
+offset_right = 38.0
+offset_bottom = 16.0
+theme_override_colors/font_color = Color(0.4, 0.85, 1, 1)
+theme_override_font_sizes/font_size = 9
+text = "[ПКМ]"
+
+[node name="CDOverlay" type="ColorRect" parent="SlotRMB"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.75)
+
+[node name="CDLabel" type="Label" parent="SlotRMB"]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -25.0
+offset_top = -12.0
+offset_right = 25.0
+offset_bottom = 12.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.2, 1)
+theme_override_font_sizes/font_size = 14
+text = "3.5s"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SlotSpace" type="Panel" parent="."]
+custom_minimum_size = Vector2(62, 64)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_slot")
+
+[node name="IconLabel" type="Label" parent="SlotSpace"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -22.0
+offset_right = 20.0
+offset_bottom = 8.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 22
+text = "💨"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="NameLabel" type="Label" parent="SlotSpace"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -28.0
+offset_top = -18.0
+offset_right = 28.0
+offset_bottom = -2.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.8, 0.85, 0.9, 1)
+theme_override_font_sizes/font_size = 9
+text = "РЫВОК"
+horizontal_alignment = 1
+
+[node name="KeyLabel" type="Label" parent="SlotSpace"]
+layout_mode = 1
+offset_left = 4.0
+offset_top = 2.0
+offset_right = 38.0
+offset_bottom = 16.0
+theme_override_colors/font_color = Color(0.4, 0.85, 1, 1)
+theme_override_font_sizes/font_size = 9
+text = "[SPACE]"
+
+[node name="CDOverlay" type="ColorRect" parent="SlotSpace"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.75)
+
+[node name="CDLabel" type="Label" parent="SlotSpace"]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -25.0
+offset_top = -12.0
+offset_right = 25.0
+offset_bottom = 12.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.2, 1)
+theme_override_font_sizes/font_size = 14
+text = "1.8s"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SlotQ" type="Panel" parent="."]
+custom_minimum_size = Vector2(62, 64)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_slot")
+
+[node name="IconLabel" type="Label" parent="SlotQ"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -22.0
+offset_right = 20.0
+offset_bottom = 8.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 22
+text = "🛡"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="NameLabel" type="Label" parent="SlotQ"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -28.0
+offset_top = -18.0
+offset_right = 28.0
+offset_bottom = -2.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.8, 0.85, 0.9, 1)
+theme_override_font_sizes/font_size = 9
+text = "УТИЛИТА"
+horizontal_alignment = 1
+
+[node name="KeyLabel" type="Label" parent="SlotQ"]
+layout_mode = 1
+offset_left = 4.0
+offset_top = 2.0
+offset_right = 38.0
+offset_bottom = 16.0
+theme_override_colors/font_color = Color(0.4, 0.85, 1, 1)
+theme_override_font_sizes/font_size = 9
+text = "[Q]"
+
+[node name="CDOverlay" type="ColorRect" parent="SlotQ"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.75)
+
+[node name="CDLabel" type="Label" parent="SlotQ"]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -25.0
+offset_top = -12.0
+offset_right = 25.0
+offset_bottom = 12.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.2, 1)
+theme_override_font_sizes/font_size = 14
+text = "4.2s"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SlotF" type="Panel" parent="."]
+custom_minimum_size = Vector2(62, 64)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_slot")
+
+[node name="IconLabel" type="Label" parent="SlotF"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -22.0
+offset_right = 20.0
+offset_bottom = 8.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 22
+text = "👑"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="NameLabel" type="Label" parent="SlotF"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -28.0
+offset_top = -18.0
+offset_right = 28.0
+offset_bottom = -2.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.8, 0.85, 0.9, 1)
+theme_override_font_sizes/font_size = 9
+text = "УЛЬТА"
+horizontal_alignment = 1
+
+[node name="KeyLabel" type="Label" parent="SlotF"]
+layout_mode = 1
+offset_left = 4.0
+offset_top = 2.0
+offset_right = 38.0
+offset_bottom = 16.0
+theme_override_colors/font_color = Color(0.4, 0.85, 1, 1)
+theme_override_font_sizes/font_size = 9
+text = "[F]"
+
+[node name="CDOverlay" type="ColorRect" parent="SlotF"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.75)
+
+[node name="CDLabel" type="Label" parent="SlotF"]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -25.0
+offset_top = -12.0
+offset_right = 25.0
+offset_bottom = 12.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.2, 1)
+theme_override_font_sizes/font_size = 14
+text = "22s"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SlotTab" type="Panel" parent="."]
+custom_minimum_size = Vector2(62, 64)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_slot")
+
+[node name="IconLabel" type="Label" parent="SlotTab"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -22.0
+offset_right = 20.0
+offset_bottom = 8.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 22
+text = "🏗"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="NameLabel" type="Label" parent="SlotTab"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -28.0
+offset_top = -18.0
+offset_right = 28.0
+offset_bottom = -2.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(0.8, 0.85, 0.9, 1)
+theme_override_font_sizes/font_size = 9
+text = "СТРОЙКА"
+horizontal_alignment = 1
+
+[node name="KeyLabel" type="Label" parent="SlotTab"]
+layout_mode = 1
+offset_left = 4.0
+offset_top = 2.0
+offset_right = 38.0
+offset_bottom = 16.0
+theme_override_colors/font_color = Color(0.4, 0.85, 1, 1)
+theme_override_font_sizes/font_size = 9
+text = "[TAB]"

@@ -1,0 +1,61 @@
+[gd_scene load_steps=8 format=3 uid="uid://cplayer001"]
+
+[ext_resource type="Script" path="res://scripts/player_prototype.gd" id="1_proto"]
+[ext_resource type="Script" path="res://scripts/hitbox_area.gd" id="2_hitbox"]
+[ext_resource type="PackedScene" path="res://assets/models/characters/hero_warrior.tscn" id="3_warrior_model"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_player"]
+size = Vector3(0.8, 1.8, 0.8)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_slash"]
+size = Vector3(3.0, 2.6, 2.6)
+
+[sub_resource type="StandardMaterial3D" id="Mat_Compass_Arrow"]
+albedo_color = Color(0.2, 0.9, 1, 1)
+emission_enabled = true
+emission = Color(0.1, 0.8, 1, 1)
+emission_energy_multiplier = 2.0
+
+[sub_resource type="BoxMesh" id="BoxMesh_Compass"]
+material = SubResource("Mat_Compass_Arrow")
+size = Vector3(0.16, 0.04, 0.8)
+
+[node name="Player" type="CharacterBody3D" groups=["player"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+collision_layer = 2
+collision_mask = 1
+script = ExtResource("1_proto")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_player")
+
+[node name="Visuals" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.9, 0)
+
+[node name="HeroWarrior" parent="Visuals" instance=ExtResource("3_warrior_model")]
+
+[node name="SlashHitbox" type="Area3D" parent="."]
+collision_layer = 0
+collision_mask = 8
+monitoring = false
+script = ExtResource("2_hitbox")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SlashHitbox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, -1.3)
+shape = SubResource("BoxShape3D_slash")
+
+[node name="PortalCompass" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.85, 0)
+
+[node name="ArrowMesh" type="MeshInstance3D" parent="PortalCompass"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, -0.9)
+mesh = SubResource("BoxMesh_Compass")
+
+[node name="CompassLabel" type="Label3D" parent="PortalCompass"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.35, -0.9)
+billboard = 1
+no_depth_test = true
+font_size = 20
+outline_size = 5
+outline_color = Color(0, 0, 0, 1)
+text = "⮵ ПОРТАЛ: 0m"

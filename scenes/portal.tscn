@@ -1,0 +1,66 @@
+[gd_scene load_steps=8 format=3 uid="uid://cportal001"]
+
+[ext_resource type="Script" path="res://scripts/portal_controller.gd" id="1_portal"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_portal"]
+size = Vector3(4, 1, 4)
+
+[sub_resource type="StandardMaterial3D" id="Mat_StonePillar"]
+albedo_color = Color(0.35, 0.38, 0.42, 1.0)
+roughness = 0.8
+
+[sub_resource type="BoxMesh" id="BoxMesh_Pillar"]
+material = SubResource("Mat_StonePillar")
+size = Vector3(0.6, 2.5, 0.6)
+
+[sub_resource type="StandardMaterial3D" id="Mat_PortalCore"]
+albedo_color = Color(0.1, 0.8, 0.9, 1.0)
+emission_enabled = true
+emission = Color(0.15, 0.85, 1.0, 1.0)
+emission_energy_multiplier = 2.0
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_Pad"]
+material = SubResource("Mat_PortalCore")
+top_radius = 1.4
+bottom_radius = 1.6
+height = 0.2
+
+[node name="Portal" type="Area3D" groups=["interactables", "portal"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+collision_layer = 1
+collision_mask = 2
+script = ExtResource("1_portal")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+shape = SubResource("BoxShape3D_portal")
+
+[node name="PortalPad" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.1, 0)
+mesh = SubResource("CylinderMesh_Pad")
+
+[node name="PillarNW" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.6, 1.25, -1.6)
+mesh = SubResource("BoxMesh_Pillar")
+
+[node name="PillarNE" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.6, 1.25, -1.6)
+mesh = SubResource("BoxMesh_Pillar")
+
+[node name="PillarSW" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.6, 1.25, 1.6)
+mesh = SubResource("BoxMesh_Pillar")
+
+[node name="PillarSE" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.6, 1.25, 1.6)
+mesh = SubResource("BoxMesh_Pillar")
+
+[node name="PromptLabel" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.4, 0)
+billboard = 1
+no_depth_test = true
+font_size = 28
+outline_size = 8
+outline_color = Color(0, 0, 0, 1)
+text = "[E] REPAIR PORTAL
+(25 Wood, 25 Stone)"

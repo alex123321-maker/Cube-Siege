@@ -1,0 +1,546 @@
+[gd_scene load_steps=6 format=3 uid="uid://cmainmenu01"]
+
+[ext_resource type="Script" path="res://scripts/main_menu.gd" id="1_menu"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bg"]
+bg_color = Color(0.07, 0.08, 0.12, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card_warrior"]
+bg_color = Color(0.1, 0.14, 0.22, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.2, 0.5, 0.9, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card_archer"]
+bg_color = Color(0.1, 0.18, 0.14, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.25, 0.8, 0.45, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card_engineer"]
+bg_color = Color(0.2, 0.14, 0.1, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.95, 0.55, 0.2, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[node name="MainMenu" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_menu")
+
+[node name="Background" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_bg")
+
+[node name="Header" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -300.0
+offset_top = 40.0
+offset_right = 300.0
+offset_bottom = 120.0
+grow_horizontal = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="Label" parent="Header"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.3, 0.85, 1, 1)
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_constants/shadow_offset_y = 2
+theme_override_font_sizes/font_size = 36
+text = "CUBE SIEGE"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="Header"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.75, 0.85, 1)
+theme_override_font_sizes/font_size = 14
+text = "ISOMETRIC SURVIVAL ROGUELIKE"
+horizontal_alignment = 1
+
+[node name="ViewMain" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 130.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="ViewMain"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -140.0
+offset_top = -90.0
+offset_right = 140.0
+offset_bottom = 130.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 16
+
+[node name="BtnPlay" type="Button" parent="ViewMain/VBox"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "⚔ ИГРАТЬ"
+
+[node name="BtnSettings" type="Button" parent="ViewMain/VBox"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "⚙ НАСТРОЙКИ"
+
+[node name="BtnQuit" type="Button" parent="ViewMain/VBox"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "ВЫХОД"
+
+[node name="ViewSettings" type="Control" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 130.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="Panel" parent="ViewSettings"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -220.0
+offset_top = -140.0
+offset_right = 220.0
+offset_bottom = 140.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="ViewSettings/Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = 24.0
+offset_right = -24.0
+offset_bottom = -24.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="Title" type="Label" parent="ViewSettings/Panel/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "НАСТРОЙКИ"
+horizontal_alignment = 1
+
+[node name="Desc" type="Label" parent="ViewSettings/Panel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.65, 0.75, 1)
+text = "Параметры графики и аудио находятся в разработке."
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="BtnBackSettings" type="Button" parent="ViewSettings/Panel/VBox"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+text = "⮌ НАЗАД В МЕНЮ"
+
+[node name="ViewCharacters" type="Control" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 130.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Prompt" type="Label" parent="ViewCharacters"]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -250.0
+offset_top = 10.0
+offset_right = 250.0
+offset_bottom = 36.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
+theme_override_font_sizes/font_size = 16
+text = "ВЫБЕРИТЕ КЛАСС ДЛЯ ЗАБЕГА"
+horizontal_alignment = 1
+
+[node name="HBox" type="HBoxContainer" parent="ViewCharacters"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -480.0
+offset_top = -170.0
+offset_right = 480.0
+offset_bottom = 170.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="Slot0" type="Panel" parent="ViewCharacters/HBox"]
+custom_minimum_size = Vector2(300, 340)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_card_warrior")
+
+[node name="VBox" type="VBoxContainer" parent="ViewCharacters/HBox/Slot0"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="ViewCharacters/HBox/Slot0/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.35, 0.7, 1, 1)
+theme_override_font_sizes/font_size = 20
+text = "ВОИН"
+horizontal_alignment = 1
+
+[node name="Desc" type="Label" parent="ViewCharacters/HBox/Slot0/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.8, 0.9, 1)
+theme_override_font_sizes/font_size = 12
+text = "Рыцарь Авангарда"
+horizontal_alignment = 1
+
+[node name="Stats" type="VBoxContainer" parent="ViewCharacters/HBox/Slot0/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="LevelLabel" type="Label" parent="ViewCharacters/HBox/Slot0/VBox/Stats"]
+layout_mode = 2
+text = "УРОВЕНЬ: 1"
+horizontal_alignment = 1
+
+[node name="DayLabel" type="Label" parent="ViewCharacters/HBox/Slot0/VBox/Stats"]
+layout_mode = 2
+text = "РЕКОРД: ДЕНЬ 0"
+horizontal_alignment = 1
+
+[node name="XPLabel" type="Label" parent="ViewCharacters/HBox/Slot0/VBox/Stats"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.85, 0.4, 1)
+text = "БОЕВОЙ ОПЫТ: 0 XP"
+horizontal_alignment = 1
+
+[node name="BtnStart" type="Button" parent="ViewCharacters/HBox/Slot0/VBox"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+text = "⚔ НАЧАТЬ РАН"
+
+[node name="BtnTalents" type="Button" parent="ViewCharacters/HBox/Slot0/VBox"]
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+text = "🌟 ДЕРЕВО ТАЛАНТОВ"
+
+[node name="Slot1" type="Panel" parent="ViewCharacters/HBox"]
+custom_minimum_size = Vector2(300, 340)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_card_archer")
+
+[node name="VBox" type="VBoxContainer" parent="ViewCharacters/HBox/Slot1"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="ViewCharacters/HBox/Slot1/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.95, 0.5, 1)
+theme_override_font_sizes/font_size = 20
+text = "ЛУЧНИК"
+horizontal_alignment = 1
+
+[node name="Desc" type="Label" parent="ViewCharacters/HBox/Slot1/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.9, 0.75, 1)
+theme_override_font_sizes/font_size = 12
+text = "Следопыт Лесов"
+horizontal_alignment = 1
+
+[node name="Stats" type="VBoxContainer" parent="ViewCharacters/HBox/Slot1/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="LevelLabel" type="Label" parent="ViewCharacters/HBox/Slot1/VBox/Stats"]
+layout_mode = 2
+text = "УРОВЕНЬ: 1"
+horizontal_alignment = 1
+
+[node name="DayLabel" type="Label" parent="ViewCharacters/HBox/Slot1/VBox/Stats"]
+layout_mode = 2
+text = "РЕКОРД: ДЕНЬ 0"
+horizontal_alignment = 1
+
+[node name="XPLabel" type="Label" parent="ViewCharacters/HBox/Slot1/VBox/Stats"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.85, 0.4, 1)
+text = "БОЕВОЙ ОПЫТ: 0 XP"
+horizontal_alignment = 1
+
+[node name="BtnStart" type="Button" parent="ViewCharacters/HBox/Slot1/VBox"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+text = "⚔ НАЧАТЬ РАН"
+
+[node name="BtnTalents" type="Button" parent="ViewCharacters/HBox/Slot1/VBox"]
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+text = "🌟 ДЕРЕВО ТАЛАНТОВ"
+
+[node name="Slot2" type="Panel" parent="ViewCharacters/HBox"]
+custom_minimum_size = Vector2(300, 340)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_card_engineer")
+
+[node name="VBox" type="VBoxContainer" parent="ViewCharacters/HBox/Slot2"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="ViewCharacters/HBox/Slot2/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.65, 0.3, 1)
+theme_override_font_sizes/font_size = 20
+text = "ИНЖЕНЕР"
+horizontal_alignment = 1
+
+[node name="Desc" type="Label" parent="ViewCharacters/HBox/Slot2/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.8, 0.7, 1)
+theme_override_font_sizes/font_size = 12
+text = "Мастер Фортификаций"
+horizontal_alignment = 1
+
+[node name="Stats" type="VBoxContainer" parent="ViewCharacters/HBox/Slot2/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="LevelLabel" type="Label" parent="ViewCharacters/HBox/Slot2/VBox/Stats"]
+layout_mode = 2
+text = "УРОВЕНЬ: 1"
+horizontal_alignment = 1
+
+[node name="DayLabel" type="Label" parent="ViewCharacters/HBox/Slot2/VBox/Stats"]
+layout_mode = 2
+text = "РЕКОРД: ДЕНЬ 0"
+horizontal_alignment = 1
+
+[node name="XPLabel" type="Label" parent="ViewCharacters/HBox/Slot2/VBox/Stats"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.85, 0.4, 1)
+text = "БОЕВОЙ ОПЫТ: 0 XP"
+horizontal_alignment = 1
+
+[node name="BtnStart" type="Button" parent="ViewCharacters/HBox/Slot2/VBox"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+text = "⚔ НАЧАТЬ РАН"
+
+[node name="BtnTalents" type="Button" parent="ViewCharacters/HBox/Slot2/VBox"]
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+text = "🌟 ДЕРЕВО ТАЛАНТОВ"
+
+[node name="BtnBackFromChars" type="Button" parent="ViewCharacters"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -100.0
+offset_top = -54.0
+offset_right = 100.0
+offset_bottom = -16.0
+grow_horizontal = 2
+grow_vertical = 0
+text = "⮌ В ГЛАВНОЕ МЕНЮ"
+
+[node name="ViewTalents" type="Control" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 130.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="Panel" parent="ViewTalents"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -320.0
+offset_top = -180.0
+offset_right = 320.0
+offset_bottom = 180.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="ViewTalents"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -300.0
+offset_top = -160.0
+offset_right = 300.0
+offset_bottom = 160.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 14
+
+[node name="CharTitle" type="Label" parent="ViewTalents/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.3, 0.9, 1, 1)
+theme_override_font_sizes/font_size = 18
+text = "ДЕРЕВО ТАЛАНТОВ: ВОИН"
+horizontal_alignment = 1
+
+[node name="PointsLabel" type="Label" parent="ViewTalents/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
+theme_override_font_sizes/font_size = 16
+text = "ДОСТУПНО ОЧКОВ: 5"
+horizontal_alignment = 1
+
+[node name="Grid" type="GridContainer" parent="ViewTalents/VBox"]
+layout_mode = 2
+theme_override_constants/h_separation = 16
+theme_override_constants/v_separation = 14
+columns = 2
+
+[node name="BtnBlood" type="Button" parent="ViewTalents/VBox/Grid"]
+custom_minimum_size = Vector2(290, 52)
+layout_mode = 2
+text = "🩸 Кровожадность (0/25)\n[+2% Урона per rank]"
+
+[node name="BtnSurv" type="Button" parent="ViewTalents/VBox/Grid"]
+custom_minimum_size = Vector2(290, 52)
+layout_mode = 2
+text = "🛡 Выживаемость (0/25)\n[+4 HP, +1% Защита]"
+
+[node name="BtnAgil" type="Button" parent="ViewTalents/VBox/Grid"]
+custom_minimum_size = Vector2(290, 52)
+layout_mode = 2
+text = "⚡ Проворство (0/25)\n[+1.5% Скорость, -1.5% Откат]"
+
+[node name="BtnCraft" type="Button" parent="ViewTalents/VBox/Grid"]
+custom_minimum_size = Vector2(290, 52)
+layout_mode = 2
+text = "🔨 Ремесло (0/25)\n[+3% Сбор, +4% HP Зданий]"
+
+[node name="HBoxActions" type="HBoxContainer" parent="ViewTalents/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+alignment = 1
+
+[node name="BtnReset" type="Button" parent="ViewTalents/VBox/HBoxActions"]
+custom_minimum_size = Vector2(200, 40)
+layout_mode = 2
+text = "СБРОСИТЬ ОЧКИ"
+
+[node name="BtnBackToChars" type="Button" parent="ViewTalents/VBox/HBoxActions"]
+custom_minimum_size = Vector2(200, 40)
+layout_mode = 2
+text = "⮌ К ПЕРСОНАЖАМ"
+
+[connection signal="pressed" from="ViewMain/VBox/BtnPlay" to="." method="_on_btn_play_pressed"]
+[connection signal="pressed" from="ViewMain/VBox/BtnSettings" to="." method="_on_btn_settings_pressed"]
+[connection signal="pressed" from="ViewMain/VBox/BtnQuit" to="." method="_on_btn_quit_pressed"]
+[connection signal="pressed" from="ViewSettings/Panel/VBox/BtnBackSettings" to="." method="_on_btn_back_to_main_pressed"]
+[connection signal="pressed" from="ViewCharacters/HBox/Slot0/VBox/BtnStart" to="." method="_on_btn_start_0_pressed"]
+[connection signal="pressed" from="ViewCharacters/HBox/Slot0/VBox/BtnTalents" to="." method="_on_btn_talents_0_pressed"]
+[connection signal="pressed" from="ViewCharacters/HBox/Slot1/VBox/BtnStart" to="." method="_on_btn_start_1_pressed"]
+[connection signal="pressed" from="ViewCharacters/HBox/Slot1/VBox/BtnTalents" to="." method="_on_btn_talents_1_pressed"]
+[connection signal="pressed" from="ViewCharacters/HBox/Slot2/VBox/BtnStart" to="." method="_on_btn_start_2_pressed"]
+[connection signal="pressed" from="ViewCharacters/HBox/Slot2/VBox/BtnTalents" to="." method="_on_btn_talents_2_pressed"]
+[connection signal="pressed" from="ViewCharacters/BtnBackFromChars" to="." method="_on_btn_back_to_main_pressed"]
+[connection signal="pressed" from="ViewTalents/VBox/Grid/BtnBlood" to="." method="_on_invest_blood_pressed"]
+[connection signal="pressed" from="ViewTalents/VBox/Grid/BtnSurv" to="." method="_on_invest_surv_pressed"]
+[connection signal="pressed" from="ViewTalents/VBox/Grid/BtnAgil" to="." method="_on_invest_agil_pressed"]
+[connection signal="pressed" from="ViewTalents/VBox/Grid/BtnCraft" to="." method="_on_invest_craft_pressed"]
+[connection signal="pressed" from="ViewTalents/VBox/HBoxActions/BtnReset" to="." method="_on_reset_talents_pressed"]
+[connection signal="pressed" from="ViewTalents/VBox/HBoxActions/BtnBackToChars" to="." method="_on_btn_back_to_chars_pressed"]

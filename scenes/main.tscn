@@ -1,0 +1,334 @@
+[gd_scene load_steps=25 format=3 uid="uid://cmain001"]
+
+[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="1_player"]
+[ext_resource type="PackedScene" path="res://scenes/portal.tscn" id="2_portal"]
+[ext_resource type="Script" path="res://scripts/camera_follow.gd" id="3_camera"]
+[ext_resource type="Script" path="res://scripts/hud.gd" id="4_hud"]
+[ext_resource type="PackedScene" path="res://scenes/enemy_dummy.tscn" id="5_enemy"]
+[ext_resource type="PackedScene" path="res://scenes/resource_tree.tscn" id="6_tree"]
+[ext_resource type="Script" path="res://scripts/main.gd" id="7_main"]
+[ext_resource type="Script" path="res://scripts/building_system.gd" id="8_building"]
+[ext_resource type="PackedScene" path="res://scenes/radial_menu.tscn" id="9_radial"]
+[ext_resource type="Script" path="res://scripts/day_night_cycle.gd" id="10_daynight"]
+[ext_resource type="Script" path="res://scripts/wave_director.gd" id="11_wave"]
+[ext_resource type="PackedScene" path="res://scenes/game_over_overlay.tscn" id="12_overlay"]
+[ext_resource type="PackedScene" path="res://scenes/resource_stone.tscn" id="13_stone"]
+[ext_resource type="PackedScene" path="res://scenes/resource_iron.tscn" id="14_iron"]
+[ext_resource type="Script" path="res://scripts/safe_zone_detector.gd" id="15_safezone"]
+[ext_resource type="Script" path="res://scripts/save_manager.gd" id="16_save"]
+[ext_resource type="PackedScene" path="res://scenes/map_generator.tscn" id="17_mapgen"]
+[ext_resource type="PackedScene" path="res://scenes/card_draft_popup.tscn" id="18_carddraft"]
+[ext_resource type="PackedScene" path="res://scenes/prefabs/workbench.tscn" id="19_bench"]
+[ext_resource type="PackedScene" path="res://scenes/workbench_modal.tscn" id="20_benchmodal"]
+[ext_resource type="PackedScene" path="res://scenes/skills_action_bar.tscn" id="21_skillsbar"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_main"]
+sky_top_color = Color(0.35, 0.55, 0.85, 1.0)
+sky_horizon_color = Color(0.7, 0.75, 0.82, 1.0)
+ground_bottom_color = Color(0.2, 0.22, 0.25, 1.0)
+ground_horizon_color = Color(0.7, 0.75, 0.82, 1.0)
+
+[sub_resource type="Sky" id="Sky_main"]
+sky_material = SubResource("ProceduralSkyMaterial_main")
+
+[sub_resource type="Environment" id="Environment_main"]
+background_mode = 2
+sky = SubResource("Sky_main")
+ambient_light_source = 3
+ambient_light_color = Color(0.65, 0.7, 0.78, 1.0)
+ambient_light_energy = 1.0
+tonemap_mode = 2
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_floor"]
+size = Vector3(80, 1, 80)
+
+[sub_resource type="StandardMaterial3D" id="Mat_FloorGrid"]
+albedo_color = Color(0.22, 0.35, 0.22, 1.0)
+roughness = 0.9
+
+[sub_resource type="BoxMesh" id="BoxMesh_floor"]
+material = SubResource("Mat_FloorGrid")
+size = Vector3(80, 1, 80)
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_HP_Fill"]
+bg_color = Color(0.85, 0.2, 0.2, 1.0)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_XP_Fill"]
+bg_color = Color(0.15, 0.75, 0.85, 1.0)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="StyleBox_Boss_Fill"]
+bg_color = Color(0.9, 0.15, 0.2, 1.0)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1.0, 0.4, 0.4, 1.0)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[node name="Main" type="Node3D"]
+script = ExtResource("7_main")
+
+[node name="BuildingSystem" type="Node3D" parent="."]
+script = ExtResource("8_building")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_main")
+
+[node name="SunLight" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.707107, -0.5, 0.5, 0, 0.707107, 0.707107, -0.707107, -0.5, 0.5, 0, 20, 0)
+shadow_enabled = true
+directional_shadow_max_distance = 60.0
+
+[node name="Ground" type="StaticBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Ground"]
+shape = SubResource("BoxShape3D_floor")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Ground"]
+mesh = SubResource("BoxMesh_floor")
+
+[node name="Portal" parent="." instance=ExtResource("2_portal")]
+
+[node name="Workbench" parent="." instance=ExtResource("19_bench")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5, 0, 0)
+
+[node name="Player" parent="." instance=ExtResource("1_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 4)
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(0.707107, -0.40558, 0.579228, 0, 0.819152, 0.573576, -0.707107, -0.40558, 0.579228, 18, 24, 18)
+projection = 0
+fov = 45.0
+script = ExtResource("3_camera")
+target_path = NodePath("../Player")
+
+[node name="HUD" type="CanvasLayer" parent="."]
+script = ExtResource("4_hud")
+player_path = NodePath("../Player")
+
+[node name="Margin" type="Control" parent="HUD"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TopCenter" type="HBoxContainer" parent="HUD/Margin"]
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -120.0
+offset_top = 20.0
+offset_right = 120.0
+offset_bottom = 60.0
+grow_horizontal = 2
+alignment = 1
+
+[node name="DayNightLabel" type="Label" parent="HUD/Margin/TopCenter"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "DAY 1  [01:00]"
+horizontal_alignment = 1
+
+[node name="BtnSkipNight" type="Button" parent="HUD/Margin/TopCenter"]
+layout_mode = 2
+text = ">| Ночь"
+
+[node name="BossBarContainer" type="VBoxContainer" parent="HUD/Margin"]
+visible = false
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -250.0
+offset_top = 70.0
+offset_right = 250.0
+offset_bottom = 115.0
+grow_horizontal = 2
+alignment = 1
+
+[node name="BossTitle" type="Label" parent="HUD/Margin/BossBarContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.25, 0.25, 1)
+theme_override_font_sizes/font_size = 14
+text = "☠ GORGON THE TRAMPLER ☠"
+horizontal_alignment = 1
+
+[node name="BossHPBar" type="ProgressBar" parent="HUD/Margin/BossBarContainer"]
+custom_minimum_size = Vector2(500, 18)
+layout_mode = 2
+theme_override_styles/fill = SubResource("StyleBox_Boss_Fill")
+max_value = 2000.0
+value = 2000.0
+show_percentage = false
+
+[node name="BossHPLabel" type="Label" parent="HUD/Margin/BossBarContainer/BossHPBar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 11
+text = "2000 / 2000 HP"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TopLeft" type="VBoxContainer" parent="HUD/Margin"]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 24.0
+offset_right = 200.0
+offset_bottom = 140.0
+
+[node name="Resources" type="VBoxContainer" parent="HUD/Margin/TopLeft"]
+layout_mode = 2
+
+[node name="WoodBox" type="HBoxContainer" parent="HUD/Margin/TopLeft/Resources"]
+layout_mode = 2
+
+[node name="WoodLabel" type="Label" parent="HUD/Margin/TopLeft/Resources/WoodBox"]
+layout_mode = 2
+text = "WOOD: 0 / 25"
+
+[node name="StoneBox" type="HBoxContainer" parent="HUD/Margin/TopLeft/Resources"]
+layout_mode = 2
+
+[node name="StoneLabel" type="Label" parent="HUD/Margin/TopLeft/Resources/StoneBox"]
+layout_mode = 2
+text = "STONE: 0 / 25"
+
+[node name="IronBox" type="HBoxContainer" parent="HUD/Margin/TopLeft/Resources"]
+layout_mode = 2
+
+[node name="IronLabel" type="Label" parent="HUD/Margin/TopLeft/Resources/IronBox"]
+layout_mode = 2
+text = "IRON: 0"
+
+[node name="BottomCenter" type="HBoxContainer" parent="HUD/Margin"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -200.0
+offset_top = -76.0
+offset_right = 200.0
+offset_bottom = -12.0
+grow_horizontal = 2
+grow_vertical = 0
+alignment = 1
+
+[node name="SkillsActionBar" parent="HUD/Margin/BottomCenter" instance=ExtResource("21_skillsbar")]
+layout_mode = 2
+
+[node name="TopXPBar" type="ProgressBar" parent="HUD"]
+custom_minimum_size = Vector2(0, 18)
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 18.0
+grow_horizontal = 2
+theme_override_styles/fill = SubResource("StyleBox_XP_Fill")
+value = 0.0
+show_percentage = false
+
+[node name="XPLabel" type="Label" parent="HUD/TopXPBar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 11
+text = "LVL 1 [ 0 / 80 XP ]"
+[node name="PlayerFloatingHP" type="Control" parent="HUD"]
+custom_minimum_size = Vector2(120, 16)
+layout_mode = 3
+anchors_preset = 0
+offset_right = 120.0
+offset_bottom = 16.0
+
+[node name="Bar" type="ProgressBar" parent="HUD/PlayerFloatingHP"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/fill = SubResource("StyleBox_HP_Fill")
+value = 100.0
+show_percentage = false
+
+[node name="Label" type="Label" parent="HUD/PlayerFloatingHP/Bar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
+theme_override_constants/shadow_offset_y = 1
+theme_override_font_sizes/font_size = 10
+text = "100 / 100 HP"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="RadialMenu" parent="HUD" instance=ExtResource("9_radial")]
+
+[node name="GameOverOverlay" parent="HUD" instance=ExtResource("12_overlay")]
+
+[node name="CardDraftPopup" parent="HUD" instance=ExtResource("18_carddraft")]
+
+[node name="WorkbenchModal" parent="HUD" instance=ExtResource("20_benchmodal")]
+visible = false
+
+[node name="Enemies" type="Node3D" parent="."]
+
+[node name="Enemy1" parent="Enemies" instance=ExtResource("5_enemy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0.9, 8)
+
+[node name="Enemy2" parent="Enemies" instance=ExtResource("5_enemy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0.9, 6)
+
+[node name="Enemy3" parent="Enemies" instance=ExtResource("5_enemy")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0.9, -12)
+
+[node name="MapGenerator" parent="." instance=ExtResource("17_mapgen")]
+
+[node name="DayNightCycle" type="Node" parent="."]
+script = ExtResource("10_daynight")
+sun_light_path = NodePath("../SunLight")
+world_env_path = NodePath("../WorldEnvironment")
+hud_path = NodePath("../HUD")
+
+[node name="WaveDirector" type="Node" parent="."]
+script = ExtResource("11_wave")
+day_night_path = NodePath("../DayNightCycle")
+player_path = NodePath("../Player")
+
+
+
+[node name="SafeZoneDetector" type="Node" parent="."]
+script = ExtResource("15_safezone")
+building_system_path = NodePath("../BuildingSystem")
+wave_director_path = NodePath("../WaveDirector")
+
+[node name="SaveManager" type="Node" parent="."]
+script = ExtResource("16_save")

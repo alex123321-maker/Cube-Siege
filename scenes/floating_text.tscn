@@ -1,0 +1,15 @@
+[gd_scene load_steps=2 format=3 uid="uid://cfloattext01"]
+
+[ext_resource type="Script" path="res://scripts/floating_text.gd" id="1_float"]
+
+[node name="FloatingText" type="Node3D"]
+script = ExtResource("1_float")
+
+[node name="Label3D" type="Label3D" parent="."]
+billboard = 1
+double_sided = false
+no_depth_test = true
+font_size = 36
+outline_size = 8
+outline_color = Color(0, 0, 0, 1)
+text = "25"

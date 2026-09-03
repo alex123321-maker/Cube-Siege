@@ -1,0 +1,56 @@
+[gd_scene load_steps=7 format=3 uid="uid://cstonerock01"]
+
+[ext_resource type="Script" path="res://scripts/resource_rock.gd" id="1_rock"]
+[ext_resource type="Script" path="res://scripts/hurtbox_area.gd" id="2_hurtbox"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_stone"]
+size = Vector3(1.4, 1.1, 1.3)
+
+[sub_resource type="StandardMaterial3D" id="Mat_StoneBoulder"]
+albedo_color = Color(0.5, 0.52, 0.55, 1.0)
+roughness = 0.9
+
+[sub_resource type="BoxMesh" id="BoxMesh_Rock"]
+material = SubResource("Mat_StoneBoulder")
+size = Vector3(1.0, 1.0, 1.0)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_hurt"]
+size = Vector3(1.1, 1.1, 1.1)
+
+[node name="ResourceStone" type="StaticBody3D" groups=["interactables", "resource_nodes"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+collision_layer = 1
+collision_mask = 0
+script = ExtResource("1_rock")
+rock_type = 0
+max_health = 80.0
+resource_yield = 4
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+shape = SubResource("BoxShape3D_stone")
+
+[node name="Visuals" type="Node3D" parent="."]
+
+[node name="RockMesh" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+mesh = SubResource("BoxMesh_Rock")
+
+[node name="Hurtbox" type="Area3D" parent="."]
+collision_layer = 8
+collision_mask = 0
+script = ExtResource("2_hurtbox")
+mesh_to_flash_path = NodePath("../Visuals/RockMesh")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Hurtbox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+shape = SubResource("BoxShape3D_hurt")
+
+[node name="PromptLabel" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.3, 0)
+billboard = 1
+no_depth_test = true
+font_size = 28
+outline_size = 6
+outline_color = Color(0, 0, 0, 1)
+text = "[E] HARVEST"

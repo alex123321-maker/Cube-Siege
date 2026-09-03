@@ -1,0 +1,2440 @@
+{
+  "meta": {
+    "format_version": "4.5",
+    "model_format": "free",
+    "box_uv": false
+  },
+  "name": "hero_warrior",
+  "resolution": {
+    "width": 64,
+    "height": 64
+  },
+  "elements": [
+    {
+      "name": "head",
+      "uuid": "fcc565ce-8d32-4144-b76f-904dcbfb244c",
+      "from": [
+        -4,
+        24,
+        -4
+      ],
+      "to": [
+        4,
+        32,
+        4
+      ],
+      "origin": [
+        0,
+        24,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 0,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        }
+      }
+    },
+    {
+      "name": "helmet_crest",
+      "uuid": "91f885ee-3b75-4e8f-a62d-9cba0cf58a6f",
+      "from": [
+        -1,
+        32,
+        -4.5
+      ],
+      "to": [
+        1,
+        35.5,
+        4.5
+      ],
+      "origin": [
+        0,
+        24,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 5,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        }
+      }
+    },
+    {
+      "name": "helmet_visor",
+      "uuid": "01103c82-bbe4-46bb-8b15-75befdc9884a",
+      "from": [
+        -4.3,
+        26,
+        -4.8
+      ],
+      "to": [
+        4.3,
+        29,
+        -3.6
+      ],
+      "origin": [
+        0,
+        24,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 7,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        }
+      }
+    },
+    {
+      "name": "torso",
+      "uuid": "2ab672fa-e8c4-4020-a4b0-e0d22b18f200",
+      "from": [
+        -4,
+        12,
+        -2
+      ],
+      "to": [
+        4,
+        24,
+        2
+      ],
+      "origin": [
+        0,
+        12,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 1,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        }
+      }
+    },
+    {
+      "name": "breastplate",
+      "uuid": "66532b99-24a7-4203-adb3-fadb523ac634",
+      "from": [
+        -4.4,
+        14.5,
+        -2.6
+      ],
+      "to": [
+        4.4,
+        23.5,
+        2.6
+      ],
+      "origin": [
+        0,
+        12,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 8,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        }
+      }
+    },
+    {
+      "name": "right_arm",
+      "uuid": "645424eb-918e-4134-b600-bb34f4d97dc1",
+      "from": [
+        -8,
+        12,
+        -2
+      ],
+      "to": [
+        -4,
+        24,
+        2
+      ],
+      "origin": [
+        -6,
+        22,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 0,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        }
+      }
+    },
+    {
+      "name": "sword_handle",
+      "uuid": "638ec4c5-31f0-44e8-87bf-240ae1d3200c",
+      "from": [
+        -6.5,
+        11.5,
+        -1.5
+      ],
+      "to": [
+        -5.5,
+        13.5,
+        2.0
+      ],
+      "origin": [
+        -6,
+        12.5,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 4,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        }
+      }
+    },
+    {
+      "name": "sword_pommel",
+      "uuid": "214805cc-3b8b-4243-95b7-134a6f61c1a0",
+      "from": [
+        -6.8,
+        11.2,
+        2.0
+      ],
+      "to": [
+        -5.2,
+        13.8,
+        3.0
+      ],
+      "origin": [
+        -6,
+        12.5,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        }
+      }
+    },
+    {
+      "name": "sword_guard",
+      "uuid": "89ab8aef-83c4-4fd3-91b1-9e6a65c7a252",
+      "from": [
+        -8.8,
+        11.0,
+        -2.5
+      ],
+      "to": [
+        -3.2,
+        14.0,
+        -1.5
+      ],
+      "origin": [
+        -6,
+        12.5,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 3,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        }
+      }
+    },
+    {
+      "name": "sword_blade",
+      "uuid": "c4b3e9ac-c37a-42ad-ad54-5e81246afa32",
+      "from": [
+        -6.4,
+        11.8,
+        -17.0
+      ],
+      "to": [
+        -5.6,
+        13.2,
+        -2.5
+      ],
+      "origin": [
+        -6,
+        12.5,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 9,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        }
+      }
+    },
+    {
+      "name": "left_arm",
+      "uuid": "4b9c3e7a-c1c6-4ba1-9391-41ed865f93f3",
+      "from": [
+        4,
+        12,
+        -2
+      ],
+      "to": [
+        8,
+        24,
+        2
+      ],
+      "origin": [
+        6,
+        22,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 0,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        }
+      }
+    },
+    {
+      "name": "shield",
+      "uuid": "75a6796d-9b86-4b42-b453-adb4d817b0ef",
+      "from": [
+        7.8,
+        10.5,
+        -4.5
+      ],
+      "to": [
+        8.8,
+        23.5,
+        4.5
+      ],
+      "origin": [
+        6,
+        16,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 5,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        }
+      }
+    },
+    {
+      "name": "shield_boss",
+      "uuid": "d84da6e3-1185-464f-9c18-91c071c5a375",
+      "from": [
+        8.8,
+        15.0,
+        -1.5
+      ],
+      "to": [
+        9.4,
+        19.0,
+        1.5
+      ],
+      "origin": [
+        6,
+        16,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 8,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        }
+      }
+    },
+    {
+      "name": "right_leg",
+      "uuid": "3b0281d2-f903-4a33-b688-135de5da5c79",
+      "from": [
+        -4,
+        0,
+        -2
+      ],
+      "to": [
+        0,
+        12,
+        2
+      ],
+      "origin": [
+        -2,
+        12,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 7,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        }
+      }
+    },
+    {
+      "name": "left_leg",
+      "uuid": "d3007b25-ab71-49ad-83fb-c2f1f208e094",
+      "from": [
+        0,
+        0,
+        -2
+      ],
+      "to": [
+        4,
+        12,
+        2
+      ],
+      "origin": [
+        2,
+        12,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 7,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ]
+        }
+      }
+    }
+  ],
+  "outliner": [
+    {
+      "name": "root",
+      "uuid": "d8dda599-efa4-4260-add7-ed02e69f5b4c",
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "children": [
+        {
+          "name": "torso",
+          "uuid": "1b120774-bcbe-4079-b17f-df0760ca77a6",
+          "origin": [
+            0,
+            12,
+            0
+          ],
+          "children": [
+            "2ab672fa-e8c4-4020-a4b0-e0d22b18f200",
+            "66532b99-24a7-4203-adb3-fadb523ac634",
+            {
+              "name": "head",
+              "uuid": "726d21fd-66f0-4f36-bb17-ca994ebb9880",
+              "origin": [
+                0,
+                24,
+                0
+              ],
+              "children": [
+                "fcc565ce-8d32-4144-b76f-904dcbfb244c",
+                "91f885ee-3b75-4e8f-a62d-9cba0cf58a6f",
+                "01103c82-bbe4-46bb-8b15-75befdc9884a"
+              ]
+            },
+            {
+              "name": "right_arm",
+              "uuid": "4e72d9f1-37dc-4f89-b8af-fd0bfd0d0521",
+              "origin": [
+                -6,
+                22,
+                0
+              ],
+              "children": [
+                "645424eb-918e-4134-b600-bb34f4d97dc1",
+                {
+                  "name": "sword",
+                  "uuid": "146c93d8-e8f4-40b1-adb1-ef9df69b8c03",
+                  "origin": [
+                    -6,
+                    12.5,
+                    0
+                  ],
+                  "children": [
+                    "638ec4c5-31f0-44e8-87bf-240ae1d3200c",
+                    "214805cc-3b8b-4243-95b7-134a6f61c1a0",
+                    "89ab8aef-83c4-4fd3-91b1-9e6a65c7a252",
+                    "c4b3e9ac-c37a-42ad-ad54-5e81246afa32"
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "left_arm",
+              "uuid": "83148178-0426-4ae7-b671-be80a1395e84",
+              "origin": [
+                6,
+                22,
+                0
+              ],
+              "children": [
+                "4b9c3e7a-c1c6-4ba1-9391-41ed865f93f3",
+                {
+                  "name": "shield",
+                  "uuid": "6ac31a01-9465-44cf-ae24-80089e679f9c",
+                  "origin": [
+                    6,
+                    16,
+                    0
+                  ],
+                  "children": [
+                    "75a6796d-9b86-4b42-b453-adb4d817b0ef",
+                    "d84da6e3-1185-464f-9c18-91c071c5a375"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "right_leg",
+          "uuid": "cff05df3-548b-43d0-95b7-46c7d7c023f5",
+          "origin": [
+            -2,
+            12,
+            0
+          ],
+          "children": [
+            "3b0281d2-f903-4a33-b688-135de5da5c79"
+          ]
+        },
+        {
+          "name": "left_leg",
+          "uuid": "67342a66-150d-40d3-aec7-84d299b7681c",
+          "origin": [
+            2,
+            12,
+            0
+          ],
+          "children": [
+            "d3007b25-ab71-49ad-83fb-c2f1f208e094"
+          ]
+        }
+      ]
+    }
+  ],
+  "textures": [],
+  "animations": [
+    {
+      "name": "idle",
+      "uuid": "c1aef97a-c98f-4772-a613-3628f4f97f54",
+      "loop": "loop",
+      "length": 1.2,
+      "animators": {
+        "1b120774-bcbe-4079-b17f-df0760ca77a6": {
+          "name": "torso",
+          "type": "bone",
+          "position": [
+            {
+              "channel": "position",
+              "time": 0.0,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "0",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "position",
+              "time": 0.6,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "0",
+                  "y": "-0.5",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "position",
+              "time": 1.2,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "0",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            }
+          ],
+          "rotation": [
+            {
+              "channel": "rotation",
+              "time": 0.0,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "5",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.6,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "7",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 1.2,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "5",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            }
+          ]
+        },
+        "726d21fd-66f0-4f36-bb17-ca994ebb9880": {
+          "name": "head",
+          "type": "bone",
+          "rotation": [
+            {
+              "channel": "rotation",
+              "time": 0.0,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-5",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.6,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-7",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 1.2,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-5",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            }
+          ]
+        },
+        "4e72d9f1-37dc-4f89-b8af-fd0bfd0d0521": {
+          "name": "right_arm",
+          "type": "bone",
+          "rotation": [
+            {
+              "channel": "rotation",
+              "time": 0.0,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-10",
+                  "y": "-5",
+                  "z": "5"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.6,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-8",
+                  "y": "-5",
+                  "z": "7"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 1.2,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-10",
+                  "y": "-5",
+                  "z": "5"
+                }
+              ]
+            }
+          ]
+        },
+        "146c93d8-e8f4-40b1-adb1-ef9df69b8c03": {
+          "name": "sword",
+          "type": "bone",
+          "rotation": [
+            {
+              "channel": "rotation",
+              "time": 0.0,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-15",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.6,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-15",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 1.2,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-15",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            }
+          ]
+        },
+        "83148178-0426-4ae7-b671-be80a1395e84": {
+          "name": "left_arm",
+          "type": "bone",
+          "rotation": [
+            {
+              "channel": "rotation",
+              "time": 0.0,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-10",
+                  "y": "5",
+                  "z": "-5"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.6,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-12",
+                  "y": "7",
+                  "z": "-7"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 1.2,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-10",
+                  "y": "5",
+                  "z": "-5"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "walk",
+      "uuid": "d49aab9b-0a73-4830-84d3-96758ef7c8a3",
+      "loop": "loop",
+      "length": 0.8,
+      "animators": {
+        "cff05df3-548b-43d0-95b7-46c7d7c023f5": {
+          "name": "right_leg",
+          "type": "bone",
+          "rotation": [
+            {
+              "channel": "rotation",
+              "time": 0.0,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-30",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.4,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "30",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.8,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-30",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            }
+          ]
+        },
+        "67342a66-150d-40d3-aec7-84d299b7681c": {
+          "name": "left_leg",
+          "type": "bone",
+          "rotation": [
+            {
+              "channel": "rotation",
+              "time": 0.0,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "30",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.4,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-30",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.8,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "30",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            }
+          ]
+        },
+        "4e72d9f1-37dc-4f89-b8af-fd0bfd0d0521": {
+          "name": "right_arm",
+          "type": "bone",
+          "rotation": [
+            {
+              "channel": "rotation",
+              "time": 0.0,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "30",
+                  "y": "0",
+                  "z": "5"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.4,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-30",
+                  "y": "0",
+                  "z": "5"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.8,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "30",
+                  "y": "0",
+                  "z": "5"
+                }
+              ]
+            }
+          ]
+        },
+        "146c93d8-e8f4-40b1-adb1-ef9df69b8c03": {
+          "name": "sword",
+          "type": "bone",
+          "rotation": [
+            {
+              "channel": "rotation",
+              "time": 0.0,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-15",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.4,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-15",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.8,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-15",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            }
+          ]
+        },
+        "83148178-0426-4ae7-b671-be80a1395e84": {
+          "name": "left_arm",
+          "type": "bone",
+          "rotation": [
+            {
+              "channel": "rotation",
+              "time": 0.0,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-30",
+                  "y": "5",
+                  "z": "-5"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.4,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "30",
+                  "y": "5",
+                  "z": "-5"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.8,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-30",
+                  "y": "5",
+                  "z": "-5"
+                }
+              ]
+            }
+          ]
+        },
+        "1b120774-bcbe-4079-b17f-df0760ca77a6": {
+          "name": "torso",
+          "type": "bone",
+          "position": [
+            {
+              "channel": "position",
+              "time": 0.0,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "0",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "position",
+              "time": 0.2,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "0",
+                  "y": "0.5",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "position",
+              "time": 0.4,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "0",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "position",
+              "time": 0.6,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "0",
+                  "y": "0.5",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "position",
+              "time": 0.8,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "0",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            }
+          ],
+          "rotation": [
+            {
+              "channel": "rotation",
+              "time": 0.0,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "5",
+                  "y": "-5",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.4,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "5",
+                  "y": "5",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.8,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "5",
+                  "y": "-5",
+                  "z": "0"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "attack",
+      "uuid": "7224be70-959f-4208-a822-e7d141814c93",
+      "loop": "once",
+      "length": 0.5,
+      "animators": {
+        "4e72d9f1-37dc-4f89-b8af-fd0bfd0d0521": {
+          "name": "right_arm",
+          "type": "bone",
+          "rotation": [
+            {
+              "channel": "rotation",
+              "time": 0.0,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-10",
+                  "y": "-5",
+                  "z": "5"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.12,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-135",
+                  "y": "10",
+                  "z": "-20"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.25,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "45",
+                  "y": "45",
+                  "z": "-20"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.38,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "20",
+                  "y": "20",
+                  "z": "-10"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.5,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-10",
+                  "y": "-5",
+                  "z": "5"
+                }
+              ]
+            }
+          ]
+        },
+        "146c93d8-e8f4-40b1-adb1-ef9df69b8c03": {
+          "name": "sword",
+          "type": "bone",
+          "rotation": [
+            {
+              "channel": "rotation",
+              "time": 0.0,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-15",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.12,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "10",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.25,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-45",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.38,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-15",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.5,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-15",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            }
+          ]
+        },
+        "1b120774-bcbe-4079-b17f-df0760ca77a6": {
+          "name": "torso",
+          "type": "bone",
+          "position": [
+            {
+              "channel": "position",
+              "time": 0.0,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "0",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "position",
+              "time": 0.12,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "0",
+                  "y": "-0.4",
+                  "z": "-0.5"
+                }
+              ]
+            },
+            {
+              "channel": "position",
+              "time": 0.25,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "0",
+                  "y": "-0.8",
+                  "z": "1.8"
+                }
+              ]
+            },
+            {
+              "channel": "position",
+              "time": 0.38,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "0",
+                  "y": "-0.4",
+                  "z": "0.8"
+                }
+              ]
+            },
+            {
+              "channel": "position",
+              "time": 0.5,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "0",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            }
+          ],
+          "rotation": [
+            {
+              "channel": "rotation",
+              "time": 0.0,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "5",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.12,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-2",
+                  "y": "-30",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.25,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "15",
+                  "y": "25",
+                  "z": "-5"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.38,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "8",
+                  "y": "15",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.5,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "5",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            }
+          ]
+        },
+        "83148178-0426-4ae7-b671-be80a1395e84": {
+          "name": "left_arm",
+          "type": "bone",
+          "rotation": [
+            {
+              "channel": "rotation",
+              "time": 0.0,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-10",
+                  "y": "5",
+                  "z": "-5"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.12,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "10",
+                  "y": "10",
+                  "z": "-20"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.25,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-20",
+                  "y": "0",
+                  "z": "-10"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.5,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-10",
+                  "y": "5",
+                  "z": "-5"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "block",
+      "uuid": "39062f60-7d81-4991-b2ff-73851c5c887a",
+      "loop": "hold",
+      "length": 0.35,
+      "animators": {
+        "83148178-0426-4ae7-b671-be80a1395e84": {
+          "name": "left_arm",
+          "type": "bone",
+          "position": [
+            {
+              "channel": "position",
+              "time": 0.0,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "0",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "position",
+              "time": 0.18,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "0",
+                  "y": "1.0",
+                  "z": "2.0"
+                }
+              ]
+            },
+            {
+              "channel": "position",
+              "time": 0.35,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "0",
+                  "y": "1.5",
+                  "z": "3.0"
+                }
+              ]
+            }
+          ],
+          "rotation": [
+            {
+              "channel": "rotation",
+              "time": 0.0,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-10",
+                  "y": "5",
+                  "z": "-5"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.18,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-40",
+                  "y": "45",
+                  "z": "15"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.35,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-60",
+                  "y": "60",
+                  "z": "25"
+                }
+              ]
+            }
+          ]
+        },
+        "6ac31a01-9465-44cf-ae24-80089e679f9c": {
+          "name": "shield",
+          "type": "bone",
+          "rotation": [
+            {
+              "channel": "rotation",
+              "time": 0.0,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "0",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.35,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "0",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            }
+          ]
+        },
+        "1b120774-bcbe-4079-b17f-df0760ca77a6": {
+          "name": "torso",
+          "type": "bone",
+          "position": [
+            {
+              "channel": "position",
+              "time": 0.0,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "0",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "position",
+              "time": 0.18,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "0",
+                  "y": "-0.8",
+                  "z": "-0.4"
+                }
+              ]
+            },
+            {
+              "channel": "position",
+              "time": 0.35,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "0",
+                  "y": "-1.2",
+                  "z": "-0.6"
+                }
+              ]
+            }
+          ],
+          "rotation": [
+            {
+              "channel": "rotation",
+              "time": 0.0,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "5",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.18,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "12",
+                  "y": "-10",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.35,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "15",
+                  "y": "-15",
+                  "z": "0"
+                }
+              ]
+            }
+          ]
+        },
+        "4e72d9f1-37dc-4f89-b8af-fd0bfd0d0521": {
+          "name": "right_arm",
+          "type": "bone",
+          "rotation": [
+            {
+              "channel": "rotation",
+              "time": 0.0,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-10",
+                  "y": "-5",
+                  "z": "5"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.18,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "5",
+                  "y": "-10",
+                  "z": "10"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.35,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "15",
+                  "y": "-15",
+                  "z": "15"
+                }
+              ]
+            }
+          ]
+        },
+        "726d21fd-66f0-4f36-bb17-ca994ebb9880": {
+          "name": "head",
+          "type": "bone",
+          "rotation": [
+            {
+              "channel": "rotation",
+              "time": 0.0,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-5",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.18,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-8",
+                  "y": "8",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.35,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-10",
+                  "y": "12",
+                  "z": "0"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

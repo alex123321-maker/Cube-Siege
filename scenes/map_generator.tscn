@@ -1,0 +1,13 @@
+[gd_scene load_steps=2 format=3 uid="uid://cmapgen001"]
+
+[ext_resource type="Script" path="res://scripts/map_generator.gd" id="1_mapgen"]
+
+[node name="MapGenerator" type="Node3D"]
+script = ExtResource("1_mapgen")
+random_seed = true
+map_radius = 32
+portal_clear_radius = 6.5
+
+[node name="Terrain" type="Node3D" parent="."]
+
+[node name="Resources" type="Node3D" parent="."]

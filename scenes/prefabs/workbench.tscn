@@ -1,0 +1,49 @@
+[gd_scene load_steps=8 format=3 uid="uid://cworkbench01"]
+
+[ext_resource type="Script" path="res://scripts/workbench.gd" id="1_bench"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_bench"]
+size = Vector3(1.6, 1.2, 1.2)
+
+[sub_resource type="StandardMaterial3D" id="Mat_BenchWood"]
+albedo_color = Color(0.42, 0.28, 0.16, 1.0)
+roughness = 0.85
+
+[sub_resource type="BoxMesh" id="BoxMesh_Table"]
+material = SubResource("Mat_BenchWood")
+size = Vector3(1.6, 0.9, 1.0)
+
+[sub_resource type="StandardMaterial3D" id="Mat_Anvil"]
+albedo_color = Color(0.2, 0.22, 0.26, 1.0)
+metallic = 0.85
+roughness = 0.3
+
+[sub_resource type="BoxMesh" id="BoxMesh_Anvil"]
+material = SubResource("Mat_Anvil")
+size = Vector3(0.6, 0.35, 0.4)
+
+[node name="Workbench" type="StaticBody3D" groups=["buildings", "interactables"]]
+collision_layer = 1
+collision_mask = 0
+script = ExtResource("1_bench")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
+shape = SubResource("BoxShape3D_bench")
+
+[node name="Table" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)
+mesh = SubResource("BoxMesh_Table")
+
+[node name="Anvil" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.05, 0)
+mesh = SubResource("BoxMesh_Anvil")
+
+[node name="PromptLabel" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.0, 0)
+billboard = 1
+no_depth_test = true
+font_size = 22
+outline_size = 6
+outline_color = Color(0, 0, 0, 1)
+text = "[E] ВЕРСТАК"

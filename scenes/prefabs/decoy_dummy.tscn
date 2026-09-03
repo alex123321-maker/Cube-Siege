@@ -1,0 +1,52 @@
+[gd_scene load_steps=8 format=3 uid="uid://cdecoydummy01"]
+
+[ext_resource type="Script" path="res://scripts/decoy_dummy.gd" id="1_decoy"]
+[ext_resource type="Script" path="res://scripts/hurtbox_area.gd" id="2_hurtbox"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_body"]
+size = Vector3(0.8, 1.8, 0.8)
+
+[sub_resource type="StandardMaterial3D" id="Mat_Straw"]
+albedo_color = Color(0.85, 0.75, 0.35, 1.0)
+roughness = 0.9
+
+[sub_resource type="BoxMesh" id="BoxMesh_Torso"]
+material = SubResource("Mat_Straw")
+size = Vector3(0.7, 1.4, 0.6)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_hurt"]
+size = Vector3(1.0, 2.0, 1.0)
+
+[node name="DecoyDummy" type="CharacterBody3D" groups=["decoy"]]
+collision_layer = 2
+collision_mask = 1
+script = ExtResource("1_decoy")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("BoxShape3D_body")
+
+[node name="Visuals" type="Node3D" parent="."]
+
+[node name="Torso" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+mesh = SubResource("BoxMesh_Torso")
+
+[node name="Hurtbox" type="Area3D" parent="."]
+collision_layer = 8
+collision_mask = 0
+script = ExtResource("2_hurtbox")
+mesh_to_flash_path = NodePath("../Visuals/Torso")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Hurtbox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("BoxShape3D_hurt")
+
+[node name="HPLabel" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.0, 0)
+billboard = 1
+no_depth_test = true
+font_size = 22
+outline_size = 6
+outline_color = Color(0, 0, 0, 1)
+text = "DECOY: 250"

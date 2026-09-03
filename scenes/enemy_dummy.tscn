@@ -1,0 +1,58 @@
+[gd_scene load_steps=8 format=3 uid="uid://cenemydummy01"]
+
+[ext_resource type="Script" path="res://scripts/enemy_dummy.gd" id="1_dummy"]
+[ext_resource type="Script" path="res://scripts/hurtbox_area.gd" id="2_hurtbox"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_root"]
+size = Vector3(0.8, 1.8, 0.8)
+
+[sub_resource type="StandardMaterial3D" id="Mat_ZombieRed"]
+albedo_color = Color(0.85, 0.25, 0.25, 1.0)
+roughness = 0.7
+
+[sub_resource type="BoxMesh" id="BoxMesh_Torso"]
+material = SubResource("Mat_ZombieRed")
+size = Vector3(0.7, 0.9, 0.45)
+
+[sub_resource type="BoxMesh" id="BoxMesh_Head"]
+material = SubResource("Mat_ZombieRed")
+size = Vector3(0.5, 0.5, 0.5)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_hurt"]
+size = Vector3(1.0, 2.0, 1.0)
+
+[node name="EnemyDummy" type="CharacterBody3D" groups=["enemies"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+collision_layer = 4
+collision_mask = 1
+script = ExtResource("1_dummy")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_root")
+
+[node name="Visuals" type="Node3D" parent="."]
+
+[node name="Body" type="MeshInstance3D" parent="Visuals"]
+mesh = SubResource("BoxMesh_Torso")
+
+[node name="Head" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.65, 0)
+mesh = SubResource("BoxMesh_Head")
+
+[node name="HPLabel" type="Label3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0)
+billboard = 1
+no_depth_test = true
+font_size = 28
+outline_size = 6
+outline_color = Color(0, 0, 0, 1)
+text = "80/80"
+
+[node name="Hurtbox" type="Area3D" parent="."]
+collision_layer = 8
+collision_mask = 0
+script = ExtResource("2_hurtbox")
+mesh_to_flash_path = NodePath("../Visuals/Body")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Hurtbox"]
+shape = SubResource("BoxShape3D_hurt")

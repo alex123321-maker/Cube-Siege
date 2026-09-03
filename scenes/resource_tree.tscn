@@ -1,0 +1,65 @@
+[gd_scene load_steps=8 format=3 uid="uid://ctree001"]
+
+[ext_resource type="Script" path="res://scripts/resource_tree.gd" id="1_tree"]
+[ext_resource type="Script" path="res://scripts/hurtbox_area.gd" id="2_hurtbox"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_trunk"]
+size = Vector3(0.6, 2.0, 0.6)
+
+[sub_resource type="StandardMaterial3D" id="Mat_Bark"]
+albedo_color = Color(0.42, 0.28, 0.15, 1.0)
+roughness = 0.9
+
+[sub_resource type="BoxMesh" id="BoxMesh_Trunk"]
+material = SubResource("Mat_Bark")
+size = Vector3(0.6, 2.0, 0.6)
+
+[sub_resource type="StandardMaterial3D" id="Mat_Foliage"]
+albedo_color = Color(0.18, 0.55, 0.22, 1.0)
+roughness = 0.8
+
+[sub_resource type="BoxMesh" id="BoxMesh_Foliage"]
+material = SubResource("Mat_Foliage")
+size = Vector3(2.2, 2.2, 2.2)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_tree_hurt"]
+size = Vector3(2.4, 3.6, 2.4)
+
+[node name="ResourceTree" type="StaticBody3D" groups=["interactables", "resource_nodes"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+collision_layer = 1
+collision_mask = 0
+script = ExtResource("1_tree")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, 0)
+shape = SubResource("BoxShape3D_trunk")
+
+[node name="Visuals" type="Node3D" parent="."]
+
+[node name="Trunk" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, 0)
+mesh = SubResource("BoxMesh_Trunk")
+
+[node name="Foliage" type="MeshInstance3D" parent="Visuals"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.6, 0)
+mesh = SubResource("BoxMesh_Foliage")
+
+[node name="Hurtbox" type="Area3D" parent="."]
+collision_layer = 8
+collision_mask = 0
+script = ExtResource("2_hurtbox")
+mesh_to_flash_path = NodePath("../Visuals/Trunk")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Hurtbox"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.8, 0)
+shape = SubResource("BoxShape3D_tree_hurt")
+
+[node name="PickupPrompt" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0)
+billboard = 1
+no_depth_test = true
+font_size = 28
+outline_size = 6
+outline_color = Color(0, 0, 0, 1)
+text = "[E] HARVEST"

@@ -1,0 +1,521 @@
+[gd_scene load_steps=100 format=3 uid="uid://hero_warrior_model_01"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_0"]
+albedo_color = Color(0.25, 0.45, 0.75, 1)
+metallic = 0.1
+roughness = 0.8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_1"]
+albedo_color = Color(0.18, 0.22, 0.32, 1)
+metallic = 0.0
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_3"]
+albedo_color = Color(0.95, 0.78, 0.22, 1)
+metallic = 0.85
+roughness = 0.25
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_4"]
+albedo_color = Color(0.35, 0.22, 0.15, 1)
+metallic = 0.0
+roughness = 0.85
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_5"]
+albedo_color = Color(0.85, 0.15, 0.18, 1)
+metallic = 0.1
+roughness = 0.5
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_7"]
+albedo_color = Color(0.55, 0.58, 0.62, 1)
+metallic = 0.6
+roughness = 0.4
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_8"]
+albedo_color = Color(0.75, 0.80, 0.88, 1)
+metallic = 0.8
+roughness = 0.25
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_9"]
+albedo_color = Color(0.88, 0.92, 0.96, 1)
+metallic = 0.9
+roughness = 0.2
+
+[sub_resource type="BoxMesh" id="BoxMesh_head"]
+material = SubResource("StandardMaterial3D_col_0")
+size = Vector3(0.44, 0.44, 0.44)
+
+[sub_resource type="BoxMesh" id="BoxMesh_helmet_crest"]
+material = SubResource("StandardMaterial3D_col_5")
+size = Vector3(0.11, 0.1925, 0.495)
+
+[sub_resource type="BoxMesh" id="BoxMesh_helmet_visor"]
+material = SubResource("StandardMaterial3D_col_7")
+size = Vector3(0.473, 0.165, 0.066)
+
+[sub_resource type="BoxMesh" id="BoxMesh_torso"]
+material = SubResource("StandardMaterial3D_col_1")
+size = Vector3(0.44, 0.66, 0.22)
+
+[sub_resource type="BoxMesh" id="BoxMesh_breastplate"]
+material = SubResource("StandardMaterial3D_col_8")
+size = Vector3(0.484, 0.495, 0.286)
+
+[sub_resource type="BoxMesh" id="BoxMesh_right_arm"]
+material = SubResource("StandardMaterial3D_col_0")
+size = Vector3(0.22, 0.66, 0.22)
+
+[sub_resource type="BoxMesh" id="BoxMesh_sword_handle"]
+material = SubResource("StandardMaterial3D_col_4")
+size = Vector3(0.055, 0.11, 0.1925)
+
+[sub_resource type="BoxMesh" id="BoxMesh_sword_pommel"]
+material = SubResource("StandardMaterial3D_col_3")
+size = Vector3(0.088, 0.143, 0.055)
+
+[sub_resource type="BoxMesh" id="BoxMesh_sword_guard"]
+material = SubResource("StandardMaterial3D_col_3")
+size = Vector3(0.308, 0.165, 0.055)
+
+[sub_resource type="BoxMesh" id="BoxMesh_sword_blade"]
+material = SubResource("StandardMaterial3D_col_9")
+size = Vector3(0.044, 0.077, 0.7975)
+
+[sub_resource type="BoxMesh" id="BoxMesh_left_arm"]
+material = SubResource("StandardMaterial3D_col_0")
+size = Vector3(0.22, 0.66, 0.22)
+
+[sub_resource type="BoxMesh" id="BoxMesh_shield"]
+material = SubResource("StandardMaterial3D_col_5")
+size = Vector3(0.055, 0.715, 0.495)
+
+[sub_resource type="BoxMesh" id="BoxMesh_shield_boss"]
+material = SubResource("StandardMaterial3D_col_8")
+size = Vector3(0.033, 0.22, 0.165)
+
+[sub_resource type="BoxMesh" id="BoxMesh_right_leg"]
+material = SubResource("StandardMaterial3D_col_7")
+size = Vector3(0.22, 0.66, 0.22)
+
+[sub_resource type="BoxMesh" id="BoxMesh_left_leg"]
+material = SubResource("StandardMaterial3D_col_7")
+size = Vector3(0.22, 0.66, 0.22)
+
+[sub_resource type="Animation" id="Animation_idle"]
+resource_name = "idle"
+length = 1.2
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("root/torso:rotation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0.0, 0.6, 1.2),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(0.08727, 0.0, 0.0), Vector3(0.12217, 0.0, 0.0), Vector3(0.08727, 0.0, 0.0)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("root/torso:position")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0.0, 0.6, 1.2),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(0.0, 0.66, 0.0), Vector3(0.0, 0.6325, 0.0), Vector3(0.0, 0.66, 0.0)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("root/torso/head:rotation")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0.0, 0.6, 1.2),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(-0.08727, 0.0, 0.0), Vector3(-0.12217, 0.0, 0.0), Vector3(-0.08727, 0.0, 0.0)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("root/torso/right_arm:rotation")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0.0, 0.6, 1.2),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(-0.17453, -0.08727, 0.08727), Vector3(-0.13963, -0.08727, 0.12217), Vector3(-0.17453, -0.08727, 0.08727)]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("root/torso/right_arm/sword:rotation")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0.0, 0.6, 1.2),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(-0.2618, 0.0, 0.0), Vector3(-0.2618, 0.0, 0.0), Vector3(-0.2618, 0.0, 0.0)]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("root/torso/left_arm:rotation")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"times": PackedFloat32Array(0.0, 0.6, 1.2),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(-0.17453, 0.08727, -0.08727), Vector3(-0.20944, 0.12217, -0.12217), Vector3(-0.17453, 0.08727, -0.08727)]
+}
+
+[sub_resource type="Animation" id="Animation_walk"]
+resource_name = "walk"
+length = 0.8
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("root/right_leg:rotation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0.0, 0.4, 0.8),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(-0.5236, 0.0, 0.0), Vector3(0.5236, 0.0, 0.0), Vector3(-0.5236, 0.0, 0.0)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("root/left_leg:rotation")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0.0, 0.4, 0.8),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(0.5236, 0.0, 0.0), Vector3(-0.5236, 0.0, 0.0), Vector3(0.5236, 0.0, 0.0)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("root/torso/right_arm:rotation")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0.0, 0.4, 0.8),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(0.5236, 0.0, 0.08727), Vector3(-0.5236, 0.0, 0.08727), Vector3(0.5236, 0.0, 0.08727)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("root/torso/right_arm/sword:rotation")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0.0, 0.4, 0.8),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(-0.2618, 0.0, 0.0), Vector3(-0.2618, 0.0, 0.0), Vector3(-0.2618, 0.0, 0.0)]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("root/torso/left_arm:rotation")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0.0, 0.4, 0.8),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(-0.5236, 0.08727, -0.08727), Vector3(0.5236, 0.08727, -0.08727), Vector3(-0.5236, 0.08727, -0.08727)]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("root/torso:rotation")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"times": PackedFloat32Array(0.0, 0.4, 0.8),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(0.08727, -0.08727, 0.0), Vector3(0.08727, 0.08727, 0.0), Vector3(0.08727, -0.08727, 0.0)]
+}
+tracks/6/type = "value"
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/path = NodePath("root/torso:position")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/keys = {
+"times": PackedFloat32Array(0.0, 0.2, 0.4, 0.6, 0.8),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector3(0.0, 0.66, 0.0), Vector3(0.0, 0.6875, 0.0), Vector3(0.0, 0.66, 0.0), Vector3(0.0, 0.6875, 0.0), Vector3(0.0, 0.66, 0.0)]
+}
+
+[sub_resource type="Animation" id="Animation_attack"]
+resource_name = "attack"
+length = 0.5
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("root/torso/right_arm:rotation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0.0, 0.12, 0.25, 0.38, 0.5),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector3(-0.17453, -0.08727, 0.08727), Vector3(-2.35619, 0.17453, -0.34907), Vector3(0.7854, 0.7854, -0.34907), Vector3(0.34907, 0.34907, -0.17453), Vector3(-0.17453, -0.08727, 0.08727)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("root/torso/right_arm/sword:rotation")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0.0, 0.12, 0.25, 0.38, 0.5),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector3(-0.2618, 0.0, 0.0), Vector3(0.17453, 0.0, 0.0), Vector3(-0.7854, 0.0, 0.0), Vector3(-0.2618, 0.0, 0.0), Vector3(-0.2618, 0.0, 0.0)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("root/torso:rotation")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0.0, 0.12, 0.25, 0.38, 0.5),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector3(0.08727, 0.0, 0.0), Vector3(-0.03491, -0.5236, 0.0), Vector3(0.2618, 0.43633, -0.08727), Vector3(0.13963, 0.2618, 0.0), Vector3(0.08727, 0.0, 0.0)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("root/torso:position")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0.0, 0.12, 0.25, 0.38, 0.5),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector3(0.0, 0.66, 0.0), Vector3(0.0, 0.638, -0.0275), Vector3(0.0, 0.616, 0.099), Vector3(0.0, 0.638, 0.044), Vector3(0.0, 0.66, 0.0)]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("root/torso/left_arm:rotation")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0.0, 0.12, 0.25, 0.5),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Vector3(-0.17453, 0.08727, -0.08727), Vector3(0.17453, 0.17453, -0.34907), Vector3(-0.34907, 0.0, -0.17453), Vector3(-0.17453, 0.08727, -0.08727)]
+}
+
+[sub_resource type="Animation" id="Animation_block"]
+resource_name = "block"
+length = 0.35
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("root/torso/left_arm:rotation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0.0, 0.18, 0.35),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(-0.17453, 0.08727, -0.08727), Vector3(-0.69813, 0.7854, 0.2618), Vector3(-1.0472, 1.0472, 0.43633)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("root/torso/left_arm:position")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0.0, 0.18, 0.35),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(0.33, 0.55, 0.0), Vector3(0.33, 0.605, 0.11), Vector3(0.33, 0.6325, 0.165)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("root/torso/left_arm/shield:rotation")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0.0, 0.35),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Vector3(0.0, 0.0, 0.0), Vector3(0.0, 0.0, 0.0)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("root/torso:rotation")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0.0, 0.18, 0.35),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(0.08727, 0.0, 0.0), Vector3(0.20944, -0.17453, 0.0), Vector3(0.2618, -0.2618, 0.0)]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("root/torso:position")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0.0, 0.18, 0.35),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(0.0, 0.66, 0.0), Vector3(0.0, 0.616, -0.022), Vector3(0.0, 0.594, -0.033)]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("root/torso/right_arm:rotation")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"times": PackedFloat32Array(0.0, 0.18, 0.35),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(-0.17453, -0.08727, 0.08727), Vector3(0.08727, -0.17453, 0.17453), Vector3(0.2618, -0.2618, 0.2618)]
+}
+tracks/6/type = "value"
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/path = NodePath("root/torso/head:rotation")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/keys = {
+"times": PackedFloat32Array(0.0, 0.18, 0.35),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(-0.08727, 0.0, 0.0), Vector3(-0.13963, 0.13963, 0.0), Vector3(-0.17453, 0.20944, 0.0)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_warrior"]
+_data = {
+"idle": SubResource("Animation_idle"),
+"walk": SubResource("Animation_walk"),
+"attack": SubResource("Animation_attack"),
+"block": SubResource("Animation_block")
+}
+
+[node name="HeroWarrior" type="Node3D"]
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+libraries = {
+"": SubResource("AnimationLibrary_warrior")
+}
+autoplay = "idle"
+
+[node name="root" type="Node3D" parent="."]
+
+[node name="torso" type="Node3D" parent="root"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.66, 0.0)
+
+[node name="torso" type="MeshInstance3D" parent="root/torso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.33, 0.0)
+mesh = SubResource("BoxMesh_torso")
+
+[node name="breastplate" type="MeshInstance3D" parent="root/torso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.385, 0.0)
+mesh = SubResource("BoxMesh_breastplate")
+
+[node name="head" type="Node3D" parent="root/torso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.66, 0.0)
+
+[node name="head" type="MeshInstance3D" parent="root/torso/head"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.22, 0.0)
+mesh = SubResource("BoxMesh_head")
+
+[node name="helmet_crest" type="MeshInstance3D" parent="root/torso/head"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.53625, 0.0)
+mesh = SubResource("BoxMesh_helmet_crest")
+
+[node name="helmet_visor" type="MeshInstance3D" parent="root/torso/head"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.1925, -0.231)
+mesh = SubResource("BoxMesh_helmet_visor")
+
+[node name="right_arm" type="Node3D" parent="root/torso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.33, 0.55, 0.0)
+
+[node name="right_arm" type="MeshInstance3D" parent="root/torso/right_arm"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.22, 0.0)
+mesh = SubResource("BoxMesh_right_arm")
+
+[node name="sword" type="Node3D" parent="root/torso/right_arm"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.5225, 0.0)
+
+[node name="sword_handle" type="MeshInstance3D" parent="root/torso/right_arm/sword"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.0, 0.01375)
+mesh = SubResource("BoxMesh_sword_handle")
+
+[node name="sword_pommel" type="MeshInstance3D" parent="root/torso/right_arm/sword"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.0, 0.1375)
+mesh = SubResource("BoxMesh_sword_pommel")
+
+[node name="sword_guard" type="MeshInstance3D" parent="root/torso/right_arm/sword"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.0, -0.11)
+mesh = SubResource("BoxMesh_sword_guard")
+
+[node name="sword_blade" type="MeshInstance3D" parent="root/torso/right_arm/sword"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.0, -0.53625)
+mesh = SubResource("BoxMesh_sword_blade")
+
+[node name="left_arm" type="Node3D" parent="root/torso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.33, 0.55, 0.0)
+
+[node name="left_arm" type="MeshInstance3D" parent="root/torso/left_arm"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.22, 0.0)
+mesh = SubResource("BoxMesh_left_arm")
+
+[node name="shield" type="Node3D" parent="root/torso/left_arm"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.33, 0.0)
+
+[node name="shield" type="MeshInstance3D" parent="root/torso/left_arm/shield"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.1265, 0.055, 0.0)
+mesh = SubResource("BoxMesh_shield")
+
+[node name="shield_boss" type="MeshInstance3D" parent="root/torso/left_arm/shield"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.1705, 0.055, 0.0)
+mesh = SubResource("BoxMesh_shield_boss")
+
+[node name="right_leg" type="Node3D" parent="root"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.11, 0.66, 0.0)
+
+[node name="right_leg" type="MeshInstance3D" parent="root/right_leg"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.33, 0.0)
+mesh = SubResource("BoxMesh_right_leg")
+
+[node name="left_leg" type="Node3D" parent="root"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.11, 0.66, 0.0)
+
+[node name="left_leg" type="MeshInstance3D" parent="root/left_leg"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.33, 0.0)
+mesh = SubResource("BoxMesh_left_leg")

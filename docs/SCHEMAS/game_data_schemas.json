@@ -1,0 +1,70 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CubeSiegeDataSchemas",
+  "description": "JSON Schemas for classes, prefabs, waves, and character profiles in Cube Siege",
+  "definitions": {
+    "CharacterClassData": {
+      "type": "object",
+      "properties": {
+        "classId": { "type": "string", "enum": ["warrior", "archer", "engineer"] },
+        "displayName": { "type": "string" },
+        "isUnlockedByDefault": { "type": "boolean" },
+        "unlockCondition": { "type": "string" },
+        "baseStats": {
+          "type": "object",
+          "properties": {
+            "maxHealth": { "type": "number" },
+            "baseDamage": { "type": "number" },
+            "moveSpeed": { "type": "number" },
+            "armor": { "type": "number" }
+          },
+          "required": ["maxHealth", "baseDamage", "moveSpeed", "armor"]
+        }
+      },
+      "required": ["classId", "displayName", "baseStats"]
+    },
+    "BuildingPrefabData": {
+      "type": "object",
+      "properties": {
+        "prefabId": { "type": "string" },
+        "category": { "type": "string", "enum": ["walls", "traps", "towers", "utility"] },
+        "gridSize": { "type": "array", "items": { "type": "integer" }, "minItems": 2, "maxItems": 2 },
+        "maxHealth": { "type": "number" },
+        "blocksMovement": { "type": "boolean" },
+        "formsContour": { "type": "boolean" },
+        "cost": {
+          "type": "object",
+          "properties": {
+            "wood": { "type": "integer", "default": 0 },
+            "stone": { "type": "integer", "default": 0 },
+            "iron": { "type": "integer", "default": 0 },
+            "magicStone": { "type": "integer", "default": 0 }
+          }
+        }
+      },
+      "required": ["prefabId", "category", "gridSize", "maxHealth", "cost"]
+    },
+    "WaveConfigData": {
+      "type": "object",
+      "properties": {
+        "nightIndex": { "type": "integer" },
+        "durationSeconds": { "type": "number", "default": 120.0 },
+        "isBossNight": { "type": "boolean" },
+        "bossId": { "type": "string" },
+        "maxConcurrentEnemies": { "type": "integer" },
+        "mobComposition": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "mobType": { "type": "string", "enum": ["melee_grunt", "siege_breaker", "ranged_skirmisher"] },
+              "weight": { "type": "number" }
+            },
+            "required": ["mobType", "weight"]
+          }
+        }
+      },
+      "required": ["nightIndex", "durationSeconds", "isBossNight", "mobComposition"]
+    }
+  }
+}
