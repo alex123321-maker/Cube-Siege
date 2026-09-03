@@ -232,7 +232,44 @@ python tools/review_loop/install.py stop
 python tools/review_loop/install.py uninstall
 ```
 
-### 9.4. Логи и состояние
+### 9.4. Настройка разрешений для headless-режима agy
+
+При автономном запуске через `agy --conversation <id> -p "..."` агент работает в headless-режиме,
+где интерактивные запросы разрешений (approval) невозможны. Операции без предварительного разрешения
+получают soft-deny. Для корректной работы review loop необходимо настроить scoped permissions:
+
+**Вариант A: Явный allowlist** (рекомендуется)
+Создайте или отредактируйте `~/.gemini/antigravity-cli/settings.json`:
+```json
+{
+  "permissions": {
+    "allow": [
+      "command(git *)",
+      "command(python tools/verify.py)",
+      "command(python -m unittest *)",
+      "command(gh *)",
+      "command(scons *)",
+      "write_file(scripts/)",
+      "write_file(tools/)",
+      "write_file(tests/)",
+      "write_file(docs/)",
+      "write_file(.github/)"
+    ]
+  }
+}
+```
+
+**Вариант B: Полный bypass** (только для доверенных CI-окружений)
+```bash
+agy --conversation <id> -p "..." --dangerously-skip-permissions
+```
+
+> [!WARNING]
+> `--dangerously-skip-permissions` автоматически одобряет все операции агента (запуск команд, запись файлов).
+> Используйте только в контролируемых CI-пайплайнах с ограниченным доступом.
+
+### 9.5. Логи и состояние
 
 * **Лог работы**: `.review_loop/watcher.log` (добавляется в `.gitignore`, не содержит токенов и секретов).
 * **Файл состояния**: `.review_loop/state.json` (хранит маппинг PR ↔ conversation ID, идентификаторы обработанных событий, блокировки от параллельных запусков).
+* **Файл блокировки**: `.review_loop/state.lock` (advisory file lock для безопасности при одновременной работе watcher + hook процессов).

@@ -7,6 +7,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 REVIEW_LOOP_DIR = REPO_ROOT / ".review_loop"
 DEFAULT_STATE_FILE = REVIEW_LOOP_DIR / "state.json"
+DEFAULT_STATE_LOCK_FILE = REVIEW_LOOP_DIR / "state.lock"
 DEFAULT_LOG_FILE = REVIEW_LOOP_DIR / "watcher.log"
 DEFAULT_PID_FILE = REVIEW_LOOP_DIR / "watcher.pid"
 RUN_WATCHER_BAT = REVIEW_LOOP_DIR / "run_watcher.bat"
@@ -23,6 +24,10 @@ DEFAULT_LOCK_LEASE_SECONDS = 1800.0
 # Marker used to tag comments created by automated agents to prevent infinite loops.
 AGENT_COMMENT_MARKER = "<!-- agent:review-loop -->"
 
+# agy headless CLI configuration
+DEFAULT_AGY_PRINT_TIMEOUT = "30m"
+AGY_STARTUP_GRACE_SECONDS = 3.0
+
 # Template for resuming the Antigravity conversation
 RESUME_PROMPT_TEMPLATE = """New GitHub review feedback was received for PR #{pr_number}.
 
@@ -34,4 +39,9 @@ If DESIGN DECISION REQUIRED is encountered, stop that part and report it clearly
 Run the repository verification workflow.
 Commit and push the fixes to the existing PR branch.
 Do not merge the PR.
+
+CRITICAL: If you post any comment on the Pull Request (via `gh pr comment`, review reply, etc.),
+you MUST include the exact marker `""" + AGENT_COMMENT_MARKER + """` at the END of the comment body.
+Comments without this marker from the repository owner will be interpreted as new human feedback
+and will re-trigger this review loop, causing an infinite cycle.
 """

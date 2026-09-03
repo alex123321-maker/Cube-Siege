@@ -264,8 +264,7 @@ class ReviewWatcher:
         if pr_entry.get("status") == "approved":
             if current_head_sha and last_head_sha and current_head_sha != last_head_sha:
                 logger.info("Approved PR #%s received new commit (%s -> %s). Reactivating watch.", pr_number, last_head_sha, current_head_sha)
-                pr_entry["last_head_sha"] = current_head_sha
-                self.state.mark_pr_status(pr_number, "watching")
+                self.state.update_pr_fields(pr_number, last_head_sha=current_head_sha, status="watching")
             else:
                 # PR is approved and head SHA hasn't changed. Feedback loop is completely stopped.
                 return
@@ -274,15 +273,15 @@ class ReviewWatcher:
         if self.state.is_processing(pr_number):
             if current_head_sha and last_head_sha and current_head_sha != last_head_sha:
                 logger.info("PR #%s head SHA changed (%s -> %s). Agent completed run.", pr_number, last_head_sha, current_head_sha)
-                pr_entry["last_head_sha"] = current_head_sha
-                self.state.save()
+                self.state.update_pr_fields(pr_number, last_head_sha=current_head_sha)
                 self.state.release_lock(pr_number)
 
         # Detect new review events
         new_events = self.check_pr_events(pr_number, pr_info)
 
-        # If PR became approved during event check, stop here
-        if pr_entry.get("status") == "approved":
+        # Reload fresh state — check_pr_events may have set status to 'approved'
+        fresh_pr = self.state.get_pr(pr_number)
+        if fresh_pr and fresh_pr.get("status") == "approved":
             return
 
         # Handle concurrency and locking
@@ -309,8 +308,7 @@ class ReviewWatcher:
 
         # Update last known head SHA
         if current_head_sha:
-            pr_entry["last_head_sha"] = current_head_sha
-            self.state.save()
+            self.state.update_pr_fields(pr_number, last_head_sha=current_head_sha)
 
         logger.info(
             "Waking Antigravity conversation %s for PR #%s with %d event(s)...",
@@ -329,8 +327,7 @@ class ReviewWatcher:
             for ev in all_events:
                 self.state.mark_event_processed(pr_number, ev["id"])
             if active_pid:
-                self.state.state["prs"][str(pr_number)]["active_agent_pid"] = active_pid
-                self.state.save()
+                self.state.update_pr_fields(pr_number, active_agent_pid=active_pid)
 
     def run_cycle(self) -> None:
         """Run a single polling cycle across all active registered PRs."""
