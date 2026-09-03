@@ -1,0 +1,15 @@
+BasedOnStyle: Mozilla
+IndentWidth: 4
+TabWidth: 4
+UseTab: Always
+ColumnLimit: 120
+AccessModifierOffset: -4
+BreakBeforeBraces: Allman
+AllowShortIfStatementsOnASingleLine: false
+AllowShortBlocksOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Inline
+PointerAlignment: Left
+ReferenceAlignment: Left
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
+Standard: c++17
