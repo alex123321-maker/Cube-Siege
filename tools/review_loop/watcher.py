@@ -1,8 +1,8 @@
 """
 tools/review_loop/watcher.py - Main review loop polling daemon.
 
-Monitors registered PRs on GitHub for review comments, REQUEST_CHANGES,
-and wakes the mapped Antigravity agent context.
+Monitors registered PRs on GitHub for review feedback, REQUEST_CHANGES,
+thread reopenings, and wakes the mapped Antigravity agent context.
 """
 import argparse
 import logging
@@ -13,13 +13,13 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-# Ensure repository root is in sys.path for direct script execution
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 from tools.review_loop.agent_resumer import AgentResumer
 from tools.review_loop.config import (
+    AGENT_COMMENT_MARKER,
     DEFAULT_BACKOFF_FACTOR,
     DEFAULT_BACKOFF_INITIAL_SECONDS,
     DEFAULT_BACKOFF_MAX_SECONDS,
@@ -27,11 +27,25 @@ from tools.review_loop.config import (
     DEFAULT_PID_FILE,
     DEFAULT_POLL_INTERVAL_SECONDS,
     DEFAULT_STATE_FILE,
+    REPO_ROOT,
 )
 from tools.review_loop.github_client import GitHubClient, GitHubError
 from tools.review_loop.state_manager import StateManager
 
 logger = logging.getLogger("review_loop.watcher")
+
+def is_agent_generated(body: str) -> bool:
+    """Check if comment was posted by an automated agent tool to prevent loops."""
+    if not body:
+        return False
+    return AGENT_COMMENT_MARKER in body or "<!-- agent:" in body or "<!-- antigravity:" in body
+
+def is_bot_noise(author: str) -> bool:
+    """Check if commenter is an automated bot that should be ignored by default."""
+    if not author:
+        return True
+    author_lower = author.lower()
+    return author_lower.endswith("[bot]") or "copilot" in author_lower
 
 class ReviewWatcher:
     def __init__(
@@ -42,9 +56,9 @@ class ReviewWatcher:
         poll_interval: int = DEFAULT_POLL_INTERVAL_SECONDS,
         run_once: bool = False
     ):
-        self.github = github_client or GitHubClient()
+        self.github = github_client or GitHubClient(cwd=REPO_ROOT)
         self.state = state_manager or StateManager()
-        self.resumer = agent_resumer or AgentResumer()
+        self.resumer = agent_resumer or AgentResumer(cwd=REPO_ROOT)
         self.poll_interval = poll_interval
         self.run_once = run_once
         self._running = False
@@ -63,11 +77,10 @@ class ReviewWatcher:
     def check_pr_events(self, pr_number: int, pr_info: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
         Inspect PR for new, unhandled, allowed review events.
-        Returns list of new event dictionaries.
+        Accepts feedback from allowlisted reviewers even if reviewer == PR author.
+        Ignores agent-marked comments and bot noise.
         """
         new_events: List[Dict[str, Any]] = []
-        author = pr_info.get("author", {}).get("login", "")
-        review_decision = pr_info.get("reviewDecision")
 
         # 1. Inspect PR reviews
         try:
@@ -76,22 +89,25 @@ class ReviewWatcher:
                 rev_id = rev.get("id")
                 rev_state = rev.get("state")
                 rev_author = rev.get("author", {}).get("login", "")
+                rev_body = rev.get("body", "")
 
                 if not rev_id or self.state.is_event_processed(pr_number, rev_id):
                     continue
 
-                # Never react to comments by PR author / agent itself
-                if rev_author and rev_author.lower() == author.lower():
+                if is_bot_noise(rev_author) or is_agent_generated(rev_body):
                     continue
 
-                # Enforce reviewer allowlist
+                # Allowlist check: allowlisted reviewer feedback has highest priority
                 if not self.state.is_user_allowed(rev_author):
                     logger.debug("Skipping review from non-allowlisted user: %s", rev_author)
                     continue
 
                 if rev_state == "APPROVED":
-                    logger.info("PR #%s received APPROVE from %s. Halting loop without waking.", pr_number, rev_author)
+                    logger.info("PR #%s received APPROVE from %s. Setting status to approved.", pr_number, rev_author)
                     self.state.mark_event_processed(pr_number, rev_id)
+                    self.state.mark_pr_status(pr_number, "approved")
+                    # Clear any pending events since PR is approved
+                    self.state.pop_pending_events(pr_number)
                     continue
 
                 if rev_state == "REQUEST_CHANGES":
@@ -100,11 +116,11 @@ class ReviewWatcher:
                         "id": rev_id,
                         "type": "REQUEST_CHANGES",
                         "author": rev_author,
-                        "body": rev.get("body", "")
+                        "body": rev_body
                     })
                 elif rev_state == "COMMENTED":
-                    body = rev.get("body", "").strip()
-                    if body and "copilot-pull-request-reviewer" not in rev_author.lower():
+                    body = rev_body.strip()
+                    if body:
                         logger.info("Detected review comment on PR #%s by %s", pr_number, rev_author)
                         new_events.append({
                             "id": rev_id,
@@ -121,17 +137,18 @@ class ReviewWatcher:
             for c in comments:
                 c_id = c.get("id")
                 c_author = c.get("author", {}).get("login", "")
+                c_body = c.get("body", "")
 
                 if not c_id or self.state.is_event_processed(pr_number, c_id):
                     continue
 
-                if c_author and c_author.lower() == author.lower():
+                if is_bot_noise(c_author) or is_agent_generated(c_body):
                     continue
 
                 if not self.state.is_user_allowed(c_author):
                     continue
 
-                body = c.get("body", "").strip()
+                body = c_body.strip()
                 if body:
                     logger.info("Detected PR comment on PR #%s by %s", pr_number, c_author)
                     new_events.append({
@@ -149,17 +166,18 @@ class ReviewWatcher:
             for ic in inline_comments:
                 ic_id = str(ic.get("id"))
                 ic_author = ic.get("user", {}).get("login", "")
+                ic_body = ic.get("body", "")
 
                 if not ic_id or self.state.is_event_processed(pr_number, ic_id):
                     continue
 
-                if ic_author and ic_author.lower() == author.lower():
+                if is_bot_noise(ic_author) or is_agent_generated(ic_body):
                     continue
 
                 if not self.state.is_user_allowed(ic_author):
                     continue
 
-                body = ic.get("body", "").strip()
+                body = ic_body.strip()
                 if body:
                     logger.info("Detected inline review comment on PR #%s by %s", pr_number, ic_author)
                     new_events.append({
@@ -173,25 +191,48 @@ class ReviewWatcher:
         except GitHubError as e:
             logger.debug("Inline comments check for PR #%s: %s", pr_number, e)
 
-        # 4. Inspect GraphQL review threads for reopened / unresolved comments
+        # 4. Inspect GraphQL review threads (including thread reopening transitions)
         try:
             threads = self.github.get_pr_review_threads(pr_number)
             for th in threads:
-                if not th.get("isResolved", False):
+                th_id = th.get("id")
+                is_resolved = th.get("isResolved", False)
+
+                if th_id:
+                    prev_resolved = self.state.get_thread_is_resolved(pr_number, th_id)
+                    # Check for reopened transition (previously resolved -> now unresolved)
+                    if prev_resolved is True and is_resolved is False:
+                        reopen_id = f"reopen_{th_id}"
+                        if not self.state.is_event_processed(pr_number, reopen_id):
+                            logger.info("Detected reopened review thread %s on PR #%s", th_id, pr_number)
+                            new_events.append({
+                                "id": reopen_id,
+                                "type": "THREAD_REOPENED",
+                                "thread_id": th_id,
+                                "body": "Review thread was reopened."
+                            })
+                    # Update tracked thread state
+                    self.state.set_thread_is_resolved(pr_number, th_id, is_resolved)
+
+                # Check unresolved thread's latest comment
+                if not is_resolved:
                     th_comments = th.get("comments", {}).get("nodes", [])
                     if th_comments:
                         last_c = th_comments[-1]
                         th_c_id = last_c.get("id")
                         th_author = last_c.get("author", {}).get("login", "")
+                        th_body = last_c.get("body", "")
+
                         if th_c_id and not self.state.is_event_processed(pr_number, th_c_id):
-                            if th_author and th_author.lower() != author.lower() and self.state.is_user_allowed(th_author):
-                                if not any(e.get("id") == th_c_id for e in new_events):
-                                    new_events.append({
-                                        "id": th_c_id,
-                                        "type": "THREAD_COMMENT",
-                                        "author": th_author,
-                                        "body": last_c.get("body", "")
-                                    })
+                            if not is_bot_noise(th_author) and not is_agent_generated(th_body):
+                                if self.state.is_user_allowed(th_author):
+                                    if not any(e.get("id") == th_c_id for e in new_events):
+                                        new_events.append({
+                                            "id": th_c_id,
+                                            "type": "THREAD_COMMENT",
+                                            "author": th_author,
+                                            "body": th_body
+                                        })
         except Exception as e:
             logger.debug("Review threads query for PR #%s: %s", pr_number, e)
 
@@ -210,7 +251,6 @@ class ReviewWatcher:
             logger.warning("Failed to fetch details for PR #%s: %s", pr_number, e)
             return
 
-        # Check PR state
         pr_state = pr_info.get("state", "").upper()
         if pr_state in ["CLOSED", "MERGED"]:
             logger.info("PR #%s is %s. Updating status and stopping watch.", pr_number, pr_state)
@@ -220,7 +260,17 @@ class ReviewWatcher:
         current_head_sha = pr_info.get("headRefOid", "")
         last_head_sha = pr_entry.get("last_head_sha", "")
 
-        # Check if agent pushed fixes while processing (head changed from known baseline)
+        # Check if an approved PR was reactivated by a new commit
+        if pr_entry.get("status") == "approved":
+            if current_head_sha and last_head_sha and current_head_sha != last_head_sha:
+                logger.info("Approved PR #%s received new commit (%s -> %s). Reactivating watch.", pr_number, last_head_sha, current_head_sha)
+                pr_entry["last_head_sha"] = current_head_sha
+                self.state.mark_pr_status(pr_number, "watching")
+            else:
+                # PR is approved and head SHA hasn't changed. Feedback loop is completely stopped.
+                return
+
+        # Check if agent pushed fixes while processing (head changed from baseline)
         if self.state.is_processing(pr_number):
             if current_head_sha and last_head_sha and current_head_sha != last_head_sha:
                 logger.info("PR #%s head SHA changed (%s -> %s). Agent completed run.", pr_number, last_head_sha, current_head_sha)
@@ -231,32 +281,33 @@ class ReviewWatcher:
         # Detect new review events
         new_events = self.check_pr_events(pr_number, pr_info)
 
+        # If PR became approved during event check, stop here
+        if pr_entry.get("status") == "approved":
+            return
+
         # Handle concurrency and locking
         if self.state.is_processing(pr_number):
             if new_events:
                 logger.info("PR #%s is currently being processed. Queuing %d new event(s).", pr_number, len(new_events))
                 for ev in new_events:
                     self.state.queue_pending_event(pr_number, ev)
-                    self.state.mark_event_processed(pr_number, ev["id"])
             return
 
-        # PR is idle. If there are new events or pending queued events:
+        # PR is idle. Collect new and pending events
         pending_events = self.state.pop_pending_events(pr_number)
         all_events = new_events + pending_events
 
         if not all_events:
             return
 
-        # Acquire lock
+        # Acquire lock before attempting resume
         if not self.state.acquire_lock(pr_number):
             logger.warning("Failed to acquire lock for PR #%s. Skipping.", pr_number)
+            # Put events back so they are not lost
+            self.state.restore_pending_events(pr_number, all_events)
             return
 
-        # Mark all new events processed before waking to guarantee idempotency
-        for ev in all_events:
-            self.state.mark_event_processed(pr_number, ev["id"])
-
-        # Update last known head SHA before waking
+        # Update last known head SHA
         if current_head_sha:
             pr_entry["last_head_sha"] = current_head_sha
             self.state.save()
@@ -265,12 +316,21 @@ class ReviewWatcher:
             "Waking Antigravity conversation %s for PR #%s with %d event(s)...",
             conversation_id, pr_number, len(all_events)
         )
-        success, out = self.resumer.resume_conversation(conversation_id, pr_number)
+        success, out, active_pid = self.resumer.resume_conversation(conversation_id, pr_number)
+
         if not success:
-            logger.error("Failed to wake conversation %s: %s. Releasing lock.", conversation_id, out)
+            logger.error("Failed to wake conversation %s: %s. Restoring events and releasing lock for retry.", conversation_id, out)
+            # CRITICAL: DO NOT lose events on failure! Restore them to pending queue!
+            self.state.restore_pending_events(pr_number, all_events)
             self.state.release_lock(pr_number)
         else:
             logger.info("Successfully signaled agent for PR #%s.", pr_number)
+            # Only mark events as processed AFTER successful dispatch!
+            for ev in all_events:
+                self.state.mark_event_processed(pr_number, ev["id"])
+            if active_pid:
+                self.state.state["prs"][str(pr_number)]["active_agent_pid"] = active_pid
+                self.state.save()
 
     def run_cycle(self) -> None:
         """Run a single polling cycle across all active registered PRs."""
@@ -293,7 +353,11 @@ class ReviewWatcher:
 
     def start(self) -> None:
         """Main polling loop with bounded backoff on GitHub failures."""
-        # 1. Check auth status at startup
+        try:
+            os.chdir(REPO_ROOT)
+        except Exception:
+            pass
+
         is_auth, auth_msg = self.github.check_auth()
         if not is_auth:
             logger.error("FATAL: GitHub CLI (gh) is not authenticated!\n%s\nRun 'gh auth login' to authenticate.", auth_msg)
@@ -309,7 +373,7 @@ class ReviewWatcher:
             while self._running:
                 try:
                     self.run_cycle()
-                    backoff = DEFAULT_BACKOFF_INITIAL_SECONDS  # Reset on success
+                    backoff = DEFAULT_BACKOFF_INITIAL_SECONDS
                 except GitHubError as e:
                     logger.warning("GitHub CLI error encountered: %s. Backing off for %ss.", e, backoff)
                     time.sleep(backoff)

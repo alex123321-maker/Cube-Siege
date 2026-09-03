@@ -1,13 +1,21 @@
 """
 tools/review_loop/github_client.py - GitHub CLI interface wrapper.
 
-Encapsulates all communication with GitHub via `gh`.
+Encapsulates all communication with GitHub via `gh`, ensuring cwd is always set to the repository root.
 """
 import json
 import logging
 import shutil
 import subprocess
+import sys
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+
+_REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from tools.review_loop.config import REPO_ROOT
 
 logger = logging.getLogger(__name__)
 
@@ -16,15 +24,17 @@ class GitHubError(Exception):
     pass
 
 class GitHubClient:
-    def __init__(self, gh_path: Optional[str] = None):
+    def __init__(self, gh_path: Optional[str] = None, cwd: Optional[Path] = None):
         self.gh_path = gh_path or shutil.which("gh") or "gh"
+        self.cwd = Path(cwd or REPO_ROOT)
 
     def run_gh(self, args: List[str], timeout: int = 30) -> Tuple[int, str, str]:
-        """Execute a `gh` command and return (returncode, stdout, stderr)."""
+        """Execute a `gh` command strictly within self.cwd and return (returncode, stdout, stderr)."""
         cmd = [self.gh_path] + args
         try:
             res = subprocess.run(
                 cmd,
+                cwd=str(self.cwd),
                 capture_output=True,
                 text=True,
                 encoding="utf-8",
@@ -40,10 +50,7 @@ class GitHubClient:
             raise GitHubError(f"Failed to execute gh command: {e}")
 
     def check_auth(self) -> Tuple[bool, str]:
-        """
-        Verify if `gh auth status` reports valid authentication.
-        Returns (is_authenticated, status_or_error_message).
-        """
+        """Verify if `gh auth status` reports valid authentication."""
         try:
             rc, stdout, stderr = self.run_gh(["auth", "status"])
             output = f"{stdout}\n{stderr}".strip()
@@ -54,7 +61,7 @@ class GitHubClient:
             return False, str(e)
 
     def get_repo_owner_and_name(self) -> Tuple[str, str]:
-        """Return (owner, repo_name) for current repository."""
+        """Return (owner, repo_name) for repository in self.cwd."""
         rc, stdout, stderr = self.run_gh(["repo", "view", "--json", "owner,name"])
         if rc != 0:
             raise GitHubError(f"Failed to get repo info: {stderr or stdout}")
@@ -80,7 +87,7 @@ class GitHubClient:
         return None
 
     def get_pr_details(self, pr_number: int) -> Dict[str, Any]:
-        """Fetch general PR details (state, headRefOid, isDraft, author, url)."""
+        """Fetch general PR details (state, headRefOid, isDraft, author, url, reviewDecision)."""
         rc, stdout, stderr = self.run_gh([
             "pr", "view", str(pr_number),
             "--json", "number,state,isDraft,headRefName,headRefOid,author,url,reviewDecision"
@@ -153,7 +160,7 @@ class GitHubClient:
             "-f", f"query={query}"
         ])
         if rc != 0:
-            logger.warning("GraphQL reviewThreads query failed, returning empty threads: %s", stderr or stdout)
+            logger.warning("GraphQL reviewThreads query failed: %s", stderr or stdout)
             return []
         data = json.loads(stdout)
         threads = (

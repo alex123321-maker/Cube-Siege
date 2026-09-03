@@ -1,13 +1,12 @@
 """
 tools/review_loop/install.py - Service installer and lifecycle manager.
 
-Configures per-user background watcher service on Windows (Task Scheduler / detached process)
+Configures per-user background watcher service on Windows (Task Scheduler with proper cwd)
 and Linux (systemd --user).
 """
 import argparse
 import os
 import platform
-import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -21,6 +20,7 @@ from tools.review_loop.config import (
     DEFAULT_PID_FILE,
     REPO_ROOT,
     REVIEW_LOOP_DIR,
+    RUN_WATCHER_BAT,
 )
 
 WINDOWS_TASK_NAME = "CubeSiegeReviewLoopWatcher"
@@ -34,6 +34,7 @@ def is_pid_running(pid: int) -> bool:
         try:
             res = subprocess.run(
                 ["tasklist", "/FI", f"PID eq {pid}", "/FO", "CSV", "/NH"],
+                cwd=str(REPO_ROOT),
                 capture_output=True,
                 text=True,
                 encoding="utf-8",
@@ -59,14 +60,24 @@ def get_current_pid() -> int:
 
 # ================= Windows Lifecycle =================
 
-def install_windows() -> bool:
+def create_windows_launcher() -> Path:
+    """Generate a batch launcher that strictly changes directory to REPO_ROOT before running Python."""
+    REVIEW_LOOP_DIR.mkdir(parents=True, exist_ok=True)
     python_exe = sys.executable
     watcher_py = REPO_ROOT / "tools" / "review_loop" / "watcher.py"
 
-    # Command line to execute in background
-    cmd_line = f'"{python_exe}" "{watcher_py}"'
+    bat_content = f"""@echo off
+cd /d "{REPO_ROOT}"
+"{python_exe}" "{watcher_py}" %*
+"""
+    RUN_WATCHER_BAT.write_text(bat_content, encoding="utf-8")
+    return RUN_WATCHER_BAT
 
-    print(f"Configuring Windows Scheduled Task '{WINDOWS_TASK_NAME}'...")
+def install_windows() -> bool:
+    launcher = create_windows_launcher()
+    cmd_line = f'"{launcher}"'
+
+    print(f"Configuring Windows Scheduled Task '{WINDOWS_TASK_NAME}' with launcher at '{launcher}'...")
     schtasks_cmd = [
         "schtasks", "/create",
         "/tn", WINDOWS_TASK_NAME,
@@ -74,10 +85,10 @@ def install_windows() -> bool:
         "/sc", "onlogon",
         "/f"
     ]
-    res = subprocess.run(schtasks_cmd, capture_output=True, text=True, errors="replace")
+    res = subprocess.run(schtasks_cmd, cwd=str(REPO_ROOT), capture_output=True, text=True, errors="replace")
     if res.returncode == 0:
         print(f"[SUCCESS] Scheduled Task '{WINDOWS_TASK_NAME}' created successfully.")
-        print(f"Watcher will auto-start at user logon. To start now, run: python tools/review_loop/install.py start")
+        print("Watcher will auto-start at user logon. To start now, run: python tools/review_loop/install.py start")
         return True
     else:
         print(f"[WARN] Failed to create scheduled task via schtasks: {res.stderr.strip() or res.stdout.strip()}")
@@ -86,7 +97,18 @@ def install_windows() -> bool:
 
 def uninstall_windows() -> bool:
     stop_service()
-    res = subprocess.run(["schtasks", "/delete", "/tn", WINDOWS_TASK_NAME, "/f"], capture_output=True, text=True, errors="replace")
+    res = subprocess.run(
+        ["schtasks", "/delete", "/tn", WINDOWS_TASK_NAME, "/f"],
+        cwd=str(REPO_ROOT),
+        capture_output=True,
+        text=True,
+        errors="replace"
+    )
+    if RUN_WATCHER_BAT.exists():
+        try:
+            RUN_WATCHER_BAT.unlink()
+        except Exception:
+            pass
     if res.returncode == 0:
         print(f"[SUCCESS] Deleted Windows Scheduled Task '{WINDOWS_TASK_NAME}'.")
         return True
@@ -101,17 +123,19 @@ def start_windows() -> bool:
         return True
 
     # First attempt to run task scheduler task
-    res = subprocess.run(["schtasks", "/run", "/tn", WINDOWS_TASK_NAME], capture_output=True, text=True, errors="replace")
+    res = subprocess.run(
+        ["schtasks", "/run", "/tn", WINDOWS_TASK_NAME],
+        cwd=str(REPO_ROOT),
+        capture_output=True,
+        text=True,
+        errors="replace"
+    )
     if res.returncode == 0:
         print(f"[SUCCESS] Triggered scheduled task '{WINDOWS_TASK_NAME}'.")
         return True
 
-    # Fallback to detached process
-    python_exe = sys.executable
-    watcher_py = REPO_ROOT / "tools" / "review_loop" / "watcher.py"
-    REVIEW_LOOP_DIR.mkdir(parents=True, exist_ok=True)
-
-    # Detached flags for Windows
+    # Fallback to detached process using launcher
+    launcher = create_windows_launcher()
     creationflags = 0
     if hasattr(subprocess, "DETACHED_PROCESS"):
         creationflags |= subprocess.DETACHED_PROCESS
@@ -119,7 +143,7 @@ def start_windows() -> bool:
         creationflags |= subprocess.CREATE_NEW_PROCESS_GROUP
 
     proc = subprocess.Popen(
-        [python_exe, str(watcher_py)],
+        [str(launcher)],
         cwd=str(REPO_ROOT),
         creationflags=creationflags,
         stdout=subprocess.DEVNULL,
@@ -130,15 +154,13 @@ def start_windows() -> bool:
     return True
 
 def stop_windows() -> bool:
-    # 1. Stop schtasks if running
-    subprocess.run(["schtasks", "/end", "/tn", WINDOWS_TASK_NAME], capture_output=True, errors="replace")
+    subprocess.run(["schtasks", "/end", "/tn", WINDOWS_TASK_NAME], cwd=str(REPO_ROOT), capture_output=True, errors="replace")
 
-    # 2. Kill PID from PID file
     pid = get_current_pid()
     if pid:
         if is_pid_running(pid):
             try:
-                subprocess.run(["taskkill", "/F", "/PID", str(pid)], capture_output=True, errors="replace")
+                subprocess.run(["taskkill", "/F", "/PID", str(pid)], cwd=str(REPO_ROOT), capture_output=True, errors="replace")
                 print(f"[SUCCESS] Terminated watcher process (PID: {pid}).")
             except Exception as e:
                 print(f"[WARN] Failed to terminate PID {pid}: {e}")
@@ -176,27 +198,26 @@ WantedBy=default.target
 """
     service_path.write_text(service_content, encoding="utf-8")
     print(f"[SUCCESS] Created systemd user unit at {service_path}")
-    subprocess.run(["systemctl", "--user", "daemon-reload"], check=False)
-    subprocess.run(["systemctl", "--user", "enable", LINUX_SERVICE_NAME], check=False)
+    subprocess.run(["systemctl", "--user", "daemon-reload"], cwd=str(REPO_ROOT), check=False)
+    subprocess.run(["systemctl", "--user", "enable", LINUX_SERVICE_NAME], cwd=str(REPO_ROOT), check=False)
     print(f"[SUCCESS] Enabled {LINUX_SERVICE_NAME}.")
     print("To start service: python tools/review_loop/install.py start")
     return True
 
 def uninstall_linux() -> bool:
-    subprocess.run(["systemctl", "--user", "disable", "--now", LINUX_SERVICE_NAME], check=False)
+    subprocess.run(["systemctl", "--user", "disable", "--now", LINUX_SERVICE_NAME], cwd=str(REPO_ROOT), check=False)
     service_path = Path.home() / ".config" / "systemd" / "user" / LINUX_SERVICE_NAME
     if service_path.exists():
         service_path.unlink()
         print(f"[SUCCESS] Removed {service_path}")
-    subprocess.run(["systemctl", "--user", "daemon-reload"], check=False)
+    subprocess.run(["systemctl", "--user", "daemon-reload"], cwd=str(REPO_ROOT), check=False)
     return True
 
 def start_linux() -> bool:
-    res = subprocess.run(["systemctl", "--user", "start", LINUX_SERVICE_NAME], capture_output=True, text=True)
+    res = subprocess.run(["systemctl", "--user", "start", LINUX_SERVICE_NAME], cwd=str(REPO_ROOT), capture_output=True, text=True)
     if res.returncode == 0:
         print(f"[SUCCESS] Started {LINUX_SERVICE_NAME}")
         return True
-    # Fallback to direct process
     python_exe = sys.executable
     watcher_py = REPO_ROOT / "tools" / "review_loop" / "watcher.py"
     proc = subprocess.Popen([python_exe, str(watcher_py)], cwd=str(REPO_ROOT))
@@ -204,7 +225,7 @@ def start_linux() -> bool:
     return True
 
 def stop_linux() -> bool:
-    subprocess.run(["systemctl", "--user", "stop", LINUX_SERVICE_NAME], check=False)
+    subprocess.run(["systemctl", "--user", "stop", LINUX_SERVICE_NAME], cwd=str(REPO_ROOT), check=False)
     pid = get_current_pid()
     if pid and is_pid_running(pid):
         try:
@@ -223,6 +244,7 @@ def print_status() -> None:
     print(" Cube Siege - Review Loop Watcher Status")
     print("=" * 60)
     print(f"Platform: {platform.system()} ({platform.release()})")
+    print(f"Repository Root: {REPO_ROOT}")
     print(f"Log file: {DEFAULT_LOG_FILE}")
     print(f"PID file: {DEFAULT_PID_FILE}")
 
@@ -235,13 +257,24 @@ def print_status() -> None:
         print("Process Status: [STOPPED]")
 
     if sys.platform == "win32":
-        res = subprocess.run(["schtasks", "/query", "/tn", WINDOWS_TASK_NAME], capture_output=True, text=True, errors="replace")
+        res = subprocess.run(
+            ["schtasks", "/query", "/tn", WINDOWS_TASK_NAME],
+            cwd=str(REPO_ROOT),
+            capture_output=True,
+            text=True,
+            errors="replace"
+        )
         if res.returncode == 0:
             print(f"Scheduled Task: [CONFIGURED] ({WINDOWS_TASK_NAME})")
         else:
             print("Scheduled Task: [NOT INSTALLED]")
     elif sys.platform == "linux":
-        res = subprocess.run(["systemctl", "--user", "is-active", LINUX_SERVICE_NAME], capture_output=True, text=True)
+        res = subprocess.run(
+            ["systemctl", "--user", "is-active", LINUX_SERVICE_NAME],
+            cwd=str(REPO_ROOT),
+            capture_output=True,
+            text=True
+        )
         print(f"Systemd Service: [{res.stdout.strip() or 'inactive'}]")
 
     if DEFAULT_LOG_FILE.exists():
@@ -261,7 +294,6 @@ def install_service() -> bool:
         return install_linux()
     else:
         print(f"[WARN] OS '{sys.platform}' does not have an automatic service installer.")
-        print("You can still run the watcher manually or via 'start'.")
         return False
 
 def uninstall_service() -> bool:

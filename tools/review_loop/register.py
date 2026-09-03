@@ -1,9 +1,11 @@
 """
 tools/review_loop/register.py - Automatic PR ↔ Antigravity conversation registration CLI.
 
-Associates an open Pull Request with the current Antigravity conversation/session ID.
+Associates an open Pull Request with the Antigravity conversation/session ID.
+Supports official Antigravity Hook payload via stdin (`--from-hook`).
 """
 import argparse
+import json
 import os
 import subprocess
 import sys
@@ -14,6 +16,7 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
+from tools.review_loop.config import REPO_ROOT
 from tools.review_loop.github_client import GitHubClient, GitHubError
 from tools.review_loop.state_manager import StateManager
 
@@ -21,6 +24,7 @@ def get_current_git_branch() -> str:
     """Get current active git branch name."""
     res = subprocess.run(
         ["git", "branch", "--show-current"],
+        cwd=str(REPO_ROOT),
         capture_output=True,
         text=True,
         encoding="utf-8",
@@ -29,9 +33,9 @@ def get_current_git_branch() -> str:
     if res.returncode == 0 and res.stdout.strip():
         return res.stdout.strip()
 
-    # Fallback to rev-parse
     res = subprocess.run(
         ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+        cwd=str(REPO_ROOT),
         capture_output=True,
         text=True,
         encoding="utf-8",
@@ -42,8 +46,46 @@ def get_current_git_branch() -> str:
     return ""
 
 def get_current_conversation_id() -> Optional[str]:
-    """Retrieve active Antigravity conversation ID from environment."""
+    """Retrieve active Antigravity conversation ID from environment if set."""
     return os.environ.get("ANTIGRAVITY_CONVERSATION_ID")
+
+def register_from_hook() -> None:
+    """
+    Handle official Antigravity Hook invocation.
+    Reads JSON payload from stdin, extracts conversationId, resolves PR, and saves mapping.
+    Must always output valid JSON to stdout per hook contract (e.g. '{}').
+    """
+    try:
+        payload_text = sys.stdin.read()
+        if not payload_text.strip():
+            sys.stdout.write("{}\n")
+            return
+
+        data = json.loads(payload_text)
+        conv_id = data.get("conversationId")
+        if not conv_id:
+            sys.stdout.write("{}\n")
+            return
+
+        # Attempt to resolve current branch and open PR
+        branch = get_current_git_branch()
+        if not branch or branch in ["main", "master", "develop", "HEAD"]:
+            # Feature branch not active
+            sys.stdout.write("{}\n")
+            return
+
+        github = GitHubClient(cwd=REPO_ROOT)
+        pr_number = github.find_pr_for_branch(branch)
+        if pr_number:
+            state_mgr = StateManager()
+            state_mgr.register_pr(pr_number, conv_id, branch)
+
+    except Exception:
+        # Hooks must fail soft and not break agent execution
+        pass
+    finally:
+        sys.stdout.write("{}\n")
+        sys.stdout.flush()
 
 def register(
     pr_number: Optional[int] = None,
@@ -51,7 +93,7 @@ def register(
     branch: Optional[str] = None
 ) -> bool:
     state_mgr = StateManager()
-    github = GitHubClient()
+    github = GitHubClient(cwd=REPO_ROOT)
 
     # 1. Resolve branch
     resolved_branch = branch or get_current_git_branch()
@@ -76,7 +118,7 @@ def register(
     resolved_conv = conversation_id or get_current_conversation_id()
     if not resolved_conv:
         print("[ERROR] No Antigravity conversation ID found in environment (ANTIGRAVITY_CONVERSATION_ID).")
-        print("Please provide --conversation-id explicitly.")
+        print("Please provide --conversation-id explicitly, or trigger via Antigravity Hook (--from-hook).")
         return False
 
     # 4. Save registration
@@ -110,15 +152,26 @@ def list_registered() -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Register a PR with Antigravity review feedback loop.")
+    parser.add_argument("--from-hook", action="store_true", help="Process official Antigravity Hook payload from stdin.")
     parser.add_argument("--pr", type=int, help="Pull Request number (default: auto-detect from current branch).")
     parser.add_argument("--conversation-id", help="Antigravity conversation ID (default: $ANTIGRAVITY_CONVERSATION_ID).")
     parser.add_argument("--branch", help="Git branch name (default: current git branch).")
     parser.add_argument("--list", action="store_true", help="List all registered PRs and allowlist.")
     parser.add_argument("--unregister", type=int, help="Unregister a PR from review loop.")
+    parser.add_argument("--reactivate", type=int, help="Reactivate an approved/closed PR back to watching status.")
     parser.add_argument("--allow-user", help="Add a username to reviewer allowlist.")
     args = parser.parse_args()
 
+    if args.from_hook:
+        register_from_hook()
+        sys.exit(0)
+
     state_mgr = StateManager()
+
+    if args.reactivate:
+        state_mgr.mark_pr_status(args.reactivate, "watching")
+        print(f"[SUCCESS] Reactivated PR #{args.reactivate} to 'watching'.")
+        return
 
     if args.allow_user:
         state_mgr.add_to_allowlist(args.allow_user)

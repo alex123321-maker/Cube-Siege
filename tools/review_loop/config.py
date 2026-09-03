@@ -9,6 +9,7 @@ REVIEW_LOOP_DIR = REPO_ROOT / ".review_loop"
 DEFAULT_STATE_FILE = REVIEW_LOOP_DIR / "state.json"
 DEFAULT_LOG_FILE = REVIEW_LOOP_DIR / "watcher.log"
 DEFAULT_PID_FILE = REVIEW_LOOP_DIR / "watcher.pid"
+RUN_WATCHER_BAT = REVIEW_LOOP_DIR / "run_watcher.bat"
 
 # Watcher parameters
 DEFAULT_POLL_INTERVAL_SECONDS = 30
@@ -16,9 +17,11 @@ DEFAULT_BACKOFF_INITIAL_SECONDS = 5
 DEFAULT_BACKOFF_MAX_SECONDS = 300
 DEFAULT_BACKOFF_FACTOR = 2.0
 
-# Concurrency lock lease: after this duration, if an agent crashes,
-# the lock is considered expired and can be reacquired safely.
-DEFAULT_LOCK_LEASE_SECONDS = 600.0  # 10 minutes
+# Concurrency lock lease: generous default (30 mins) to accommodate complex fixes.
+DEFAULT_LOCK_LEASE_SECONDS = 1800.0
+
+# Marker used to tag comments created by automated agents to prevent infinite loops.
+AGENT_COMMENT_MARKER = "<!-- agent:review-loop -->"
 
 # Template for resuming the Antigravity conversation
 RESUME_PROMPT_TEMPLATE = """New GitHub review feedback was received for PR #{pr_number}.

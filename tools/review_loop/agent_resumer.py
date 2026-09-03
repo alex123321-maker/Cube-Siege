@@ -1,8 +1,8 @@
 """
 tools/review_loop/agent_resumer.py - Antigravity agent conversation resumption.
 
-Locates agentapi / language_server.exe and dispatches resume instructions to
-the registered Antigravity conversation session.
+Uses official Antigravity CLI (agy --conversation <id> -p "<prompt>") or official
+agentapi (agentapi send-message <id> "<prompt>"). No hardcoded user paths.
 """
 import logging
 import os
@@ -17,7 +17,7 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from tools.review_loop.config import RESUME_PROMPT_TEMPLATE
+from tools.review_loop.config import REPO_ROOT, RESUME_PROMPT_TEMPLATE
 
 logger = logging.getLogger(__name__)
 
@@ -25,46 +25,49 @@ class AgentResumerError(Exception):
     pass
 
 class AgentResumer:
-    def __init__(self, agentapi_cmd: Optional[List[str]] = None):
+    def __init__(self, agentapi_cmd: Optional[List[str]] = None, cwd: Optional[Path] = None):
         self._custom_cmd = agentapi_cmd
+        self.cwd = Path(cwd or REPO_ROOT)
 
     def _discover_command(self) -> List[str]:
-        """Discover the executable command to invoke agentapi."""
+        """
+        Discover official Antigravity CLI (`agy`) or `agentapi`.
+        Strictly portable: never uses hardcoded absolute user directory paths.
+        """
         if self._custom_cmd:
             return list(self._custom_cmd)
 
-        # 1. Check ANTIGRAVITY_AGENTAPI_EXE
+        # 1. Official standalone CLI (agy)
+        agy_which = shutil.which("agy") or shutil.which("agy.exe")
+        if agy_which:
+            return [agy_which]
+
+        # 2. Check ANTIGRAVITY_AGENTAPI_EXE (if provided by agent/sidecar runtime)
         agentapi_exe = os.environ.get("ANTIGRAVITY_AGENTAPI_EXE")
         if agentapi_exe and Path(agentapi_exe).is_file():
-            # Usually language_server.exe which requires subcommand 'agentapi'
             if "language_server" in Path(agentapi_exe).stem.lower():
                 return [agentapi_exe, "agentapi"]
             return [agentapi_exe]
 
-        # 2. Check ~/.gemini/antigravity/bin/agentapi.bat (Windows) or agentapi (Unix)
-        home = Path.home()
-        for candidate in [
-            home / ".gemini" / "antigravity" / "bin" / "agentapi.bat",
-            home / ".gemini" / "antigravity" / "bin" / "agentapi",
-            Path(r"C:\Users\alexa\.gemini\antigravity\bin\agentapi.bat")
-        ]:
-            if candidate.is_file():
-                return [str(candidate)]
-
-        # 3. Check system PATH for agentapi or agentapi.bat
-        for name in ["agentapi.bat", "agentapi", "agentapi.exe"]:
+        # 3. Check system PATH for agentapi
+        for name in ["agentapi", "agentapi.bat", "agentapi.exe"]:
             found = shutil.which(name)
             if found:
                 return [found]
 
-        # 4. Check agy CLI as fallback
-        agy_found = shutil.which("agy")
-        if agy_found:
-            return [agy_found, "--conversation"]
+        # 4. Standard per-user install paths without hardcoded usernames
+        home = Path.home()
+        candidates = [
+            home / ".gemini" / "antigravity" / "bin" / ("agentapi.bat" if sys.platform == "win32" else "agentapi"),
+            home / "AppData" / "Local" / "agy" / "bin" / "agy.exe"
+        ]
+        for candidate in candidates:
+            if candidate.is_file():
+                return [str(candidate)]
 
         raise AgentResumerError(
-            "Could not locate agentapi binary or script. Ensure Antigravity is installed "
-            "and ANTIGRAVITY_AGENTAPI_EXE is configured or agentapi is in PATH."
+            "Could not locate official 'agy' CLI or 'agentapi' binary. "
+            "Ensure Google Antigravity is installed and 'agy' is added to system PATH."
         )
 
     def build_prompt(self, pr_number: int) -> str:
@@ -78,20 +81,23 @@ class AgentResumer:
         title: Optional[str] = None,
         timeout: int = 60,
         max_retries: int = 3
-    ) -> Tuple[bool, str]:
+    ) -> Tuple[bool, str, Optional[int]]:
         """
-        Send resume instruction to conversation_id via agentapi.
+        Send resume instruction to conversation_id.
+        Returns (success: bool, output_or_error: str, pid: Optional[int]).
         Uses bounded retry on transient failures.
         """
         cmd_prefix = self._discover_command()
         prompt = self.build_prompt(pr_number)
 
-        # Construct full command
-        if cmd_prefix and cmd_prefix[0].endswith("agy"):
-            # agy --conversation <id> -p "<prompt>"
-            full_cmd = cmd_prefix + [conversation_id, "-p", prompt]
+        binary_stem = Path(cmd_prefix[0]).stem.lower()
+
+        # Build command based on discovered tool
+        if binary_stem in ["agy", "agy.exe"]:
+            # Official agy CLI: agy --conversation <id> -p "<prompt>"
+            full_cmd = cmd_prefix + ["--conversation", conversation_id, "-p", prompt]
         else:
-            # agentapi send-message [--title=<title>] <recipient_id> <content>
+            # agentapi: agentapi send-message [--title=<title>] <recipient_id> <content>
             msg_args = ["send-message"]
             if title:
                 msg_args.append(f"--title={title}")
@@ -102,11 +108,12 @@ class AgentResumer:
         for attempt in range(1, max_retries + 1):
             try:
                 logger.info(
-                    "Resuming conversation %s for PR #%s (attempt %s/%s)...",
-                    conversation_id, pr_number, attempt, max_retries
+                    "Resuming conversation %s for PR #%s (attempt %s/%s, binary: %s)...",
+                    conversation_id, pr_number, attempt, max_retries, binary_stem
                 )
                 res = subprocess.run(
                     full_cmd,
+                    cwd=str(self.cwd),
                     capture_output=True,
                     text=True,
                     encoding="utf-8",
@@ -116,11 +123,11 @@ class AgentResumer:
                 output = f"{res.stdout}\n{res.stderr}".strip()
                 if res.returncode == 0:
                     logger.info("Successfully dispatched resume message to %s.", conversation_id)
-                    return True, output
-                last_error = f"agentapi exited with code {res.returncode}: {output}"
+                    return True, output, None
+                last_error = f"Resume command exited with code {res.returncode}: {output}"
                 logger.warning("Resume attempt %s failed: %s", attempt, last_error)
             except subprocess.TimeoutExpired:
-                last_error = f"agentapi timed out after {timeout}s"
+                last_error = f"Resume command timed out after {timeout}s"
                 logger.warning("Resume attempt %s timed out.", attempt)
             except Exception as e:
                 last_error = str(e)
@@ -129,4 +136,4 @@ class AgentResumer:
             if attempt < max_retries:
                 time.sleep(2 ** attempt)
 
-        return False, last_error
+        return False, last_error, None
