@@ -124,7 +124,12 @@ class AgentResumer:
 
         Returns (success, output_or_error, pid_if_launched).
         """
-        cmd_list, backend = self._discover_command()
+        try:
+            cmd_list, backend = self._discover_command()
+        except AgentResumerError as e:
+            logger.error("Missing Antigravity resume capability for PR #%s: %s", pr_number, e)
+            return False, f"Missing resume capability: {e}", None
+
         prompt = self.build_prompt(pr_number)
 
         if backend == BACKEND_AGY:

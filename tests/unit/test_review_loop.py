@@ -27,6 +27,7 @@ from unittest.mock import MagicMock, patch
 from tools.review_loop.agent_resumer import (
     BACKEND_AGY,
     AgentResumer,
+    AgentResumerError,
     detect_backend_from_path,
 )
 from tools.review_loop.config import AGENT_COMMENT_MARKER, DESIGN_DECISION_MARKER, REVIEW_LOOP_DIR
@@ -270,6 +271,15 @@ class TestAgentResumer(unittest.TestCase):
         self.assertFalse(success)
         self.assertIsNone(pid)
         self.assertEqual(mock_popen.call_count, 2)
+
+    def test_resume_conversation_missing_capability_returns_clean_error(self):
+        """When _discover_command raises AgentResumerError, resume_conversation returns (False, msg, None)."""
+        resumer = AgentResumer()
+        with patch.object(resumer, "_discover_command", side_effect=AgentResumerError("No CLI found")):
+            success, out, pid = resumer.resume_conversation("conv-x", 123)
+            self.assertFalse(success)
+            self.assertIn("Missing resume capability", out)
+            self.assertIsNone(pid)
 
 
 # ===================================================================
@@ -635,6 +645,177 @@ class TestReviewWatcher(unittest.TestCase):
 
         agent_marker = is_event_allowed("code-review-bot[bot]", f"Done {AGENT_COMMENT_MARKER}", self.state_mgr)
         self.assertFalse(agent_marker)
+
+    def test_two_watchers_interleaving_during_startup(self):
+        """
+        BLOCKER 1: When Watcher 1 is starting an agent (status=processing, pid=None,
+        elapsed < grace period), Watcher 2 must NOT treat it as exited, must NOT
+        clear lock, and must NOT restore in-flight events.
+        """
+        self.state_mgr.register_pr(pr_number=101, conversation_id="c101", branch="b101")
+        self._setup_pr_mocks(101, head="sha101")
+        # Watcher 1 acquires lock and sets in-flight
+        self.state_mgr.acquire_lock(101)
+        self.state_mgr.set_in_flight_events(101, [{"id": "ev_startup"}])
+
+        # Watcher 2 simulates running process_registered_pr
+        watcher2 = ReviewWatcher(
+            state_manager=self.state_mgr,
+            github_client=self.mock_github,
+            agent_resumer=self.mock_resumer,
+        )
+        watcher2.process_registered_pr(101)
+
+        pr = self.state_mgr.get_pr(101)
+        # Lock must be intact and in processing status
+        self.assertEqual(pr["status"], "processing")
+        self.assertEqual(len(pr["in_flight_events"]), 1)
+        self.assertEqual(len(pr["pending_events"]), 0)
+        self.assertFalse(self.mock_resumer.resume_conversation.called)
+
+    def test_process_exit_after_lease_expiry_with_changed_head(self):
+        """
+        BLOCKER 1: When process exits after lock lease expiry and head HAS changed,
+        watcher must finalize in-flight events and release lock cleanly without stranding work.
+        """
+        import time
+        self.state_mgr.register_pr(pr_number=102, conversation_id="c102", branch="b102")
+        self.state_mgr.update_pr_fields(
+            102,
+            status="processing",
+            processing_started_at=time.time() - 2500.0,  # Expired lease (> 1800s)
+            active_agent_pid=99999,
+            last_head_sha="sha_old",
+            in_flight_events=[{"id": "ev_lease_change"}],
+        )
+        self._setup_pr_mocks(102, head="sha_new")
+
+        with patch("tools.review_loop.watcher.is_pid_alive", return_value=False):
+            self.watcher.process_registered_pr(102)
+
+        pr = self.state_mgr.get_pr(102)
+        self.assertEqual(pr["status"], "watching")
+        self.assertIn("ev_lease_change", pr["processed_event_ids"])
+        self.assertEqual(len(pr["in_flight_events"]), 0)
+        self.assertEqual(pr["last_head_sha"], "sha_new")
+
+    def test_process_exit_after_lease_expiry_with_unchanged_head(self):
+        """
+        BLOCKER 1: When process exits after lock lease expiry and head is UNCHANGED,
+        watcher must restore in-flight events to pending and release lock cleanly without stranding work.
+        """
+        import time
+        self.state_mgr.register_pr(pr_number=103, conversation_id="c103", branch="b103")
+        self.state_mgr.update_pr_fields(
+            103,
+            status="processing",
+            processing_started_at=time.time() - 2500.0,  # Expired lease (> 1800s)
+            active_agent_pid=99999,
+            last_head_sha="sha_same",
+            in_flight_events=[{"id": "ev_lease_no_change"}],
+        )
+        self._setup_pr_mocks(103, head="sha_same")
+
+        with patch("tools.review_loop.watcher.is_pid_alive", return_value=False):
+            self.watcher.process_registered_pr(103)
+
+        pr = self.state_mgr.get_pr(103)
+        self.assertEqual(pr["status"], "watching")
+        self.assertEqual(len(pr["in_flight_events"]), 0)
+        self.assertEqual(len(pr["pending_events"]), 1)
+        self.assertEqual(pr["pending_events"][0]["id"], "ev_lease_no_change")
+        self.assertEqual(pr["retry_count"], 1)
+
+    def test_missing_agy_capability_transitions_to_terminal_error(self):
+        """
+        BLOCKER 2: When Antigravity resume capability is missing (AgentResumerError),
+        watcher must catch/classify it as an unrecoverable infrastructure failure,
+        immediately transition PR to 'error', restore events to pending, and halt retries.
+        """
+        self.state_mgr.register_pr(pr_number=104, conversation_id="c104", branch="b104")
+        self._setup_pr_mocks(104, reviews=[
+            {
+                "id": "rev_missing_agy",
+                "state": "REQUEST_CHANGES",
+                "author": {"login": "alex123321-maker"},
+                "body": "Need changes",
+            }
+        ], head="sha104")
+
+        self.mock_resumer.resume_conversation.side_effect = AgentResumerError(
+            "Neither agy CLI nor agentapi found. Please install agy or configure --agy-path."
+        )
+
+        # Run cycle
+        self.watcher.run_cycle()
+
+        pr = self.state_mgr.get_pr(104)
+        self.assertEqual(pr["status"], "error")
+        # Work is preserved in pending_events
+        self.assertEqual(len(pr["pending_events"]), 1)
+        self.assertEqual(pr["pending_events"][0]["id"], "rev_missing_agy")
+        self.assertEqual(len(pr["in_flight_events"]), 0)
+
+        # Subsequent cycle: does NOT dispatch again
+        self.mock_resumer.reset_mock()
+        self.watcher.run_cycle()
+        self.assertFalse(self.mock_resumer.resume_conversation.called)
+
+    def test_reopen_thread_multiple_cycles_produces_distinct_wakes(self):
+        """
+        BLOCKER 3: resolve -> reopen -> process -> resolve -> reopen must produce a second wake!
+        Ensures each reopen transition gets a unique transition ID so is_event_known does not suppress it.
+        """
+        self.state_mgr.register_pr(pr_number=105, conversation_id="c105", branch="b105")
+        self.state_mgr.update_pr_fields(105, last_head_sha="sha_head_1")
+        self.mock_resumer.resume_conversation.return_value = (True, "launched", 601)
+
+        # 1. Initially thread is resolved
+        self._setup_pr_mocks(105, head="sha_head_1")
+        self.mock_github.get_pr_review_threads.return_value = [
+            {"id": "th_toggle", "isResolved": True, "comments": {"nodes": []}}
+        ]
+        self.watcher.run_cycle()
+        self.assertEqual(self.state_mgr.get_thread_is_resolved(105, "th_toggle"), True)
+        self.assertFalse(self.mock_resumer.resume_conversation.called)
+
+        # 2. Thread reopened -> Wake #1!
+        self.mock_github.get_pr_review_threads.return_value = [
+            {"id": "th_toggle", "isResolved": False, "comments": {"nodes": []}}
+        ]
+        self.watcher.run_cycle()
+        self.assertEqual(self.mock_resumer.resume_conversation.call_count, 1)
+
+        # Agent finishes turn and pushes new commit
+        self.mock_github.get_pr_details.return_value["headRefOid"] = "sha_head_2"
+        with patch("tools.review_loop.watcher.is_pid_alive", return_value=False):
+            self.watcher.run_cycle()
+
+        pr = self.state_mgr.get_pr(105)
+        self.assertEqual(pr["status"], "watching")
+        self.assertIn("reopen_th_toggle_v1", pr["processed_event_ids"])
+
+        # 3. Thread resolved again
+        self.mock_resumer.reset_mock()
+        self.mock_github.get_pr_details.return_value["headRefOid"] = "sha_head_2"
+        self.mock_github.get_pr_review_threads.return_value = [
+            {"id": "th_toggle", "isResolved": True, "comments": {"nodes": []}}
+        ]
+        self.watcher.run_cycle()
+        self.assertEqual(self.state_mgr.get_thread_is_resolved(105, "th_toggle"), True)
+        self.assertFalse(self.mock_resumer.resume_conversation.called)
+
+        # 4. Thread reopened a second time -> Wake #2!
+        self.mock_resumer.resume_conversation.return_value = (True, "launched", 602)
+        self.mock_github.get_pr_review_threads.return_value = [
+            {"id": "th_toggle", "isResolved": False, "comments": {"nodes": []}}
+        ]
+        self.watcher.run_cycle()
+        self.assertEqual(self.mock_resumer.resume_conversation.call_count, 1)
+
+        pr2 = self.state_mgr.get_pr(105)
+        self.assertEqual(len(pr2["in_flight_events"]), 1)
+        self.assertEqual(pr2["in_flight_events"][0]["id"], "reopen_th_toggle_v2")
 
 
 # ===================================================================

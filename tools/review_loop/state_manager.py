@@ -29,6 +29,7 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 from tools.review_loop.config import (
+    AGENT_STARTUP_GRACE_PERIOD_SECONDS,
     DEFAULT_LOCK_LEASE_SECONDS,
     DEFAULT_STATE_FILE,
     DEFAULT_STATE_LOCK_FILE,
@@ -223,6 +224,7 @@ class StateManager:
                     "processing_started_at": 0.0,
                     "active_agent_pid": None,
                     "thread_states": {},
+                    "thread_reopen_counts": {},
                     "pending_events": [],
                     "in_flight_events": [],
                     "retry_count": 0,
@@ -423,6 +425,32 @@ class StateManager:
                 )
                 threads[thread_id] = is_resolved
 
+    def increment_thread_reopen_count(
+        self, pr_number: int, thread_id: str
+    ) -> int:
+        """
+        Increment and return the reopen transition counter for a review thread (transactional).
+        Ensures each reopen transition receives a unique identity across cycles.
+        """
+        with self._transact():
+            key = str(pr_number)
+            if key in self.state["prs"]:
+                counts = self.state["prs"][key].setdefault(
+                    "thread_reopen_counts", {}
+                )
+                counts[thread_id] = counts.get(thread_id, 0) + 1
+                return counts[thread_id]
+        return 1
+
+    def get_thread_reopen_count(
+        self, pr_number: int, thread_id: str
+    ) -> int:
+        """Get the current reopen transition counter for a review thread."""
+        pr = self.get_pr(pr_number)
+        if not pr:
+            return 0
+        return pr.get("thread_reopen_counts", {}).get(thread_id, 0)
+
     # ------------- Concurrency Locking & Queuing ------------- #
 
     def is_processing(
@@ -431,8 +459,10 @@ class StateManager:
         lease_seconds: float = DEFAULT_LOCK_LEASE_SECONDS,
     ) -> bool:
         """
-        Check if PR is currently being processed by an agent.
+        Check if PR is currently being actively processed by an agent.
         Reloads from disk, checks PID liveness & lease expiry.
+        Never prematurely clears the lock here; the watcher runs authoritative
+        completion handling and in-flight recovery before releasing locks.
         """
         self._load_no_lock()
         pr = self.state.get("prs", {}).get(str(pr_number))
@@ -444,16 +474,16 @@ class StateManager:
                 return True
 
             started = pr.get("processing_started_at", 0.0)
-            if time.time() - started < lease_seconds:
+            elapsed = time.time() - started
+            grace = min(AGENT_STARTUP_GRACE_PERIOD_SECONDS, lease_seconds)
+            if pid is None and elapsed < grace:
                 return True
 
-            logger.warning(
-                "Processing lease for PR #%s expired after %ss and no alive "
-                "process. Clearing lock.",
-                pr_number,
-                lease_seconds,
-            )
-            self.release_lock(pr_number)
+            if elapsed < lease_seconds and pid and is_pid_alive(pid):
+                return True
+
+            # If elapsed >= lease_seconds or pid is dead/None past grace, active processing has ended.
+            # Do NOT call release_lock() here — doing so before completion recovery strands in-flight events.
         return False
 
     def acquire_lock(
@@ -479,15 +509,30 @@ class StateManager:
                     return False
 
                 started = pr.get("processing_started_at", 0.0)
-                if time.time() - started < lease_seconds:
+                elapsed = time.time() - started
+                grace = min(AGENT_STARTUP_GRACE_PERIOD_SECONDS, lease_seconds)
+                # Startup grace period check: if PID is not yet set but started recently, cannot acquire
+                if tracked_pid is None and elapsed < grace:
+                    return False
+
+                if elapsed < lease_seconds:
                     return False
 
                 logger.warning(
-                    "Processing lease for PR #%s expired after %ss and no alive "
+                    "Processing lease for PR #%s expired after %.1fs and no alive "
                     "process. Reclaiming lock.",
                     pr_number,
-                    lease_seconds,
+                    elapsed,
                 )
+                # Ensure any stranded in-flight events are preserved to pending!
+                in_flight = pr.get("in_flight_events", [])
+                if in_flight:
+                    pending = pr.setdefault("pending_events", [])
+                    for ev in reversed(in_flight):
+                        ev_id = ev.get("id")
+                        if not any(e.get("id") == ev_id for e in pending if ev_id):
+                            pending.insert(0, ev)
+                    pr["in_flight_events"] = []
 
             # Claim lock atomically within this transaction
             pr["status"] = "processing"

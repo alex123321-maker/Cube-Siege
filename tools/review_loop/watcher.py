@@ -18,9 +18,10 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from tools.review_loop.agent_resumer import AgentResumer
+from tools.review_loop.agent_resumer import AgentResumer, AgentResumerError
 from tools.review_loop.config import (
     AGENT_COMMENT_MARKER,
+    AGENT_STARTUP_GRACE_PERIOD_SECONDS,
     DEFAULT_BACKOFF_FACTOR,
     DEFAULT_BACKOFF_INITIAL_SECONDS,
     DEFAULT_BACKOFF_MAX_SECONDS,
@@ -242,14 +243,19 @@ class ReviewWatcher:
                     prev_resolved = self.state.get_thread_is_resolved(pr_number, th_id)
                     # Check for reopened transition (previously resolved -> now unresolved)
                     if prev_resolved is True and is_resolved is False:
-                        reopen_id = f"reopen_{th_id}"
+                        reopen_count = self.state.increment_thread_reopen_count(pr_number, th_id)
+                        reopen_id = f"reopen_{th_id}_v{reopen_count}"
                         if not self.state.is_event_known(pr_number, reopen_id):
-                            logger.info("Detected reopened review thread %s on PR #%s", th_id, pr_number)
+                            logger.info(
+                                "Detected reopened review thread %s (transition #%d) on PR #%s",
+                                th_id, reopen_count, pr_number
+                            )
                             new_events.append({
                                 "id": reopen_id,
                                 "type": "THREAD_REOPENED",
                                 "thread_id": th_id,
-                                "body": "Review thread was reopened."
+                                "reopen_transition": reopen_count,
+                                "body": f"Review thread was reopened (reopen #{reopen_count})."
                             })
                     self.state.set_thread_is_resolved(pr_number, th_id, is_resolved)
 
@@ -276,8 +282,13 @@ class ReviewWatcher:
 
         return new_events
 
-    def process_registered_pr(self, pr_number: int, pr_entry: Dict[str, Any]) -> None:
+    def process_registered_pr(self, pr_number: int, pr_entry: Optional[Dict[str, Any]] = None) -> None:
         """Process a single registered PR with full terminal completion and failure handling."""
+        authoritative_pr = self.state.get_pr(pr_number)
+        if not authoritative_pr:
+            return
+        pr_entry = authoritative_pr
+
         conversation_id = pr_entry.get("conversation_id")
         if not conversation_id:
             logger.warning("PR #%s has no mapped conversation ID. Skipping.", pr_number)
@@ -313,8 +324,11 @@ class ReviewWatcher:
                 return
 
         # ---------------- 1. Active Processing Check & Completion ----------------
-        if self.state.is_processing(pr_number):
+        if pr_status == "processing":
             pid = pr_entry.get("active_agent_pid")
+            started_at = pr_entry.get("processing_started_at", 0.0)
+            elapsed = time.time() - started_at
+
             if pid and is_pid_alive(pid):
                 # Agent process is actively running. Queue any new incoming review events.
                 new_events = self.check_pr_events(pr_number, pr_info)
@@ -323,61 +337,66 @@ class ReviewWatcher:
                     for ev in new_events:
                         self.state.queue_pending_event(pr_number, ev)
                 return
+
+            # If launch is in progress (pid is None) and within startup grace period, do not intervene
+            if pid is None and elapsed < AGENT_STARTUP_GRACE_PERIOD_SECONDS:
+                logger.debug("PR #%s agent launch in progress (elapsed: %.1fs). Waiting.", pr_number, elapsed)
+                return
+
+            # Process has EXITED or startup timed out or lease expired. Run completion handling:
+            in_flight = self.state.get_in_flight_events(pr_number)
+            if current_head_sha and last_head_sha and current_head_sha != last_head_sha:
+                # SUCCESS: Agent completed turn and pushed fixes to GitHub!
+                logger.info(
+                    "Agent run succeeded for PR #%s (new head %s -> %s). Finalizing %d in-flight event(s).",
+                    pr_number, last_head_sha, current_head_sha, len(in_flight)
+                )
+                self.state.reset_retry_count(pr_number)
+                self.state.finalize_in_flight_events(pr_number)
+                self.state.update_pr_fields(pr_number, last_head_sha=current_head_sha)
+                self.state.release_lock(pr_number)
+                return
             else:
-                # Process has EXITED. Check terminal outcome by inspecting headRefOid:
-                in_flight = self.state.get_in_flight_events(pr_number)
-                if current_head_sha and last_head_sha and current_head_sha != last_head_sha:
-                    # SUCCESS: Agent completed turn and pushed fixes to GitHub!
-                    logger.info(
-                        "Agent run succeeded for PR #%s (new head %s -> %s). Finalizing %d in-flight event(s).",
-                        pr_number, last_head_sha, current_head_sha, len(in_flight)
-                    )
-                    self.state.reset_retry_count(pr_number)
-                    self.state.finalize_in_flight_events(pr_number)
-                    self.state.update_pr_fields(pr_number, last_head_sha=current_head_sha)
-                    self.state.release_lock(pr_number)
-                    return
-                else:
-                    # Check run-scoped agy log output for DESIGN DECISION REQUIRED
-                    run_id = self.state.get_current_run_id(pr_number)
-                    log_path = REVIEW_LOOP_DIR / f"agy_pr_{pr_number}_run_{run_id}.log"
-                    log_text = ""
-                    if log_path.exists():
-                        try:
-                            log_text = log_path.read_text(encoding="utf-8", errors="replace")
-                        except Exception:
-                            pass
+                # Check run-scoped agy log output for DESIGN DECISION REQUIRED
+                run_id = self.state.get_current_run_id(pr_number)
+                log_path = REVIEW_LOOP_DIR / f"agy_pr_{pr_number}_run_{run_id}.log"
+                log_text = ""
+                if log_path.exists():
+                    try:
+                        log_text = log_path.read_text(encoding="utf-8", errors="replace")
+                    except Exception:
+                        pass
 
-                    if DESIGN_DECISION_MARKER in log_text:
-                        logger.warning(
-                            "PR #%s halted: agent reported %s. Awaiting human design decision.",
-                            pr_number, DESIGN_DECISION_MARKER
-                        )
-                        self.state.mark_pr_status(pr_number, "awaiting_design_decision")
-                        self.state.restore_in_flight_to_pending(pr_number)
-                        self.state.release_lock(pr_number)
-                        return
-
-                    # Unrecoverable error / soft-deny / crash: check retry count
-                    retry_cnt = self.state.increment_retry_count(pr_number)
-                    if retry_cnt >= MAX_AGENT_RETRIES:
-                        logger.error(
-                            "PR #%s reached maximum retries (%d). Transitioning to 'error' state.",
-                            pr_number, MAX_AGENT_RETRIES
-                        )
-                        self.state.mark_pr_status(pr_number, "error")
-                        self.state.restore_in_flight_to_pending(pr_number)
-                        self.state.release_lock(pr_number)
-                        return
-
+                if DESIGN_DECISION_MARKER in log_text:
                     logger.warning(
-                        "Agent process for PR #%s exited without pushing new commits (retry %d/%d). "
-                        "Restoring %d in-flight event(s) to pending queue for retry.",
-                        pr_number, retry_cnt, MAX_AGENT_RETRIES, len(in_flight)
+                        "PR #%s halted: agent reported %s. Awaiting human design decision.",
+                        pr_number, DESIGN_DECISION_MARKER
                     )
+                    self.state.mark_pr_status(pr_number, "awaiting_design_decision")
                     self.state.restore_in_flight_to_pending(pr_number)
                     self.state.release_lock(pr_number)
                     return
+
+                # Unrecoverable error / soft-deny / crash / lease expiry without commit: check retry count
+                retry_cnt = self.state.increment_retry_count(pr_number)
+                if retry_cnt >= MAX_AGENT_RETRIES:
+                    logger.error(
+                        "PR #%s reached maximum retries (%d). Transitioning to 'error' state.",
+                        pr_number, MAX_AGENT_RETRIES
+                    )
+                    self.state.mark_pr_status(pr_number, "error")
+                    self.state.restore_in_flight_to_pending(pr_number)
+                    self.state.release_lock(pr_number)
+                    return
+
+                logger.warning(
+                    "Agent process for PR #%s exited without pushing new commits (retry %d/%d). "
+                    "Restoring %d in-flight event(s) to pending queue for retry.",
+                    pr_number, retry_cnt, MAX_AGENT_RETRIES, len(in_flight)
+                )
+                self.state.restore_in_flight_to_pending(pr_number)
+                self.state.release_lock(pr_number)
+                return
 
         # ---------------- 2. Approved PR Handling ----------------
         if pr_entry.get("status") == "approved":
@@ -449,23 +468,35 @@ class ReviewWatcher:
             "Waking Antigravity conversation %s for PR #%s (run %d) with %d in-flight event(s)...",
             conversation_id, pr_number, run_id, len(all_events)
         )
-        success, out, active_pid = self.resumer.resume_conversation(
-            conversation_id, pr_number, run_id=run_id
-        )
+        try:
+            success, out, active_pid = self.resumer.resume_conversation(
+                conversation_id, pr_number, run_id=run_id
+            )
+        except AgentResumerError as e:
+            success = False
+            out = f"Missing resume capability: {e}"
+            active_pid = None
 
         if not success:
-            retry_cnt = self.state.increment_retry_count(pr_number)
-            if retry_cnt >= MAX_AGENT_RETRIES:
+            if "Missing resume capability" in out or "AgentResumerError" in out:
                 logger.error(
-                    "PR #%s reached maximum retries (%d) on launch failures. Transitioning to 'error' state.",
-                    pr_number, MAX_AGENT_RETRIES
+                    "Missing Antigravity resume capability for PR #%s: %s. Transitioning to terminal 'error' state.",
+                    pr_number, out
                 )
                 self.state.mark_pr_status(pr_number, "error")
             else:
-                logger.warning(
-                    "Failed to launch agent for conversation %s (retry %d/%d): %s. Restoring events to pending.",
-                    conversation_id, retry_cnt, MAX_AGENT_RETRIES, out
-                )
+                retry_cnt = self.state.increment_retry_count(pr_number)
+                if retry_cnt >= MAX_AGENT_RETRIES:
+                    logger.error(
+                        "PR #%s reached maximum retries (%d) on launch failures. Transitioning to 'error' state.",
+                        pr_number, MAX_AGENT_RETRIES
+                    )
+                    self.state.mark_pr_status(pr_number, "error")
+                else:
+                    logger.warning(
+                        "Failed to launch agent for conversation %s (retry %d/%d): %s. Restoring events to pending.",
+                        conversation_id, retry_cnt, MAX_AGENT_RETRIES, out
+                    )
             self.state.restore_in_flight_to_pending(pr_number)
             self.state.release_lock(pr_number)
         else:
