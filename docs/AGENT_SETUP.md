@@ -158,3 +158,81 @@ python tools/verify.py
 | **Инспекция дерева нод** | `python tools/gdmcp.py tree --depth 4` |
 | **Запуск игры (Headless smoke)** | `godot --headless --path . --quit-after 100` |
 | **Просмотр задачи GitHub** | `gh issue view <N>` |
+| **Регистрация PR в review loop** | `python tools/review_loop/register.py` |
+| **Статус review watcher** | `python tools/review_loop/install.py status` |
+| **Запуск watcher (run-once)** | `python tools/review_loop/watcher.py --run-once` |
+
+---
+
+## 9. Автономный цикл обработки ревью (Autonomous PR Review Feedback Loop)
+
+Система автономного ревью замыкает цикл `implementation → PR review → fixes → re-review` без необходимости вручную копировать комментарии рецензента из GitHub в Gemini/Antigravity.
+
+### 9.1. Принцип работы
+
+```text
+GitHub Issue
+  ↓
+Gemini / Antigravity реализует фичу
+  ↓
+Создание ветки + тесты + верификация
+  ↓
+Создание Pull Request (`gh pr create`)
+  ↓
+Регистрация PR в review loop (`python tools/review_loop/register.py`)
+  ↓
+Фоновый watcher отслеживает новые замечания
+  ↓
+При обнаружении REQUEST_CHANGES / комментариев / тредов:
+автоматически возобновляет ту же сессию Antigravity (через agentapi send-message)
+  ↓
+Агент исправляет замечания, прогоняет `python tools/verify.py` и пушит в ту же ветку
+  ↓
+Watcher снимает блокировку и ожидает APPROVE или повторного ревью
+```
+
+### 9.2. Регистрация PR в цикле
+
+После создания PR в ветке задачи выполните в терминале агента (где установлена переменная `$ANTIGRAVITY_CONVERSATION_ID`):
+
+```bash
+# Автоматически определяет текущую ветку, открытый PR и conversation ID
+python tools/review_loop/register.py
+
+# Просмотр списка зарегистрированных PR и списка доверенных рецензентов
+python tools/review_loop/register.py --list
+
+# Добавление дополнительного рецензента в allowlist (по умолчанию автор репозитория)
+python tools/review_loop/register.py --allow-user <username>
+
+# Отмена отслеживания PR
+python tools/review_loop/register.py --unregister <pr_number>
+```
+
+### 9.3. Управление фоновой службой (Lifecycle)
+
+Скрипт `tools/review_loop/install.py` управляет фоновым процессом без требования прав администратора / root:
+* **Windows**: Создаёт пользовательскую задачу в Windows Task Scheduler (`schtasks`) с запуском при входе в систему (`onlogon`), а также поддерживает прямой запуск фонового процесса.
+* **Linux**: Создаёт пользовательский systemd-юнит (`~/.config/systemd/user/cube-siege-review-watcher.service`).
+
+```bash
+# Установка службы автозапуска
+python tools/review_loop/install.py install
+
+# Запуск фонового вотчера
+python tools/review_loop/install.py start
+
+# Проверка статуса (процесс, задача в планировщике, последние строки лога)
+python tools/review_loop/install.py status
+
+# Остановка фонового вотчера
+python tools/review_loop/install.py stop
+
+# Удаление службы из автозапуска
+python tools/review_loop/install.py uninstall
+```
+
+### 9.4. Логи и состояние
+
+* **Лог работы**: `.review_loop/watcher.log` (добавляется в `.gitignore`, не содержит токенов и секретов).
+* **Файл состояния**: `.review_loop/state.json` (хранит маппинг PR ↔ conversation ID, идентификаторы обработанных событий, блокировки от параллельных запусков).
