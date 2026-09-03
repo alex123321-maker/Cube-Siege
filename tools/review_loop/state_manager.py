@@ -201,22 +201,32 @@ class StateManager:
     def register_pr(
         self, pr_number: int, conversation_id: str, branch: str
     ) -> None:
-        """Register or update a PR mapping (transactional)."""
+        """
+        Register or update a PR mapping (transactional).
+        Strictly idempotent: if PR is already registered, preserves active
+        lifecycle fields (status, active_agent_pid, processing_started_at,
+        in_flight_events, pending_events, retry_count) so hook calls do not
+        destroy active processing state.
+        """
         with self._transact():
             key = str(pr_number)
-            existing = self.state["prs"].get(key, {})
-            self.state["prs"][key] = {
-                "conversation_id": conversation_id,
-                "branch": branch,
-                "status": "watching",
-                "last_head_sha": existing.get("last_head_sha", ""),
-                "processed_event_ids": existing.get("processed_event_ids", []),
-                "processing_started_at": 0.0,
-                "active_agent_pid": None,
-                "thread_states": existing.get("thread_states", {}),
-                "pending_events": existing.get("pending_events", []),
-                "in_flight_events": existing.get("in_flight_events", []),
-            }
+            if key in self.state["prs"]:
+                self.state["prs"][key]["conversation_id"] = conversation_id
+                self.state["prs"][key]["branch"] = branch
+            else:
+                self.state["prs"][key] = {
+                    "conversation_id": conversation_id,
+                    "branch": branch,
+                    "status": "watching",
+                    "last_head_sha": "",
+                    "processed_event_ids": [],
+                    "processing_started_at": 0.0,
+                    "active_agent_pid": None,
+                    "thread_states": {},
+                    "pending_events": [],
+                    "in_flight_events": [],
+                    "retry_count": 0,
+                }
 
     def unregister_pr(self, pr_number: int) -> bool:
         """Remove PR from state (transactional)."""
@@ -228,7 +238,7 @@ class StateManager:
         return False
 
     def mark_pr_status(self, pr_number: int, status: str) -> None:
-        """Set status ('watching', 'processing', 'approved', 'closed', 'error')."""
+        """Set status ('watching', 'processing', 'approved', 'closed', 'error', 'awaiting_design_decision')."""
         with self._transact():
             key = str(pr_number)
             if key in self.state["prs"]:
@@ -243,14 +253,48 @@ class StateManager:
             if key in self.state["prs"]:
                 self.state["prs"][key].update(fields)
 
+    def increment_retry_count(self, pr_number: int) -> int:
+        """Increment and return retry count for PR (transactional)."""
+        with self._transact():
+            key = str(pr_number)
+            if key in self.state["prs"]:
+                cnt = self.state["prs"][key].get("retry_count", 0) + 1
+                self.state["prs"][key]["retry_count"] = cnt
+                return cnt
+        return 0
+
+    def reset_retry_count(self, pr_number: int) -> None:
+        """Reset retry count for PR (transactional)."""
+        with self._transact():
+            key = str(pr_number)
+            if key in self.state["prs"]:
+                self.state["prs"][key]["retry_count"] = 0
+
     # ------------- Deduplication ------------- #
 
     def is_event_processed(self, pr_number: int, event_id: str) -> bool:
         """Check if an event has already been processed (reloads from disk)."""
         pr = self.get_pr(pr_number)
-        if not pr:
+        if not pr or not event_id:
             return False
         return event_id in pr.get("processed_event_ids", [])
+
+    def is_event_known(self, pr_number: int, event_id: str) -> bool:
+        """
+        Check if an event is already known (processed, currently in-flight,
+        or queued in pending_events).
+        Prevents in-flight events from being rediscovered and queued again.
+        """
+        pr = self.get_pr(pr_number)
+        if not pr or not event_id:
+            return False
+        if event_id in pr.get("processed_event_ids", []):
+            return True
+        if any(e.get("id") == event_id for e in pr.get("in_flight_events", [])):
+            return True
+        if any(e.get("id") == event_id for e in pr.get("pending_events", [])):
+            return True
+        return False
 
     def mark_event_processed(self, pr_number: int, event_id: str) -> None:
         """Record event ID as processed (transactional)."""
@@ -416,7 +460,8 @@ class StateManager:
         with self._transact():
             key = str(pr_number)
             if key in self.state["prs"]:
-                if self.state["prs"][key].get("status") != "approved":
+                # Only reset to 'watching' if it was 'processing'; preserve terminal/approved states
+                if self.state["prs"][key].get("status") == "processing":
                     self.state["prs"][key]["status"] = "watching"
                 self.state["prs"][key]["processing_started_at"] = 0.0
                 self.state["prs"][key]["active_agent_pid"] = None

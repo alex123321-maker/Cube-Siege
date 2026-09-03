@@ -81,47 +81,25 @@ class AgentResumer:
             )
             return list(self._custom_cmd), backend
 
-        # 1. Official standalone CLI (agy)
+        # 1. Official standalone CLI (agy) on system PATH
         agy_which = shutil.which("agy") or shutil.which("agy.exe")
         if agy_which:
             return [agy_which], BACKEND_AGY
 
-        # 2. ANTIGRAVITY_AGENTAPI_EXE (sidecar runtime)
-        agentapi_exe = os.environ.get("ANTIGRAVITY_AGENTAPI_EXE")
-        if agentapi_exe and Path(agentapi_exe).is_file():
-            if "language_server" in Path(agentapi_exe).stem.lower():
-                return [agentapi_exe, "agentapi"], BACKEND_AGENTAPI
-            return [agentapi_exe], BACKEND_AGENTAPI
-
-        # 3. System PATH for agentapi
-        for name in ["agentapi", "agentapi.bat", "agentapi.exe"]:
-            found = shutil.which(name)
-            if found:
-                return [found], BACKEND_AGENTAPI
-
-        # 4. Standard per-user install paths (no hardcoded usernames)
+        # 2. Standard per-user install paths for agy (Windows and Linux)
         home = Path.home()
         agy_candidates = [
             home / "AppData" / "Local" / "agy" / "bin" / "agy.exe",
+            home / ".local" / "bin" / "agy",
+            home / "bin" / "agy",
         ]
         for candidate in agy_candidates:
             if candidate.is_file():
                 return [str(candidate)], BACKEND_AGY
 
-        api_candidates = [
-            home
-            / ".gemini"
-            / "antigravity"
-            / "bin"
-            / ("agentapi.bat" if sys.platform == "win32" else "agentapi"),
-        ]
-        for candidate in api_candidates:
-            if candidate.is_file():
-                return [str(candidate)], BACKEND_AGENTAPI
-
         raise AgentResumerError(
-            "Could not locate official 'agy' CLI or 'agentapi' binary. "
-            "Ensure Google Antigravity is installed and 'agy' is on PATH."
+            "Could not locate official 'agy' CLI binary. "
+            "Ensure Google Antigravity is installed and 'agy' is added to system PATH."
         )
 
     def build_prompt(self, pr_number: int) -> str:

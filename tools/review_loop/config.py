@@ -27,6 +27,8 @@ AGENT_COMMENT_MARKER = "<!-- agent:review-loop -->"
 # agy headless CLI configuration
 DEFAULT_AGY_PRINT_TIMEOUT = "30m"
 AGY_STARTUP_GRACE_SECONDS = 3.0
+MAX_AGENT_RETRIES = 3
+DESIGN_DECISION_MARKER = "DESIGN DECISION REQUIRED"
 
 # Template for resuming the Antigravity conversation
 RESUME_PROMPT_TEMPLATE = """New GitHub review feedback was received for PR #{pr_number}.

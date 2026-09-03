@@ -28,7 +28,10 @@ from tools.review_loop.config import (
     DEFAULT_PID_FILE,
     DEFAULT_POLL_INTERVAL_SECONDS,
     DEFAULT_STATE_FILE,
+    DESIGN_DECISION_MARKER,
+    MAX_AGENT_RETRIES,
     REPO_ROOT,
+    REVIEW_LOOP_DIR,
 )
 from tools.review_loop.github_client import GitHubClient, GitHubError
 from tools.review_loop.state_manager import StateManager, is_pid_alive
@@ -141,7 +144,7 @@ class ReviewWatcher:
                 rev_author = rev.get("author", {}).get("login", "")
                 rev_body = rev.get("body", "")
 
-                if not rev_id or self.state.is_event_processed(pr_number, rev_id):
+                if not rev_id or self.state.is_event_known(pr_number, rev_id):
                     continue
 
                 if not is_event_allowed(rev_author, rev_body, self.state):
@@ -182,7 +185,7 @@ class ReviewWatcher:
                 c_author = c.get("author", {}).get("login", "")
                 c_body = c.get("body", "")
 
-                if not c_id or self.state.is_event_processed(pr_number, c_id):
+                if not c_id or self.state.is_event_known(pr_number, c_id):
                     continue
 
                 if not is_event_allowed(c_author, c_body, self.state):
@@ -208,7 +211,7 @@ class ReviewWatcher:
                 ic_author = ic.get("user", {}).get("login", "")
                 ic_body = ic.get("body", "")
 
-                if not ic_id or self.state.is_event_processed(pr_number, ic_id):
+                if not ic_id or self.state.is_event_known(pr_number, ic_id):
                     continue
 
                 if not is_event_allowed(ic_author, ic_body, self.state):
@@ -240,7 +243,7 @@ class ReviewWatcher:
                     # Check for reopened transition (previously resolved -> now unresolved)
                     if prev_resolved is True and is_resolved is False:
                         reopen_id = f"reopen_{th_id}"
-                        if not self.state.is_event_processed(pr_number, reopen_id):
+                        if not self.state.is_event_known(pr_number, reopen_id):
                             logger.info("Detected reopened review thread %s on PR #%s", th_id, pr_number)
                             new_events.append({
                                 "id": reopen_id,
@@ -259,7 +262,7 @@ class ReviewWatcher:
                         th_author = last_c.get("author", {}).get("login", "")
                         th_body = last_c.get("body", "")
 
-                        if th_c_id and not self.state.is_event_processed(pr_number, th_c_id):
+                        if th_c_id and not self.state.is_event_known(pr_number, th_c_id):
                             if is_event_allowed(th_author, th_body, self.state):
                                 if not any(e.get("id") == th_c_id for e in new_events):
                                     new_events.append({
@@ -286,14 +289,22 @@ class ReviewWatcher:
             logger.warning("Failed to fetch details for PR #%s: %s", pr_number, e)
             return
 
-        pr_state = pr_info.get("state", "").upper()
-        if pr_state in ["CLOSED", "MERGED"]:
-            logger.info("PR #%s is %s. Updating status and stopping watch.", pr_number, pr_state)
-            self.state.mark_pr_status(pr_number, "closed")
-            return
-
         current_head_sha = pr_info.get("headRefOid", "")
         last_head_sha = pr_entry.get("last_head_sha", "")
+
+        pr_status = pr_entry.get("status", "watching")
+        if pr_status in ["closed", "error", "awaiting_design_decision"]:
+            # If developer pushed a new commit, reactivate the PR back to watching!
+            if current_head_sha and last_head_sha and current_head_sha != last_head_sha:
+                logger.info(
+                    "PR #%s received new commit (%s -> %s). Reactivating from '%s' to 'watching'.",
+                    pr_number, last_head_sha, current_head_sha, pr_status
+                )
+                self.state.reset_retry_count(pr_number)
+                self.state.update_pr_fields(pr_number, last_head_sha=current_head_sha, status="watching")
+                pr_entry = self.state.get_pr(pr_number) or pr_entry
+            else:
+                return
 
         # ---------------- 1. Active Processing Check & Completion ----------------
         if self.state.is_processing(pr_number):
@@ -315,16 +326,45 @@ class ReviewWatcher:
                         "Agent run succeeded for PR #%s (new head %s -> %s). Finalizing %d in-flight event(s).",
                         pr_number, last_head_sha, current_head_sha, len(in_flight)
                     )
+                    self.state.reset_retry_count(pr_number)
                     self.state.finalize_in_flight_events(pr_number)
                     self.state.update_pr_fields(pr_number, last_head_sha=current_head_sha)
                     self.state.release_lock(pr_number)
                     return
                 else:
-                    # FAILURE: Process terminated without pushing commits (crash, error, soft-deny).
+                    # Check agy log output for DESIGN DECISION REQUIRED or error diagnostics
+                    log_path = REVIEW_LOOP_DIR / f"agy_pr_{pr_number}.log"
+                    log_text = ""
+                    if log_path.exists():
+                        try:
+                            log_text = log_path.read_text(encoding="utf-8", errors="replace")
+                        except Exception:
+                            pass
+
+                    if DESIGN_DECISION_MARKER in log_text:
+                        logger.warning(
+                            "PR #%s halted: agent reported %s. Awaiting human design decision.",
+                            pr_number, DESIGN_DECISION_MARKER
+                        )
+                        self.state.mark_pr_status(pr_number, "awaiting_design_decision")
+                        self.state.release_lock(pr_number)
+                        return
+
+                    # Unrecoverable error / soft-deny / crash: check retry count
+                    retry_cnt = self.state.increment_retry_count(pr_number)
+                    if retry_cnt >= MAX_AGENT_RETRIES:
+                        logger.error(
+                            "PR #%s reached maximum retries (%d). Transitioning to 'error' state.",
+                            pr_number, MAX_AGENT_RETRIES
+                        )
+                        self.state.mark_pr_status(pr_number, "error")
+                        self.state.release_lock(pr_number)
+                        return
+
                     logger.warning(
-                        "Agent process for PR #%s exited without pushing new commits. "
+                        "Agent process for PR #%s exited without pushing new commits (retry %d/%d). "
                         "Restoring %d in-flight event(s) to pending queue for retry.",
-                        pr_number, len(in_flight)
+                        pr_number, retry_cnt, MAX_AGENT_RETRIES, len(in_flight)
                     )
                     self.state.restore_in_flight_to_pending(pr_number)
                     self.state.release_lock(pr_number)
@@ -335,6 +375,7 @@ class ReviewWatcher:
             # If developer pushed new commit, approval baseline is invalidated: reactivate!
             if current_head_sha and last_head_sha and current_head_sha != last_head_sha:
                 logger.info("Approved PR #%s received new commit (%s -> %s). Reactivating watch.", pr_number, last_head_sha, current_head_sha)
+                self.state.reset_retry_count(pr_number)
                 self.state.update_pr_fields(pr_number, last_head_sha=current_head_sha, status="watching")
                 pr_entry = self.state.get_pr(pr_number) or pr_entry
             else:
@@ -351,6 +392,7 @@ class ReviewWatcher:
 
                 if effective_state == "CHANGES_REQUESTED":
                     logger.info("Approved PR #%s received new CHANGES_REQUESTED. Reactivating watch.", pr_number)
+                    self.state.reset_retry_count(pr_number)
                     self.state.update_pr_fields(pr_number, status="watching")
                     pr_entry = self.state.get_pr(pr_number) or pr_entry
                 else:
@@ -360,7 +402,9 @@ class ReviewWatcher:
         # ---------------- 3. Collect Actionable Events ----------------
         new_events = self.check_pr_events(pr_number, pr_info)
         pending_events = self.state.pop_pending_events(pr_number)
-        all_events = new_events + pending_events
+        raw_events = new_events + pending_events
+        # Filter out any event already finalized as processed
+        all_events = [ev for ev in raw_events if not self.state.is_event_processed(pr_number, ev.get("id"))]
 
         # ---------------- 4. Effective Review State Evaluation ----------------
         if not all_events:
