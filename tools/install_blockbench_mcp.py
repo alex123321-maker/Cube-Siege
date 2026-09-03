@@ -6,12 +6,15 @@ Downloads and installs mcp.js into the local user's Blockbench plugins directory
 across Windows, Linux, and macOS.
 """
 
+import hashlib
 import os
 import sys
 import urllib.request
 from pathlib import Path
 
 MCP_PLUGIN_URL = "https://jasonjgardner.github.io/blockbench-mcp-plugin/mcp.js"
+# SHA256 of Blockbench MCP Server plugin v1.0.0 (568,282 bytes)
+EXPECTED_SHA256 = "1825bc42d968d05f8f6e45f3e546a4f46ea22f5b7a3ce9db2565a889ad1989f3"
 
 
 def get_blockbench_plugins_dir() -> Path:
@@ -54,10 +57,18 @@ def main():
         )
         with urllib.request.urlopen(req, timeout=15) as resp:
             content = resp.read()
-            dest_file.write_bytes(content)
-        print(f"[SUCCESS] Plugin installed ({len(content)} bytes).")
+
+        computed_sha = hashlib.sha256(content).hexdigest()
+        if computed_sha != EXPECTED_SHA256:
+            print(f"[ERROR] SHA256 checksum mismatch!")
+            print(f"  Expected: {EXPECTED_SHA256}")
+            print(f"  Received: {computed_sha}")
+            sys.exit(1)
+
+        dest_file.write_bytes(content)
+        print(f"[SUCCESS] Plugin installed and verified via SHA256 ({len(content)} bytes).")
     except Exception as e:
-        print(f"[ERROR] Failed to download plugin: {e}")
+        print(f"[ERROR] Failed to download or verify plugin: {e}")
         print("Alternative: download manually from https://jasonjgardner.github.io/blockbench-mcp-plugin/mcp.js")
         sys.exit(1)
 

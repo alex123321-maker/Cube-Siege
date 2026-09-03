@@ -226,7 +226,7 @@ def step_run_gut_tests(godot_bin: str) -> bool:
     
     # Check if out contains "All tests passed"
     if "All tests passed" in out or ok:
-        log_step("GUT Test Suite", "PASS", "All tests passed cleanly (smoke, unit, integration)")
+        log_step("GUT Test Suite", "PASS", "Smoke tests passed via .gutconfig.json (harness active for smoke/unit/integration)")
         return True
     else:
         log_step("GUT Test Suite", "FAIL", "Tests failed")
