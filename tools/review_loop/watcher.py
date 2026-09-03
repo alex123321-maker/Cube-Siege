@@ -240,24 +240,22 @@ class ReviewWatcher:
                 is_resolved = th.get("isResolved", False)
 
                 if th_id:
-                    prev_resolved = self.state.get_thread_is_resolved(pr_number, th_id)
-                    # Check for reopened transition (previously resolved -> now unresolved)
-                    if prev_resolved is True and is_resolved is False:
-                        reopen_count = self.state.increment_thread_reopen_count(pr_number, th_id)
-                        reopen_id = f"reopen_{th_id}_v{reopen_count}"
+                    # Atomic transition check + state update + counter increment in one file-locked transaction
+                    reopen_version = self.state.observe_thread_resolution(pr_number, th_id, is_resolved)
+                    if reopen_version is not None:
+                        reopen_id = f"reopen_{th_id}_v{reopen_version}"
                         if not self.state.is_event_known(pr_number, reopen_id):
                             logger.info(
                                 "Detected reopened review thread %s (transition #%d) on PR #%s",
-                                th_id, reopen_count, pr_number
+                                th_id, reopen_version, pr_number
                             )
                             new_events.append({
                                 "id": reopen_id,
                                 "type": "THREAD_REOPENED",
                                 "thread_id": th_id,
-                                "reopen_transition": reopen_count,
-                                "body": f"Review thread was reopened (reopen #{reopen_count})."
+                                "reopen_transition": reopen_version,
+                                "body": f"Review thread was reopened (reopen #{reopen_version})."
                             })
-                    self.state.set_thread_is_resolved(pr_number, th_id, is_resolved)
 
                 # Check unresolved thread's latest comment
                 if not is_resolved:
@@ -434,21 +432,32 @@ class ReviewWatcher:
         # Filter out any event already finalized as processed
         all_events = [ev for ev in raw_events if not self.state.is_event_processed(pr_number, ev.get("id"))]
 
-        # ---------------- 4. Effective Review State Evaluation ----------------
+        # ---------------- 4. Effective Review State Evaluation & Dominance ----------------
+        try:
+            reviews = self.github.get_pr_reviews(pr_number)
+            effective_state = get_effective_review_state(
+                reviews,
+                self.state.get_allowlist(),
+                pr_info.get("reviewDecision")
+            )
+        except Exception as e:
+            logger.debug("Error checking effective review state for PR #%s: %s", pr_number, e)
+            effective_state = "NEUTRAL"
+
+        if effective_state == "APPROVED":
+            logger.info(
+                "PR #%s effective review state is APPROVED. Setting status to approved and ignoring stale events.",
+                pr_number
+            )
+            self.state.mark_pr_status(pr_number, "approved")
+            # Clear/mark any stale or same-cycle events as processed so they never wake the agent
+            for ev in raw_events:
+                ev_id = ev.get("id")
+                if ev_id:
+                    self.state.mark_event_processed(pr_number, ev_id)
+            return
+
         if not all_events:
-            try:
-                reviews = self.github.get_pr_reviews(pr_number)
-                effective_state = get_effective_review_state(
-                    reviews,
-                    self.state.get_allowlist(),
-                    pr_info.get("reviewDecision")
-                )
-                if effective_state == "APPROVED":
-                    if pr_entry.get("status") != "approved":
-                        logger.info("PR #%s effective review state is APPROVED. Setting status to approved.", pr_number)
-                        self.state.mark_pr_status(pr_number, "approved")
-            except Exception as e:
-                logger.debug("Error checking effective review state for PR #%s: %s", pr_number, e)
             return
 
         # ---------------- 5. Acquire Lock & Dispatch ----------------

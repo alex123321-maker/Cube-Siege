@@ -425,6 +425,43 @@ class StateManager:
                 )
                 threads[thread_id] = is_resolved
 
+    def observe_thread_resolution(
+        self, pr_number: int, thread_id: str, is_resolved: bool
+    ) -> Optional[int]:
+        """
+        Atomically observe and record a thread's resolution state within a single
+        file-locked transaction.
+
+        If and only if this call executes a genuine True -> False transition
+        (i.e. previously known to be resolved, and now observed as unresolved),
+        increments the thread's reopen counter, records the new state as False,
+        and returns the new reopen version integer (e.g. 1, 2, ...).
+
+        In all other cases (initial observation, unchanged state, or False -> True resolution),
+        updates the thread's resolution state and returns None.
+
+        This guarantees that across concurrent watcher processes, exactly one process
+        detects the transition and receives the reopen version, eliminating duplicate wakes.
+        """
+        with self._transact():
+            key = str(pr_number)
+            if key in self.state["prs"]:
+                pr = self.state["prs"][key]
+                threads = pr.setdefault("thread_states", {})
+                prev_resolved = threads.get(thread_id)
+
+                # Record the newly observed resolution state
+                threads[thread_id] = is_resolved
+
+                # Atomic True -> False transition check
+                if prev_resolved is True and is_resolved is False:
+                    counts = pr.setdefault("thread_reopen_counts", {})
+                    new_count = counts.get(thread_id, 0) + 1
+                    counts[thread_id] = new_count
+                    return new_count
+
+        return None
+
     def increment_thread_reopen_count(
         self, pr_number: int, thread_id: str
     ) -> int:

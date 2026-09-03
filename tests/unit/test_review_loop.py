@@ -817,6 +817,132 @@ class TestReviewWatcher(unittest.TestCase):
         self.assertEqual(len(pr2["in_flight_events"]), 1)
         self.assertEqual(pr2["in_flight_events"][0]["id"], "reopen_th_toggle_v2")
 
+    def test_request_changes_then_newer_approved_on_fresh_state_zero_wake(self):
+        """
+        BLOCKER 1: On fresh/restarted state, if an older REQUEST_CHANGES is present
+        but the latest allowlisted review / reviewDecision is APPROVED,
+        APPROVE must dominate, stale events are marked processed, and zero wakes occur.
+        """
+        self.state_mgr.register_pr(pr_number=110, conversation_id="c110", branch="b110")
+        self._setup_pr_mocks(
+            110,
+            reviews=[
+                {
+                    "id": "rev_old_req",
+                    "state": "REQUEST_CHANGES",
+                    "author": {"login": "alex123321-maker"},
+                    "body": "Old changes requested",
+                },
+                {
+                    "id": "rev_new_app",
+                    "state": "APPROVED",
+                    "author": {"login": "alex123321-maker"},
+                    "body": "Looks great now!",
+                },
+            ],
+            head="sha110",
+            review_decision="APPROVED",
+        )
+
+        self.watcher.run_cycle()
+
+        self.assertFalse(self.mock_resumer.resume_conversation.called)
+        pr = self.state_mgr.get_pr(110)
+        self.assertEqual(pr["status"], "approved")
+        self.assertEqual(len(pr["pending_events"]), 0)
+        self.assertEqual(len(pr["in_flight_events"]), 0)
+        self.assertTrue(self.state_mgr.is_event_processed(110, "rev_old_req"))
+
+    def test_approved_with_same_cycle_comment_zero_wake(self):
+        """
+        BLOCKER 1: When reviewDecision is APPROVED and a new comment arrives in the same cycle,
+        APPROVE must dominate, comment is marked processed, and zero wakes occur.
+        """
+        self.state_mgr.register_pr(pr_number=111, conversation_id="c111", branch="b111")
+        self._setup_pr_mocks(
+            111,
+            reviews=[
+                {
+                    "id": "rev_app_only",
+                    "state": "APPROVED",
+                    "author": {"login": "alex123321-maker"},
+                    "body": "Approved!",
+                }
+            ],
+            comments=[
+                {
+                    "id": "c_same_cycle",
+                    "author": {"login": "alex123321-maker"},
+                    "body": "Nice work, merging soon",
+                }
+            ],
+            head="sha111",
+            review_decision="APPROVED",
+        )
+
+        self.watcher.run_cycle()
+
+        self.assertFalse(self.mock_resumer.resume_conversation.called)
+        pr = self.state_mgr.get_pr(111)
+        self.assertEqual(pr["status"], "approved")
+        self.assertEqual(len(pr["pending_events"]), 0)
+        self.assertEqual(len(pr["in_flight_events"]), 0)
+        self.assertTrue(self.state_mgr.is_event_processed(111, "c_same_cycle"))
+
+    def test_atomic_thread_reopen_across_two_watchers_produces_single_wake(self):
+        """
+        BLOCKER 2: When two watcher instances / StateManager instances concurrently
+        observe a resolved -> unresolved thread transition, the observe_thread_resolution
+        transaction ensures exactly ONE watcher receives the reopen version,
+        and exactly ONE synthetic event / wake is generated.
+        """
+        mgr1 = self.state_mgr
+        mgr2 = StateManager(state_file=self.state_file)
+
+        mgr1.register_pr(pr_number=112, conversation_id="c112", branch="b112")
+        mgr1.set_thread_is_resolved(112, "th_atomic_1", True)
+
+        v1 = mgr1.observe_thread_resolution(112, "th_atomic_1", False)
+        v2 = mgr2.observe_thread_resolution(112, "th_atomic_1", False)
+
+        results = [v for v in [v1, v2] if v is not None]
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0], 1)
+
+    def test_two_watchers_inspecting_reopened_thread_generate_single_event(self):
+        """
+        BLOCKER 2 (E2E): Two watchers checking the same reopened thread in the same cycle:
+        Watcher 1 detects reopen_th_race_v1 and queues it;
+        Watcher 2 sees thread already marked unresolved and emits ZERO events.
+        """
+        mgr1 = self.state_mgr
+        mgr2 = StateManager(state_file=self.state_file)
+
+        mgr1.register_pr(pr_number=113, conversation_id="c113", branch="b113")
+        mgr1.set_thread_is_resolved(113, "th_race", True)
+
+        mock_gh = MagicMock(spec=GitHubClient)
+        mock_gh.get_pr_details.return_value = {
+            "number": 113, "state": "OPEN", "headRefOid": "sha113",
+            "author": {"login": "alex123321-maker"}, "reviewDecision": None,
+        }
+        mock_gh.get_pr_reviews.return_value = []
+        mock_gh.get_pr_comments.return_value = []
+        mock_gh.get_pr_inline_comments.return_value = []
+        mock_gh.get_pr_review_threads.return_value = [
+            {"id": "th_race", "isResolved": False, "comments": {"nodes": []}}
+        ]
+
+        w1 = ReviewWatcher(github_client=mock_gh, state_manager=mgr1, agent_resumer=self.mock_resumer)
+        w2 = ReviewWatcher(github_client=mock_gh, state_manager=mgr2, agent_resumer=self.mock_resumer)
+
+        evs1 = w1.check_pr_events(113, mock_gh.get_pr_details(113))
+        evs2 = w2.check_pr_events(113, mock_gh.get_pr_details(113))
+
+        self.assertEqual(len(evs1), 1)
+        self.assertEqual(evs1[0]["id"], "reopen_th_race_v1")
+        self.assertEqual(len(evs2), 0)
+
 
 # ===================================================================
 #  Hook Registration
