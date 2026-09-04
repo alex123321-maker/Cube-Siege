@@ -23,19 +23,34 @@ func perform_attack(player: CharacterBody3D, current_class: int, is_dashing: boo
 	match current_class:
 		0: # CharacterClass.WARRIOR
 			attack_cooldown_timer = 0.35
-			trigger_slash(player, attack_damage, 5.0, 90.0, is_dueling)
 			if player.presentation:
 				player.presentation.play_attack_animation()
+			if not player.is_inside_tree():
+				trigger_slash(player, attack_damage, 5.0, 90.0, is_dueling)
+				return
+			await player.get_tree().create_timer(0.06).timeout
+			if is_instance_valid(player) and player.is_inside_tree():
+				trigger_slash(player, attack_damage, 5.0, 90.0, is_dueling)
 		1: # CharacterClass.ARCHER
 			attack_cooldown_timer = 0.38
-			trigger_arrow_shot(player, attack_damage, 1, 28.0)
 			if player.presentation:
 				player.presentation.play_attack_animation()
+			if not player.is_inside_tree():
+				trigger_arrow_shot(player, attack_damage, 1, 28.0)
+				return
+			await player.get_tree().create_timer(0.08).timeout
+			if is_instance_valid(player) and player.is_inside_tree():
+				trigger_arrow_shot(player, attack_damage, 1, 28.0)
 		2: # CharacterClass.ENGINEER
 			attack_cooldown_timer = 0.48
-			trigger_hammer_smash(player, attack_damage * 1.35, is_dueling)
 			if player.presentation:
 				player.presentation.play_attack_animation()
+			if not player.is_inside_tree():
+				trigger_hammer_smash(player, attack_damage * 1.35, is_dueling)
+				return
+			await player.get_tree().create_timer(0.12).timeout
+			if is_instance_valid(player) and player.is_inside_tree():
+				trigger_hammer_smash(player, attack_damage * 1.35, is_dueling)
 
 func perform_special_attack(player: CharacterBody3D, current_class: int, is_dashing: bool, is_dueling: bool, abilities: PlayerAbilities) -> void:
 	if special_cooldown_timer > 0.0 or is_dashing:
@@ -44,22 +59,40 @@ func perform_special_attack(player: CharacterBody3D, current_class: int, is_dash
 	match current_class:
 		0: # CharacterClass.WARRIOR
 			special_cooldown_timer = 4.0
-			trigger_slash(player, special_damage, 12.0, 180.0, is_dueling)
 			if player.presentation:
 				player.presentation.play_special_animation()
+			if not player.is_inside_tree():
+				trigger_slash(player, special_damage, 12.0, 180.0, is_dueling)
+				return
+			await player.get_tree().create_timer(0.15).timeout
+			if is_instance_valid(player) and player.is_inside_tree():
+				trigger_slash(player, special_damage, 12.0, 180.0, is_dueling)
 		1: # CharacterClass.ARCHER
 			special_cooldown_timer = 5.0
-			trigger_piercing_arrow(player, special_damage * 1.3, 6, 36.0)
 			if player.presentation:
 				player.presentation.play_special_animation()
+			var vfx = player.get_node_or_null("/root/VFXManager")
+			if vfx:
+				vfx.spawn_arrow_charge(player, 0.28)
+			if not player.is_inside_tree():
+				trigger_piercing_arrow(player, special_damage * 1.3, 6, 36.0)
+				return
+			await player.get_tree().create_timer(0.28).timeout
+			if is_instance_valid(player) and player.is_inside_tree():
+				trigger_piercing_arrow(player, special_damage * 1.3, 6, 36.0)
 		2: # CharacterClass.ENGINEER
 			special_cooldown_timer = 5.0
-			if abilities:
-				abilities.deploy_temp_turret(player)
-			else:
-				push_warning("PlayerCombat: cannot deploy temp turret because abilities dependency is missing.")
 			if player.presentation:
 				player.presentation.play_special_animation()
+			if abilities:
+				if not player.is_inside_tree():
+					abilities.deploy_temp_turret(player)
+					return
+				await player.get_tree().create_timer(0.15).timeout
+				if is_instance_valid(player) and player.is_inside_tree():
+					abilities.deploy_temp_turret(player)
+			else:
+				push_warning("PlayerCombat: cannot deploy temp turret because abilities dependency is missing.")
 
 func trigger_slash(player: CharacterBody3D, dmg: float, knockback: float, arc_degrees: float, is_dueling: bool) -> void:
 	var slash_area: Area3D = player.get_node_or_null("SlashHitbox") as Area3D

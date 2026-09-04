@@ -254,11 +254,20 @@ func deploy_decoy(player: CharacterBody3D) -> void:
 		player.spawn_popup_text("DECOY RECHARGING...", Color.GRAY)
 		return
 	player.parry_cooldown_timer = 12.0
+	if player.presentation:
+		player.presentation.play_utility_animation()
+	if not player.is_inside_tree():
+		var decoy = DECOY_DUMMY_SCENE.instantiate()
+		player.get_parent().add_child(decoy)
+		decoy.global_position = player.global_position + (-player.global_transform.basis.z * 3.0)
+		player.spawn_popup_text("DECOY DEPLOYED! (AGGRO 3.5s)", Color.LIGHT_GREEN)
+		return
+	await player.get_tree().create_timer(0.14).timeout
+	if not is_instance_valid(player) or not player.is_inside_tree():
+		return
 	var decoy = DECOY_DUMMY_SCENE.instantiate()
 	player.get_parent().add_child(decoy)
 	decoy.global_position = player.global_position + (-player.global_transform.basis.z * 3.0)
-	if player.presentation:
-		player.presentation.play_utility_animation()
 	player.spawn_popup_text("DECOY DEPLOYED! (AGGRO 3.5s)", Color.LIGHT_GREEN)
 
 func apply_card_upgrade(card_id: String, player: CharacterBody3D) -> void:

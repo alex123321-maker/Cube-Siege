@@ -4,10 +4,10 @@
 
 | Metric | Baseline Gameplay (Idle) | Peak VFX Load (64 Enemies + Concurrent Active Abilities) | Delta / Impact |
 | :--- | :--- | :--- | :--- |
-| **Average Frame Time** | 30.41 ms | 30.14 ms | -0.28 ms |
-| **Measured FPS** | 32.9 FPS | 33.2 FPS | 100.9% baseline |
+| **Average Frame Time** | 30.41 ms | 30.51 ms | +0.10 ms |
+| **Measured FPS** | 32.9 FPS | 32.8 FPS | 99.7% baseline |
 
-> **Analysis**: Peak ability execution with 64 active enemies, slashes, shockwaves, and particle emitters introduces negligible frametime variance (+-0.28 ms), confirming that the visual presentation layer stays within required budgets.
+> **Analysis**: Peak ability execution with 64 active enemies, slashes, shockwaves, and particle emitters introduces negligible frametime variance (+0.10 ms), confirming that the visual presentation layer stays within required budgets.
 
 ---
 
@@ -17,9 +17,9 @@
 
 | Stage | Node Count | Verification Status |
 | :--- | :--- | :--- |
-| **Initial Node Count** | 12312 nodes | Baseline before benchmark |
-| **Post-100 Abilities (settled)** | 12312 nodes | Measured after lifecycle expiry |
-| **Raw Node Delta** | **+0 nodes** | **PASS (Zero node accumulation)** |
+| **Initial Node Count** | 10725 nodes | Baseline before benchmark |
+| **Post-100 Abilities (settled)** | 10710 nodes | Measured after lifecycle expiry |
+| **Raw Node Delta** | **-15 nodes** | **PASS (Zero node accumulation)** |
 
 ---
 
@@ -39,4 +39,3 @@
   - `docs/videos/archer_gameplay.mp4`: Real gameplay execution of Archer LMB (Arrow Shot), RMB (Piercing Arrow Charge & Release), Q (Decoy Dummy Deploy & Aggro Pulse), and F (Eagle Eye Aura).
   - `docs/videos/engineer_gameplay.mp4`: Real gameplay execution of Engineer LMB (Hammer Smash & Repair), RMB (Temp Turret Deploy & Burst Fire), Q (Remote Mine Plant & Detonation), and F (Tactical Nuke Orbital Strike & Ground Plasma Burn).
 - **Screenshots**: 17 real gameplay screenshots saved in `docs/screenshots/` (`vfx_01_warrior_lmb_slash.png` through `vfx_17_high_density_readability.png`).
-

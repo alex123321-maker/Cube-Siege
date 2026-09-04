@@ -1,4 +1,4 @@
-[gd_scene load_steps=120 format=3 uid="uid://cs_temp_turret_137d4ccb"]
+[gd_scene load_steps=120 format=3 uid="uid://cs_temp_turret_61f8f0b5"]
 
 [ext_resource type="Texture2D" path="res://assets/models/textures/temp_turret.png" id="1_tex"]
 
@@ -298,43 +298,43 @@ uv1_offset = Vector3(0.375, 0.5, 0)
 metallic = 0.0
 roughness = 0.9
 
-[sub_resource type="BoxMesh" id="BoxMesh_tripod_center_9ee869"]
+[sub_resource type="BoxMesh" id="BoxMesh_tripod_center_91b348"]
 material = SubResource("StandardMaterial3D_col_24")
 size = Vector3(0.22, 0.1925, 0.22)
 
-[sub_resource type="BoxMesh" id="BoxMesh_leg_front_1a63c9"]
+[sub_resource type="BoxMesh" id="BoxMesh_leg_front_cea5bd"]
 material = SubResource("StandardMaterial3D_col_33")
 size = Vector3(0.165, 0.1375, 0.3025)
 
-[sub_resource type="BoxMesh" id="BoxMesh_leg_back_l_c60a20"]
+[sub_resource type="BoxMesh" id="BoxMesh_leg_back_l_3e2e44"]
 material = SubResource("StandardMaterial3D_col_33")
 size = Vector3(0.3025, 0.1375, 0.22)
 
-[sub_resource type="BoxMesh" id="BoxMesh_leg_back_r_935500"]
+[sub_resource type="BoxMesh" id="BoxMesh_leg_back_r_28251c"]
 material = SubResource("StandardMaterial3D_col_33")
 size = Vector3(0.3025, 0.1375, 0.22)
 
-[sub_resource type="BoxMesh" id="BoxMesh_swivel_ring_dfd923"]
+[sub_resource type="BoxMesh" id="BoxMesh_swivel_ring_d9b51d"]
 material = SubResource("StandardMaterial3D_col_22")
 size = Vector3(0.33, 0.0825, 0.33)
 
-[sub_resource type="BoxMesh" id="BoxMesh_turret_housing_7ba40c"]
+[sub_resource type="BoxMesh" id="BoxMesh_turret_housing_ebade4"]
 material = SubResource("StandardMaterial3D_col_33")
 size = Vector3(0.44, 0.33, 0.495)
 
-[sub_resource type="BoxMesh" id="BoxMesh_ammo_drum_b3d975"]
+[sub_resource type="BoxMesh" id="BoxMesh_ammo_drum_2761e5"]
 material = SubResource("StandardMaterial3D_col_34")
 size = Vector3(0.0825, 0.2475, 0.275)
 
-[sub_resource type="BoxMesh" id="BoxMesh_sensor_eye_491b30"]
+[sub_resource type="BoxMesh" id="BoxMesh_sensor_eye_088ff0"]
 material = SubResource("StandardMaterial3D_col_23")
 size = Vector3(0.11, 0.11, 0.044)
 
-[sub_resource type="BoxMesh" id="BoxMesh_barrel_left_804fd9"]
+[sub_resource type="BoxMesh" id="BoxMesh_barrel_left_de0de7"]
 material = SubResource("StandardMaterial3D_col_24")
 size = Vector3(0.088, 0.11, 0.4125)
 
-[sub_resource type="BoxMesh" id="BoxMesh_barrel_right_ca22e2"]
+[sub_resource type="BoxMesh" id="BoxMesh_barrel_right_94da8d"]
 material = SubResource("StandardMaterial3D_col_24")
 size = Vector3(0.088, 0.11, 0.4125)
 
@@ -344,43 +344,43 @@ size = Vector3(0.088, 0.11, 0.4125)
 
 [node name="tripod_center" type="MeshInstance3D" parent="root"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.15125, 0.0)
-mesh = SubResource("BoxMesh_tripod_center_9ee869")
+mesh = SubResource("BoxMesh_tripod_center_91b348")
 
 [node name="leg_front" type="MeshInstance3D" parent="root"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.06875, -0.23375)
-mesh = SubResource("BoxMesh_leg_front_1a63c9")
+mesh = SubResource("BoxMesh_leg_front_cea5bd")
 
 [node name="leg_back_l" type="MeshInstance3D" parent="root"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.20625, 0.06875, 0.1925)
-mesh = SubResource("BoxMesh_leg_back_l_c60a20")
+mesh = SubResource("BoxMesh_leg_back_l_3e2e44")
 
 [node name="leg_back_r" type="MeshInstance3D" parent="root"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.20625, 0.06875, 0.1925)
-mesh = SubResource("BoxMesh_leg_back_r_935500")
+mesh = SubResource("BoxMesh_leg_back_r_28251c")
 
 [node name="swivel_ring" type="MeshInstance3D" parent="root"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.28875, 0.0)
-mesh = SubResource("BoxMesh_swivel_ring_dfd923")
+mesh = SubResource("BoxMesh_swivel_ring_d9b51d")
 
 [node name="swivel" type="Node3D" parent="root"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.33, 0.0)
 
 [node name="turret_housing" type="MeshInstance3D" parent="root/swivel"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.165, 0.0)
-mesh = SubResource("BoxMesh_turret_housing_7ba40c")
+mesh = SubResource("BoxMesh_turret_housing_ebade4")
 
 [node name="ammo_drum" type="MeshInstance3D" parent="root/swivel"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.26125, 0.17875, 0.0275)
-mesh = SubResource("BoxMesh_ammo_drum_b3d975")
+mesh = SubResource("BoxMesh_ammo_drum_2761e5")
 
 [node name="sensor_eye" type="MeshInstance3D" parent="root/swivel"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.1375, 0.22, -0.253)
-mesh = SubResource("BoxMesh_sensor_eye_491b30")
+mesh = SubResource("BoxMesh_sensor_eye_088ff0")
 
 [node name="barrel_left" type="MeshInstance3D" parent="root/swivel"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.132, 0.1375, -0.45375)
-mesh = SubResource("BoxMesh_barrel_left_804fd9")
+mesh = SubResource("BoxMesh_barrel_left_de0de7")
 
 [node name="barrel_right" type="MeshInstance3D" parent="root/swivel"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.1375, -0.45375)
-mesh = SubResource("BoxMesh_barrel_right_ca22e2")
+mesh = SubResource("BoxMesh_barrel_right_94da8d")

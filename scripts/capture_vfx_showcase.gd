@@ -90,14 +90,16 @@ func run_showcase() -> void:
 		# 1.1 Warrior LMB - Real Slash Attack on Enemy
 		player.combat.attack_cooldown_timer = 0.0
 		player.perform_attack()
-		await wait_frames(4)
+		await get_tree().create_timer(0.06).timeout
+		await wait_frames(2)
 		if target_mode == "all": await capture("vfx_01_warrior_lmb_slash.png")
 		await wait_frames(25)
 
 		# 1.2 Warrior RMB - Real 180° Cleave Special
 		player.combat.special_cooldown_timer = 0.0
 		player.perform_special_attack()
-		await wait_frames(4)
+		await get_tree().create_timer(0.15).timeout
+		await wait_frames(2)
 		if target_mode == "all": await capture("vfx_02_warrior_rmb_cleave.png")
 		await wait_frames(25)
 
@@ -148,23 +150,26 @@ func run_showcase() -> void:
 		# 2.1 Archer LMB - Real Arrow Shot
 		player.combat.attack_cooldown_timer = 0.0
 		player.perform_attack()
-		await wait_frames(4)
+		await get_tree().create_timer(0.08).timeout
+		await wait_frames(2)
 		if target_mode == "all": await capture("vfx_06_archer_lmb_arrow_flight.png")
 		await wait_frames(25)
 
-		# 2.2 Archer RMB - Real Piercing Arrow Special
+		# 2.2 Archer RMB - Real Piercing Arrow Special (Pre-shot Charge + Flight)
 		player.combat.special_cooldown_timer = 0.0
 		player.perform_special_attack()
-		await wait_frames(2)
+		await get_tree().create_timer(0.12).timeout
 		if target_mode == "all": await capture("vfx_07_archer_rmb_pierce_charge.png")
-		await wait_frames(4)
+		await get_tree().create_timer(0.18).timeout
+		await wait_frames(2)
 		if target_mode == "all": await capture("vfx_08_archer_rmb_pierce_flight.png")
 		await wait_frames(30)
 
 		# 2.3 Archer Q - Real Decoy Dummy Deploy
 		player.health.parry_cooldown_timer = 0.0
 		player.perform_utility()
-		await wait_frames(8)
+		await get_tree().create_timer(0.14).timeout
+		await wait_frames(4)
 		if target_mode == "all": await capture("vfx_09_archer_q_decoy_dummy.png")
 		await wait_frames(30)
 
@@ -193,14 +198,16 @@ func run_showcase() -> void:
 		# 3.1 Engineer LMB - Real Hammer Smash Attack
 		player.combat.attack_cooldown_timer = 0.0
 		player.perform_attack()
-		await wait_frames(4)
+		await get_tree().create_timer(0.12).timeout
+		await wait_frames(2)
 		if target_mode == "all": await capture("vfx_11_engineer_lmb_hammer.png")
 		await wait_frames(25)
 
 		# 3.2 Engineer RMB - Real Temp Turret Deploy
 		player.combat.special_cooldown_timer = 0.0
 		player.perform_special_attack()
-		await wait_frames(8)
+		await get_tree().create_timer(0.15).timeout
+		await wait_frames(4)
 		if target_mode == "all": await capture("vfx_12_engineer_rmb_turret_deploy.png")
 		await wait_frames(30)
 
@@ -316,7 +323,7 @@ func run_showcase() -> void:
 		player.combat.special_cooldown_timer = 0.0
 		player.perform_special_attack()
 
-		await wait_frames(2)
+		await get_tree().create_timer(0.35).timeout
 
 	print("Benchmark loop finished, awaiting projectile and popup cleanup (3.0s real time)...")
 	await get_tree().create_timer(3.0).timeout
