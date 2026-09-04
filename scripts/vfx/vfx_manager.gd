@@ -596,34 +596,3 @@ func spawn_tactical_nuke_burn(target_pos: Vector3, duration: float = 3.0) -> Nod
 	register_effect(burn_zone, duration + 0.1)
 	return burn_zone
 
-## Tactical Nuke Composite Visual Sequence (convenience wrapper)
-func spawn_tactical_nuke_sequence(
-	parent: Node,
-	target_pos: Vector3,
-	on_impact_callback: Callable = Callable(),
-	on_burn_tick_callback: Callable = Callable(),
-	on_finish_callback: Callable = Callable()
-) -> Node3D:
-	var telegraph = spawn_tactical_nuke_telegraph(target_pos, 1.2)
-
-	var timer = get_tree().create_timer(1.2)
-	timer.timeout.connect(func():
-		spawn_tactical_nuke_impact(target_pos)
-		if on_impact_callback.is_valid():
-			on_impact_callback.call()
-
-		var burn = spawn_tactical_nuke_burn(target_pos, 3.0)
-
-		# If caller provided burn callbacks, service them
-		var ticks = 6
-		for i in range(ticks):
-			var tick_t = get_tree().create_timer((i + 1) * 0.5)
-			tick_t.timeout.connect(func():
-				if on_burn_tick_callback.is_valid():
-					on_burn_tick_callback.call()
-				spawn_puff(target_pos + Vector3(randf_range(-6, 6), 0.5, randf_range(-6, 6)), Color(1.0, 0.4, 0.1), 4, 1.5)
-				if i == ticks - 1 and on_finish_callback.is_valid():
-					on_finish_callback.call()
-			)
-	)
-	return telegraph

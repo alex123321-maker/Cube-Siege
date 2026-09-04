@@ -190,6 +190,7 @@ func test_tactical_nuke_decoupled_gameplay_execution() -> void:
 func test_windup_actions_cancel_on_player_death() -> void:
 	var player = PLAYER_SCENE.instantiate()
 	add_child_autoqfree(player)
+	var parent_node: Node = player.get_parent()
 
 	# 1. Archer piercing arrow with 0.28s wind-up: kill player at 0.05s
 	player.set_class(player.CharacterClass.ARCHER, false)
@@ -202,14 +203,34 @@ func test_windup_actions_cancel_on_player_death() -> void:
 	# Await past wind-up timer
 	await wait_seconds(0.35)
 
-	# Verify no arrow projectile was spawned under parent
+	# Verify no arrow projectile was spawned under player's parent or root
 	var arrows = []
+	if parent_node:
+		for child in parent_node.get_children():
+			if child.name.begins_with("ArrowProjectile"):
+				arrows.append(child)
 	for child in get_tree().root.get_children():
 		if child.name.begins_with("ArrowProjectile"):
 			arrows.append(child)
-	assert_eq(arrows.size(), 0, "No projectile should spawn if player dies during wind-up")
+	assert_eq(arrows.size(), 0, "No projectile should spawn if player dies during piercing wind-up")
 
-	# 2. Engineer turret with 0.15s wind-up: kill player at 0.02s
+	# 2. Archer basic shot with 0.08s wind-up: kill player before wind-up ends
+	player.health.current_health = 100.0
+	player.combat.attack_cooldown_timer = 0.0
+	player.perform_attack()
+	player.health.current_health = 0.0
+	await wait_seconds(0.15)
+	arrows.clear()
+	if parent_node:
+		for child in parent_node.get_children():
+			if child.name.begins_with("ArrowProjectile"):
+				arrows.append(child)
+	for child in get_tree().root.get_children():
+		if child.name.begins_with("ArrowProjectile"):
+			arrows.append(child)
+	assert_eq(arrows.size(), 0, "No basic arrow should spawn if player dies during wind-up")
+
+	# 3. Engineer turret with 0.15s wind-up: kill player at 0.02s
 	player.set_class(player.CharacterClass.ENGINEER, false)
 	player.health.current_health = 100.0
 	player.combat.special_cooldown_timer = 0.0
@@ -218,12 +239,31 @@ func test_windup_actions_cancel_on_player_death() -> void:
 	player.health.current_health = 0.0
 	await wait_seconds(0.20)
 
-	var turrets = get_tree().get_nodes_in_group("buildings")
-	var temp_turrets = []
-	for t in turrets:
+	var turrets = []
+	if parent_node:
+		for child in parent_node.get_children():
+			if child.name.begins_with("TempTurret"):
+				turrets.append(child)
+	for t in get_tree().get_nodes_in_group("buildings"):
 		if t.name.begins_with("TempTurret"):
-			temp_turrets.append(t)
-	assert_eq(temp_turrets.size(), 0, "No turret should deploy if engineer dies during placement wind-up")
+			turrets.append(t)
+	assert_eq(turrets.size(), 0, "No turret should deploy if engineer dies during placement wind-up")
+
+	# 4. Archer decoy with 0.14s wind-up: kill player at 0.02s
+	player.set_class(player.CharacterClass.ARCHER, false)
+	player.health.current_health = 100.0
+	player.parry_cooldown_timer = 0.0
+	player.perform_utility()
+
+	player.health.current_health = 0.0
+	await wait_seconds(0.20)
+
+	var decoys = []
+	if parent_node:
+		for child in parent_node.get_children():
+			if child.name.begins_with("DecoyDummy"):
+				decoys.append(child)
+	assert_eq(decoys.size(), 0, "No decoy should deploy if archer dies during placement wind-up")
 
 func test_engineer_turret_animation_continuity() -> void:
 	var player = PLAYER_SCENE.instantiate()
