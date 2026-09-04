@@ -9,8 +9,10 @@ REVIEW_LOOP_DIR = REPO_ROOT / ".review_loop"
 DEFAULT_STATE_FILE = REVIEW_LOOP_DIR / "state.json"
 DEFAULT_STATE_LOCK_FILE = REVIEW_LOOP_DIR / "state.lock"
 DEFAULT_LOG_FILE = REVIEW_LOOP_DIR / "watcher.log"
+DEFAULT_HOOK_LOG_FILE = REVIEW_LOOP_DIR / "hook.log"
 DEFAULT_PID_FILE = REVIEW_LOOP_DIR / "watcher.pid"
 RUN_WATCHER_BAT = REVIEW_LOOP_DIR / "run_watcher.bat"
+SIDECAR_MARKER_FILE = REVIEW_LOOP_DIR / "antigravity_sidecar.enabled"
 
 # Watcher parameters
 DEFAULT_POLL_INTERVAL_SECONDS = 30
@@ -28,6 +30,7 @@ AGENT_COMMENT_MARKER = "<!-- agent:review-loop -->"
 DEFAULT_AGY_PRINT_TIMEOUT = "30m"
 AGY_STARTUP_GRACE_SECONDS = 3.0
 AGENT_STARTUP_GRACE_PERIOD_SECONDS = 60.0
+AGENTAPI_COMPLETION_TIMEOUT_SECONDS = 1800.0
 MAX_AGENT_RETRIES = 3
 DESIGN_DECISION_MARKER = "DESIGN DECISION REQUIRED"
 
@@ -36,15 +39,20 @@ RESUME_PROMPT_TEMPLATE = """New GitHub review feedback was received for PR #{pr_
 
 Read the authoritative Issue, current PR description, latest head, all current reviews, and all unresolved review threads.
 Address valid feedback only within the Issue scope.
+This is an autonomous remediation run, not a planning request.
+Do not create or update an implementation plan, do not request plan approval, and do not wait for user confirmation.
+Plan internally and begin inspecting and editing the code immediately.
+Preserve all pre-existing uncommitted changes outside the review feedback scope; do not revert, stage, commit, or modify them.
 Do not change the gameplay/design contract.
 Do not invent gameplay decisions.
-If DESIGN DECISION REQUIRED is encountered, stop that part and report it clearly.
+Only if a real DESIGN DECISION REQUIRED is encountered, stop that part and report it clearly; continue all independent work.
 Run the repository verification workflow.
 Commit and push the fixes to the existing PR branch.
 Do not merge the PR.
 
-CRITICAL: If you post any comment on the Pull Request (via `gh pr comment`, review reply, etc.),
-you MUST include the exact marker `""" + AGENT_COMMENT_MARKER + """` at the END of the comment body.
-Comments without this marker from the repository owner will be interpreted as new human feedback
-and will re-trigger this review loop, causing an infinite cycle.
+SILENT PR MODE: Never post a PR comment or submit a review. Report results only in this Antigravity chat.
+If you changed code, the pushed commit is the completion signal. If no code change is required, finish silently in chat.
+
+DEFENSE IN DEPTH: If a tool nevertheless forces you to post a Pull Request comment,
+you MUST include the exact marker `""" + AGENT_COMMENT_MARKER + """` at the END of the body.
 """

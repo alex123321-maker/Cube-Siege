@@ -2,9 +2,10 @@
 tools/review_loop/agent_resumer.py - Antigravity agent conversation resumption.
 
 Supports two backends:
-  - "agy": Official Antigravity CLI (agy --conversation <id> -p "<prompt>").
-    Launched via Popen + PID tracking because agy blocks for the full agent turn.
-  - "agentapi": Fast dispatch via agentapi send-message (synchronous, returns quickly).
+  - "agentapi": Preferred official sidecar channel for sending a message to an
+    existing Antigravity desktop conversation.
+  - "agy": Standalone CLI fallback for CLI-native conversations. Launched via
+    Popen + PID tracking because agy blocks for the full agent turn.
 
 Backend type is stored explicitly to avoid cross-platform Path.stem issues
 (Windows backslash paths parsed on Linux POSIX).
@@ -16,7 +17,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path, PurePosixPath, PureWindowsPath
-from typing import List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(_REPO_ROOT) not in sys.path:
@@ -72,7 +73,7 @@ class AgentResumer:
 
     def _discover_command(self) -> Tuple[List[str], str]:
         """
-        Discover official Antigravity CLI or agentapi.
+        Discover Antigravity's in-process agentapi or the standalone CLI.
         Returns (command_list, backend_type).
         """
         if self._custom_cmd:
@@ -81,12 +82,19 @@ class AgentResumer:
             )
             return list(self._custom_cmd), backend
 
-        # 1. Official standalone CLI (agy) on system PATH
+        # 1. Antigravity sidecars receive the official agentapi executable.
+        agentapi_which = shutil.which("agentapi") or shutil.which(
+            "agentapi.exe"
+        )
+        if agentapi_which:
+            return [agentapi_which], BACKEND_AGENTAPI
+
+        # 2. Standalone CLI fallback for CLI-native conversations.
         agy_which = shutil.which("agy") or shutil.which("agy.exe")
         if agy_which:
             return [agy_which], BACKEND_AGY
 
-        # 2. Standard per-user install paths for agy (Windows and Linux)
+        # 3. Standard per-user install paths for agy (Windows and Linux)
         home = Path.home()
         agy_candidates = [
             home / "AppData" / "Local" / "agy" / "bin" / "agy.exe",
@@ -102,9 +110,43 @@ class AgentResumer:
             "Ensure Google Antigravity is installed and 'agy' is added to system PATH."
         )
 
-    def build_prompt(self, pr_number: int) -> str:
-        """Construct canonical resume prompt as specified by contract."""
-        return RESUME_PROMPT_TEMPLATE.format(pr_number=pr_number)
+    def build_prompt(
+        self,
+        pr_number: int,
+        feedback_events: Optional[List[Dict[str, Any]]] = None,
+    ) -> str:
+        """Construct the canonical prompt with the exact triggering feedback."""
+        prompt = RESUME_PROMPT_TEMPLATE.format(pr_number=pr_number)
+        if not feedback_events:
+            return prompt
+
+        blocks: List[str] = []
+        remaining = 24000
+        for event in feedback_events:
+            body = str(event.get("body") or "").strip()
+            if not body:
+                continue
+            header = (
+                f"[{event.get('type', 'FEEDBACK')} id={event.get('id', '')} "
+                f"author={event.get('author', '')}]"
+            )
+            block = f"{header}\n{body}"
+            if len(block) > remaining:
+                block = block[:remaining] + "\n[truncated by watcher]"
+            blocks.append(block)
+            remaining -= len(block)
+            if remaining <= 0:
+                break
+
+        if not blocks:
+            return prompt
+        return (
+            prompt
+            + "\n\nAUTHORITATIVE NEW FEEDBACK THAT TRIGGERED THIS RUN:\n"
+            + "\n\n".join(blocks)
+            + "\n\nAddress every actionable item in the payload above. It is newer "
+              "than prior fix reports; do not substitute or repeat an older review."
+        )
 
     def resume_conversation(
         self,
@@ -114,6 +156,7 @@ class AgentResumer:
         title: Optional[str] = None,
         timeout: int = 300,
         max_retries: int = 3,
+        feedback_events: Optional[List[Dict[str, Any]]] = None,
     ) -> Tuple[bool, str, Optional[int]]:
         """
         Send resume instruction to conversation_id.
@@ -130,7 +173,7 @@ class AgentResumer:
             logger.error("Missing Antigravity resume capability for PR #%s: %s", pr_number, e)
             return False, f"Missing resume capability: {e}", None
 
-        prompt = self.build_prompt(pr_number)
+        prompt = self.build_prompt(pr_number, feedback_events=feedback_events)
 
         if backend == BACKEND_AGY:
             return self._resume_via_agy(

@@ -10,6 +10,8 @@ import json
 import os
 import subprocess
 import sys
+import time
+import traceback
 from pathlib import Path
 from typing import Optional
 
@@ -17,7 +19,7 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from tools.review_loop.config import REPO_ROOT
+from tools.review_loop.config import DEFAULT_HOOK_LOG_FILE, REPO_ROOT
 from tools.review_loop.github_client import GitHubClient, GitHubError
 from tools.review_loop.state_manager import StateManager
 
@@ -53,6 +55,18 @@ def get_current_conversation_id() -> Optional[str]:
     return os.environ.get("ANTIGRAVITY_CONVERSATION_ID")
 
 
+def log_hook_event(message: str) -> None:
+    """Persist hook diagnostics without changing its stdout contract."""
+    try:
+        DEFAULT_HOOK_LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with open(DEFAULT_HOOK_LOG_FILE, "a", encoding="utf-8") as log_file:
+            log_file.write(
+                f"{time.strftime('%Y-%m-%d %H:%M:%S')} {message.rstrip()}\n"
+            )
+    except Exception:
+        pass
+
+
 def register_from_hook(is_stop: bool = False) -> None:
     """
     Handle official Antigravity Hook invocation.
@@ -66,22 +80,40 @@ def register_from_hook(is_stop: bool = False) -> None:
     """
     try:
         payload_text = sys.stdin.read()
-        if payload_text.strip():
+        if not payload_text.strip():
+            log_hook_event("Hook received an empty payload; registration skipped.")
+        else:
             data = json.loads(payload_text)
-            conv_id = data.get("conversationId")
-            if conv_id:
+            conv_id = str(data.get("conversationId") or "").strip()
+            if not conv_id:
+                log_hook_event("Hook payload has no conversationId; registration skipped.")
+            else:
                 branch = get_current_git_branch()
                 if branch and branch not in ("main", "master", "develop", "HEAD"):
-                    try:
-                        github = GitHubClient(cwd=REPO_ROOT)
-                        pr_number = github.find_pr_for_branch(branch)
-                        if pr_number:
-                            state_mgr = StateManager()
-                            state_mgr.register_pr(pr_number, conv_id, branch)
-                    except Exception:
-                        pass  # Hooks must fail soft
-    except Exception:
-        pass  # Hooks must fail soft and not break agent execution
+                    state_mgr = StateManager()
+                    state_mgr.remember_branch_conversation(branch, conv_id)
+                    github = GitHubClient(cwd=REPO_ROOT)
+                    pr_number = github.find_pr_for_branch(branch)
+                    if pr_number:
+                        state_mgr.register_pr(pr_number, conv_id, branch)
+                        log_hook_event(
+                            f"Registered PR #{pr_number} on branch '{branch}' "
+                            f"to conversation '{conv_id}'."
+                        )
+                    else:
+                        log_hook_event(
+                            f"Remembered conversation '{conv_id}' for branch "
+                            f"'{branch}'; no open PR exists yet."
+                        )
+                else:
+                    log_hook_event(
+                        f"Branch '{branch or '<unknown>'}' is not eligible for "
+                        "review-loop registration."
+                    )
+    except Exception as exc:
+        log_hook_event(
+            f"Hook registration failed: {exc}\n{traceback.format_exc().rstrip()}"
+        )
     finally:
         # Output the correct contract response
         if is_stop:
@@ -125,11 +157,15 @@ def register(
         return False
 
     # 3. Resolve conversation ID
-    resolved_conv = conversation_id or get_current_conversation_id()
+    resolved_conv = (
+        conversation_id
+        or get_current_conversation_id()
+        or state_mgr.get_branch_conversation(resolved_branch)
+    )
     if not resolved_conv:
         print(
-            "[ERROR] No Antigravity conversation ID found in environment "
-            "(ANTIGRAVITY_CONVERSATION_ID)."
+            "[ERROR] No Antigravity conversation ID was provided, found in "
+            "the environment, or remembered by the hook for this branch."
         )
         print(
             "Please provide --conversation-id explicitly, or trigger via "

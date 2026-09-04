@@ -11,6 +11,7 @@ import os
 import signal
 import sys
 import time
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -20,6 +21,7 @@ if str(_REPO_ROOT) not in sys.path:
 
 from tools.review_loop.agent_resumer import AgentResumer, AgentResumerError
 from tools.review_loop.config import (
+    AGENTAPI_COMPLETION_TIMEOUT_SECONDS,
     AGENT_COMMENT_MARKER,
     AGENT_STARTUP_GRACE_PERIOD_SECONDS,
     DEFAULT_BACKOFF_FACTOR,
@@ -92,6 +94,27 @@ def is_agent_generated(body: str) -> bool:
         return False
     return AGENT_COMMENT_MARKER in body or "<!-- agent:" in body or "<!-- antigravity:" in body
 
+
+def is_likely_agent_report(body: str) -> bool:
+    """Recognize completion reports when the agent omitted its HTML marker."""
+    normalized = " ".join(str(body or "").strip().lower().split())
+    if not normalized:
+        return False
+    prefix = normalized[:500]
+    if "fix report" in prefix or "ci verification report" in prefix:
+        return True
+    completion_words = (
+        "полностью устранены",
+        "полностью исправлены",
+        "blockers resolved",
+        "feedback resolved",
+        "review blockers resolved",
+    )
+    report_subjects = ("замечан", "blocker", "ревью", "review")
+    return any(word in prefix for word in completion_words) and any(
+        subject in prefix for subject in report_subjects
+    )
+
 def is_event_allowed(author: str, body: str, state_mgr: StateManager) -> bool:
     """
     Check if a review or comment event should be processed.
@@ -102,6 +125,8 @@ def is_event_allowed(author: str, body: str, state_mgr: StateManager) -> bool:
     if is_agent_generated(body):
         return False
     if not author:
+        return False
+    if state_mgr.is_user_allowed(author) and is_likely_agent_report(body):
         return False
     return state_mgr.is_user_allowed(author)
 
@@ -200,6 +225,78 @@ class ReviewWatcher:
             except Exception as e:
                 logger.warning("Could not auto-detect repo owner: %s", e)
 
+    def reconcile_registrations(self) -> None:
+        """Recover open PR registrations from hook-observed branch mappings."""
+        mappings = self.state.get_branch_conversations()
+        if not mappings:
+            return
+        registered = self.state.get_registered_prs()
+        registered_branches = {
+            str(entry.get("branch") or "")
+            for entry in registered.values()
+            if isinstance(entry, dict)
+        }
+        unmatched = {
+            branch: conversation_id
+            for branch, conversation_id in mappings.items()
+            if branch not in registered_branches
+        }
+        if not unmatched:
+            return
+        for pr in self.github.get_open_prs():
+            pr_number = pr.get("number")
+            branch = str(pr.get("headRefName") or "").strip()
+            conversation_id = unmatched.get(branch)
+            if not pr_number or not conversation_id or str(pr_number) in registered:
+                continue
+            self.state.register_pr(int(pr_number), conversation_id, branch)
+            logger.info(
+                "Recovered registration for PR #%s on branch '%s' from hook state.",
+                pr_number, branch,
+            )
+
+    def has_agent_completion_comment(
+        self, pr_number: int, started_at: float
+    ) -> bool:
+        """Detect the run-completion marker posted by the attached agent."""
+        for comment in self.github.get_pr_comments(pr_number):
+            body = str(comment.get("body") or "")
+            author = str(comment.get("author", {}).get("login") or "")
+            if AGENT_COMMENT_MARKER not in body or not self.state.is_user_allowed(author):
+                continue
+            created_at = str(
+                comment.get("createdAt") or comment.get("created_at") or ""
+            )
+            try:
+                created_ts = datetime.fromisoformat(
+                    created_at.replace("Z", "+00:00")
+                ).timestamp()
+            except (TypeError, ValueError):
+                continue
+            if created_ts >= started_at:
+                return True
+        return False
+
+    def ignore_agent_report(
+        self, pr_number: int, event_id: Any, author: str, body: str
+    ) -> bool:
+        """Persistently ignore agent output without changing anything on GitHub."""
+        if not event_id:
+            return False
+        marked = is_agent_generated(body)
+        likely_report = self.state.is_user_allowed(author) and is_likely_agent_report(body)
+        if not marked and not likely_report:
+            return False
+        self.state.mark_event_processed(pr_number, str(event_id))
+        logger.info(
+            "Ignored agent-authored event %s on PR #%s by %s; "
+            "GitHub content was left untouched.",
+            event_id,
+            pr_number,
+            author,
+        )
+        return True
+
     def check_pr_events(self, pr_number: int, pr_info: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
         Inspect PR for new, unhandled, allowed review events.
@@ -218,6 +315,11 @@ class ReviewWatcher:
                 rev_body = rev.get("body", "")
 
                 if not rev_id or self.state.is_event_known(pr_number, rev_id):
+                    continue
+
+                if self.ignore_agent_report(
+                    pr_number, rev_id, rev_author, rev_body
+                ):
                     continue
 
                 if not is_event_allowed(rev_author, rev_body, self.state):
@@ -269,6 +371,11 @@ class ReviewWatcher:
                 if not c_id or self.state.is_event_known(pr_number, c_id):
                     continue
 
+                if self.ignore_agent_report(
+                    pr_number, c_id, c_author, c_body
+                ):
+                    continue
+
                 if not is_event_allowed(c_author, c_body, self.state):
                     continue
 
@@ -301,6 +408,11 @@ class ReviewWatcher:
                 ic_body = ic.get("body", "")
 
                 if not ic_id or self.state.is_event_known(pr_number, ic_id):
+                    continue
+
+                if self.ignore_agent_report(
+                    pr_number, ic_id, ic_author, ic_body
+                ):
                     continue
 
                 if not is_event_allowed(ic_author, ic_body, self.state):
@@ -361,6 +473,10 @@ class ReviewWatcher:
                         th_body = last_c.get("body", "")
 
                         if th_c_id and not self.state.is_event_known(pr_number, th_c_id):
+                            if self.ignore_agent_report(
+                                pr_number, th_c_id, th_author, th_body
+                            ):
+                                continue
                             if is_event_allowed(th_author, th_body, self.state):
                                 if is_ready_verdict(th_body):
                                     self.state.mark_event_processed(pr_number, th_c_id)
@@ -443,8 +559,45 @@ class ReviewWatcher:
         # ---------------- 1. Active Processing Check & Completion ----------------
         if pr_status == "processing":
             pid = pr_entry.get("active_agent_pid")
+            dispatch_mode = pr_entry.get("dispatch_mode", "")
             started_at = pr_entry.get("processing_started_at", 0.0)
             elapsed = time.time() - started_at
+
+            if (
+                dispatch_mode == "agentapi"
+                and current_head_sha and last_head_sha
+                and current_head_sha != last_head_sha
+            ):
+                in_flight = self.state.get_in_flight_events(pr_number)
+                logger.info(
+                    "Agentapi run succeeded for PR #%s (new head %s -> %s). "
+                    "Finalizing %d in-flight event(s).",
+                    pr_number, last_head_sha, current_head_sha, len(in_flight),
+                )
+                self.state.reset_retry_count(pr_number)
+                self.state.finalize_in_flight_events(pr_number)
+                self.state.update_pr_fields(pr_number, last_head_sha=current_head_sha)
+                self.state.release_lock(pr_number)
+                return
+
+            if (
+                dispatch_mode == "agentapi"
+                and self.has_agent_completion_comment(pr_number, started_at)
+            ):
+                in_flight = self.state.get_in_flight_events(pr_number)
+                logger.info(
+                    "Agentapi run completed for PR #%s with a marked report and "
+                    "no required head change. Finalizing %d in-flight event(s).",
+                    pr_number, len(in_flight),
+                )
+                self.state.reset_retry_count(pr_number)
+                self.state.finalize_in_flight_events(pr_number)
+                if current_head_sha:
+                    self.state.update_pr_fields(
+                        pr_number, last_head_sha=current_head_sha
+                    )
+                self.state.release_lock(pr_number)
+                return
 
             if pid and is_pid_alive(pid):
                 # Agent process is actively running. Queue any new incoming review events.
@@ -455,8 +608,45 @@ class ReviewWatcher:
                         self.state.queue_pending_event(pr_number, ev)
                 return
 
+            # agentapi only confirms message delivery, not completion of the
+            # agent turn. Continue polling while it is active so feedback that
+            # arrives a few minutes later is forwarded immediately instead of
+            # being hidden behind the completion timeout.
+            if dispatch_mode == "agentapi":
+                new_events = self.check_pr_events(pr_number, pr_info)
+                if new_events:
+                    existing = self.state.get_in_flight_events(pr_number)
+                    self.state.set_in_flight_events(
+                        pr_number, existing + new_events
+                    )
+                    run_id = self.state.get_current_run_id(pr_number)
+                    logger.info(
+                        "Forwarding %d newly-arrived event(s) to active "
+                        "Antigravity conversation for PR #%s (run %d).",
+                        len(new_events), pr_number, run_id,
+                    )
+                    success, out, _ = self.resumer.resume_conversation(
+                        conversation_id,
+                        pr_number,
+                        run_id=run_id,
+                        feedback_events=new_events,
+                    )
+                    if not success:
+                        self.state.set_in_flight_events(pr_number, existing)
+                        self.state.restore_pending_events(pr_number, new_events)
+                        logger.warning(
+                            "Could not forward new feedback for PR #%s: %s",
+                            pr_number, out,
+                        )
+                return
+
             # If launch is in progress (pid is None) and within startup grace period, do not intervene
-            if pid is None and elapsed < AGENT_STARTUP_GRACE_PERIOD_SECONDS:
+            completion_grace = (
+                AGENTAPI_COMPLETION_TIMEOUT_SECONDS
+                if dispatch_mode == "agentapi"
+                else AGENT_STARTUP_GRACE_PERIOD_SECONDS
+            )
+            if pid is None and elapsed < completion_grace:
                 logger.debug("PR #%s agent launch in progress (elapsed: %.1fs). Waiting.", pr_number, elapsed)
                 return
 
@@ -606,7 +796,10 @@ class ReviewWatcher:
         )
         try:
             success, out, active_pid = self.resumer.resume_conversation(
-                conversation_id, pr_number, run_id=run_id
+                conversation_id,
+                pr_number,
+                run_id=run_id,
+                feedback_events=all_events,
             )
         except AgentResumerError as e:
             success = False
@@ -639,10 +832,13 @@ class ReviewWatcher:
             logger.info("Agent successfully initiated for PR #%s (run %d, PID: %s).", pr_number, run_id, active_pid)
             if active_pid:
                 self.state.update_pr_fields(pr_number, active_agent_pid=active_pid)
+            else:
+                self.state.update_pr_fields(pr_number, dispatch_mode="agentapi")
 
     def run_cycle(self) -> None:
         """Run a single polling cycle across all active registered PRs."""
         self.init_allowlist_if_empty()
+        self.reconcile_registrations()
         prs = self.state.get_registered_prs()
         if not prs:
             logger.debug("No registered PRs to watch.")
@@ -672,7 +868,9 @@ class ReviewWatcher:
             sys.exit(1)
 
         logger.info("GitHub authentication verified.")
-        self.write_pid()
+        if not self.write_pid():
+            logger.info("Another review watcher instance is already running.")
+            return
         self._running = True
 
         backoff = DEFAULT_BACKOFF_INITIAL_SECONDS
@@ -721,16 +919,44 @@ class ReviewWatcher:
     def stop(self) -> None:
         self._running = False
 
-    def write_pid(self) -> None:
+    def write_pid(self) -> bool:
+        """Atomically claim the PID file, rejecting duplicate watchers."""
         DEFAULT_PID_FILE.parent.mkdir(parents=True, exist_ok=True)
-        try:
-            DEFAULT_PID_FILE.write_text(str(os.getpid()), encoding="utf-8")
-        except Exception as e:
-            logger.warning("Could not write PID file: %s", e)
+        for _ in range(2):
+            try:
+                fd = os.open(
+                    DEFAULT_PID_FILE,
+                    os.O_WRONLY | os.O_CREAT | os.O_EXCL,
+                )
+                with os.fdopen(fd, "w", encoding="utf-8") as pid_file:
+                    pid_file.write(str(os.getpid()))
+                return True
+            except FileExistsError:
+                try:
+                    existing_pid = int(
+                        DEFAULT_PID_FILE.read_text(encoding="utf-8").strip()
+                    )
+                except (OSError, ValueError):
+                    existing_pid = 0
+                if existing_pid and is_pid_alive(existing_pid):
+                    return existing_pid == os.getpid()
+                try:
+                    DEFAULT_PID_FILE.unlink()
+                except OSError as exc:
+                    logger.warning("Could not remove stale PID file: %s", exc)
+                    return False
+            except Exception as exc:
+                logger.warning("Could not claim PID file: %s", exc)
+                return False
+        return False
 
     def remove_pid(self) -> None:
         try:
-            if DEFAULT_PID_FILE.exists():
+            if (
+                DEFAULT_PID_FILE.exists()
+                and DEFAULT_PID_FILE.read_text(encoding="utf-8").strip()
+                == str(os.getpid())
+            ):
                 DEFAULT_PID_FILE.unlink()
         except Exception:
             pass

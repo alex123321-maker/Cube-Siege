@@ -1,15 +1,21 @@
-"""
-tools/review_loop/install.py - Service installer and lifecycle manager.
+"""Install and manage the autonomous PR review watcher.
 
-Configures per-user background watcher service on Windows (Task Scheduler with proper cwd)
-and Linux (systemd --user).
+The preferred runtime is an Antigravity sidecar because only a sidecar receives
+the official ``agentapi`` executable needed to message an existing GUI
+conversation. Windows Task Scheduler and systemd remain fallback launchers.
 """
 import argparse
+import getpass
+import html
+import json
 import os
 import platform
 import subprocess
 import sys
+import tempfile
+import time
 from pathlib import Path
+from typing import Any, Dict, Optional
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(_REPO_ROOT) not in sys.path:
@@ -21,217 +27,291 @@ from tools.review_loop.config import (
     REPO_ROOT,
     REVIEW_LOOP_DIR,
     RUN_WATCHER_BAT,
+    SIDECAR_MARKER_FILE,
 )
 
 WINDOWS_TASK_NAME = "CubeSiegeReviewLoopWatcher"
 LINUX_SERVICE_NAME = "cube-siege-review-watcher.service"
+ANTIGRAVITY_SIDECAR_ID = "cube-siege-review-loop"
+
 
 def is_pid_running(pid: int) -> bool:
-    """Check if process with PID is alive."""
+    """Return whether a process exists."""
     if pid <= 0:
         return False
     if sys.platform == "win32":
         try:
-            res = subprocess.run(
-                ["tasklist", "/FI", f"PID eq {pid}", "/FO", "CSV", "/NH"],
-                cwd=str(REPO_ROOT),
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace"
-            )
-            return str(pid) in res.stdout
+            import ctypes
+            kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            handle = kernel32.OpenProcess(0x1000, False, pid)
+            if handle:
+                kernel32.CloseHandle(handle)
+                return True
+            return ctypes.get_last_error() == 5
         except Exception:
             return False
-    else:
-        try:
-            os.kill(pid, 0)
-            return True
-        except OSError:
-            return False
-
-def get_current_pid() -> int:
-    if DEFAULT_PID_FILE.exists():
-        try:
-            return int(DEFAULT_PID_FILE.read_text(encoding="utf-8").strip())
-        except Exception:
-            pass
-    return 0
-
-# ================= Windows Lifecycle =================
-
-def create_windows_launcher() -> Path:
-    """Generate a batch launcher that strictly changes directory to REPO_ROOT before running Python."""
-    REVIEW_LOOP_DIR.mkdir(parents=True, exist_ok=True)
-    python_exe = sys.executable
-    watcher_py = REPO_ROOT / "tools" / "review_loop" / "watcher.py"
-
-    bat_content = f"""@echo off
-cd /d "{REPO_ROOT}"
-"{python_exe}" "{watcher_py}" %*
-"""
-    RUN_WATCHER_BAT.write_text(bat_content, encoding="utf-8")
-    return RUN_WATCHER_BAT
-
-def install_windows() -> bool:
-    launcher = create_windows_launcher()
-    cmd_line = f'"{launcher}"'
-
-    print(f"Configuring Windows Scheduled Task '{WINDOWS_TASK_NAME}' with launcher at '{launcher}'...")
-    schtasks_cmd = [
-        "schtasks", "/create",
-        "/tn", WINDOWS_TASK_NAME,
-        "/tr", cmd_line,
-        "/sc", "onlogon",
-        "/f"
-    ]
-    res = subprocess.run(schtasks_cmd, cwd=str(REPO_ROOT), capture_output=True, text=True, errors="replace")
-    if res.returncode == 0:
-        print(f"[SUCCESS] Scheduled Task '{WINDOWS_TASK_NAME}' created successfully.")
-        print("Watcher will auto-start at user logon. To start now, run: python tools/review_loop/install.py start")
+    try:
+        os.kill(pid, 0)
         return True
-    else:
-        print(f"[WARN] Failed to create scheduled task via schtasks: {res.stderr.strip() or res.stdout.strip()}")
-        print("Fallback: You can start the background watcher anytime using: python tools/review_loop/install.py start")
+    except OSError:
         return False
 
-def uninstall_windows() -> bool:
-    stop_service()
-    res = subprocess.run(
-        ["schtasks", "/delete", "/tn", WINDOWS_TASK_NAME, "/f"],
-        cwd=str(REPO_ROOT),
-        capture_output=True,
-        text=True,
-        errors="replace"
+
+def get_current_pid() -> int:
+    try:
+        return int(DEFAULT_PID_FILE.read_text(encoding="utf-8").strip())
+    except Exception:
+        return 0
+
+
+def wait_for_watcher(timeout: float = 15.0) -> bool:
+    """Wait until the watcher has claimed its PID file."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        pid = get_current_pid()
+        if pid and is_pid_running(pid):
+            return True
+        time.sleep(0.25)
+    return False
+
+
+# ================= Antigravity sidecar =================
+
+def get_antigravity_config_root() -> Path:
+    return Path.home() / ".gemini" / "config"
+
+
+def _write_json_atomic(path: Path, data: Dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temp_path = path.with_suffix(path.suffix + ".tmp")
+    temp_path.write_text(
+        json.dumps(data, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
     )
-    if RUN_WATCHER_BAT.exists():
-        try:
-            RUN_WATCHER_BAT.unlink()
-        except Exception:
-            pass
-    if res.returncode == 0:
-        print(f"[SUCCESS] Deleted Windows Scheduled Task '{WINDOWS_TASK_NAME}'.")
+    os.replace(temp_path, path)
+
+
+def is_antigravity_sidecar_enabled(config_root: Optional[Path] = None) -> bool:
+    root = config_root or get_antigravity_config_root()
+    try:
+        config = json.loads((root / "config.json").read_text(encoding="utf-8"))
+        enabled = bool(
+            config.get("sidecars", {})
+            .get(ANTIGRAVITY_SIDECAR_ID, {})
+            .get("enabled")
+        )
+        manifest = root / "sidecars" / ANTIGRAVITY_SIDECAR_ID / "sidecar.json"
+        return enabled and manifest.exists()
+    except (OSError, ValueError, TypeError):
+        return False
+
+
+def install_antigravity_sidecar(config_root: Optional[Path] = None) -> bool:
+    """Install a global sidecar while preserving unrelated Antigravity config."""
+    root = config_root or get_antigravity_config_root()
+    config_path = root / "config.json"
+    sidecar_path = root / "sidecars" / ANTIGRAVITY_SIDECAR_ID / "sidecar.json"
+    watcher_path = REPO_ROOT / "tools" / "review_loop" / "watcher.py"
+    try:
+        config: Dict[str, Any] = {}
+        if config_path.exists():
+            config = json.loads(config_path.read_text(encoding="utf-8"))
+            if not isinstance(config, dict):
+                raise ValueError("Antigravity config.json root must be an object")
+        sidecars = config.setdefault("sidecars", {})
+        if not isinstance(sidecars, dict):
+            raise ValueError("Antigravity config.json sidecars must be an object")
+        sidecars[ANTIGRAVITY_SIDECAR_ID] = {"enabled": True}
+
+        sidecar = {
+            "description": "Watch Cube Siege PR reviews and wake the attached Antigravity conversation.",
+            "display_name": "Cube Siege PR Review Loop",
+            "command": sys.executable,
+            "args": [str(watcher_path)],
+            "restart_policy": "always",
+            "env": {"PYTHONUNBUFFERED": "1"},
+        }
+        _write_json_atomic(sidecar_path, sidecar)
+        _write_json_atomic(config_path, config)
+        REVIEW_LOOP_DIR.mkdir(parents=True, exist_ok=True)
+        SIDECAR_MARKER_FILE.write_text(
+            "Managed by Antigravity sidecar; fallback launchers must remain idle.\n",
+            encoding="utf-8",
+        )
+        print(f"[SUCCESS] Enabled Antigravity sidecar '{ANTIGRAVITY_SIDECAR_ID}'.")
+        print("Restart Antigravity once if the watcher is not already running.")
         return True
-    else:
-        print(f"[INFO] Task '{WINDOWS_TASK_NAME}' was not found in Task Scheduler.")
+    except Exception as exc:
+        print(f"[WARN] Could not install Antigravity sidecar: {exc}")
+        return False
+
+
+def uninstall_antigravity_sidecar(config_root: Optional[Path] = None) -> bool:
+    root = config_root or get_antigravity_config_root()
+    config_path = root / "config.json"
+    try:
+        if config_path.exists():
+            config = json.loads(config_path.read_text(encoding="utf-8"))
+            sidecars = config.get("sidecars", {})
+            if isinstance(sidecars, dict):
+                sidecars.pop(ANTIGRAVITY_SIDECAR_ID, None)
+            _write_json_atomic(config_path, config)
+        if SIDECAR_MARKER_FILE.exists():
+            SIDECAR_MARKER_FILE.unlink()
         return True
+    except Exception as exc:
+        print(f"[WARN] Could not disable Antigravity sidecar: {exc}")
+        return False
+
+
+# ================= Windows fallback =================
+
+def create_windows_launcher() -> Path:
+    REVIEW_LOOP_DIR.mkdir(parents=True, exist_ok=True)
+    watcher_path = REPO_ROOT / "tools" / "review_loop" / "watcher.py"
+    content = (
+        "@echo off\n"
+        f'if exist "{SIDECAR_MARKER_FILE}" exit /b 0\n'
+        f'cd /d "{REPO_ROOT}"\n'
+        f'"{sys.executable}" "{watcher_path}" %*\n'
+    )
+    RUN_WATCHER_BAT.write_text(content, encoding="utf-8")
+    return RUN_WATCHER_BAT
+
+
+def build_windows_task_xml() -> str:
+    """Build a per-user task that restarts the watcher after failures."""
+    launcher = html.escape(str(create_windows_launcher()))
+    user = html.escape(getpass.getuser())
+    return f'''<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.4" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <Principals><Principal id="Author"><UserId>{user}</UserId><LogonType>InteractiveToken</LogonType><RunLevel>LeastPrivilege</RunLevel></Principal></Principals>
+  <Triggers><LogonTrigger><Enabled>true</Enabled></LogonTrigger></Triggers>
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>
+    <RestartOnFailure><Interval>PT1M</Interval><Count>999</Count></RestartOnFailure>
+    <Enabled>true</Enabled>
+  </Settings>
+  <Actions Context="Author"><Exec><Command>{launcher}</Command><WorkingDirectory>{html.escape(str(REPO_ROOT))}</WorkingDirectory></Exec></Actions>
+</Task>'''
+
+
+def is_windows_task_installed() -> bool:
+    result = subprocess.run(
+        ["schtasks", "/query", "/tn", WINDOWS_TASK_NAME],
+        cwd=str(REPO_ROOT), capture_output=True, text=True, errors="replace",
+    )
+    return result.returncode == 0
+
+
+def install_windows() -> bool:
+    xml_text = build_windows_task_xml()
+    temp_path: Optional[Path] = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".xml", delete=False, encoding="utf-16"
+        ) as temp_file:
+            temp_file.write(xml_text)
+            temp_path = Path(temp_file.name)
+        result = subprocess.run(
+            ["schtasks", "/create", "/tn", WINDOWS_TASK_NAME, "/xml", str(temp_path), "/f"],
+            cwd=str(REPO_ROOT), capture_output=True, text=True, errors="replace",
+        )
+        if result.returncode == 0:
+            print(f"[SUCCESS] Scheduled Task '{WINDOWS_TASK_NAME}' configured.")
+            return True
+        print(f"[WARN] Failed to configure Scheduled Task: {result.stderr.strip() or result.stdout.strip()}")
+        return False
+    finally:
+        if temp_path:
+            try:
+                temp_path.unlink()
+            except OSError:
+                pass
+
 
 def start_windows() -> bool:
     pid = get_current_pid()
     if pid and is_pid_running(pid):
-        print(f"[INFO] Review watcher is already running (PID: {pid}).")
         return True
-
-    # First attempt to run task scheduler task
-    res = subprocess.run(
-        ["schtasks", "/run", "/tn", WINDOWS_TASK_NAME],
-        cwd=str(REPO_ROOT),
-        capture_output=True,
-        text=True,
-        errors="replace"
-    )
-    if res.returncode == 0:
-        print(f"[SUCCESS] Triggered scheduled task '{WINDOWS_TASK_NAME}'.")
-        return True
-
-    # Fallback to detached process using launcher
+    if is_windows_task_installed():
+        subprocess.run(
+            ["schtasks", "/run", "/tn", WINDOWS_TASK_NAME],
+            cwd=str(REPO_ROOT), capture_output=True, errors="replace",
+        )
+        if wait_for_watcher():
+            return True
     launcher = create_windows_launcher()
-    creationflags = 0
-    if hasattr(subprocess, "DETACHED_PROCESS"):
-        creationflags |= subprocess.DETACHED_PROCESS
-    if hasattr(subprocess, "CREATE_NEW_PROCESS_GROUP"):
-        creationflags |= subprocess.CREATE_NEW_PROCESS_GROUP
-
-    proc = subprocess.Popen(
-        [str(launcher)],
-        cwd=str(REPO_ROOT),
-        creationflags=creationflags,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        stdin=subprocess.DEVNULL
+    flags = getattr(subprocess, "DETACHED_PROCESS", 0) | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+    subprocess.Popen(
+        [str(launcher)], cwd=str(REPO_ROOT), creationflags=flags,
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL,
     )
-    print(f"[SUCCESS] Started background review watcher process (PID: {proc.pid}).")
-    return True
+    return wait_for_watcher()
+
 
 def stop_windows() -> bool:
-    subprocess.run(["schtasks", "/end", "/tn", WINDOWS_TASK_NAME], cwd=str(REPO_ROOT), capture_output=True, errors="replace")
-
+    subprocess.run(
+        ["schtasks", "/end", "/tn", WINDOWS_TASK_NAME],
+        cwd=str(REPO_ROOT), capture_output=True, errors="replace",
+    )
     pid = get_current_pid()
-    if pid:
-        if is_pid_running(pid):
-            try:
-                subprocess.run(["taskkill", "/F", "/PID", str(pid)], cwd=str(REPO_ROOT), capture_output=True, errors="replace")
-                print(f"[SUCCESS] Terminated watcher process (PID: {pid}).")
-            except Exception as e:
-                print(f"[WARN] Failed to terminate PID {pid}: {e}")
-        try:
-            if DEFAULT_PID_FILE.exists():
-                DEFAULT_PID_FILE.unlink()
-        except Exception:
-            pass
-    else:
-        print("[INFO] No active PID file found.")
+    if pid and is_pid_running(pid):
+        subprocess.run(
+            ["taskkill", "/F", "/PID", str(pid)],
+            cwd=str(REPO_ROOT), capture_output=True, errors="replace",
+        )
+    try:
+        DEFAULT_PID_FILE.unlink()
+    except OSError:
+        pass
     return True
 
-# ================= Linux Lifecycle =================
+
+def uninstall_windows() -> bool:
+    stop_windows()
+    subprocess.run(
+        ["schtasks", "/delete", "/tn", WINDOWS_TASK_NAME, "/f"],
+        cwd=str(REPO_ROOT), capture_output=True, errors="replace",
+    )
+    return True
+
+
+# ================= Linux fallback =================
 
 def install_linux() -> bool:
-    python_exe = sys.executable
-    watcher_py = REPO_ROOT / "tools" / "review_loop" / "watcher.py"
-    user_systemd_dir = Path.home() / ".config" / "systemd" / "user"
-    user_systemd_dir.mkdir(parents=True, exist_ok=True)
-    service_path = user_systemd_dir / LINUX_SERVICE_NAME
-
-    service_content = f"""[Unit]
-Description=Cube Siege Antigravity PR Review Feedback Watcher
-After=network.target
-
-[Service]
-Type=simple
-WorkingDirectory={REPO_ROOT}
-ExecStart={python_exe} {watcher_py}
-Restart=on-failure
-RestartSec=10
-
-[Install]
-WantedBy=default.target
-"""
-    service_path.write_text(service_content, encoding="utf-8")
-    print(f"[SUCCESS] Created systemd user unit at {service_path}")
-
-    res1 = subprocess.run(["systemctl", "--user", "daemon-reload"], cwd=str(REPO_ROOT), capture_output=True, text=True)
-    if res1.returncode != 0:
-        print(f"[ERROR] systemctl --user daemon-reload failed: {res1.stderr.strip() or res1.stdout.strip()}")
+    watcher_path = REPO_ROOT / "tools" / "review_loop" / "watcher.py"
+    service_dir = Path.home() / ".config" / "systemd" / "user"
+    service_dir.mkdir(parents=True, exist_ok=True)
+    service_path = service_dir / LINUX_SERVICE_NAME
+    service_path.write_text(
+        "[Unit]\nDescription=Cube Siege Antigravity PR Review Feedback Watcher\nAfter=network.target\n\n"
+        "[Service]\nType=simple\n"
+        f"WorkingDirectory={REPO_ROOT}\nExecStart={sys.executable} {watcher_path}\n"
+        "Restart=on-failure\nRestartSec=10\n\n[Install]\nWantedBy=default.target\n",
+        encoding="utf-8",
+    )
+    reload_result = subprocess.run(
+        ["systemctl", "--user", "daemon-reload"], cwd=str(REPO_ROOT), capture_output=True, text=True,
+    )
+    if reload_result.returncode != 0:
         return False
+    enable_result = subprocess.run(
+        ["systemctl", "--user", "enable", LINUX_SERVICE_NAME], cwd=str(REPO_ROOT), capture_output=True, text=True,
+    )
+    return enable_result.returncode == 0
 
-    res2 = subprocess.run(["systemctl", "--user", "enable", LINUX_SERVICE_NAME], cwd=str(REPO_ROOT), capture_output=True, text=True)
-    if res2.returncode != 0:
-        print(f"[ERROR] systemctl --user enable failed: {res2.stderr.strip() or res2.stdout.strip()}")
-        return False
-
-    print(f"[SUCCESS] Enabled {LINUX_SERVICE_NAME}.")
-    print("To start service: python tools/review_loop/install.py start")
-    return True
-
-def uninstall_linux() -> bool:
-    subprocess.run(["systemctl", "--user", "disable", "--now", LINUX_SERVICE_NAME], cwd=str(REPO_ROOT), check=False)
-    service_path = Path.home() / ".config" / "systemd" / "user" / LINUX_SERVICE_NAME
-    if service_path.exists():
-        service_path.unlink()
-        print(f"[SUCCESS] Removed {service_path}")
-    subprocess.run(["systemctl", "--user", "daemon-reload"], cwd=str(REPO_ROOT), check=False)
-    return True
 
 def start_linux() -> bool:
-    res = subprocess.run(["systemctl", "--user", "start", LINUX_SERVICE_NAME], cwd=str(REPO_ROOT), capture_output=True, text=True)
-    if res.returncode == 0:
-        print(f"[SUCCESS] Started {LINUX_SERVICE_NAME}")
+    result = subprocess.run(
+        ["systemctl", "--user", "start", LINUX_SERVICE_NAME], cwd=str(REPO_ROOT), capture_output=True, text=True,
+    )
+    if result.returncode == 0 and wait_for_watcher():
         return True
-    python_exe = sys.executable
-    watcher_py = REPO_ROOT / "tools" / "review_loop" / "watcher.py"
-    proc = subprocess.Popen([python_exe, str(watcher_py)], cwd=str(REPO_ROOT))
-    print(f"[SUCCESS] Started background watcher process (PID: {proc.pid})")
-    return True
+    subprocess.Popen([sys.executable, str(REPO_ROOT / "tools" / "review_loop" / "watcher.py")], cwd=str(REPO_ROOT))
+    return wait_for_watcher()
+
 
 def stop_linux() -> bool:
     subprocess.run(["systemctl", "--user", "stop", LINUX_SERVICE_NAME], cwd=str(REPO_ROOT), check=False)
@@ -239,110 +319,108 @@ def stop_linux() -> bool:
     if pid and is_pid_running(pid):
         try:
             os.kill(pid, 15)
-            print(f"[SUCCESS] Stopped PID {pid}")
-        except Exception:
+        except OSError:
             pass
-    if DEFAULT_PID_FILE.exists():
-        DEFAULT_PID_FILE.unlink()
     return True
 
-# ================= Common Status & Dispatch =================
+
+def uninstall_linux() -> bool:
+    stop_linux()
+    subprocess.run(["systemctl", "--user", "disable", LINUX_SERVICE_NAME], cwd=str(REPO_ROOT), check=False)
+    service_path = Path.home() / ".config" / "systemd" / "user" / LINUX_SERVICE_NAME
+    try:
+        service_path.unlink()
+    except OSError:
+        pass
+    subprocess.run(["systemctl", "--user", "daemon-reload"], cwd=str(REPO_ROOT), check=False)
+    return True
+
+
+# ================= Common dispatch =================
+
+def ensure_service() -> bool:
+    """Ensure the sidecar watcher is alive before creating/registering a PR."""
+    pid = get_current_pid()
+    if pid and is_pid_running(pid):
+        return True
+    if is_antigravity_sidecar_enabled():
+        if wait_for_watcher():
+            return True
+        print("[WARN] Antigravity sidecar is enabled but not running. Restart Antigravity and retry.")
+        return False
+    if not install_service():
+        return False
+    if is_antigravity_sidecar_enabled():
+        return wait_for_watcher()
+    return start_service()
+
+
+def install_service() -> bool:
+    if install_antigravity_sidecar():
+        # Keep any legacy Windows task harmless if it cannot be removed.
+        if sys.platform == "win32":
+            create_windows_launcher()
+        return True
+    if sys.platform == "win32":
+        return install_windows()
+    if sys.platform.startswith("linux"):
+        return install_linux()
+    return False
+
+
+def start_service() -> bool:
+    if is_antigravity_sidecar_enabled():
+        if wait_for_watcher():
+            return True
+        print("[WARN] Restart Antigravity to start the configured sidecar.")
+        return False
+    return start_windows() if sys.platform == "win32" else start_linux()
+
+
+def stop_service() -> bool:
+    return stop_windows() if sys.platform == "win32" else stop_linux()
+
+
+def uninstall_service() -> bool:
+    sidecar_ok = uninstall_antigravity_sidecar()
+    fallback_ok = uninstall_windows() if sys.platform == "win32" else uninstall_linux()
+    return sidecar_ok and fallback_ok
+
 
 def print_status() -> None:
+    pid = get_current_pid()
+    running = bool(pid and is_pid_running(pid))
     print("=" * 60)
     print(" Cube Siege - Review Loop Watcher Status")
     print("=" * 60)
     print(f"Platform: {platform.system()} ({platform.release()})")
     print(f"Repository Root: {REPO_ROOT}")
+    print(f"Antigravity Sidecar: [{'ENABLED' if is_antigravity_sidecar_enabled() else 'DISABLED'}]")
+    print(f"Process Status: [{'RUNNING' if running else 'STOPPED'}]" + (f" (PID: {pid})" if running else ""))
     print(f"Log file: {DEFAULT_LOG_FILE}")
-    print(f"PID file: {DEFAULT_PID_FILE}")
-
-    pid = get_current_pid()
-    running = is_pid_running(pid) if pid else False
-
-    if running:
-        print(f"Process Status: [RUNNING] (PID: {pid})")
-    else:
-        print("Process Status: [STOPPED]")
-
-    if sys.platform == "win32":
-        res = subprocess.run(
-            ["schtasks", "/query", "/tn", WINDOWS_TASK_NAME],
-            cwd=str(REPO_ROOT),
-            capture_output=True,
-            text=True,
-            errors="replace"
-        )
-        if res.returncode == 0:
-            print(f"Scheduled Task: [CONFIGURED] ({WINDOWS_TASK_NAME})")
-        else:
-            print("Scheduled Task: [NOT INSTALLED]")
-    elif sys.platform == "linux":
-        res = subprocess.run(
-            ["systemctl", "--user", "is-active", LINUX_SERVICE_NAME],
-            cwd=str(REPO_ROOT),
-            capture_output=True,
-            text=True
-        )
-        print(f"Systemd Service: [{res.stdout.strip() or 'inactive'}]")
-
     if DEFAULT_LOG_FILE.exists():
         print("\n--- Recent Log Activity (last 10 lines) ---")
-        try:
-            lines = DEFAULT_LOG_FILE.read_text(encoding="utf-8", errors="replace").splitlines()
-            for l in lines[-10:]:
-                print(f"  {l}")
-        except Exception as e:
-            print(f"  Could not read log file: {e}")
+        for line in DEFAULT_LOG_FILE.read_text(encoding="utf-8", errors="replace").splitlines()[-10:]:
+            print(f"  {line}")
     print("=" * 60)
 
-def install_service() -> bool:
-    if sys.platform == "win32":
-        return install_windows()
-    elif sys.platform.startswith("linux"):
-        return install_linux()
-    else:
-        print(f"[WARN] OS '{sys.platform}' does not have an automatic service installer.")
-        return False
-
-def uninstall_service() -> bool:
-    if sys.platform == "win32":
-        return uninstall_windows()
-    elif sys.platform.startswith("linux"):
-        return uninstall_linux()
-    else:
-        return stop_service()
-
-def start_service() -> bool:
-    if sys.platform == "win32":
-        return start_windows()
-    else:
-        return start_linux()
-
-def stop_service() -> bool:
-    if sys.platform == "win32":
-        return stop_windows()
-    else:
-        return stop_linux()
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Lifecycle manager for the review loop watcher service.")
-    parser.add_argument("action", choices=["install", "uninstall", "start", "stop", "status"], help="Action to perform.")
+    parser = argparse.ArgumentParser(description="Manage the PR review watcher.")
+    parser.add_argument("action", choices=["install", "ensure", "uninstall", "start", "stop", "status"])
     args = parser.parse_args()
-
-    success = True
-    if args.action == "install":
-        success = install_service()
-    elif args.action == "uninstall":
-        success = uninstall_service()
-    elif args.action == "start":
-        success = start_service()
-    elif args.action == "stop":
-        success = stop_service()
-    elif args.action == "status":
+    actions = {
+        "install": install_service,
+        "ensure": ensure_service,
+        "uninstall": uninstall_service,
+        "start": start_service,
+        "stop": stop_service,
+    }
+    if args.action == "status":
         print_status()
+        return
+    raise SystemExit(0 if actions[args.action]() else 1)
 
-    sys.exit(0 if success else 1)
 
 if __name__ == "__main__":
     main()

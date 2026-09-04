@@ -16,7 +16,6 @@ because every mutation follows: acquire file lock → reload → mutate → save
 import json
 import logging
 import os
-import subprocess
 import sys
 import tempfile
 import time
@@ -29,6 +28,7 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 from tools.review_loop.config import (
+    AGENTAPI_COMPLETION_TIMEOUT_SECONDS,
     AGENT_STARTUP_GRACE_PERIOD_SECONDS,
     DEFAULT_LOCK_LEASE_SECONDS,
     DEFAULT_STATE_FILE,
@@ -72,14 +72,14 @@ def is_pid_alive(pid: int) -> bool:
         return False
     if sys.platform == "win32":
         try:
-            res = subprocess.run(
-                ["tasklist", "/FI", f"PID eq {pid}", "/FO", "CSV", "/NH"],
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-            )
-            return str(pid) in res.stdout
+            import ctypes
+            kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+            handle = kernel32.OpenProcess(0x1000, False, pid)
+            if handle:
+                kernel32.CloseHandle(handle)
+                return True
+            # Access denied still proves that the PID exists.
+            return ctypes.get_last_error() == 5
         except Exception:
             return False
     else:
@@ -114,7 +114,11 @@ class StateManager:
         self.lock_file = Path(
             lock_file or self.state_file.with_suffix(".lock")
         )
-        self.state: Dict[str, Any] = {"prs": {}, "allowlist": []}
+        self.state: Dict[str, Any] = {
+            "prs": {},
+            "allowlist": [],
+            "branch_conversations": {},
+        }
         self._load_no_lock()
 
     # ------------- low-level I/O (no locking) ------------- #
@@ -130,6 +134,7 @@ class StateManager:
                     self.state = data
                     self.state.setdefault("prs", {})
                     self.state.setdefault("allowlist", [])
+                    self.state.setdefault("branch_conversations", {})
         except Exception as e:
             logger.warning(
                 "Failed to load state file '%s': %s. Re-initializing.",
@@ -197,6 +202,44 @@ class StateManager:
         self._load_no_lock()
         return self.state.get("prs", {}).get(str(pr_number))
 
+    def remember_branch_conversation(
+        self, branch: str, conversation_id: str
+    ) -> None:
+        """Remember the active agent conversation before a PR exists."""
+        branch = str(branch or "").strip()
+        conversation_id = str(conversation_id or "").strip()
+        if not branch or not conversation_id:
+            raise ValueError("Branch and conversation ID are required.")
+        with self._transact():
+            self.state.setdefault("branch_conversations", {})[branch] = {
+                "conversation_id": conversation_id,
+                "updated_at": time.time(),
+            }
+
+    def get_branch_conversation(self, branch: str) -> Optional[str]:
+        self._load_no_lock()
+        entry = self.state.get("branch_conversations", {}).get(
+            str(branch or "").strip()
+        )
+        if isinstance(entry, str):
+            return entry or None
+        if isinstance(entry, dict):
+            return entry.get("conversation_id") or None
+        return None
+
+    def get_branch_conversations(self) -> Dict[str, str]:
+        self._load_no_lock()
+        result: Dict[str, str] = {}
+        for branch, entry in self.state.get("branch_conversations", {}).items():
+            conversation_id = (
+                entry if isinstance(entry, str)
+                else entry.get("conversation_id", "") if isinstance(entry, dict)
+                else ""
+            )
+            if branch and conversation_id:
+                result[str(branch)] = str(conversation_id)
+        return result
+
     # ------------- PR Registration & Lifecycle ------------- #
 
     def register_pr(
@@ -210,6 +253,10 @@ class StateManager:
         destroy active processing state.
         """
         with self._transact():
+            self.state.setdefault("branch_conversations", {})[branch] = {
+                "conversation_id": conversation_id,
+                "updated_at": time.time(),
+            }
             key = str(pr_number)
             if key in self.state["prs"]:
                 self.state["prs"][key]["conversation_id"] = conversation_id
@@ -223,6 +270,7 @@ class StateManager:
                     "processed_event_ids": [],
                     "processing_started_at": 0.0,
                     "active_agent_pid": None,
+                    "dispatch_mode": "",
                     "thread_states": {},
                     "thread_reopen_counts": {},
                     "pending_events": [],
@@ -285,6 +333,7 @@ class StateManager:
                 self.state["prs"][key]["retry_count"] = 0
                 self.state["prs"][key]["processing_started_at"] = 0.0
                 self.state["prs"][key]["active_agent_pid"] = None
+                self.state["prs"][key]["dispatch_mode"] = ""
                 in_flight = self.state["prs"][key].get("in_flight_events", [])
                 pending = self.state["prs"][key].setdefault("pending_events", [])
                 for ev in reversed(in_flight):
@@ -512,7 +561,12 @@ class StateManager:
 
             started = pr.get("processing_started_at", 0.0)
             elapsed = time.time() - started
-            grace = min(AGENT_STARTUP_GRACE_PERIOD_SECONDS, lease_seconds)
+            grace_seconds = (
+                AGENTAPI_COMPLETION_TIMEOUT_SECONDS
+                if pr.get("dispatch_mode") == "agentapi"
+                else AGENT_STARTUP_GRACE_PERIOD_SECONDS
+            )
+            grace = min(grace_seconds, lease_seconds)
             if pid is None and elapsed < grace:
                 return True
 
@@ -547,7 +601,12 @@ class StateManager:
 
                 started = pr.get("processing_started_at", 0.0)
                 elapsed = time.time() - started
-                grace = min(AGENT_STARTUP_GRACE_PERIOD_SECONDS, lease_seconds)
+                grace_seconds = (
+                    AGENTAPI_COMPLETION_TIMEOUT_SECONDS
+                    if pr.get("dispatch_mode") == "agentapi"
+                    else AGENT_STARTUP_GRACE_PERIOD_SECONDS
+                )
+                grace = min(grace_seconds, lease_seconds)
                 # Startup grace period check: if PID is not yet set but started recently, cannot acquire
                 if tracked_pid is None and elapsed < grace:
                     return False
@@ -575,6 +634,7 @@ class StateManager:
             pr["status"] = "processing"
             pr["processing_started_at"] = time.time()
             pr["active_agent_pid"] = pid
+            pr["dispatch_mode"] = ""
             return True
 
     def release_lock(self, pr_number: int) -> None:
@@ -587,6 +647,7 @@ class StateManager:
                     self.state["prs"][key]["status"] = "watching"
                 self.state["prs"][key]["processing_started_at"] = 0.0
                 self.state["prs"][key]["active_agent_pid"] = None
+                self.state["prs"][key]["dispatch_mode"] = ""
 
     def queue_pending_event(
         self, pr_number: int, event: Dict[str, Any]

@@ -158,7 +158,8 @@ python tools/verify.py
 | **Инспекция дерева нод** | `python tools/gdmcp.py tree --depth 4` |
 | **Запуск игры (Headless smoke)** | `godot --headless --path . --quit-after 100` |
 | **Просмотр задачи GitHub** | `gh issue view <N>` |
-| **Регистрация PR в review loop** | `python tools/review_loop/register.py` |
+| **Создание PR с автопривязкой** | `python tools/review_loop/create_pr.py -- <аргументы gh pr create>` |
+| **Ручная регистрация PR** | `python tools/review_loop/register.py` |
 | **Статус review watcher** | `python tools/review_loop/install.py status` |
 | **Запуск watcher (run-once)** | `python tools/review_loop/watcher.py --run-once` |
 
@@ -177,23 +178,29 @@ Gemini / Antigravity реализует фичу
   ↓
 Создание ветки + тесты + верификация
   ↓
-Создание Pull Request (`gh pr create`)
+Создание Pull Request через `python tools/review_loop/create_pr.py -- <аргументы gh pr create>`
   ↓
 Автоматическая регистрация PR в review loop через Antigravity Hook (`.agents/hooks.json`)
   ↓
 Фоновый watcher отслеживает новые замечания
   ↓
 При обнаружении REQUEST_CHANGES / комментариев / тредов:
-автоматически возобновляет ту же сессию Antigravity (через официальный `agy --conversation <id> -p "..."`)
+автоматически отправляет задачу в ту же GUI-сессию Antigravity через официальный sidecar `agentapi send-message`
   ↓
 Агент исправляет замечания, прогоняет `python tools/verify.py` и пушит в ту же ветку
   ↓
 Watcher фиксирует появление нового head SHA, снимает блокировку и ожидает APPROVE или повторного ревью
 ```
 
+Автоматический запуск исправлений не создаёт артефакт плана и не запрашивает его подтверждение: агент планирует внутренне и сразу работает с кодом. Остановка разрешена только для настоящего `DESIGN DECISION REQUIRED`.
+
 ### 9.2. Регистрация PR в цикле
 
-Регистрация происходит **автоматически** через штатный Antigravity Hook (`.agents/hooks.json`), который передаёт `conversationId` на `stdin` скрипту `register.py --from-hook` при остановке агента или завершении инструмента.
+Основной путь — обёртка `create_pr.py`: она до создания PR сохраняет связь текущей ветки с GUI-чатом, проверяет фоновый watcher, создаёт либо находит PR и сразу регистрирует его. Штатный Antigravity Hook (`.agents/hooks.json`) служит дополнительной страховкой: он запоминает `conversationId` даже до появления PR, а watcher автоматически сопоставляет эту ветку с новым открытым PR.
+
+```bash
+python tools/review_loop/create_pr.py --conversation-id <id> -- --title "..." --body "..."
+```
 
 При необходимости ручной регистрации или управления списком:
 
@@ -216,9 +223,7 @@ python tools/review_loop/register.py --reactivate <pr_number>
 
 ### 9.3. Управление фоновой службой (Lifecycle)
 
-Скрипт `tools/review_loop/install.py` управляет фоновым процессом без требования прав администратора / root:
-* **Windows**: Создаёт пользовательскую задачу в Windows Task Scheduler (`schtasks`) с запуском при входе в систему (`onlogon`), а также поддерживает прямой запуск фонового процесса.
-* **Linux**: Создаёт пользовательский systemd-юнит (`~/.config/systemd/user/cube-siege-review-watcher.service`).
+Скрипт `tools/review_loop/install.py` управляет фоновым процессом без требования прав администратора / root. Основной механизм — глобальный Antigravity sidecar с `restart_policy: always`: именно он получает официальный `agentapi` и может отправить сообщение в существующий GUI-чат. Windows Task Scheduler и пользовательский systemd остаются резервными вариантами запуска.
 
 ```bash
 # Установка службы автозапуска
@@ -237,9 +242,9 @@ python tools/review_loop/install.py stop
 python tools/review_loop/install.py uninstall
 ```
 
-### 9.4. Настройка разрешений для headless-режима agy
+### 9.4. Резервный headless-режим agy
 
-При автономном запуске через `agy --conversation <id> -p "..."` агент работает в headless-режиме,
+Sidecar с `agentapi` является основным способом продолжить существующий GUI-чат. Если он недоступен и используется резервный запуск через `agy --conversation <id> -p "..."`, агент работает в headless-режиме,
 где интерактивные запросы разрешений (approval) невозможны. Операции без предварительного разрешения
 получают soft-deny. Для корректной работы review loop необходимо настроить scoped permissions:
 

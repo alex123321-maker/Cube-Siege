@@ -25,14 +25,22 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from tools.review_loop.agent_resumer import (
+    BACKEND_AGENTAPI,
     BACKEND_AGY,
     AgentResumer,
     AgentResumerError,
     detect_backend_from_path,
 )
+from tools.review_loop.create_pr import create_and_register_pr
 from tools.review_loop.config import AGENT_COMMENT_MARKER, DESIGN_DECISION_MARKER, REVIEW_LOOP_DIR
 from tools.review_loop.github_client import GitHubAuthError, GitHubClient, GitHubError, is_auth_error_message
-from tools.review_loop.install import install_linux
+from tools.review_loop.install import (
+    ANTIGRAVITY_SIDECAR_ID,
+    build_windows_task_xml,
+    install_antigravity_sidecar,
+    install_linux,
+    is_antigravity_sidecar_enabled,
+)
 from tools.review_loop.register import register_from_hook
 from tools.review_loop.state_manager import StateManager
 from tools.review_loop.watcher import (
@@ -41,6 +49,7 @@ from tools.review_loop.watcher import (
     extract_verdict_line,
     get_effective_review_state,
     is_event_allowed,
+    is_likely_agent_report,
     is_ready_verdict,
 )
 
@@ -70,6 +79,17 @@ class TestStateManager(unittest.TestCase):
         self.assertEqual(pr["branch"], "feat/test")
         self.assertEqual(pr["status"], "watching")
         self.assertTrue(reloaded.is_user_allowed("alex123321-maker"))
+
+    def test_branch_conversation_survives_before_pr_creation(self):
+        self.state_mgr.remember_branch_conversation("feat/42", "gui-conv-42")
+
+        reloaded = StateManager(state_file=self.state_file)
+        self.assertEqual(
+            reloaded.get_branch_conversation("feat/42"), "gui-conv-42"
+        )
+        self.assertEqual(
+            reloaded.get_branch_conversations(), {"feat/42": "gui-conv-42"}
+        )
 
     def test_register_pr_is_idempotent(self):
         """
@@ -219,6 +239,9 @@ class TestAgentResumer(unittest.TestCase):
         self.assertIn("PR #123", prompt)
         self.assertIn("DESIGN DECISION REQUIRED", prompt)
         self.assertIn("Do not merge the PR", prompt)
+        self.assertIn("Do not create or update an implementation plan", prompt)
+        self.assertIn("begin inspecting and editing the code immediately", prompt)
+        self.assertIn("Preserve all pre-existing uncommitted changes", prompt)
 
     def test_detect_backend_windows_path_on_any_os(self):
         """Windows-style paths must be correctly identified on any host OS."""
@@ -234,6 +257,30 @@ class TestAgentResumer(unittest.TestCase):
             detect_backend_from_path("/usr/local/bin/agy"),
             BACKEND_AGY,
         )
+
+    @patch("subprocess.run")
+    def test_agentapi_backend_sends_message_to_gui_conversation(self, mock_run):
+        mock_run.return_value = MagicMock(returncode=0, stdout="sent", stderr="")
+        resumer = AgentResumer(
+            agentapi_cmd=["agentapi"], backend_type=BACKEND_AGENTAPI
+        )
+
+        success, _, pid = resumer.resume_conversation(
+            "gui-conv",
+            pr_number=7,
+            feedback_events=[{
+                "id": "review-new", "type": "REVIEW_COMMENT",
+                "author": "owner", "body": "Restore the original timing.",
+            }],
+        )
+
+        self.assertTrue(success)
+        self.assertIsNone(pid)
+        command = mock_run.call_args.args[0]
+        self.assertEqual(command[:3], ["agentapi", "send-message", "gui-conv"])
+        self.assertIn("Do not create or update an implementation plan", command[3])
+        self.assertIn("Restore the original timing.", command[3])
+        self.assertIn("AUTHORITATIVE NEW FEEDBACK", command[3])
 
     @patch("subprocess.Popen")
     @patch("time.sleep")
@@ -301,6 +348,7 @@ class TestReviewWatcher(unittest.TestCase):
         self.state_mgr.add_to_allowlist("alex123321-maker")
 
         self.mock_github = MagicMock(spec=GitHubClient)
+        self.mock_github.get_open_prs.return_value = []
         self.mock_resumer = MagicMock(spec=AgentResumer)
         self.mock_resumer.resume_conversation.return_value = (True, "Dispatched", 1234)
 
@@ -326,6 +374,105 @@ class TestReviewWatcher(unittest.TestCase):
         self.mock_github.get_pr_comments.return_value = comments or []
         self.mock_github.get_pr_inline_comments.return_value = inline or []
         self.mock_github.get_pr_review_threads.return_value = threads or []
+
+    def test_reconcile_open_pr_from_remembered_branch(self):
+        self.state_mgr.remember_branch_conversation("feat/new-pr", "gui-conv")
+        self.mock_github.get_open_prs.return_value = [
+            {"number": 121, "headRefName": "feat/new-pr"}
+        ]
+
+        self.watcher.reconcile_registrations()
+
+        pr = self.state_mgr.get_pr(121)
+        self.assertIsNotNone(pr)
+        self.assertEqual(pr["conversation_id"], "gui-conv")
+        self.assertEqual(pr["branch"], "feat/new-pr")
+
+    def test_agentapi_dispatch_waits_for_new_commit_without_retry(self):
+        self.state_mgr.register_pr(122, "gui-conv", "feat/122")
+        review = {
+            "id": "review-122", "state": "REQUEST_CHANGES",
+            "author": {"login": "alex123321-maker"}, "body": "Fix it",
+        }
+        self._setup_pr_mocks(122, reviews=[review], head="old-sha")
+        self.mock_resumer.resume_conversation.return_value = (
+            True, "message delivered", None
+        )
+
+        self.watcher.run_cycle()
+        self.watcher.run_cycle()
+
+        self.assertEqual(self.mock_resumer.resume_conversation.call_count, 1)
+        self.assertEqual(self.state_mgr.get_pr(122)["dispatch_mode"], "agentapi")
+        self.mock_github.get_pr_details.return_value["headRefOid"] = "new-sha"
+        self.watcher.run_cycle()
+
+        pr = self.state_mgr.get_pr(122)
+        self.assertEqual(pr["status"], "watching")
+        self.assertTrue(self.state_mgr.is_event_processed(122, "review-122"))
+
+    def test_agentapi_marked_report_completes_no_code_run(self):
+        self.state_mgr.register_pr(123, "gui-conv", "feat/123")
+        review = {
+            "id": "review-123", "state": "REQUEST_CHANGES",
+            "author": {"login": "alex123321-maker"}, "body": "Confirm CI",
+        }
+        self._setup_pr_mocks(123, reviews=[review], head="same-sha")
+        self.mock_resumer.resume_conversation.return_value = (
+            True, "message delivered", None
+        )
+        self.watcher.run_cycle()
+        self.mock_github.get_pr_comments.return_value = [{
+            "id": "agent-report-123",
+            "author": {"login": "alex123321-maker"},
+            "body": f"CI is green. {AGENT_COMMENT_MARKER}",
+            "createdAt": "2999-01-01T00:00:00Z",
+        }]
+
+        self.watcher.run_cycle()
+
+        pr = self.state_mgr.get_pr(123)
+        self.assertEqual(pr["status"], "watching")
+        self.assertTrue(self.state_mgr.is_event_processed(123, "review-123"))
+        self.assertEqual(self.mock_resumer.resume_conversation.call_count, 1)
+
+    def test_new_feedback_is_forwarded_while_agentapi_run_is_active(self):
+        self.state_mgr.register_pr(124, "gui-conv", "feat/124")
+        first = {
+            "id": "review-old", "state": "REQUEST_CHANGES",
+            "author": {"login": "alex123321-maker"}, "body": "Old blocker",
+        }
+        self._setup_pr_mocks(124, reviews=[first], head="same-sha")
+        self.mock_resumer.resume_conversation.return_value = (
+            True, "message delivered", None
+        )
+        self.watcher.run_cycle()
+
+        latest = {
+            "id": "review-latest", "state": "COMMENTED",
+            "author": {"login": "alex123321-maker"},
+            "body": "LATEST BLOCKER: restore gameplay timing",
+        }
+        self.mock_github.get_pr_reviews.return_value = [first, latest]
+        self.watcher.run_cycle()
+
+        self.assertEqual(self.mock_resumer.resume_conversation.call_count, 2)
+        forwarded = self.mock_resumer.resume_conversation.call_args.kwargs[
+            "feedback_events"
+        ]
+        self.assertEqual([event["id"] for event in forwarded], ["review-latest"])
+        self.assertEqual(
+            [event["id"] for event in self.state_mgr.get_in_flight_events(124)],
+            ["review-old", "review-latest"],
+        )
+
+    def test_pid_claim_rejects_a_live_existing_watcher(self):
+        pid_file = self.test_dir / "watcher.pid"
+        pid_file.write_text("9876", encoding="utf-8")
+        with patch("tools.review_loop.watcher.DEFAULT_PID_FILE", pid_file), \
+             patch("tools.review_loop.watcher.is_pid_alive", return_value=True):
+            self.assertFalse(self.watcher.write_pid())
+        self.assertEqual(pid_file.read_text(encoding="utf-8"), "9876")
 
     def test_in_flight_event_not_rediscovered_during_active_processing(self):
         """
@@ -653,6 +800,86 @@ class TestReviewWatcher(unittest.TestCase):
         agent_marker = is_event_allowed("code-review-bot[bot]", f"Done {AGENT_COMMENT_MARKER}", self.state_mgr)
         self.assertFalse(agent_marker)
 
+        unmarked_report = is_event_allowed(
+            "alex123321-maker",
+            "### Fix Report: PR #7 Blockers Resolved",
+            self.state_mgr,
+        )
+        self.assertFalse(unmarked_report)
+
+    def test_unmarked_agent_reports_are_ignored_without_github_mutation(self):
+        self.assertTrue(
+            is_likely_agent_report(
+                "### ✅ Все 3 замечания повторного ревью (Blockers) полностью устранены"
+            )
+        )
+        self.assertTrue(
+            is_likely_agent_report("### Fix Report: PR #7 Blockers Resolved")
+        )
+        self.assertFalse(
+            is_likely_agent_report(
+                "BLOCKER 1 — исправление пока неверное, восстановите тайминги"
+            )
+        )
+
+        self.state_mgr.register_pr(125, "gui-conv", "feat/125")
+        self._setup_pr_mocks(
+            125,
+            comments=[{
+                "id": "self-report-125",
+                "author": {"login": "alex123321-maker"},
+                "body": "### ✅ Все замечания ревью полностью устранены",
+            }],
+            head="sha-125",
+        )
+        self.watcher.run_cycle()
+
+        self.assertTrue(
+            self.state_mgr.is_event_processed(125, "self-report-125")
+        )
+        self.assertFalse(hasattr(self.mock_github, "delete_pr_comment"))
+        self.assertFalse(self.mock_resumer.resume_conversation.called)
+
+    def test_agent_reports_in_all_review_surfaces_never_dispatch(self):
+        report = "### Fix Report: PR #125 Blockers Resolved"
+        self.state_mgr.register_pr(126, "gui-conv", "feat/126")
+        self._setup_pr_mocks(
+            126,
+            reviews=[{
+                "id": "self-review-126",
+                "state": "COMMENTED",
+                "author": {"login": "alex123321-maker"},
+                "body": report,
+            }],
+            inline=[{
+                "id": 12601,
+                "user": {"login": "alex123321-maker"},
+                "body": report,
+                "path": "src/game.cpp",
+                "line": 10,
+            }],
+            threads=[{
+                "id": "thread-126",
+                "isResolved": False,
+                "comments": {"nodes": [{
+                    "id": "self-thread-126",
+                    "author": {"login": "alex123321-maker"},
+                    "body": report,
+                }]},
+            }],
+            head="sha-126",
+        )
+
+        self.watcher.run_cycle()
+
+        for event_id in (
+            "self-review-126",
+            "12601",
+            "self-thread-126",
+        ):
+            self.assertTrue(self.state_mgr.is_event_processed(126, event_id))
+        self.assertFalse(self.mock_resumer.resume_conversation.called)
+
     def test_two_watchers_interleaving_during_startup(self):
         """
         BLOCKER 1: When Watcher 1 is starting an agent (status=processing, pid=None,
@@ -956,6 +1183,13 @@ class TestReviewWatcher(unittest.TestCase):
 # ===================================================================
 
 class TestHookRegistration(unittest.TestCase):
+    def setUp(self):
+        self.test_dir = Path(tempfile.mkdtemp())
+        self.state_mgr = StateManager(state_file=self.test_dir / "state.json")
+
+    def tearDown(self):
+        shutil.rmtree(self.test_dir, ignore_errors=True)
+
     def test_from_hook_post_tool_use_output(self):
         """PostToolUse hook must output {} to stdout."""
         hook_payload = json.dumps({"conversationId": "hook-conv-999", "workspacePaths": ["/repo"]})
@@ -964,12 +1198,18 @@ class TestHookRegistration(unittest.TestCase):
         with patch("sys.stdin", io.StringIO(hook_payload)), \
              patch("sys.stdout", stdout_capture), \
              patch("tools.review_loop.register.get_current_git_branch", return_value="feat/hook-test"), \
-             patch("tools.review_loop.register.GitHubClient") as MockGH:
+             patch("tools.review_loop.register.GitHubClient") as MockGH, \
+             patch("tools.review_loop.register.StateManager", return_value=self.state_mgr), \
+             patch("tools.review_loop.register.DEFAULT_HOOK_LOG_FILE", self.test_dir / "hook.log"):
             MockGH.return_value.find_pr_for_branch.return_value = 99
             register_from_hook(is_stop=False)
 
         output = stdout_capture.getvalue().strip()
         self.assertEqual(output, "{}")
+        self.assertEqual(
+            self.state_mgr.get_branch_conversation("feat/hook-test"),
+            "hook-conv-999",
+        )
 
     def test_from_hook_stop_output_contract(self):
         """Stop hook must output {"decision": "stop"} to allow normal termination."""
@@ -978,7 +1218,9 @@ class TestHookRegistration(unittest.TestCase):
 
         with patch("sys.stdin", io.StringIO(hook_payload)), \
              patch("sys.stdout", stdout_capture), \
-             patch("tools.review_loop.register.get_current_git_branch", return_value="main"):
+             patch("tools.review_loop.register.get_current_git_branch", return_value="main"), \
+             patch("tools.review_loop.register.StateManager", return_value=self.state_mgr), \
+             patch("tools.review_loop.register.DEFAULT_HOOK_LOG_FILE", self.test_dir / "hook.log"):
             register_from_hook(is_stop=True)
 
         output = json.loads(stdout_capture.getvalue().strip())
@@ -1003,7 +1245,8 @@ class TestHookRegistration(unittest.TestCase):
                  patch("sys.stdout", io.StringIO()), \
                  patch("tools.review_loop.register.get_current_git_branch", return_value="feat/45"), \
                  patch("tools.review_loop.register.GitHubClient") as MockGH, \
-                 patch("tools.review_loop.register.StateManager", return_value=state_mgr):
+                 patch("tools.review_loop.register.StateManager", return_value=state_mgr), \
+                 patch("tools.review_loop.register.DEFAULT_HOOK_LOG_FILE", test_dir / "hook.log"):
                 MockGH.return_value.find_pr_for_branch.return_value = 45
                 register_from_hook(is_stop=False)
 
@@ -1014,6 +1257,22 @@ class TestHookRegistration(unittest.TestCase):
         finally:
             shutil.rmtree(test_dir, ignore_errors=True)
 
+    def test_hook_remembers_conversation_before_pr_exists(self):
+        payload = json.dumps({"conversationId": "conv-before-pr"})
+        with patch("sys.stdin", io.StringIO(payload)), \
+             patch("sys.stdout", io.StringIO()), \
+             patch("tools.review_loop.register.get_current_git_branch", return_value="feat/future"), \
+             patch("tools.review_loop.register.GitHubClient") as MockGH, \
+             patch("tools.review_loop.register.StateManager", return_value=self.state_mgr), \
+             patch("tools.review_loop.register.DEFAULT_HOOK_LOG_FILE", self.test_dir / "hook.log"):
+            MockGH.return_value.find_pr_for_branch.return_value = None
+            register_from_hook(is_stop=False)
+
+        self.assertEqual(
+            self.state_mgr.get_branch_conversation("feat/future"),
+            "conv-before-pr",
+        )
+
 
 # ===================================================================
 #  Installer
@@ -1023,8 +1282,91 @@ class TestInstaller(unittest.TestCase):
     @patch("subprocess.run")
     def test_linux_installer_failure_returns_false(self, mock_run):
         mock_run.return_value = MagicMock(returncode=1, stderr="Failed to reload", stdout="")
-        res = install_linux()
+        with tempfile.TemporaryDirectory() as temp_dir, \
+             patch("tools.review_loop.install.Path.home", return_value=Path(temp_dir)):
+            res = install_linux()
         self.assertFalse(res)
+
+    def test_windows_task_restarts_and_ignores_duplicate_instances(self):
+        with patch(
+            "tools.review_loop.install.create_windows_launcher",
+            return_value=Path(r"D:\repo\run_watcher.bat"),
+        ):
+            xml = build_windows_task_xml()
+        self.assertIn("<RestartOnFailure>", xml)
+        self.assertIn("<Count>999</Count>", xml)
+        self.assertIn("<MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>", xml)
+
+    def test_sidecar_install_preserves_existing_config(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            root.mkdir(parents=True, exist_ok=True)
+            (root / "config.json").write_text(
+                json.dumps({"userSettings": {"themeMode": "dark"}}),
+                encoding="utf-8",
+            )
+            marker = root / "marker"
+            with patch("tools.review_loop.install.SIDECAR_MARKER_FILE", marker):
+                self.assertTrue(install_antigravity_sidecar(root))
+                self.assertTrue(is_antigravity_sidecar_enabled(root))
+
+            config = json.loads((root / "config.json").read_text(encoding="utf-8"))
+            self.assertEqual(config["userSettings"]["themeMode"], "dark")
+            self.assertTrue(config["sidecars"][ANTIGRAVITY_SIDECAR_ID]["enabled"])
+            sidecar = json.loads(
+                (root / "sidecars" / ANTIGRAVITY_SIDECAR_ID / "sidecar.json")
+                .read_text(encoding="utf-8")
+            )
+            self.assertEqual(sidecar["restart_policy"], "always")
+
+
+class TestCreatePrWrapper(unittest.TestCase):
+    def setUp(self):
+        self.test_dir = Path(tempfile.mkdtemp())
+        self.state = StateManager(state_file=self.test_dir / "state.json")
+        self.github = MagicMock(spec=GitHubClient)
+
+    def tearDown(self):
+        shutil.rmtree(self.test_dir, ignore_errors=True)
+
+    def test_refuses_pr_without_conversation(self):
+        with patch.dict(os.environ, {}, clear=True):
+            success, pr_number = create_and_register_pr(
+                [], branch="feat/no-conv", github=self.github,
+                state=self.state, ensure_watcher=False,
+            )
+        self.assertFalse(success)
+        self.assertIsNone(pr_number)
+        self.github.run_gh.assert_not_called()
+
+    def test_reuses_existing_pr_and_registers_it(self):
+        self.github.find_pr_for_branch.return_value = 131
+        success, pr_number = create_and_register_pr(
+            ["--title", "Title"], conversation_id="gui-131",
+            branch="feat/131", github=self.github, state=self.state,
+            ensure_watcher=False,
+        )
+        self.assertTrue(success)
+        self.assertEqual(pr_number, 131)
+        self.assertEqual(self.state.get_pr(131)["conversation_id"], "gui-131")
+        self.github.run_gh.assert_not_called()
+
+    def test_creates_new_pr_and_registers_url_number(self):
+        self.github.find_pr_for_branch.return_value = None
+        self.github.run_gh.return_value = (
+            0, "https://github.com/example/repo/pull/132", ""
+        )
+        success, pr_number = create_and_register_pr(
+            ["--title", "Title"], conversation_id="gui-132",
+            branch="feat/132", github=self.github, state=self.state,
+            ensure_watcher=False,
+        )
+        self.assertTrue(success)
+        self.assertEqual(pr_number, 132)
+        self.github.run_gh.assert_called_once_with(
+            ["pr", "create", "--title", "Title"], timeout=120
+        )
+        self.assertEqual(self.state.get_pr(132)["branch"], "feat/132")
 
 
 # ===================================================================
@@ -1601,7 +1943,11 @@ class TestReadyVerdictsAndAuthFailure(unittest.TestCase):
         self.state_mgr.acquire_lock(77)
 
         # Execute watcher loop
-        watcher.start()
+        with patch(
+            "tools.review_loop.watcher.DEFAULT_PID_FILE",
+            self.test_dir / "auth-watcher.pid",
+        ):
+            watcher.start()
 
         # PR must transition to 'error'
         pr = self.state_mgr.get_pr(77)
@@ -1633,7 +1979,11 @@ class TestReadyVerdictsAndAuthFailure(unittest.TestCase):
         self.state_mgr.register_pr(pr_number=88, conversation_id="conv88", branch="feat/88")
 
         # start() with run_once=True should catch GitHubError, back off / break cleanly
-        watcher.start()
+        with patch(
+            "tools.review_loop.watcher.DEFAULT_PID_FILE",
+            self.test_dir / "network-watcher.pid",
+        ):
+            watcher.start()
         self.assertFalse(watcher._running)
 
     def test_github_client_raises_auth_error(self):
