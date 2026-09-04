@@ -46,9 +46,9 @@ READY_VERDICT_MARKERS = [
 
 def extract_verdict_line(body: str) -> Optional[str]:
     """
-    Extract the explicit verdict line from a review or comment body.
-    Prefers lines explicitly labeled with 'Verdict:' or 'Вердикт:'.
-    Otherwise falls back to the first non-empty line.
+    Extract the explicit verdict line from the first non-empty line of a review or comment body.
+    Normalizes markdown formatting and optional 'Verdict:' or 'Вердикт:' prefix.
+    Does not scan subsequent lines to prevent mentions inside quotes/history from triggering approval.
     """
     if not body:
         return None
@@ -57,59 +57,34 @@ def extract_verdict_line(body: str) -> Optional[str]:
     if not lines:
         return None
 
-    # 1. Look for an explicit Verdict: or Вердикт: line
-    for line in lines:
-        cleaned = line.strip(" *#_`")
-        line_lower = cleaned.lower()
-        if line_lower.startswith("verdict:") or line_lower.startswith("вердикт:"):
-            if ":" in cleaned:
-                _, val = cleaned.split(":", 1)
-                return val.strip(" *#_`")
+    # Derive the terminal verdict ONLY from the first non-empty line
+    raw_first_line = lines[0]
+    cleaned = raw_first_line.replace("*", "").replace("_", "").replace("#", "").replace("`", "").strip()
+    cleaned_lower = cleaned.lower()
 
-    # 2. Fall back to the first non-empty line
-    first_line = lines[0].strip(" *#_`")
-    first_lower = first_line.lower()
-    if first_lower.startswith("verdict:") or first_lower.startswith("вердикт:"):
-        _, val = first_line.split(":", 1)
-        return val.strip(" *#_`")
-    if first_lower.startswith("verdict") or first_lower.startswith("вердикт"):
-        parts = first_line.split(None, 1)
+    if cleaned_lower.startswith("verdict:") or cleaned_lower.startswith("вердикт:"):
+        _, val = cleaned.split(":", 1)
+        return val.strip()
+    if cleaned_lower.startswith("verdict") or cleaned_lower.startswith("вердикт"):
+        parts = cleaned.split(None, 1)
         if len(parts) > 1:
-            return parts[1].strip(" *#_`")
+            return parts[1].strip()
 
-    return first_line
+    return cleaned
 
 def is_ready_verdict(body: str) -> bool:
     """
     Check if review or comment body contains an explicit project-level merge-ready verdict.
-    Parses an explicit verdict line/field rather than searching substrings across the whole body,
-    preventing false terminals on inline mentions (e.g. 'Please fix pagination before READY TO MERGE')
-    and false negatives on historical mentions (e.g. 'READY TO MERGE\\nPrevious NOT READY blockers are fixed').
+    Derives the verdict only from the first non-empty logical line, and requires the normalized
+    verdict value itself to be exactly 'READY TO MERGE' or 'READY WITH NON-BLOCKING NOTES'.
+    Any trailing explanatory text must be placed on following lines.
     """
     verdict_line = extract_verdict_line(body)
     if not verdict_line:
         return False
 
-    v_upper = verdict_line.strip().upper().rstrip(".!:")
-    if not v_upper:
-        return False
-
-    # Explicit rejection
-    if v_upper.startswith("NOT READY") or v_upper.startswith("NOT READY TO MERGE"):
-        return False
-
-    for marker in READY_VERDICT_MARKERS:
-        if v_upper == marker:
-            return True
-        # Allow trailing separator like "READY TO MERGE - ...", "READY TO MERGE: ...", "READY TO MERGE (..."
-        if v_upper.startswith(marker) and len(v_upper) > len(marker):
-            tail = v_upper[len(marker):].lstrip()
-            if tail and tail[0] in ("-", "—", "–", ":", ",", "(", "."):
-                remainder = tail.lstrip("-—–:,(. ")
-                if not remainder.startswith("NOT ") and not remainder.startswith("UNLESS "):
-                    return True
-
-    return False
+    v_upper = verdict_line.strip().upper().rstrip(".!")
+    return v_upper in READY_VERDICT_MARKERS
 
 def is_agent_generated(body: str) -> bool:
     """Check if comment was posted by an automated agent tool to prevent loops."""

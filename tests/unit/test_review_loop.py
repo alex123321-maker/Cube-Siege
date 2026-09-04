@@ -1192,19 +1192,26 @@ class TestReadyVerdictsAndAuthFailure(unittest.TestCase):
         )
 
     def test_is_ready_verdict_recognition(self):
-        """Verify is_ready_verdict identifies merge-ready verdicts and rejects negations and inline mentions."""
+        """Verify is_ready_verdict identifies merge-ready verdicts and rejects negations, inline mentions, and trailing text."""
         self.assertTrue(is_ready_verdict("Вердикт: READY TO MERGE"))
         self.assertTrue(is_ready_verdict("READY TO MERGE"))
         self.assertTrue(is_ready_verdict("Вердикт: READY WITH NON-BLOCKING NOTES"))
         self.assertTrue(is_ready_verdict("Verdict: READY TO MERGE"))
-        self.assertTrue(is_ready_verdict("READY TO MERGE - clean diff, all green"))
-        self.assertTrue(is_ready_verdict("READY TO MERGE: all criteria satisfied"))
+        self.assertTrue(is_ready_verdict("READY TO MERGE."))
+        self.assertTrue(is_ready_verdict("**Verdict:** READY TO MERGE"))
 
-        # Regression from review: 'READY TO MERGE\nPrevious NOT READY blockers are fixed' must be TRUE
+        # Regression: 'READY TO MERGE\nPrevious NOT READY blockers are fixed' must be TRUE
         self.assertTrue(is_ready_verdict("READY TO MERGE\nPrevious NOT READY blockers are fixed"))
 
-        # Regression from review: 'Please fix pagination before READY TO MERGE' must be FALSE (inline mention)
+        # Regression: 'Please fix pagination before READY TO MERGE' must be FALSE (inline mention)
         self.assertFalse(is_ready_verdict("Please fix pagination before READY TO MERGE"))
+
+        # Regressions from review PRR_kwDOUNhkmc8AAAABMJW-Bg:
+        # 1. Trailing text on verdict line must be FALSE
+        self.assertFalse(is_ready_verdict("READY TO MERGE - after fixing pagination"))
+        self.assertFalse(is_ready_verdict("READY TO MERGE - clean diff, all green"))
+        # 2. Quoted/historical verdict inside ordinary feedback must be FALSE
+        self.assertFalse(is_ready_verdict("Regression found.\nPrevious review:\nVerdict: READY TO MERGE\nFix X"))
 
         # Explicit negations must NOT match
         self.assertFalse(is_ready_verdict("Вердикт: NOT READY"))
@@ -1497,6 +1504,82 @@ class TestReadyVerdictsAndAuthFailure(unittest.TestCase):
         self.assertEqual(pr["status"], "approved")
         self.assertTrue(self.state_mgr.is_event_processed(4, "rev_ready_hist"))
         self.assertFalse(mock_resumer.resume_conversation.called)
+
+    def test_multiline_quote_with_verdict_does_not_approve_and_dispatches_agent(self):
+        """Regression test from review: 'Regression found.\\nPrevious review:\\nVerdict: READY TO MERGE\\nFix X' must dispatch agent, not approve."""
+        mock_github = MagicMock()
+        mock_github.get_pr_details.return_value = {
+            "state": "OPEN",
+            "headRefOid": "sha_quote_fix",
+            "reviewDecision": None
+        }
+        mock_github.get_pr_reviews.return_value = [{
+            "id": "rev_quote_fix",
+            "author": {"login": "alex123321-maker"},
+            "state": "COMMENTED",
+            "body": "Regression found.\nPrevious review:\nVerdict: READY TO MERGE\nFix X"
+        }]
+        mock_github.get_pr_comments.return_value = []
+        mock_github.get_pr_inline_comments.return_value = []
+        mock_github.get_pr_review_threads.return_value = []
+
+        mock_resumer = MagicMock()
+        mock_resumer.resume_conversation.return_value = (True, "launched", 7890)
+
+        watcher = ReviewWatcher(
+            github_client=mock_github,
+            state_manager=self.state_mgr,
+            agent_resumer=mock_resumer,
+            run_once=True
+        )
+
+        self.state_mgr.register_pr(pr_number=4, conversation_id="conv4", branch="feat/2")
+        self.state_mgr.add_to_allowlist("alex123321-maker")
+
+        watcher.run_cycle()
+
+        pr = self.state_mgr.get_pr(4)
+        self.assertNotEqual(pr["status"], "approved")
+        self.assertEqual(pr["status"], "processing")
+        self.assertTrue(mock_resumer.resume_conversation.called)
+
+    def test_trailing_text_on_verdict_line_does_not_approve_and_dispatches_agent(self):
+        """Regression test from review: 'READY TO MERGE - after fixing pagination' must dispatch agent, not approve."""
+        mock_github = MagicMock()
+        mock_github.get_pr_details.return_value = {
+            "state": "OPEN",
+            "headRefOid": "sha_trailing",
+            "reviewDecision": None
+        }
+        mock_github.get_pr_reviews.return_value = [{
+            "id": "rev_trailing",
+            "author": {"login": "alex123321-maker"},
+            "state": "COMMENTED",
+            "body": "READY TO MERGE - after fixing pagination"
+        }]
+        mock_github.get_pr_comments.return_value = []
+        mock_github.get_pr_inline_comments.return_value = []
+        mock_github.get_pr_review_threads.return_value = []
+
+        mock_resumer = MagicMock()
+        mock_resumer.resume_conversation.return_value = (True, "launched", 7891)
+
+        watcher = ReviewWatcher(
+            github_client=mock_github,
+            state_manager=self.state_mgr,
+            agent_resumer=mock_resumer,
+            run_once=True
+        )
+
+        self.state_mgr.register_pr(pr_number=4, conversation_id="conv4", branch="feat/2")
+        self.state_mgr.add_to_allowlist("alex123321-maker")
+
+        watcher.run_cycle()
+
+        pr = self.state_mgr.get_pr(4)
+        self.assertNotEqual(pr["status"], "approved")
+        self.assertEqual(pr["status"], "processing")
+        self.assertTrue(mock_resumer.resume_conversation.called)
 
     def test_post_startup_auth_loss_transitions_pr_to_error_and_halts_watcher(self):
         """Regression test: Mid-run GitHubAuthError transitions PRs to error status and halts watcher.start()."""
