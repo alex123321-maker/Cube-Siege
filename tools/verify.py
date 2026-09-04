@@ -234,8 +234,26 @@ def step_run_gut_tests(godot_bin: str) -> bool:
         print(out)
         return False
 
+def step_run_python_tests() -> bool:
+    log_header("6. Running Python Tooling & Review Loop Tests")
+    test_file = REPO_DIR / "tests" / "unit" / "test_review_loop.py"
+    if not test_file.is_file():
+        log_step("Python Unit Tests", "PASS", "No python tests found")
+        return True
+
+    cmd = [sys.executable, "-m", "unittest", "discover", "-s", "tests/unit", "-p", "test_*.py"]
+    ok, out = run_command(cmd, REPO_DIR, "python unit tests")
+    if ok:
+        log_step("Python Unit Tests", "PASS", "All review loop and tooling unit tests passed")
+        return True
+    else:
+        log_step("Python Unit Tests", "FAIL", "Python unit tests failed")
+        print("\n--- Python Unit Tests Output ---")
+        print(out)
+        return False
+
 def step_headless_smoke_run(godot_bin: str) -> bool:
-    log_header("6. Headless Game Runtime Smoke Run (100 frames)")
+    log_header("7. Headless Game Runtime Smoke Run (100 frames)")
     cmd = [
         godot_bin,
         "--headless",
@@ -280,6 +298,11 @@ def main():
     gut_ok = step_run_gut_tests(godot_bin)
     if not gut_ok:
         print("\n[ERROR] GUT tests failed. Verification aborted.")
+        sys.exit(1)
+
+    python_tests_ok = step_run_python_tests()
+    if not python_tests_ok:
+        print("\n[ERROR] Python tooling unit tests failed. Verification aborted.")
         sys.exit(1)
 
     run_ok = step_headless_smoke_run(godot_bin)

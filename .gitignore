@@ -33,3 +33,6 @@ Thumbs.db
 tools/bin/
 .godot_path
 screenshots_debug/
+.review_loop/
+__pycache__/
+*.pyc

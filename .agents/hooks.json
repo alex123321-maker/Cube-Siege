@@ -1,0 +1,23 @@
+{
+  "review-loop": {
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python tools/review_loop/register.py --from-hook",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "command": "python tools/review_loop/register.py --from-hook --stop",
+        "timeout": 15
+      }
+    ]
+  }
+}
