@@ -22,6 +22,7 @@ EventBus="*res://scripts/event_bus.gd"
 SaveManager="*res://scripts/save_manager.gd"
 MasteryManager="*res://scripts/mastery_manager.gd"
 RosterManager="*res://scripts/roster_manager.gd"
+EntityRegistry="*res://scripts/core/entity_registry.gd"
 MCPRuntimeProbe="*uid://bsg12huaf1u5i"
 
 [display]

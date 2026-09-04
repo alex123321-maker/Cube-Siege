@@ -118,6 +118,14 @@ func die() -> void:
 	if not players.is_empty() and is_instance_valid(players[0]) and players[0].has_method("add_xp"):
 		players[0].add_xp(_get_xp_reward())
 
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if reg:
+		reg.unregister_enemy(self)
+
+	var eb = get_node_or_null("/root/EventBus")
+	if eb:
+		eb.enemy_killed.emit(self, global_position)
+
 	var tween: Tween = create_tween()
 	tween.tween_property(self, "scale", Vector3.ZERO, 0.2)
 	tween.chain().tween_callback(queue_free)

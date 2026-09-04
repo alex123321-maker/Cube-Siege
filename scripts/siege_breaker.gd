@@ -6,6 +6,8 @@ extends "res://scripts/enemy_base.gd"
 
 var target_entity: Node3D = null
 var attack_timer: float = 0.0
+var retarget_timer: float = 0.0
+const RETARGET_INTERVAL: float = 0.8
 
 func _ready() -> void:
 	max_health = 220.0
@@ -23,7 +25,10 @@ func _custom_physics(delta: float) -> void:
 	if attack_timer > 0.0:
 		attack_timer -= delta
 
-	find_target()
+	retarget_timer -= delta
+	if not target_entity or not is_instance_valid(target_entity) or retarget_timer <= 0.0:
+		retarget_timer = RETARGET_INTERVAL
+		find_target()
 
 	if target_entity and is_instance_valid(target_entity):
 		var to_target: Vector3 = target_entity.global_position - global_position
@@ -45,7 +50,13 @@ func _custom_physics(delta: float) -> void:
 
 func _on_duel_started() -> void:
 	target_entity = duel_opponent as Node3D
+	retarget_timer = 9999.0
 	spawn_damage_text(0)
+
+func end_duel() -> void:
+	super.end_duel()
+	target_entity = null
+	retarget_timer = 0.0
 
 func find_target() -> void:
 	if is_in_duel and duel_opponent and is_instance_valid(duel_opponent):
@@ -53,16 +64,19 @@ func find_target() -> void:
 		return
 
 	# Priority 1: Nearest player building
-	var buildings: Array[Node] = get_tree().get_nodes_in_group("buildings")
+	var reg = get_node_or_null("/root/EntityRegistry")
 	var nearest_b: Node3D = null
-	var min_b_dist: float = 999.0
-
-	for b in buildings:
-		if b is Node3D and is_instance_valid(b):
-			var d: float = global_position.distance_to(b.global_position)
-			if d < min_b_dist:
-				min_b_dist = d
-				nearest_b = b
+	if reg and not reg.buildings.is_empty():
+		nearest_b = reg.get_nearest_building(global_position)
+	else:
+		var buildings: Array[Node] = get_tree().get_nodes_in_group("buildings")
+		var min_b_dist_sq: float = INF
+		for b in buildings:
+			if b is Node3D and is_instance_valid(b):
+				var d_sq: float = global_position.distance_squared_to(b.global_position)
+				if d_sq < min_b_dist_sq:
+					min_b_dist_sq = d_sq
+					nearest_b = b as Node3D
 
 	if nearest_b:
 		target_entity = nearest_b
