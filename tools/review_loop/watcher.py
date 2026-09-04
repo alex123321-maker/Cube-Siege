@@ -34,10 +34,27 @@ from tools.review_loop.config import (
     REPO_ROOT,
     REVIEW_LOOP_DIR,
 )
-from tools.review_loop.github_client import GitHubClient, GitHubError
+from tools.review_loop.github_client import GitHubAuthError, GitHubClient, GitHubError
 from tools.review_loop.state_manager import StateManager, is_pid_alive
 
 logger = logging.getLogger("review_loop.watcher")
+
+READY_VERDICT_MARKERS = [
+    "READY TO MERGE",
+    "READY WITH NON-BLOCKING NOTES",
+]
+
+def is_ready_verdict(body: str) -> bool:
+    """
+    Check if review or comment body contains a project-level merge-ready verdict.
+    Explicitly guards against negative expressions such as 'NOT READY'.
+    """
+    if not body:
+        return False
+    body_upper = body.upper()
+    if "NOT READY" in body_upper or "NOT READY TO MERGE" in body_upper:
+        return False
+    return any(marker in body_upper for marker in READY_VERDICT_MARKERS)
 
 def is_agent_generated(body: str) -> bool:
     """Check if comment was posted by an automated agent tool to prevent loops."""
@@ -61,11 +78,14 @@ def is_event_allowed(author: str, body: str, state_mgr: StateManager) -> bool:
 def get_effective_review_state(
     reviews: List[Dict[str, Any]],
     allowlist: List[str],
-    review_decision: Optional[str] = None
+    review_decision: Optional[str] = None,
+    comments: Optional[List[Dict[str, Any]]] = None,
 ) -> str:
     """
     Determine the effective review state for the PR.
     Returns: 'APPROVED', 'CHANGES_REQUESTED', or 'NEUTRAL'.
+    Recognizes explicit GitHub reviewDecision, explicit APPROVED state,
+    or project fallback READY_VERDICT_MARKERS ('READY TO MERGE') in reviews/comments.
     """
     # 1. If GitHub reports explicit overall reviewDecision, check that first
     if review_decision:
@@ -75,25 +95,45 @@ def get_effective_review_state(
         if decision_upper == "APPROVED":
             return "APPROVED"
 
-    # 2. Check latest review per allowlisted reviewer
-    latest_reviews: Dict[str, Dict[str, Any]] = {}
+    # 2. Track latest interaction per allowlisted reviewer across reviews and comments
+    author_states: Dict[str, Dict[str, Any]] = {}
+
     for rev in reviews:
         author = rev.get("author", {}).get("login", "")
-        if not author:
+        if not author or not any(u.lower() == author.lower() for u in allowlist):
             continue
-        if not any(u.lower() == author.lower() for u in allowlist):
-            continue
-        latest_reviews[author.lower()] = rev
+        ts = rev.get("submittedAt") or rev.get("submitted_at") or rev.get("createdAt") or ""
+        state = (rev.get("state") or "").upper()
+        body = rev.get("body", "")
+        verdict = "NEUTRAL"
+        if state in ("REQUEST_CHANGES", "CHANGES_REQUESTED"):
+            verdict = "CHANGES_REQUESTED"
+        elif state == "APPROVED" or (state == "COMMENTED" and is_ready_verdict(body)):
+            verdict = "APPROVED"
+        author_states[author.lower()] = {"verdict": verdict, "ts": ts}
 
-    if not latest_reviews:
+    if comments:
+        for c in comments:
+            author = c.get("author", {}).get("login", "")
+            if not author or not any(u.lower() == author.lower() for u in allowlist):
+                continue
+            ts = c.get("createdAt") or c.get("created_at") or ""
+            body = c.get("body", "")
+            if is_ready_verdict(body):
+                existing = author_states.get(author.lower())
+                # Update to APPROVED if no review yet, or if comment is newer/equal to review
+                if not existing or not ts or not existing.get("ts") or ts >= existing.get("ts", ""):
+                    author_states[author.lower()] = {"verdict": "APPROVED", "ts": ts}
+
+    if not author_states:
         return "NEUTRAL"
 
     has_approval = False
-    for rev in latest_reviews.values():
-        state = (rev.get("state") or "").upper()
-        if state in ("REQUEST_CHANGES", "CHANGES_REQUESTED"):
+    for a_info in author_states.values():
+        v = a_info.get("verdict")
+        if v == "CHANGES_REQUESTED":
             return "CHANGES_REQUESTED"
-        if state == "APPROVED":
+        if v == "APPROVED":
             has_approval = True
 
     if has_approval:
@@ -125,6 +165,8 @@ class ReviewWatcher:
                 if owner:
                     logger.info("Initializing review allowlist with repo owner: %s", owner)
                     self.state.add_to_allowlist(owner)
+            except GitHubAuthError:
+                raise
             except Exception as e:
                 logger.warning("Could not auto-detect repo owner: %s", e)
 
@@ -132,7 +174,7 @@ class ReviewWatcher:
         """
         Inspect PR for new, unhandled, allowed review events.
         Accepts feedback from allowlisted reviewers even if reviewer == PR author.
-        Ignores agent-marked comments and unallowlisted bot noise.
+        Ignores agent-marked comments, terminal merge-ready verdicts, and unallowlisted bot noise.
         """
         new_events: List[Dict[str, Any]] = []
 
@@ -157,6 +199,11 @@ class ReviewWatcher:
                     self.state.mark_event_processed(pr_number, rev_id)
                     continue
 
+                if rev_state == "COMMENTED" and is_ready_verdict(rev_body):
+                    logger.info("Detected merge-ready review verdict on PR #%s by %s", pr_number, rev_author)
+                    self.state.mark_event_processed(pr_number, rev_id)
+                    continue
+
                 if rev_state in ("REQUEST_CHANGES", "CHANGES_REQUESTED"):
                     logger.info("Detected REQUEST_CHANGES on PR #%s by %s", pr_number, rev_author)
                     new_events.append({
@@ -175,8 +222,11 @@ class ReviewWatcher:
                             "author": rev_author,
                             "body": body
                         })
+        except GitHubAuthError:
+            raise
         except GitHubError as e:
             logger.warning("Error fetching reviews for PR #%s: %s", pr_number, e)
+            raise
 
         # 2. Inspect top-level PR / issue comments
         try:
@@ -193,6 +243,11 @@ class ReviewWatcher:
                     continue
 
                 body = c_body.strip()
+                if is_ready_verdict(body):
+                    logger.info("Detected merge-ready comment verdict on PR #%s by %s", pr_number, c_author)
+                    self.state.mark_event_processed(pr_number, c_id)
+                    continue
+
                 if body:
                     logger.info("Detected PR comment on PR #%s by %s", pr_number, c_author)
                     new_events.append({
@@ -201,8 +256,11 @@ class ReviewWatcher:
                         "author": c_author,
                         "body": body
                     })
+        except GitHubAuthError:
+            raise
         except GitHubError as e:
             logger.warning("Error fetching comments for PR #%s: %s", pr_number, e)
+            raise
 
         # 3. Inspect inline review comments
         try:
@@ -219,6 +277,10 @@ class ReviewWatcher:
                     continue
 
                 body = ic_body.strip()
+                if is_ready_verdict(body):
+                    self.state.mark_event_processed(pr_number, ic_id)
+                    continue
+
                 if body:
                     logger.info("Detected inline review comment on PR #%s by %s", pr_number, ic_author)
                     new_events.append({
@@ -229,6 +291,8 @@ class ReviewWatcher:
                         "path": ic.get("path"),
                         "line": ic.get("line")
                     })
+        except GitHubAuthError:
+            raise
         except GitHubError as e:
             logger.debug("Inline comments check for PR #%s: %s", pr_number, e)
 
@@ -268,6 +332,9 @@ class ReviewWatcher:
 
                         if th_c_id and not self.state.is_event_known(pr_number, th_c_id):
                             if is_event_allowed(th_author, th_body, self.state):
+                                if is_ready_verdict(th_body):
+                                    self.state.mark_event_processed(pr_number, th_c_id)
+                                    continue
                                 if not any(e.get("id") == th_c_id for e in new_events):
                                     new_events.append({
                                         "id": th_c_id,
@@ -275,6 +342,8 @@ class ReviewWatcher:
                                         "author": th_author,
                                         "body": th_body
                                     })
+        except GitHubAuthError:
+            raise
         except Exception as e:
             logger.debug("Review threads query for PR #%s: %s", pr_number, e)
 
@@ -282,6 +351,20 @@ class ReviewWatcher:
 
     def process_registered_pr(self, pr_number: int, pr_entry: Optional[Dict[str, Any]] = None) -> None:
         """Process a single registered PR with full terminal completion and failure handling."""
+        try:
+            self._process_registered_pr_impl(pr_number, pr_entry)
+        except GitHubAuthError as e:
+            logger.error(
+                "FATAL: GitHub authentication failure processing PR #%s: %s. "
+                "Transitioning PR to 'error' status.",
+                pr_number, e
+            )
+            self.state.mark_pr_status(pr_number, "error")
+            self.state.restore_in_flight_to_pending(pr_number)
+            self.state.release_lock(pr_number)
+            raise
+
+    def _process_registered_pr_impl(self, pr_number: int, pr_entry: Optional[Dict[str, Any]] = None) -> None:
         authoritative_pr = self.state.get_pr(pr_number)
         if not authoritative_pr:
             return
@@ -294,9 +377,15 @@ class ReviewWatcher:
 
         try:
             pr_info = self.github.get_pr_details(pr_number)
+        except GitHubAuthError:
+            raise
         except GitHubError as e:
-            logger.warning("Failed to fetch details for PR #%s: %s", pr_number, e)
-            return
+            if "could not resolve to a pullrequest" in str(e).lower() or "not found" in str(e).lower():
+                logger.warning("PR #%s not found on GitHub. Closing.", pr_number)
+                self.state.mark_pr_status(pr_number, "closed")
+                return
+            logger.warning("Transient GitHub error fetching details for PR #%s: %s", pr_number, e)
+            raise
 
         pr_state = pr_info.get("state", "").upper()
         if pr_state in ["CLOSED", "MERGED"]:
@@ -408,11 +497,15 @@ class ReviewWatcher:
                 # Check if reviewDecision or latest review changed back to CHANGES_REQUESTED
                 try:
                     reviews = self.github.get_pr_reviews(pr_number)
+                    comments = self.github.get_pr_comments(pr_number)
                     effective_state = get_effective_review_state(
                         reviews,
                         self.state.get_allowlist(),
-                        pr_info.get("reviewDecision")
+                        pr_info.get("reviewDecision"),
+                        comments=comments
                     )
+                except GitHubAuthError:
+                    raise
                 except Exception:
                     effective_state = "NEUTRAL"
 
@@ -435,11 +528,15 @@ class ReviewWatcher:
         # ---------------- 4. Effective Review State Evaluation & Dominance ----------------
         try:
             reviews = self.github.get_pr_reviews(pr_number)
+            comments = self.github.get_pr_comments(pr_number)
             effective_state = get_effective_review_state(
                 reviews,
                 self.state.get_allowlist(),
-                pr_info.get("reviewDecision")
+                pr_info.get("reviewDecision"),
+                comments=comments
             )
+        except GitHubAuthError:
+            raise
         except Exception as e:
             logger.debug("Error checking effective review state for PR #%s: %s", pr_number, e)
             effective_state = "NEUTRAL"
@@ -555,8 +652,27 @@ class ReviewWatcher:
                 try:
                     self.run_cycle()
                     backoff = DEFAULT_BACKOFF_INITIAL_SECONDS
+                except GitHubAuthError as e:
+                    logger.error(
+                        "FATAL: GitHub authentication expired or invalid during polling: %s. "
+                        "Halting review watcher.", e
+                    )
+                    prs = self.state.get_registered_prs()
+                    for pr_str in prs:
+                        try:
+                            num = int(pr_str)
+                            if self.state.get_pr_status(num) != "closed":
+                                self.state.mark_pr_status(num, "error")
+                                self.state.restore_in_flight_to_pending(num)
+                                self.state.release_lock(num)
+                        except Exception:
+                            pass
+                    self._running = False
+                    break
                 except GitHubError as e:
                     logger.warning("GitHub CLI error encountered: %s. Backing off for %ss.", e, backoff)
+                    if self.run_once:
+                        break
                     time.sleep(backoff)
                     backoff = min(backoff * DEFAULT_BACKOFF_FACTOR, DEFAULT_BACKOFF_MAX_SECONDS)
                     continue
@@ -568,6 +684,7 @@ class ReviewWatcher:
 
                 time.sleep(self.poll_interval)
         finally:
+            self._running = False
             self.remove_pid()
             logger.info("Review watcher stopped.")
 

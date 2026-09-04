@@ -31,11 +31,17 @@ from tools.review_loop.agent_resumer import (
     detect_backend_from_path,
 )
 from tools.review_loop.config import AGENT_COMMENT_MARKER, DESIGN_DECISION_MARKER, REVIEW_LOOP_DIR
-from tools.review_loop.github_client import GitHubClient, GitHubError
+from tools.review_loop.github_client import GitHubAuthError, GitHubClient, GitHubError, is_auth_error_message
 from tools.review_loop.install import install_linux
 from tools.review_loop.register import register_from_hook
 from tools.review_loop.state_manager import StateManager
-from tools.review_loop.watcher import ReviewWatcher, get_effective_review_state, is_event_allowed
+from tools.review_loop.watcher import (
+    READY_VERDICT_MARKERS,
+    ReviewWatcher,
+    get_effective_review_state,
+    is_event_allowed,
+    is_ready_verdict,
+)
 
 
 # ===================================================================
@@ -1148,5 +1154,309 @@ class TestFullLifecycleIntegration(unittest.TestCase):
             shutil.rmtree(test_dir, ignore_errors=True)
 
 
+# ===================================================================
+#  TestReadyVerdictsAndAuthFailure (Regression for Pass #8)
+# ===================================================================
+
+class TestReadyVerdictsAndAuthFailure(unittest.TestCase):
+    def setUp(self):
+        self.test_dir = Path(tempfile.mkdtemp())
+        self.state_file = self.test_dir / "state.json"
+        self.state_mgr = StateManager(state_file=self.state_file)
+
+    def tearDown(self):
+        shutil.rmtree(self.test_dir, ignore_errors=True)
+
+    def test_is_ready_verdict_recognition(self):
+        """Verify is_ready_verdict identifies merge-ready verdicts and rejects negations."""
+        self.assertTrue(is_ready_verdict("Вердикт: READY TO MERGE"))
+        self.assertTrue(is_ready_verdict("READY TO MERGE"))
+        self.assertTrue(is_ready_verdict("Вердикт: READY WITH NON-BLOCKING NOTES"))
+        self.assertTrue(is_ready_verdict("All tests pass, ready to merge."))
+        self.assertTrue(is_ready_verdict("LGTM! ready with non-blocking notes"))
+
+        # Explicit negations must NOT match
+        self.assertFalse(is_ready_verdict("Вердикт: NOT READY"))
+        self.assertFalse(is_ready_verdict("NOT READY TO MERGE"))
+        self.assertFalse(is_ready_verdict("This is not ready to merge yet"))
+        self.assertFalse(is_ready_verdict("General comments without verdict"))
+        self.assertFalse(is_ready_verdict(""))
+        self.assertFalse(is_ready_verdict(None))
+
+    def test_is_auth_error_message_recognition(self):
+        """Verify is_auth_error_message detects various gh CLI auth failures."""
+        self.assertTrue(is_auth_error_message("To re-authenticate, run: gh auth login"))
+        self.assertTrue(is_auth_error_message("HTTP 401: Bad credentials"))
+        self.assertTrue(is_auth_error_message("GraphQL: Could not authenticate (oauth)"))
+        self.assertTrue(is_auth_error_message("token expired or invalid"))
+        self.assertTrue(is_auth_error_message("unauthorized request"))
+        self.assertTrue(is_auth_error_message("You are not authenticated with any GitHub hosts"))
+
+        self.assertFalse(is_auth_error_message("Could not resolve to a PullRequest with number 99."))
+        self.assertFalse(is_auth_error_message("ETIMEDOUT: Connection reset by peer"))
+        self.assertFalse(is_auth_error_message(""))
+        self.assertFalse(is_auth_error_message(None))
+
+    def test_get_effective_review_state_ready_verdicts(self):
+        """Verify get_effective_review_state recognizes ready verdicts in reviews and comments."""
+        allowlist = ["alex123321-maker"]
+
+        # 1. Review with state COMMENTED and READY TO MERGE
+        reviews = [{
+            "id": "r1",
+            "author": {"login": "alex123321-maker"},
+            "state": "COMMENTED",
+            "body": "Вердикт: READY TO MERGE\nAll criteria satisfied."
+        }]
+        self.assertEqual(get_effective_review_state(reviews, allowlist), "APPROVED")
+
+        # 2. Review with state COMMENTED and READY WITH NON-BLOCKING NOTES
+        reviews = [{
+            "id": "r2",
+            "author": {"login": "alex123321-maker"},
+            "state": "COMMENTED",
+            "body": "Вердикт: READY WITH NON-BLOCKING NOTES\nMinor typo in comment."
+        }]
+        self.assertEqual(get_effective_review_state(reviews, allowlist), "APPROVED")
+
+        # 3. Top-level comment with READY TO MERGE
+        comments = [{
+            "id": "c1",
+            "author": {"login": "alex123321-maker"},
+            "body": "Вердикт: READY TO MERGE"
+        }]
+        self.assertEqual(get_effective_review_state([], allowlist, comments=comments), "APPROVED")
+
+        # 4. Review with NOT READY is NEUTRAL
+        reviews = [{
+            "id": "r3",
+            "author": {"login": "alex123321-maker"},
+            "state": "COMMENTED",
+            "body": "Вердикт: NOT READY\nBLOCKER 1: Needs fix."
+        }]
+        self.assertEqual(get_effective_review_state(reviews, allowlist), "NEUTRAL")
+
+        # 5. Active CHANGES_REQUESTED dominates even if older ready comment exists
+        reviews = [{
+            "id": "r4",
+            "author": {"login": "alex123321-maker"},
+            "state": "CHANGES_REQUESTED",
+            "body": "Fix required."
+        }]
+        self.assertEqual(get_effective_review_state(reviews, allowlist), "CHANGES_REQUESTED")
+
+    def test_comment_ready_to_merge_produces_zero_wakes_and_approves(self):
+        """Regression test: Review comment with READY TO MERGE sets status to approved and wakes 0 agents."""
+        mock_github = MagicMock()
+        mock_github.get_pr_details.return_value = {
+            "state": "OPEN",
+            "headRefOid": "sha123",
+            "reviewDecision": None
+        }
+        mock_github.get_pr_reviews.return_value = [{
+            "id": "rev_ready_1",
+            "author": {"login": "alex123321-maker"},
+            "state": "COMMENTED",
+            "body": "Вердикт: READY TO MERGE\nClean implementation, closes #2."
+        }]
+        mock_github.get_pr_comments.return_value = []
+        mock_github.get_pr_inline_comments.return_value = []
+        mock_github.get_pr_review_threads.return_value = []
+
+        mock_resumer = MagicMock()
+        watcher = ReviewWatcher(
+            github_client=mock_github,
+            state_manager=self.state_mgr,
+            agent_resumer=mock_resumer,
+            run_once=True
+        )
+
+        self.state_mgr.register_pr(pr_number=4, conversation_id="conv4", branch="feat/2")
+        self.state_mgr.add_to_allowlist("alex123321-maker")
+
+        watcher.run_cycle()
+
+        pr = self.state_mgr.get_pr(4)
+        self.assertEqual(pr["status"], "approved")
+        self.assertTrue(self.state_mgr.is_event_processed(4, "rev_ready_1"))
+        self.assertFalse(mock_resumer.resume_conversation.called)
+
+    def test_comment_ready_with_non_blocking_notes_produces_zero_wakes(self):
+        """Regression test: Review comment with READY WITH NON-BLOCKING NOTES sets status to approved and wakes 0 agents."""
+        mock_github = MagicMock()
+        mock_github.get_pr_details.return_value = {
+            "state": "OPEN",
+            "headRefOid": "sha456",
+            "reviewDecision": None
+        }
+        mock_github.get_pr_reviews.return_value = [{
+            "id": "rev_ready_notes",
+            "author": {"login": "alex123321-maker"},
+            "state": "COMMENTED",
+            "body": "Вердикт: READY WITH NON-BLOCKING NOTES\nNote: could rename helper later."
+        }]
+        mock_github.get_pr_comments.return_value = []
+        mock_github.get_pr_inline_comments.return_value = []
+        mock_github.get_pr_review_threads.return_value = []
+
+        mock_resumer = MagicMock()
+        watcher = ReviewWatcher(
+            github_client=mock_github,
+            state_manager=self.state_mgr,
+            agent_resumer=mock_resumer,
+            run_once=True
+        )
+
+        self.state_mgr.register_pr(pr_number=4, conversation_id="conv4", branch="feat/2")
+        self.state_mgr.add_to_allowlist("alex123321-maker")
+
+        watcher.run_cycle()
+
+        pr = self.state_mgr.get_pr(4)
+        self.assertEqual(pr["status"], "approved")
+        self.assertTrue(self.state_mgr.is_event_processed(4, "rev_ready_notes"))
+        self.assertFalse(mock_resumer.resume_conversation.called)
+
+    def test_top_level_comment_ready_to_merge_produces_zero_wakes(self):
+        """Regression test: Top-level comment with READY TO MERGE sets status to approved and wakes 0 agents."""
+        mock_github = MagicMock()
+        mock_github.get_pr_details.return_value = {
+            "state": "OPEN",
+            "headRefOid": "sha789",
+            "reviewDecision": None
+        }
+        mock_github.get_pr_reviews.return_value = []
+        mock_github.get_pr_comments.return_value = [{
+            "id": "comment_ready_top",
+            "author": {"login": "alex123321-maker"},
+            "body": "All criteria met. READY TO MERGE"
+        }]
+        mock_github.get_pr_inline_comments.return_value = []
+        mock_github.get_pr_review_threads.return_value = []
+
+        mock_resumer = MagicMock()
+        watcher = ReviewWatcher(
+            github_client=mock_github,
+            state_manager=self.state_mgr,
+            agent_resumer=mock_resumer,
+            run_once=True
+        )
+
+        self.state_mgr.register_pr(pr_number=4, conversation_id="conv4", branch="feat/2")
+        self.state_mgr.add_to_allowlist("alex123321-maker")
+
+        watcher.run_cycle()
+
+        pr = self.state_mgr.get_pr(4)
+        self.assertEqual(pr["status"], "approved")
+        self.assertTrue(self.state_mgr.is_event_processed(4, "comment_ready_top"))
+        self.assertFalse(mock_resumer.resume_conversation.called)
+
+    def test_commented_review_not_ready_dispatches_agent(self):
+        """Verify COMMENTED review with NOT READY verdict triggers normal agent dispatch."""
+        mock_github = MagicMock()
+        mock_github.get_pr_details.return_value = {
+            "state": "OPEN",
+            "headRefOid": "sha999",
+            "reviewDecision": None
+        }
+        mock_github.get_pr_reviews.return_value = [{
+            "id": "rev_not_ready",
+            "author": {"login": "alex123321-maker"},
+            "state": "COMMENTED",
+            "body": "Вердикт: NOT READY\nBLOCKER 1: Please fix the edge case."
+        }]
+        mock_github.get_pr_comments.return_value = []
+        mock_github.get_pr_inline_comments.return_value = []
+        mock_github.get_pr_review_threads.return_value = []
+
+        mock_resumer = MagicMock()
+        mock_resumer.resume_conversation.return_value = (True, "launched", 1234)
+
+        watcher = ReviewWatcher(
+            github_client=mock_github,
+            state_manager=self.state_mgr,
+            agent_resumer=mock_resumer,
+            run_once=True
+        )
+
+        self.state_mgr.register_pr(pr_number=4, conversation_id="conv4", branch="feat/2")
+        self.state_mgr.add_to_allowlist("alex123321-maker")
+
+        watcher.run_cycle()
+
+        pr = self.state_mgr.get_pr(4)
+        self.assertEqual(pr["status"], "processing")
+        self.assertTrue(mock_resumer.resume_conversation.called)
+
+    def test_post_startup_auth_loss_transitions_pr_to_error_and_halts_watcher(self):
+        """Regression test: Mid-run GitHubAuthError transitions PRs to error status and halts watcher.start()."""
+        mock_github = MagicMock()
+        # Initial check_auth succeeds
+        mock_github.check_auth.return_value = (True, "Logged in to github.com as alex123321-maker")
+        # Subsequent PR fetch encounters expired auth credentials
+        mock_github.get_pr_details.side_effect = GitHubAuthError("GitHub authentication error: HTTP 401: Bad credentials")
+
+        mock_resumer = MagicMock()
+        watcher = ReviewWatcher(
+            github_client=mock_github,
+            state_manager=self.state_mgr,
+            agent_resumer=mock_resumer
+        )
+
+        self.state_mgr.register_pr(pr_number=77, conversation_id="conv77", branch="feat/77")
+        self.state_mgr.set_in_flight_events(77, [{"id": "ev_inflight", "type": "comment"}])
+        self.state_mgr.acquire_lock(77)
+
+        # Execute watcher loop
+        watcher.start()
+
+        # PR must transition to 'error'
+        pr = self.state_mgr.get_pr(77)
+        self.assertEqual(pr["status"], "error")
+        # In-flight events restored to pending
+        self.assertEqual(len(pr["in_flight_events"]), 0)
+        self.assertEqual(len(pr["pending_events"]), 1)
+        # Lock released
+        self.assertFalse(self.state_mgr.is_processing(77))
+        self.assertEqual(pr["processing_started_at"], 0.0)
+        self.assertIsNone(pr["active_agent_pid"])
+        # Watcher loop halted
+        self.assertFalse(watcher._running)
+
+    def test_transient_github_error_propagates_to_backoff(self):
+        """Verify transient network GitHubError triggers backoff in watcher.start()."""
+        mock_github = MagicMock()
+        mock_github.check_auth.return_value = (True, "Logged in")
+        mock_github.get_pr_details.side_effect = GitHubError("ETIMEDOUT: Connection reset")
+
+        mock_resumer = MagicMock()
+        watcher = ReviewWatcher(
+            github_client=mock_github,
+            state_manager=self.state_mgr,
+            agent_resumer=mock_resumer,
+            run_once=True
+        )
+
+        self.state_mgr.register_pr(pr_number=88, conversation_id="conv88", branch="feat/88")
+
+        # start() with run_once=True should catch GitHubError, back off / break cleanly
+        watcher.start()
+        self.assertFalse(watcher._running)
+
+    def test_github_client_raises_auth_error(self):
+        """Verify GitHubClient.run_gh raises GitHubAuthError on auth failure output."""
+        client = GitHubClient(cwd=self.test_dir)
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(
+                returncode=1,
+                stdout="",
+                stderr="HTTP 401: Bad credentials. To re-authenticate, run: gh auth login"
+            )
+            with self.assertRaises(GitHubAuthError):
+                client.get_pr_details(123)
+
+
 if __name__ == "__main__":
     unittest.main()
+

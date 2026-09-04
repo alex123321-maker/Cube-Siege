@@ -23,6 +23,28 @@ class GitHubError(Exception):
     """Raised when a GitHub CLI command fails."""
     pass
 
+class GitHubAuthError(GitHubError):
+    """Raised when GitHub CLI authentication is missing or expired."""
+    pass
+
+def is_auth_error_message(msg: str) -> bool:
+    """Check if an error output from gh CLI indicates authentication failure."""
+    if not msg:
+        return False
+    msg_lower = msg.lower()
+    return any(marker in msg_lower for marker in [
+        "gh auth login",
+        "not authenticated",
+        "authentication failed",
+        "could not authenticate",
+        "bad credentials",
+        "http 401",
+        "token expired",
+        "oauth",
+        "unauthorized",
+        "invalid token",
+    ])
+
 class GitHubClient:
     def __init__(self, gh_path: Optional[str] = None, cwd: Optional[Path] = None):
         self.gh_path = gh_path or shutil.which("gh") or "gh"
@@ -41,7 +63,13 @@ class GitHubClient:
                 errors="replace",
                 timeout=timeout
             )
+            if res.returncode != 0 and args != ["auth", "status"]:
+                err_msg = f"{res.stderr}\n{res.stdout}".strip()
+                if is_auth_error_message(err_msg):
+                    raise GitHubAuthError(f"GitHub authentication error: {err_msg}")
             return res.returncode, res.stdout.strip(), res.stderr.strip()
+        except GitHubAuthError:
+            raise
         except subprocess.TimeoutExpired:
             raise GitHubError(f"Command timed out after {timeout}s: {' '.join(cmd)}")
         except FileNotFoundError:
