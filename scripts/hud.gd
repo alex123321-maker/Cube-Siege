@@ -1,6 +1,7 @@
 extends CanvasLayer
 
 @export var player_path: NodePath
+@export var day_night_cycle_path: NodePath = NodePath("../DayNightCycle")
 
 @onready var top_xp_bar: ProgressBar = $TopXPBar
 @onready var xp_label: Label = $TopXPBar/XPLabel
@@ -21,25 +22,29 @@ var camera: Camera3D = null
 func _ready() -> void:
 	if has_node(player_path):
 		player = get_node(player_path)
-		if player.has_signal("health_changed"):
-			player.connect("health_changed", Callable(self, "_on_health_changed"))
-		if player.has_signal("xp_changed"):
-			player.connect("xp_changed", Callable(self, "_on_xp_changed"))
-		if player.has_signal("level_up_reached"):
-			player.connect("level_up_reached", Callable(self, "_on_level_up_reached"))
 
 	if has_node("Margin/TopCenter/BtnSkipNight"):
 		$Margin/TopCenter/BtnSkipNight.pressed.connect(_on_skip_night_pressed)
 
 	portal = get_tree().root.find_child("Portal", true, false)
 
-	# EventBus listeners for decoupled architecture
+	# EventBus listeners for decoupled architecture (single source of truth)
 	var eb = get_node_or_null("/root/EventBus")
 	if eb:
 		eb.player_health_changed.connect(func(cur, mx): _on_health_changed(cur, mx))
 		eb.player_xp_changed.connect(func(cur, mx, lvl): _on_xp_changed(cur, mx, lvl))
 		eb.player_level_up.connect(func(lvl): _on_level_up_reached(lvl))
 		eb.resources_changed.connect(func(w, s, i): _on_resources_changed(w, s, i))
+		eb.boss_spawned.connect(func(boss): show_boss_bar(boss))
+		eb.boss_defeated.connect(func(_b): _on_boss_defeated())
+	elif player:
+		# Fallback direct wiring for standalone testing without EventBus autoload
+		if player.has_signal("health_changed"):
+			player.connect("health_changed", Callable(self, "_on_health_changed"))
+		if player.has_signal("xp_changed"):
+			player.connect("xp_changed", Callable(self, "_on_xp_changed"))
+		if player.has_signal("level_up_reached"):
+			player.connect("level_up_reached", Callable(self, "_on_level_up_reached"))
 
 func _process(_delta: float) -> void:
 	if not player or not is_instance_valid(player) or not player_floating_hp:
@@ -73,7 +78,11 @@ func _on_resources_changed(wood: int, stone: int, iron: int) -> void:
 		iron_label.text = "IRON: %d" % iron
 
 func _on_skip_night_pressed() -> void:
-	var cycle: Node = get_tree().root.find_child("DayNightCycle", true, false)
+	var cycle: Node = null
+	if has_node(day_night_cycle_path):
+		cycle = get_node(day_night_cycle_path)
+	else:
+		cycle = get_tree().root.find_child("DayNightCycle", true, false)
 	if cycle and cycle.has_method("skip_to_night"):
 		cycle.skip_to_night()
 
