@@ -1,3 +1,4 @@
+class_name PortalController
 extends Area3D
 
 signal portal_repaired()
@@ -60,6 +61,12 @@ func update_visuals() -> void:
 func is_ready_for_pickup() -> bool:
 	return current_state == State.BROKEN or current_state == State.ACTIVE
 
+func is_interactable() -> bool:
+	return is_ready_for_pickup()
+
+func interact(player: Node, _is_shift: bool = false) -> void:
+	interact_portal(player)
+
 func set_focused(focused: bool) -> void:
 	if not prompt_label:
 		return
@@ -97,8 +104,12 @@ func advance_extraction(delta: float, player: Node) -> bool:
 func reset_extraction() -> void:
 	extraction_progress = 0.0
 
-func attempt_repair(_player: Node) -> void:
-	var building_system: Node = get_tree().root.find_child("BuildingSystem", true, false)
+func attempt_repair(player: Node = null) -> void:
+	var building_system: Node = null
+	if player and "building_system" in player and player.building_system:
+		building_system = player.building_system
+	elif get_tree() and get_tree().root:
+		building_system = get_tree().root.find_child("BuildingSystem", true, false)
 	if not building_system:
 		return
 

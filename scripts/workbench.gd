@@ -1,3 +1,4 @@
+class_name Workbench
 extends StaticBody3D
 
 @onready var prompt_label: Label3D = $PromptLabel
@@ -5,11 +6,15 @@ extends StaticBody3D
 func _ready() -> void:
 	add_to_group("interactables")
 	add_to_group("buildings")
+	add_to_group("workbench")
 	if prompt_label:
 		prompt_label.text = "[E] ВЕРСТАК\n(КРАФТ & РАЗБОР)"
 		prompt_label.visible = false
 
 func is_ready_for_pickup() -> bool:
+	return true
+
+func is_interactable() -> bool:
 	return true
 
 func set_focused(focused: bool) -> void:
@@ -28,12 +33,13 @@ func set_interaction_progress(progress: float) -> void:
 	prompt_label.text = "[%s] %d%%\nОТКРЫТИЕ ВЕРСТАКА..." % [bar_str, int(progress * 100)]
 	prompt_label.modulate = Color(0.2, 1.0, 0.4)
 
-func harvest(_player: Node) -> void:
+func interact(_player: Node = null, _is_shift: bool = false) -> void:
 	open_workbench()
 
-func open_workbench() -> void:
-	var hud: Node = get_tree().root.find_child("HUD", true, false)
-	if hud and hud.has_node("WorkbenchModal"):
-		var modal = hud.get_node("WorkbenchModal")
-		if modal.has_method("open"):
-			modal.open()
+func harvest(_player: Node = null) -> void:
+	open_workbench()
+
+func open_workbench(_player: Node = null) -> void:
+	var bus = get_node_or_null("/root/EventBus")
+	if bus and bus.has_signal("workbench_opened"):
+		bus.workbench_opened.emit()

@@ -1,3 +1,4 @@
+class_name ResourceTree
 extends StaticBody3D
 
 @export var max_health: float = 60.0
@@ -56,6 +57,12 @@ func fell_tree() -> void:
 func is_ready_for_pickup() -> bool:
 	return is_destroyed and not is_harvested
 
+func is_interactable() -> bool:
+	return is_ready_for_pickup()
+
+func interact(player: Node, _is_shift: bool = false) -> void:
+	harvest(player)
+
 func set_focused(focused: bool) -> void:
 	if not is_ready_for_pickup() or not pickup_prompt:
 		return
@@ -92,7 +99,11 @@ func harvest(player: Node) -> void:
 	var total_yield: int = wood_yield * mult
 
 	# Add resources to inventory
-	var building_system: Node = get_tree().root.find_child("BuildingSystem", true, false)
+	var building_system: Node = null
+	if player and "building_system" in player and player.building_system:
+		building_system = player.building_system
+	elif get_tree() and get_tree().root:
+		building_system = get_tree().root.find_child("BuildingSystem", true, false)
 	if building_system:
 		building_system.add_resource(total_yield, 0, 0)
 

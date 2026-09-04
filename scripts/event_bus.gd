@@ -12,6 +12,7 @@ signal player_died()
 # Building events
 signal building_placed(building_id: String, cell: Vector2i, building: Node)
 signal building_destroyed(cell: Vector2i, building: Node)
+signal workbench_opened()
 
 # Game flow events
 signal day_started(day_number: int)

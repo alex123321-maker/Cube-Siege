@@ -21,6 +21,9 @@ var has_boots: bool = false
 func _ready() -> void:
 	visible = false
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	var bus = get_node_or_null("/root/EventBus")
+	if bus and bus.has_signal("workbench_opened"):
+		bus.workbench_opened.connect(open)
 	update_ui()
 
 func open() -> void:

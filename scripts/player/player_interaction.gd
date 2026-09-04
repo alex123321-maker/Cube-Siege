@@ -51,7 +51,7 @@ func process_interaction(player: CharacterBody3D, delta: float) -> void:
 		if dist_to_player > 4.5:
 			continue
 
-		if obj.has_method("is_ready_for_pickup") and not obj.is_ready_for_pickup():
+		if not InteractableTarget.can_interact(obj, player):
 			continue
 
 		var dist_to_cursor: float = mouse_world.distance_to((obj as Node3D).global_position)
@@ -72,7 +72,7 @@ func process_interaction(player: CharacterBody3D, delta: float) -> void:
 	if Input.is_action_pressed("interact") and focused_interactable:
 		interact_hold_timer += delta
 		var hold_required: float = 1.0
-		if focused_interactable.is_in_group("portal") and focused_interactable.get("current_state") == 2:  # State.ACTIVE
+		if InteractableTarget.get_action_type(focused_interactable, player) == InteractableTarget.ActionType.PORTAL_EVACUATE:
 			hold_required = 2.0
 
 		var progress: float = clampf(interact_hold_timer / hold_required, 0.0, 1.0)

@@ -1,3 +1,4 @@
+class_name RelicPedestal
 extends StaticBody3D
 
 @onready var prompt_label: Label3D = $PromptLabel
@@ -9,6 +10,12 @@ func _ready() -> void:
 
 func is_ready_for_pickup() -> bool:
 	return true
+
+func is_interactable() -> bool:
+	return true
+
+func interact(player: Node, _is_shift: bool = false) -> void:
+	claim_relic(player)
 
 func set_focused(focused: bool) -> void:
 	if prompt_label:

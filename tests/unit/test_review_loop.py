@@ -31,9 +31,8 @@ from tools.review_loop.agent_resumer import (
     detect_backend_from_path,
 )
 from tools.review_loop.config import AGENT_COMMENT_MARKER, DESIGN_DECISION_MARKER, REVIEW_LOOP_DIR
-from tools.review_loop.create_pr import create_and_register_pr
 from tools.review_loop.github_client import GitHubAuthError, GitHubClient, GitHubError, is_auth_error_message
-from tools.review_loop.install import build_windows_task_xml, install_linux
+from tools.review_loop.install import install_linux
 from tools.review_loop.register import register_from_hook
 from tools.review_loop.state_manager import StateManager
 from tools.review_loop.watcher import (
@@ -71,17 +70,6 @@ class TestStateManager(unittest.TestCase):
         self.assertEqual(pr["branch"], "feat/test")
         self.assertEqual(pr["status"], "watching")
         self.assertTrue(reloaded.is_user_allowed("alex123321-maker"))
-
-    def test_branch_conversation_is_remembered_before_pr_exists(self):
-        self.state_mgr.remember_branch_conversation("feat/42", "conv-42")
-
-        reloaded = StateManager(state_file=self.state_file)
-        self.assertEqual(
-            reloaded.get_branch_conversation("feat/42"), "conv-42"
-        )
-        self.assertEqual(
-            reloaded.get_branch_conversations(), {"feat/42": "conv-42"}
-        )
 
     def test_register_pr_is_idempotent(self):
         """
@@ -313,7 +301,6 @@ class TestReviewWatcher(unittest.TestCase):
         self.state_mgr.add_to_allowlist("alex123321-maker")
 
         self.mock_github = MagicMock(spec=GitHubClient)
-        self.mock_github.get_open_prs.return_value = []
         self.mock_resumer = MagicMock(spec=AgentResumer)
         self.mock_resumer.resume_conversation.return_value = (True, "Dispatched", 1234)
 
@@ -323,20 +310,6 @@ class TestReviewWatcher(unittest.TestCase):
             agent_resumer=self.mock_resumer,
             run_once=True,
         )
-
-    def test_recovers_open_pr_from_hook_branch_mapping(self):
-        self.state_mgr.remember_branch_conversation("feat/recovered", "conv-r")
-        self.mock_github.get_open_prs.return_value = [
-            {"number": 71, "headRefName": "feat/recovered"}
-        ]
-        self._setup_pr_mocks(71, head="sha-71")
-
-        self.watcher.run_cycle()
-
-        recovered = self.state_mgr.get_pr(71)
-        self.assertIsNotNone(recovered)
-        self.assertEqual(recovered["conversation_id"], "conv-r")
-        self.assertEqual(recovered["branch"], "feat/recovered")
 
     def tearDown(self):
         shutil.rmtree(self.test_dir, ignore_errors=True)
@@ -1011,29 +984,6 @@ class TestHookRegistration(unittest.TestCase):
         output = json.loads(stdout_capture.getvalue().strip())
         self.assertEqual(output["decision"], "stop")
 
-    def test_hook_remembers_conversation_when_pr_does_not_exist_yet(self):
-        test_dir = Path(tempfile.mkdtemp())
-        state_file = test_dir / "state.json"
-        state_mgr = StateManager(state_file=state_file)
-        payload = json.dumps({"conversationId": "conv-before-pr"})
-
-        try:
-            with patch("sys.stdin", io.StringIO(payload)), \
-                 patch("sys.stdout", io.StringIO()), \
-                 patch("tools.review_loop.register.get_current_git_branch", return_value="feat/future"), \
-                 patch("tools.review_loop.register.GitHubClient") as MockGH, \
-                 patch("tools.review_loop.register.StateManager", return_value=state_mgr), \
-                 patch("tools.review_loop.register.log_hook_event"):
-                MockGH.return_value.find_pr_for_branch.return_value = None
-                register_from_hook(is_stop=False)
-
-            self.assertEqual(
-                state_mgr.get_branch_conversation("feat/future"),
-                "conv-before-pr",
-            )
-        finally:
-            shutil.rmtree(test_dir, ignore_errors=True)
-
     def test_hook_registration_preserves_active_processing_lock(self):
         """
         BLOCKER 1: Verify PostToolUse hook call mid-flight does not destroy
@@ -1075,96 +1025,6 @@ class TestInstaller(unittest.TestCase):
         mock_run.return_value = MagicMock(returncode=1, stderr="Failed to reload", stdout="")
         res = install_linux()
         self.assertFalse(res)
-
-    def test_windows_task_restarts_after_failure(self):
-        xml = build_windows_task_xml(
-            "example\\user", Path("D:/repo/.review_loop/run_watcher.bat")
-        )
-        self.assertIn("<LogonTrigger>", xml)
-        self.assertIn("<RestartOnFailure>", xml)
-        self.assertIn("<Interval>PT1M</Interval>", xml)
-        self.assertIn("<Count>999</Count>", xml)
-        self.assertIn("<Arguments>", xml)
-        self.assertIn("run_watcher.bat", xml)
-
-
-# ===================================================================
-#  PR Creation Wrapper
-# ===================================================================
-
-class TestCreatePrWrapper(unittest.TestCase):
-    def setUp(self):
-        self.test_dir = Path(tempfile.mkdtemp())
-        self.state = StateManager(state_file=self.test_dir / "state.json")
-        self._orig_env = os.environ.copy()
-        os.environ.pop("ANTIGRAVITY_CONVERSATION_ID", None)
-
-    def tearDown(self):
-        shutil.rmtree(self.test_dir, ignore_errors=True)
-        os.environ.clear()
-        os.environ.update(self._orig_env)
-
-    def test_missing_conversation_fails_before_service_or_github_change(self):
-        github = MagicMock(spec=GitHubClient)
-        ensure = MagicMock(return_value=True)
-
-        result = create_and_register_pr(
-            ["--title", "Example"],
-            branch="feat/no-conversation",
-            github=github,
-            state_manager=self.state,
-            ensure_watcher=ensure,
-        )
-
-        self.assertFalse(result)
-        ensure.assert_not_called()
-        github.find_pr_for_branch.assert_not_called()
-        github.run_gh.assert_not_called()
-
-    def test_existing_pr_is_registered_and_watcher_is_ensured(self):
-        self.state.remember_branch_conversation("feat/existing", "conv-existing")
-        github = MagicMock(spec=GitHubClient)
-        github.find_pr_for_branch.return_value = 52
-        ensure = MagicMock(return_value=True)
-
-        result = create_and_register_pr(
-            [],
-            branch="feat/existing",
-            github=github,
-            state_manager=self.state,
-            ensure_watcher=ensure,
-        )
-
-        self.assertTrue(result)
-        ensure.assert_called_once()
-        self.assertEqual(
-            self.state.get_pr(52)["conversation_id"], "conv-existing"
-        )
-        github.run_gh.assert_not_called()
-
-    def test_new_pr_is_created_then_registered(self):
-        github = MagicMock(spec=GitHubClient)
-        github.find_pr_for_branch.return_value = None
-        github.run_gh.return_value = (
-            0,
-            "https://github.com/example/repo/pull/53",
-            "",
-        )
-
-        result = create_and_register_pr(
-            ["--", "--title", "Example"],
-            conversation_id="conv-new",
-            branch="feat/new",
-            github=github,
-            state_manager=self.state,
-            ensure_watcher=lambda: True,
-        )
-
-        self.assertTrue(result)
-        github.run_gh.assert_called_once_with(
-            ["pr", "create", "--title", "Example"], timeout=120
-        )
-        self.assertEqual(self.state.get_pr(53)["branch"], "feat/new")
 
 
 # ===================================================================

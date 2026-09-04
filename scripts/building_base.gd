@@ -42,6 +42,29 @@ func _ready() -> void:
 func is_ready_for_pickup() -> bool:
 	return true
 
+func is_interactable() -> bool:
+	return true
+
+func interact(player: Node, is_shift: bool = false) -> void:
+	if is_shift:
+		demolish(player)
+	else:
+		interact_repair(player)
+
+func interact_repair(player: Node) -> bool:
+	if current_health >= max_health:
+		return false
+	var bs: Node = null
+	if player and "building_system" in player and player.building_system:
+		bs = player.building_system
+	elif get_tree() and get_tree().root:
+		bs = get_tree().root.find_child("BuildingSystem", true, false)
+	if bs and bs.has_method("spend_resources") and bs.spend_resources(1, 0, 0):
+		return repair(100.0)
+	elif player and player.has_method("spawn_popup_text"):
+		player.spawn_popup_text("NEED 1 WOOD!", Color.ORANGE)
+	return false
+
 func set_focused(focused: bool) -> void:
 	if not hp_label:
 		return
@@ -68,8 +91,12 @@ func set_interaction_progress(progress: float) -> void:
 	hp_label.text = "[%s] %d%%\n%s..." % [bar_str, int(progress * 100), action]
 	hp_label.modulate = Color(0.2, 1.0, 0.4)
 
-func demolish(_player: Node) -> void:
-	var bs: Node = get_tree().root.find_child("BuildingSystem", true, false)
+func demolish(player: Node = null) -> void:
+	var bs: Node = null
+	if player and "building_system" in player and player.building_system:
+		bs = player.building_system
+	elif get_tree() and get_tree().root:
+		bs = get_tree().root.find_child("BuildingSystem", true, false)
 	if bs:
 		var ref_w: int = int(wood_cost * 0.5)
 		var ref_s: int = int(stone_cost * 0.5)

@@ -1,3 +1,4 @@
+class_name ResourceRock
 extends StaticBody3D
 
 enum RockType { STONE, IRON }
@@ -64,6 +65,12 @@ func break_rock() -> void:
 func is_ready_for_pickup() -> bool:
 	return is_destroyed and not is_harvested
 
+func is_interactable() -> bool:
+	return is_ready_for_pickup()
+
+func interact(player: Node, _is_shift: bool = false) -> void:
+	harvest(player)
+
 func set_focused(focused: bool) -> void:
 	if not is_ready_for_pickup() or not prompt_label:
 		return
@@ -101,7 +108,11 @@ func harvest(player: Node) -> void:
 		mult = player.resource_multiplier
 	var total_yield: int = resource_yield * mult
 
-	var building_system: Node = get_tree().root.find_child("BuildingSystem", true, false)
+	var building_system: Node = null
+	if player and "building_system" in player and player.building_system:
+		building_system = player.building_system
+	elif get_tree() and get_tree().root:
+		building_system = get_tree().root.find_child("BuildingSystem", true, false)
 	if building_system:
 		if rock_type == RockType.STONE:
 			building_system.add_resource(0, total_yield, 0)

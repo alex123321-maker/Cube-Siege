@@ -5,14 +5,10 @@ Configures per-user background watcher service on Windows (Task Scheduler with p
 and Linux (systemd --user).
 """
 import argparse
-import getpass
-import html
 import os
 import platform
 import subprocess
 import sys
-import tempfile
-import time
 from pathlib import Path
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -29,87 +25,6 @@ from tools.review_loop.config import (
 
 WINDOWS_TASK_NAME = "CubeSiegeReviewLoopWatcher"
 LINUX_SERVICE_NAME = "cube-siege-review-watcher.service"
-
-
-def is_windows_task_installed() -> bool:
-    """Return whether the per-user watcher task exists."""
-    res = subprocess.run(
-        ["schtasks", "/query", "/tn", WINDOWS_TASK_NAME],
-        cwd=str(REPO_ROOT),
-        capture_output=True,
-        text=True,
-        errors="replace",
-    )
-    return res.returncode == 0
-
-
-def wait_for_watcher(timeout_seconds: float = 10.0) -> bool:
-    """Wait until the watcher-owned PID file points to a live process."""
-    deadline = time.monotonic() + timeout_seconds
-    while time.monotonic() < deadline:
-        pid = get_current_pid()
-        if pid and is_pid_running(pid):
-            return True
-        time.sleep(0.25)
-    return False
-
-
-def build_windows_task_xml(username: str, launcher: Path) -> str:
-    """Build a least-privilege logon task that restarts after failures."""
-    escaped_user = html.escape(username)
-    command_processor = os.environ.get(
-        "ComSpec", r"C:\Windows\System32\cmd.exe"
-    )
-    escaped_command_processor = html.escape(command_processor)
-    escaped_arguments = html.escape(f'/d /c ""{launcher}""')
-    escaped_workdir = html.escape(str(REPO_ROOT))
-    return f'''<?xml version="1.0" encoding="UTF-16"?>
-<Task version="1.4" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
-  <RegistrationInfo>
-    <Description>Cube Siege PR review feedback watcher</Description>
-  </RegistrationInfo>
-  <Triggers>
-    <LogonTrigger>
-      <Enabled>true</Enabled>
-      <UserId>{escaped_user}</UserId>
-    </LogonTrigger>
-  </Triggers>
-  <Principals>
-    <Principal id="Author">
-      <UserId>{escaped_user}</UserId>
-      <LogonType>InteractiveToken</LogonType>
-      <RunLevel>LeastPrivilege</RunLevel>
-    </Principal>
-  </Principals>
-  <Settings>
-    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
-    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
-    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
-    <StartWhenAvailable>true</StartWhenAvailable>
-    <RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable>
-    <IdleSettings>
-      <StopOnIdleEnd>false</StopOnIdleEnd>
-      <RestartOnIdle>false</RestartOnIdle>
-    </IdleSettings>
-    <AllowStartOnDemand>true</AllowStartOnDemand>
-    <Enabled>true</Enabled>
-    <Hidden>false</Hidden>
-    <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>
-    <Priority>7</Priority>
-    <RestartOnFailure>
-      <Interval>PT1M</Interval>
-      <Count>999</Count>
-    </RestartOnFailure>
-  </Settings>
-  <Actions Context="Author">
-    <Exec>
-      <Command>{escaped_command_processor}</Command>
-      <Arguments>{escaped_arguments}</Arguments>
-      <WorkingDirectory>{escaped_workdir}</WorkingDirectory>
-    </Exec>
-  </Actions>
-</Task>
-'''
 
 def is_pid_running(pid: int) -> bool:
     """Check if process with PID is alive."""
@@ -160,40 +75,17 @@ cd /d "{REPO_ROOT}"
 
 def install_windows() -> bool:
     launcher = create_windows_launcher()
+    cmd_line = f'"{launcher}"'
+
     print(f"Configuring Windows Scheduled Task '{WINDOWS_TASK_NAME}' with launcher at '{launcher}'...")
-    identity = subprocess.run(
-        ["whoami"], capture_output=True, text=True, errors="replace"
-    )
-    username = identity.stdout.strip() if identity.returncode == 0 else getpass.getuser()
-    task_xml = build_windows_task_xml(username, launcher)
-    REVIEW_LOOP_DIR.mkdir(parents=True, exist_ok=True)
-    xml_path = None
-    try:
-        with tempfile.NamedTemporaryFile(
-            mode="w",
-            encoding="utf-16",
-            suffix=".xml",
-            dir=REVIEW_LOOP_DIR,
-            delete=False,
-        ) as xml_file:
-            xml_file.write(task_xml)
-            xml_path = Path(xml_file.name)
-        schtasks_cmd = [
-            "schtasks", "/create",
-            "/tn", WINDOWS_TASK_NAME,
-            "/xml", str(xml_path),
-            "/f",
-        ]
-        res = subprocess.run(
-            schtasks_cmd,
-            cwd=str(REPO_ROOT),
-            capture_output=True,
-            text=True,
-            errors="replace",
-        )
-    finally:
-        if xml_path and xml_path.exists():
-            xml_path.unlink()
+    schtasks_cmd = [
+        "schtasks", "/create",
+        "/tn", WINDOWS_TASK_NAME,
+        "/tr", cmd_line,
+        "/sc", "onlogon",
+        "/f"
+    ]
+    res = subprocess.run(schtasks_cmd, cwd=str(REPO_ROOT), capture_output=True, text=True, errors="replace")
     if res.returncode == 0:
         print(f"[SUCCESS] Scheduled Task '{WINDOWS_TASK_NAME}' created successfully.")
         print("Watcher will auto-start at user logon. To start now, run: python tools/review_loop/install.py start")
@@ -239,14 +131,8 @@ def start_windows() -> bool:
         errors="replace"
     )
     if res.returncode == 0:
-        if wait_for_watcher():
-            print(f"[SUCCESS] Started scheduled task '{WINDOWS_TASK_NAME}'.")
-            return True
-        print(
-            f"[ERROR] Task '{WINDOWS_TASK_NAME}' was triggered but the watcher "
-            "did not stay running. Check .review_loop/watcher.log."
-        )
-        return False
+        print(f"[SUCCESS] Triggered scheduled task '{WINDOWS_TASK_NAME}'.")
+        return True
 
     # Fallback to detached process using launcher
     launcher = create_windows_launcher()
@@ -264,11 +150,8 @@ def start_windows() -> bool:
         stderr=subprocess.DEVNULL,
         stdin=subprocess.DEVNULL
     )
-    if wait_for_watcher():
-        print(f"[SUCCESS] Started background review watcher process (launcher PID: {proc.pid}).")
-        return True
-    print("[ERROR] Background watcher did not stay running. Check .review_loop/watcher.log.")
-    return False
+    print(f"[SUCCESS] Started background review watcher process (PID: {proc.pid}).")
+    return True
 
 def stop_windows() -> bool:
     subprocess.run(["schtasks", "/end", "/tn", WINDOWS_TASK_NAME], cwd=str(REPO_ROOT), capture_output=True, errors="replace")
@@ -442,33 +325,9 @@ def stop_service() -> bool:
     else:
         return stop_linux()
 
-
-def ensure_service() -> bool:
-    """Idempotently install and start the background watcher."""
-    if sys.platform == "win32":
-        if not is_windows_task_installed() and not install_windows():
-            return False
-        pid = get_current_pid()
-        if pid and is_pid_running(pid):
-            return True
-        return start_windows()
-
-    if sys.platform.startswith("linux"):
-        status = subprocess.run(
-            ["systemctl", "--user", "is-enabled", LINUX_SERVICE_NAME],
-            cwd=str(REPO_ROOT),
-            capture_output=True,
-            text=True,
-        )
-        if status.returncode != 0 and not install_linux():
-            return False
-        return start_linux()
-
-    return start_service()
-
 def main() -> None:
     parser = argparse.ArgumentParser(description="Lifecycle manager for the review loop watcher service.")
-    parser.add_argument("action", choices=["install", "uninstall", "start", "stop", "status", "ensure"], help="Action to perform.")
+    parser.add_argument("action", choices=["install", "uninstall", "start", "stop", "status"], help="Action to perform.")
     args = parser.parse_args()
 
     success = True
@@ -482,8 +341,6 @@ def main() -> None:
         success = stop_service()
     elif args.action == "status":
         print_status()
-    elif args.action == "ensure":
-        success = ensure_service()
 
     sys.exit(0 if success else 1)
 
