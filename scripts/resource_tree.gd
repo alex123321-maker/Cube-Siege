@@ -99,13 +99,13 @@ func harvest(player: Node) -> void:
 	var total_yield: int = wood_yield * mult
 
 	# Add resources to inventory
-	var building_system: Node = null
+	var building_system: BuildingSystem = null
 	if player and "building_system" in player and player.building_system:
-		building_system = player.building_system
-	elif get_tree() and get_tree().root:
-		building_system = get_tree().root.find_child("BuildingSystem", true, false)
+		building_system = player.building_system as BuildingSystem
 	if building_system:
 		building_system.add_resource(total_yield, 0, 0)
+	elif player:
+		push_warning("ResourceTree: cannot add wood because Player.building_system is not wired.")
 
 	spawn_damage_text(0, "+%d WOOD" % total_yield, Color.GREEN)
 

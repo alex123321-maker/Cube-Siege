@@ -54,15 +54,16 @@ func interact(player: Node, is_shift: bool = false) -> void:
 func interact_repair(player: Node) -> bool:
 	if current_health >= max_health:
 		return false
-	var bs: Node = null
+	var bs: BuildingSystem = null
 	if player and "building_system" in player and player.building_system:
-		bs = player.building_system
-	elif get_tree() and get_tree().root:
-		bs = get_tree().root.find_child("BuildingSystem", true, false)
-	if bs and bs.has_method("spend_resources") and bs.spend_resources(1, 0, 0):
-		return repair(100.0)
-	elif player and player.has_method("spawn_popup_text"):
-		player.spawn_popup_text("NEED 1 WOOD!", Color.ORANGE)
+		bs = player.building_system as BuildingSystem
+	if bs:
+		if bs.spend_resources(1, 0, 0):
+			return repair(100.0)
+		elif player and player.has_method("spawn_popup_text"):
+			player.spawn_popup_text("NEED 1 WOOD!", Color.ORANGE)
+	else:
+		push_warning("BuildingBase: cannot repair because Player.building_system is not wired.")
 	return false
 
 func set_focused(focused: bool) -> void:
@@ -92,17 +93,17 @@ func set_interaction_progress(progress: float) -> void:
 	hp_label.modulate = Color(0.2, 1.0, 0.4)
 
 func demolish(player: Node = null) -> void:
-	var bs: Node = null
+	var bs: BuildingSystem = null
 	if player and "building_system" in player and player.building_system:
-		bs = player.building_system
-	elif get_tree() and get_tree().root:
-		bs = get_tree().root.find_child("BuildingSystem", true, false)
+		bs = player.building_system as BuildingSystem
 	if bs:
 		var ref_w: int = int(wood_cost * 0.5)
 		var ref_s: int = int(stone_cost * 0.5)
 		var ref_i: int = int(iron_cost * 0.5)
 		bs.add_resource(ref_w, ref_s, ref_i)
 		spawn_damage_text(0, "+REFUND (%dW %dS %dI)" % [ref_w, ref_s, ref_i], Color.GOLD)
+	elif player:
+		push_warning("BuildingBase: cannot refund resources because Player.building_system is not wired.")
 
 	destroy_building()
 

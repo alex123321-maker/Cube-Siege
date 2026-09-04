@@ -108,11 +108,9 @@ func harvest(player: Node) -> void:
 		mult = player.resource_multiplier
 	var total_yield: int = resource_yield * mult
 
-	var building_system: Node = null
+	var building_system: BuildingSystem = null
 	if player and "building_system" in player and player.building_system:
-		building_system = player.building_system
-	elif get_tree() and get_tree().root:
-		building_system = get_tree().root.find_child("BuildingSystem", true, false)
+		building_system = player.building_system as BuildingSystem
 	if building_system:
 		if rock_type == RockType.STONE:
 			building_system.add_resource(0, total_yield, 0)
@@ -120,6 +118,8 @@ func harvest(player: Node) -> void:
 		else:
 			building_system.add_resource(0, 0, total_yield)
 			spawn_damage_text(0, "+%d IRON" % total_yield, Color(1.0, 0.7, 0.3))
+	elif player:
+		push_warning("ResourceRock: cannot add resources because Player.building_system is not wired.")
 
 	var tween: Tween = create_tween()
 	tween.tween_property(rock_mesh, "scale", Vector3.ZERO, 0.2)

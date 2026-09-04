@@ -253,14 +253,15 @@ func apply_card_upgrade(card_id: String, player: CharacterBody3D) -> void:
 			player.dash_cooldown *= 0.65
 			player.spawn_popup_text("+20% SPEED!", Color(0.2, 0.9, 1.0))
 		"HEAVY_MASONRY":
-			var bs: Node = player.building_system if player.building_system else (player.get_tree().root.find_child("BuildingSystem", true, false) if player.is_inside_tree() else null)
+			var bs: BuildingSystem = player.building_system as BuildingSystem if player.building_system else null
 			if bs:
-				var placed: Dictionary = bs.get("placed_buildings")
-				if placed:
-					for b in placed.values():
-						if b and is_instance_valid(b) and b.has_method("repair"):
-							b.max_health += 150.0
-							b.repair(150.0)
+				for b in bs.placed_buildings.values():
+					if b and is_instance_valid(b) and b is BuildingBase:
+						var bb: BuildingBase = b as BuildingBase
+						bb.max_health += 150.0
+						bb.repair(150.0)
+			else:
+				push_warning("PlayerAbilities: cannot apply HEAVY_MASONRY because player.building_system is not wired.")
 			player.spawn_popup_text("+150 BLDG HP!", Color(0.9, 0.8, 0.3))
 		"TOWER_BALLISTICS":
 			var towers: Array[Node] = player.get_tree().get_nodes_in_group("towers")

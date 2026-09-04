@@ -1,7 +1,7 @@
 extends CharacterBody3D
 
 ## Player Root Controller
-## Composed of focused subsystems: Movement, Aim, Health, Progression, Interaction, and Presentation.
+## Composed of focused subsystems: Movement, Aim, Health, Progression, Interaction, Presentation, Combat, and Abilities.
 
 signal health_changed(current_health: float, max_health: float)
 signal xp_changed(current_xp: float, max_xp: float, level: int)
@@ -89,7 +89,7 @@ var focused_interactable: Node:
 @export var radial_menu_path: NodePath = NodePath("../HUD/RadialMenu")
 @export var portal_path: NodePath = NodePath("../Portal")
 
-var building_system: Node = null
+var building_system: BuildingSystem = null
 var radial_menu: Control = null
 var portal: Node3D = null
 
@@ -186,26 +186,22 @@ func _ready() -> void:
 	if bus:
 		bus.player_health_changed.emit(current_health, max_health)
 		bus.player_xp_changed.emit(current_xp, xp_to_next_level, player_level)
+		if bus.has_signal("day_started"):
+			bus.day_started.connect(func(day: int): health.current_day = day)
 
 	if slash_area:
 		slash_area.set_owner_entity(self)
 		slash_area.monitoring = false
 
-	# Resolve external system references
+	# Resolve external system references via explicit NodePaths
 	if building_system_path and not building_system_path.is_empty():
-		building_system = get_node_or_null(building_system_path)
-	if not building_system and is_inside_tree():
-		building_system = get_tree().root.find_child("BuildingSystem", true, false)
+		building_system = get_node_or_null(building_system_path) as BuildingSystem
 
 	if radial_menu_path and not radial_menu_path.is_empty():
 		radial_menu = get_node_or_null(radial_menu_path) as Control
-	if not radial_menu and is_inside_tree():
-		radial_menu = get_tree().root.find_child("RadialMenu", true, false) as Control
 
 	if portal_path and not portal_path.is_empty():
 		portal = get_node_or_null(portal_path) as Node3D
-	if not portal and is_inside_tree():
-		portal = get_tree().root.find_child("Portal", true, false) as Node3D
 
 func _physics_process(delta: float) -> void:
 	presentation.update_portal_compass(self)

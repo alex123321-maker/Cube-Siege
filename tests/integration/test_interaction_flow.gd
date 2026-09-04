@@ -4,7 +4,7 @@ const InteractableTarget = preload("res://scripts/interaction/interactable_targe
 const PlayerInteraction = preload("res://scripts/player/player_interaction.gd")
 
 const WORKBENCH_SCENE = preload("res://scenes/prefabs/workbench.tscn")
-const WALL_SCENE = preload("res://scenes/prefabs/wall_wood.tscn")
+const WALL_SCENE = preload("res://scenes/prefabs/wood_wall.tscn")
 const PORTAL_SCENE = preload("res://scenes/portal.tscn")
 const RESOURCE_TREE_SCENE = preload("res://scenes/resource_tree.tscn")
 
@@ -21,13 +21,13 @@ func test_real_workbench_interaction() -> void:
 
 	# Interaction emits EventBus.workbench_opened cleanly without finding HUD
 	var bus = get_node_or_null("/root/EventBus")
-	var signal_emitted = false
+	var signal_emitted = [false]
 	if bus:
-		bus.workbench_opened.connect(func(): signal_emitted = true)
+		bus.workbench_opened.connect(func(): signal_emitted[0] = true)
 
 	InteractableTarget.execute_interaction(wb, dummy_player, false)
 	if bus:
-		assert_true(signal_emitted, "EventBus.workbench_opened must be emitted on workbench interact")
+		assert_true(signal_emitted[0], "EventBus.workbench_opened must be emitted on workbench interact")
 
 func test_real_building_interaction() -> void:
 	var dummy_player = Node.new()

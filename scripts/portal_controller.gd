@@ -105,15 +105,14 @@ func reset_extraction() -> void:
 	extraction_progress = 0.0
 
 func attempt_repair(player: Node = null) -> void:
-	var building_system: Node = null
+	var building_system: BuildingSystem = null
 	if player and "building_system" in player and player.building_system:
-		building_system = player.building_system
-	elif get_tree() and get_tree().root:
-		building_system = get_tree().root.find_child("BuildingSystem", true, false)
+		building_system = player.building_system as BuildingSystem
 	if not building_system:
+		push_warning("PortalController: cannot repair because Player.building_system is not wired.")
 		return
 
-	if building_system.has_method("spend_resources") and building_system.spend_resources(required_wood, required_stone, 0):
+	if building_system.spend_resources(required_wood, required_stone, 0):
 		current_state = State.CHARGING
 		charge_timer = charge_duration
 		emit_signal("portal_repaired")

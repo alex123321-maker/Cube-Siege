@@ -40,6 +40,10 @@ func harvest(_player: Node = null) -> void:
 	open_workbench()
 
 func open_workbench(_player: Node = null) -> void:
-	var bus = get_node_or_null("/root/EventBus")
+	var bus = get_node_or_null("/root/EventBus") if is_inside_tree() else null
+	if not bus:
+		var ml = Engine.get_main_loop()
+		if ml and "root" in ml and ml.root:
+			bus = ml.root.get_node_or_null("EventBus")
 	if bus and bus.has_signal("workbench_opened"):
 		bus.workbench_opened.emit()

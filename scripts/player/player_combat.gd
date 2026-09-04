@@ -31,7 +31,7 @@ func perform_attack(player: CharacterBody3D, current_class: int, is_dashing: boo
 			attack_cooldown_timer = 0.48
 			trigger_hammer_smash(player, attack_damage * 1.35, is_dueling)
 
-func perform_special_attack(player: CharacterBody3D, current_class: int, is_dashing: bool, is_dueling: bool, abilities: RefCounted) -> void:
+func perform_special_attack(player: CharacterBody3D, current_class: int, is_dashing: bool, is_dueling: bool, abilities: PlayerAbilities) -> void:
 	if special_cooldown_timer > 0.0 or is_dashing:
 		return
 
@@ -44,8 +44,10 @@ func perform_special_attack(player: CharacterBody3D, current_class: int, is_dash
 			trigger_piercing_arrow(player, special_damage * 1.3, 6, 36.0)
 		2: # CharacterClass.ENGINEER
 			special_cooldown_timer = 5.0
-			if abilities and abilities.has_method("deploy_temp_turret"):
+			if abilities:
 				abilities.deploy_temp_turret(player)
+			else:
+				push_warning("PlayerCombat: cannot deploy temp turret because abilities dependency is missing.")
 
 func trigger_slash(player: CharacterBody3D, dmg: float, knockback: float, arc_degrees: float, is_dueling: bool) -> void:
 	var slash_area: Area3D = player.get_node_or_null("SlashHitbox") as Area3D
@@ -129,7 +131,7 @@ func trigger_hammer_smash(player: CharacterBody3D, dmg: float, is_dueling: bool)
 		return
 	var buildings = player.get_tree().get_nodes_in_group("buildings")
 	for b in buildings:
-		if b and is_instance_valid(b) and b is Node3D:
-			if player.global_position.distance_to((b as Node3D).global_position) <= 2.8:
-				if b.has_method("repair"):
-					b.repair(40.0)
+		if b and is_instance_valid(b) and b is BuildingBase:
+			var bb: BuildingBase = b as BuildingBase
+			if player.global_position.distance_to(bb.global_position) <= 2.8:
+				bb.repair(40.0)

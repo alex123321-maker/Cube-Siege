@@ -14,6 +14,8 @@ var is_parrying: bool = false
 var parry_timer: float = 0.0
 var parry_cooldown_timer: float = 0.0
 
+var current_day: int = 1
+
 func update_timers(delta: float) -> void:
 	if parry_cooldown_timer > 0.0:
 		parry_cooldown_timer -= delta
@@ -66,15 +68,10 @@ func take_damage(damage: float, attacker: Node = null, is_dashing: bool = false,
 
 	if current_health <= 0.0:
 		current_health = 0.0
-		var day_num: int = 1
-		if player_node:
-			var cycle = player_node.get_tree().root.find_child("DayNightCycle", true, false)
-			if cycle and "current_day" in cycle:
-				day_num = cycle.current_day
 
 		var roster = player_node.get_node_or_null("/root/RosterManager") if player_node else null
 		if roster and roster.has_method("record_run_end"):
-			roster.record_run_end(false, day_num, 0)
+			roster.record_run_end(false, current_day, 0)
 
 		player_died.emit()
 		if bus:
