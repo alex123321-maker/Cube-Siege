@@ -9,12 +9,20 @@ var fire_timer: float = 0.0
 const ARROW_SCENE = preload("res://scenes/prefabs/arrow_projectile.tscn")
 const TowerTargeting = preload("res://scripts/tower_targeting.gd")
 
-@onready var swivel: Node3D = $Swivel
+@onready var swivel: Node3D = get_node_or_null("TempTurretModel/root/swivel")
 @onready var life_label: Label3D = $LifeLabel
 
 func _ready() -> void:
 	add_to_group("buildings")
 	add_to_group("allies")
+	if not swivel:
+		swivel = find_child("swivel", true, false)
+
+	# Deploy mechanical VFX
+	var vfx = get_node_or_null("/root/VFXManager")
+	if vfx:
+		vfx.spawn_sparks(global_position + Vector3(0, 0.4, 0), Vector3.UP, Color(0.9, 0.7, 0.2), 14, 4.0)
+		vfx.spawn_shockwave(global_position, 1.8, Color(0.8, 0.5, 0.2), 0.25)
 
 func _physics_process(delta: float) -> void:
 	lifetime -= delta
@@ -44,12 +52,22 @@ func fire_at(target: Node3D) -> void:
 		if horiz.length_squared() > 0.01:
 			swivel.look_at(swivel.global_position + horiz.normalized(), Vector3.UP)
 
+	# Muzzle flash VFX
+	var vfx = get_node_or_null("/root/VFXManager")
+	if vfx:
+		vfx.spawn_turret_muzzle_flash(spawn_pos + aim_dir * 0.7, aim_dir)
+
 	var proj: Node3D = ARROW_SCENE.instantiate()
 	get_parent().add_child(proj)
 	proj.global_position = spawn_pos + aim_dir * 0.8
 	proj.setup(aim_dir, damage, self, 1)
 
 func explode_and_free() -> void:
+	var vfx = get_node_or_null("/root/VFXManager")
+	if vfx:
+		vfx.spawn_sparks(global_position + Vector3(0, 0.5, 0), Vector3.UP, Color(0.5, 0.5, 0.5), 16, 5.0)
+		vfx.spawn_puff(global_position + Vector3(0, 0.6, 0), Color(0.2, 0.2, 0.2), 16, 3.5)
+
 	var tween: Tween = create_tween()
-	tween.tween_property(self, "scale", Vector3.ZERO, 0.2)
+	tween.tween_property(self, "scale", Vector3(0.01, 0.01, 0.01), 0.2)
 	tween.chain().tween_callback(queue_free)

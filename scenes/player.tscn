@@ -1,8 +1,10 @@
-[gd_scene load_steps=9 format=3 uid="uid://cplayer001"]
+[gd_scene load_steps=11 format=3 uid="uid://cplayer001"]
 
 [ext_resource type="Script" path="res://scripts/player_prototype.gd" id="1_proto"]
 [ext_resource type="Script" path="res://scripts/hitbox_area.gd" id="2_hitbox"]
 [ext_resource type="PackedScene" path="res://assets/models/characters/hero_warrior.tscn" id="3_warrior_model"]
+[ext_resource type="PackedScene" path="res://assets/models/characters/hero_archer.tscn" id="4_archer_model"]
+[ext_resource type="PackedScene" path="res://assets/models/characters/hero_engineer.tscn" id="5_engineer_model"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_player"]
 size = Vector3(0.8, 1.8, 0.8)
@@ -37,6 +39,12 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.9, 0)
 
 [node name="HeroWarrior" parent="Visuals" instance=ExtResource("3_warrior_model")]
 
+[node name="HeroArcher" parent="Visuals" instance=ExtResource("4_archer_model")]
+visible = false
+
+[node name="HeroEngineer" parent="Visuals" instance=ExtResource("5_engineer_model")]
+visible = false
+
 [node name="SlashHitbox" type="Area3D" parent="."]
 collision_layer = 0
 collision_mask = 8
@@ -70,4 +78,3 @@ monitorable = false
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="InteractionSensor"]
 shape = SubResource("SphereShape3D_sensor")
-

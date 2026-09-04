@@ -29,4 +29,5 @@ func _on_area_entered(area: Area3D) -> void:
 		hit_entities.append(target)
 		var hit_direction: Vector3 = (target.global_position - global_position).normalized()
 		hit_direction.y = 0.0
-		area.take_damage(damage, knockback_force * hit_direction, damage_type, owner_entity)
+		var attacker = owner_entity if is_instance_valid(owner_entity) else null
+		area.take_damage(damage, knockback_force * hit_direction, damage_type, attacker)

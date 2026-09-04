@@ -139,8 +139,19 @@ var active_tether: Node3D:
 	set(val): abilities.active_tether = val
 
 # Visual nodes
-@onready var hero_warrior: Node3D = $Visuals.get_node_or_null("HeroWarrior")
-@onready var anim_player: AnimationPlayer = $Visuals.get_node_or_null("HeroWarrior/AnimationPlayer")
+@onready var hero_warrior: Node3D = $Visuals.get_node_or_null("HeroWarrior") if has_node("Visuals") else null
+@onready var hero_archer: Node3D = $Visuals.get_node_or_null("HeroArcher") if has_node("Visuals") else null
+@onready var hero_engineer: Node3D = $Visuals.get_node_or_null("HeroEngineer") if has_node("Visuals") else null
+@onready var anim_player: AnimationPlayer:
+	get:
+		if presentation and presentation.anim_player:
+			return presentation.anim_player
+		if has_node("Visuals"):
+			return $Visuals.get_node_or_null("HeroWarrior/AnimationPlayer")
+		return null
+	set(val):
+		if presentation:
+			presentation.anim_player = val
 @onready var parry_shield_mesh: Node3D = $Visuals.get_node_or_null("HeroWarrior/root/torso/left_arm/shield") if hero_warrior else $Visuals.get_node_or_null("ParryShield")
 @onready var sword_mesh: Node3D = $Visuals.get_node_or_null("HeroWarrior/root/torso/right_arm/sword") if hero_warrior else $Visuals.get_node_or_null("Sword")
 @onready var slash_area: Area3D = $SlashHitbox
@@ -265,35 +276,28 @@ func set_class(new_class: CharacterClass, show_popup: bool = true) -> void:
 	if bus_cls:
 		bus_cls.player_class_changed.emit(int(new_class))
 
-	# Visual appearance setup
-	var torso: MeshInstance3D = find_child("torso", true, false) as MeshInstance3D
-	var sword: Node3D = find_child("sword", true, false) as Node3D
-	var shield: Node3D = find_child("shield", true, false) as Node3D
+	var m_warrior: Node3D = $Visuals.get_node_or_null("HeroWarrior") if has_node("Visuals") else null
+	var m_archer: Node3D = $Visuals.get_node_or_null("HeroArcher") if has_node("Visuals") else null
+	var m_engineer: Node3D = $Visuals.get_node_or_null("HeroEngineer") if has_node("Visuals") else null
 
 	match current_class:
 		CharacterClass.WARRIOR:
-			if torso:
-				var m = StandardMaterial3D.new()
-				m.albedo_color = Color(0.2, 0.45, 0.85)
-				torso.material_override = m
-			if sword: sword.visible = true
-			if shield: shield.visible = true
+			if m_warrior: m_warrior.visible = true
+			if m_archer: m_archer.visible = false
+			if m_engineer: m_engineer.visible = false
+			if presentation and m_warrior: presentation.set_active_model(m_warrior)
 			if show_popup: spawn_popup_text("КЛАСС: ВОИН [МЕЧ & ПАРИРОВАНИЕ]", Color(0.3, 0.6, 1.0))
 		CharacterClass.ARCHER:
-			if torso:
-				var m = StandardMaterial3D.new()
-				m.albedo_color = Color(0.2, 0.75, 0.35)
-				torso.material_override = m
-			if sword: sword.visible = false
-			if shield: shield.visible = false
+			if m_warrior: m_warrior.visible = false
+			if m_archer: m_archer.visible = true
+			if m_engineer: m_engineer.visible = false
+			if presentation and m_archer: presentation.set_active_model(m_archer)
 			if show_popup: spawn_popup_text("КЛАСС: ЛУЧНИК [СТРЕЛЬБА & ПРИМАНКА]", Color(0.3, 1.0, 0.5))
 		CharacterClass.ENGINEER:
-			if torso:
-				var m = StandardMaterial3D.new()
-				m.albedo_color = Color(0.9, 0.5, 0.15)
-				torso.material_override = m
-			if sword: sword.visible = false
-			if shield: shield.visible = false
+			if m_warrior: m_warrior.visible = false
+			if m_archer: m_archer.visible = false
+			if m_engineer: m_engineer.visible = true
+			if presentation and m_engineer: presentation.set_active_model(m_engineer)
 			if show_popup: spawn_popup_text("КЛАСС: ИНЖЕНЕР [МОЛОТ & ТУРЕЛИ]", Color(1.0, 0.6, 0.2))
 
 func perform_attack() -> void:

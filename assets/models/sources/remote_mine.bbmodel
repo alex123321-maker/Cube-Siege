@@ -1,0 +1,701 @@
+{
+  "meta": {
+    "format_version": "4.5",
+    "model_format": "free",
+    "box_uv": false
+  },
+  "name": "remote_mine",
+  "resolution": {
+    "width": 64,
+    "height": 64
+  },
+  "elements": [
+    {
+      "name": "mine_base",
+      "uuid": "64a92f78-9e00-4e9c-ba1f-67777923c9d3",
+      "from": [
+        -4.5,
+        0.0,
+        -4.5
+      ],
+      "to": [
+        4.5,
+        1.2,
+        4.5
+      ],
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 24,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            24,
+            8,
+            32
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            0,
+            24,
+            8,
+            32
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            24,
+            8,
+            32
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            24,
+            8,
+            32
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            0,
+            24,
+            8,
+            32
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            0,
+            24,
+            8,
+            32
+          ],
+          "texture": 0
+        }
+      }
+    },
+    {
+      "name": "mine_casing",
+      "uuid": "b8d6c7e5-b8b4-4136-97de-1b15c00a04ee",
+      "from": [
+        -4.0,
+        1.2,
+        -4.0
+      ],
+      "to": [
+        4.0,
+        3.0,
+        4.0
+      ],
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 24,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            24,
+            8,
+            32
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            0,
+            24,
+            8,
+            32
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            24,
+            8,
+            32
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            24,
+            8,
+            32
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            0,
+            24,
+            8,
+            32
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            0,
+            24,
+            8,
+            32
+          ],
+          "texture": 0
+        }
+      }
+    },
+    {
+      "name": "mine_hazard_rim",
+      "uuid": "b6078201-a0b0-4b88-b9a5-f4b5e3169e6f",
+      "from": [
+        -3.5,
+        2.8,
+        -3.5
+      ],
+      "to": [
+        3.5,
+        3.4,
+        3.5
+      ],
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 25,
+      "faces": {
+        "north": {
+          "uv": [
+            8,
+            24,
+            16,
+            32
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            8,
+            24,
+            16,
+            32
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            8,
+            24,
+            16,
+            32
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            8,
+            24,
+            16,
+            32
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            8,
+            24,
+            16,
+            32
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            8,
+            24,
+            16,
+            32
+          ],
+          "texture": 0
+        }
+      }
+    },
+    {
+      "name": "sensor_pin1",
+      "uuid": "26c10e55-302e-4337-8315-a0682e36febd",
+      "from": [
+        -3.2,
+        3.4,
+        -3.2
+      ],
+      "to": [
+        -2.4,
+        4.2,
+        -2.4
+      ],
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 22,
+      "faces": {
+        "north": {
+          "uv": [
+            48,
+            16,
+            56,
+            24
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            48,
+            16,
+            56,
+            24
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            48,
+            16,
+            56,
+            24
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            48,
+            16,
+            56,
+            24
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            48,
+            16,
+            56,
+            24
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            48,
+            16,
+            56,
+            24
+          ],
+          "texture": 0
+        }
+      }
+    },
+    {
+      "name": "sensor_pin2",
+      "uuid": "5c0bc856-e311-414f-ae0d-92ec00071a95",
+      "from": [
+        2.4,
+        3.4,
+        -3.2
+      ],
+      "to": [
+        3.2,
+        4.2,
+        -2.4
+      ],
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 22,
+      "faces": {
+        "north": {
+          "uv": [
+            48,
+            16,
+            56,
+            24
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            48,
+            16,
+            56,
+            24
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            48,
+            16,
+            56,
+            24
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            48,
+            16,
+            56,
+            24
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            48,
+            16,
+            56,
+            24
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            48,
+            16,
+            56,
+            24
+          ],
+          "texture": 0
+        }
+      }
+    },
+    {
+      "name": "sensor_pin3",
+      "uuid": "53d53b02-7eae-456f-aaf3-cb748ad49d6f",
+      "from": [
+        -3.2,
+        3.4,
+        2.4
+      ],
+      "to": [
+        -2.4,
+        4.2,
+        3.2
+      ],
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 22,
+      "faces": {
+        "north": {
+          "uv": [
+            48,
+            16,
+            56,
+            24
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            48,
+            16,
+            56,
+            24
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            48,
+            16,
+            56,
+            24
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            48,
+            16,
+            56,
+            24
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            48,
+            16,
+            56,
+            24
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            48,
+            16,
+            56,
+            24
+          ],
+          "texture": 0
+        }
+      }
+    },
+    {
+      "name": "sensor_pin4",
+      "uuid": "4053ac81-aa3d-4979-975c-8e42d3861fd7",
+      "from": [
+        2.4,
+        3.4,
+        2.4
+      ],
+      "to": [
+        3.2,
+        4.2,
+        3.2
+      ],
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 22,
+      "faces": {
+        "north": {
+          "uv": [
+            48,
+            16,
+            56,
+            24
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            48,
+            16,
+            56,
+            24
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            48,
+            16,
+            56,
+            24
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            48,
+            16,
+            56,
+            24
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            48,
+            16,
+            56,
+            24
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            48,
+            16,
+            56,
+            24
+          ],
+          "texture": 0
+        }
+      }
+    },
+    {
+      "name": "beacon_light",
+      "uuid": "97714273-7994-4f25-9792-cdb49cf164f6",
+      "from": [
+        -1.5,
+        3.2,
+        -1.5
+      ],
+      "to": [
+        1.5,
+        4.5,
+        1.5
+      ],
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 27,
+      "faces": {
+        "north": {
+          "uv": [
+            24,
+            24,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            24,
+            24,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            24,
+            24,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            24,
+            24,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            24,
+            24,
+            32,
+            32
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            24,
+            24,
+            32,
+            32
+          ],
+          "texture": 0
+        }
+      }
+    }
+  ],
+  "outliner": [
+    {
+      "name": "root",
+      "uuid": "af56950b-848a-4069-8f17-60e5fd241118",
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "children": [
+        "64a92f78-9e00-4e9c-ba1f-67777923c9d3",
+        "b8d6c7e5-b8b4-4136-97de-1b15c00a04ee",
+        "b6078201-a0b0-4b88-b9a5-f4b5e3169e6f",
+        "26c10e55-302e-4337-8315-a0682e36febd",
+        "5c0bc856-e311-414f-ae0d-92ec00071a95",
+        "53d53b02-7eae-456f-aaf3-cb748ad49d6f",
+        "4053ac81-aa3d-4979-975c-8e42d3861fd7",
+        "97714273-7994-4f25-9792-cdb49cf164f6"
+      ]
+    }
+  ],
+  "textures": [
+    {
+      "name": "remote_mine",
+      "folder": "textures",
+      "id": "0",
+      "particle": false,
+      "render_mode": "default",
+      "visible": true,
+      "mode": "bitmap",
+      "saved": true,
+      "uuid": "44af0ac7-eaf0-4bde-aec0-6f0961d0502e",
+      "source": "data:image/png;base64,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",
+      "width": 64,
+      "height": 64,
+      "relative_path": "../textures/remote_mine.png"
+    }
+  ],
+  "animations": []
+}

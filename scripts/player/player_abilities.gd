@@ -11,6 +11,8 @@ var is_eagle_eye: bool = false
 var is_dueling: bool = false
 var duel_target: Node3D = null
 var active_tether: Node3D = null
+var active_duel_indicator: Node3D = null
+var active_parry_aura: Node3D = null
 
 const DUEL_TETHER_SCENE = preload("res://scenes/duel_tether.tscn")
 const TEMP_TURRET_SCENE = preload("res://scenes/prefabs/temp_turret.tscn")
@@ -35,16 +37,17 @@ func perform_utility(player: CharacterBody3D, current_class: int) -> void:
 
 func perform_parry(player: CharacterBody3D) -> void:
 	if player.health.trigger_parry(0.5, 6.0):
-		var anim_player: AnimationPlayer = player.find_child("AnimationPlayer", true, false) as AnimationPlayer
-		var parry_shield: Node3D = player.find_child("shield", true, false) as Node3D
-		if not parry_shield:
-			parry_shield = player.find_child("ParryShield", true, false) as Node3D
+		var vfx = player.get_node_or_null("/root/VFXManager")
+		if vfx:
+			active_parry_aura = vfx.spawn_parry_stance_aura(player, 0.5)
 
-		if anim_player:
-			anim_player.stop()
-			anim_player.play("block")
-		elif parry_shield:
-			parry_shield.visible = true
+		if player.presentation:
+			player.presentation.play_utility_animation()
+		else:
+			var anim_player: AnimationPlayer = player.find_child("AnimationPlayer", true, false) as AnimationPlayer
+			if anim_player:
+				anim_player.stop()
+				anim_player.play("block")
 
 func perform_ultimate(player: CharacterBody3D, current_class: int) -> void:
 	if ultimate_cooldown_timer > 0.0:
@@ -72,6 +75,15 @@ func perform_warrior_ultimate(player: CharacterBody3D) -> void:
 	active_tether.setup(player, duel_target)
 	if duel_target.has_method("start_duel"):
 		duel_target.start_duel(player)
+
+	var vfx = player.get_node_or_null("/root/VFXManager")
+	if vfx:
+		active_duel_indicator = vfx.spawn_duel_indicator(duel_target)
+		vfx.spawn_shockwave(player.global_position, 4.0, Color.GOLD, 0.4)
+
+	if player.presentation:
+		player.presentation.play_ultimate_animation()
+
 	player.spawn_popup_text("DUEL OF HONOR!", Color.GOLD)
 
 func perform_archer_ultimate(player: CharacterBody3D) -> void:
@@ -79,6 +91,14 @@ func perform_archer_ultimate(player: CharacterBody3D) -> void:
 		return
 	ultimate_cooldown_timer = 25.0
 	is_eagle_eye = true
+
+	var vfx = player.get_node_or_null("/root/VFXManager")
+	if vfx:
+		vfx.spawn_eagle_eye_burst(player)
+
+	if player.presentation:
+		player.presentation.play_ultimate_animation()
+
 	player.spawn_popup_text("EAGLE EYE ACTIVATED! (+50% RANGE)", Color.LIGHT_GREEN)
 	var vp = player.get_viewport()
 	var cam: Camera3D = vp.get_camera_3d() if vp else null
@@ -89,6 +109,10 @@ func perform_archer_ultimate(player: CharacterBody3D) -> void:
 func perform_engineer_ultimate(player: CharacterBody3D) -> void:
 	ultimate_cooldown_timer = 60.0
 	var target_pos: Vector3 = get_nuke_target_position(player)
+
+	if player.presentation:
+		player.presentation.play_ultimate_animation()
+
 	player.spawn_popup_text("TACTICAL NUKE INCOMING!", Color.ORANGE_RED)
 	_execute_tactical_nuke(player, target_pos)
 
@@ -107,70 +131,55 @@ func get_nuke_target_position(player: CharacterBody3D) -> Vector3:
 	return player.global_position
 
 func _execute_tactical_nuke(player: CharacterBody3D, target_pos: Vector3) -> void:
-	var telegraph: MeshInstance3D = MeshInstance3D.new()
-	var cyl: CylinderMesh = CylinderMesh.new()
-	cyl.top_radius = 10.0
-	cyl.bottom_radius = 10.0
-	cyl.height = 0.05
-	telegraph.mesh = cyl
-	var mat: StandardMaterial3D = StandardMaterial3D.new()
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.albedo_color = Color(1.0, 0.2, 0.0, 0.0)
-	mat.emission_enabled = true
-	mat.emission = Color(1.0, 0.3, 0.0)
-	mat.emission_energy_multiplier = 2.0
-	telegraph.material_override = mat
-	player.get_parent().add_child(telegraph)
-	telegraph.global_position = target_pos + Vector3(0, 0.05, 0)
-
-	var tween_in: Tween = player.create_tween()
-	tween_in.tween_property(mat, "albedo_color", Color(1.0, 0.2, 0.0, 0.45), 1.2)
-
-	await player.get_tree().create_timer(1.2).timeout
-
 	var nuke_damage: float = 300.0
 	var nuke_radius: float = 10.0
+	var burn_damage: float = 25.0
+
+	var vfx = player.get_node_or_null("/root/VFXManager")
+	if vfx:
+		vfx.spawn_tactical_nuke_telegraph(target_pos, 1.2)
+
+	if not player.is_inside_tree():
+		_apply_nuke_impact_damage(player, target_pos, nuke_damage, nuke_radius)
+		return
+
+	# Explicit gameplay timing: 1.2s to impact
+	await player.get_tree().create_timer(1.2).timeout
+	if not is_instance_valid(player) or not player.is_inside_tree():
+		return
+
+	_apply_nuke_impact_damage(player, target_pos, nuke_damage, nuke_radius)
+
+	if vfx:
+		vfx.spawn_tactical_nuke_impact(target_pos)
+		vfx.spawn_tactical_nuke_burn(target_pos, 5.0)
+
+	# Ground plasma burn loop (10 ticks, every 0.5s for 5.0s total)
+	for i in range(10):
+		await player.get_tree().create_timer(0.5).timeout
+		if not is_instance_valid(player) or not player.is_inside_tree():
+			return
+		_apply_nuke_burn_damage(player, target_pos, burn_damage, nuke_radius)
+
+func _apply_nuke_impact_damage(player: CharacterBody3D, target_pos: Vector3, damage: float, radius: float) -> void:
 	var enemies: Array[Node] = player.get_tree().get_nodes_in_group("enemies")
 	for e in enemies:
 		if e and is_instance_valid(e) and e is Node3D:
 			var dist: float = target_pos.distance_to((e as Node3D).global_position)
-			if dist <= nuke_radius:
+			if dist <= radius:
 				var kb_dir: Vector3 = ((e as Node3D).global_position - target_pos).normalized()
 				if e.has_method("_on_damaged"):
-					e._on_damaged(nuke_damage, kb_dir * 15.0, "nuke", player)
+					e._on_damaged(damage, kb_dir * 15.0, "nuke", player)
 				if e.is_in_group("siege") and "damage_resist" in e:
 					e.damage_resist = 0.0
 
-	mat.albedo_color = Color(1.0, 1.0, 0.8, 0.7)
-	mat.emission = Color(1.0, 1.0, 0.9)
-	mat.emission_energy_multiplier = 5.0
-
-	var burn_timer: float = 5.0
-	var burn_tick: float = 0.5
-	var burn_damage: float = 25.0
-	var elapsed: float = 0.0
-
-	var tween_burn: Tween = player.create_tween()
-	tween_burn.tween_property(mat, "albedo_color", Color(1.0, 0.4, 0.0, 0.35), 0.3)
-	tween_burn.parallel().tween_property(mat, "emission", Color(1.0, 0.4, 0.0), 0.3)
-	tween_burn.parallel().tween_property(mat, "emission_energy_multiplier", 1.5, 0.3)
-
-	while elapsed < burn_timer:
-		await player.get_tree().create_timer(burn_tick).timeout
-		elapsed += burn_tick
-		if not is_instance_valid(telegraph):
-			break
-		var burn_enemies: Array[Node] = player.get_tree().get_nodes_in_group("enemies")
-		for e in burn_enemies:
-			if e and is_instance_valid(e) and e is Node3D:
-				if target_pos.distance_to((e as Node3D).global_position) <= nuke_radius:
-					if e.has_method("_on_damaged"):
-						e._on_damaged(burn_damage, Vector3.ZERO, "burn", player)
-
-	if is_instance_valid(telegraph):
-		var tween_out: Tween = player.create_tween()
-		tween_out.tween_property(mat, "albedo_color:a", 0.0, 0.5)
-		tween_out.chain().tween_callback(telegraph.queue_free)
+func _apply_nuke_burn_damage(player: CharacterBody3D, target_pos: Vector3, damage: float, radius: float) -> void:
+	var burn_enemies: Array[Node] = player.get_tree().get_nodes_in_group("enemies")
+	for e in burn_enemies:
+		if e and is_instance_valid(e) and e is Node3D:
+			if target_pos.distance_to((e as Node3D).global_position) <= radius:
+				if e.has_method("_on_damaged"):
+					e._on_damaged(damage, Vector3.ZERO, "burn", player)
 
 func end_duel(player: CharacterBody3D) -> void:
 	if not is_dueling:
@@ -179,6 +188,12 @@ func end_duel(player: CharacterBody3D) -> void:
 	if active_tether and is_instance_valid(active_tether):
 		active_tether.queue_free()
 		active_tether = null
+	if active_duel_indicator and is_instance_valid(active_duel_indicator):
+		active_duel_indicator.queue_free()
+		active_duel_indicator = null
+	var vfx = player.get_node_or_null("/root/VFXManager")
+	if vfx and duel_target and is_instance_valid(duel_target):
+		vfx.dismiss_duel_indicator(duel_target)
 	duel_target = null
 	player.spawn_popup_text("DUEL VICTORIOUS!", Color.GREEN)
 
@@ -193,29 +208,42 @@ func find_target_near_mouse(player: CharacterBody3D) -> Node3D:
 	var ray_normal: Vector3 = cam.project_ray_normal(mouse_pos)
 	var ground_plane: Plane = Plane(Vector3.UP, 0.0)
 	var intersect: Variant = ground_plane.intersects_ray(ray_origin, ray_normal)
-	if not (intersect is Vector3): return null
+	if not (intersect is Vector3):
+		return null
 
+	var target_pos: Vector3 = intersect as Vector3
 	var enemies: Array[Node] = player.get_tree().get_nodes_in_group("enemies")
-	var nearest: Node3D = null
+	var closest: Node3D = null
 	var min_dist: float = 14.0
-
 	for e in enemies:
-		if e is Node3D and is_instance_valid(e):
-			var d: float = (intersect as Vector3).distance_to(e.global_position)
+		if e and is_instance_valid(e) and e is Node3D:
+			var d = target_pos.distance_to((e as Node3D).global_position)
 			if d < min_dist:
 				min_dist = d
-				nearest = e
+				closest = e as Node3D
+	return closest
 
-	return nearest
+func _is_actor_alive(player: Variant) -> bool:
+	if not is_instance_valid(player) or not (player is Node) or not player.is_inside_tree():
+		return false
+	if "current_health" in player and player.current_health <= 0.0:
+		return false
+	return true
 
 func deploy_temp_turret(player: CharacterBody3D) -> void:
+	if not _is_actor_alive(player):
+		return
 	var turret = TEMP_TURRET_SCENE.instantiate()
 	player.get_parent().add_child(turret)
 	turret.global_position = player.global_position + (-player.global_transform.basis.z * 1.5)
 	player.spawn_popup_text("TURRET DEPLOYED!", Color.GOLD)
 
 func toggle_remote_mine(player: CharacterBody3D) -> void:
+	if not _is_actor_alive(player):
+		return
 	if is_instance_valid(active_remote_mine):
+		if player.presentation:
+			player.presentation.play_utility_animation()
 		active_remote_mine.detonate(player)
 		active_remote_mine = null
 		player.parry_cooldown_timer = 3.5
@@ -223,16 +251,30 @@ func toggle_remote_mine(player: CharacterBody3D) -> void:
 		if player.parry_cooldown_timer > 0.0:
 			player.spawn_popup_text("MINE RECHARGING...", Color.GRAY)
 			return
+		if player.presentation:
+			player.presentation.play_utility_animation()
 		active_remote_mine = REMOTE_MINE_SCENE.instantiate()
 		player.get_parent().add_child(active_remote_mine)
 		active_remote_mine.global_position = player.global_position
 		player.spawn_popup_text("MINE PLANTED! [Q] DETONATE", Color.INDIAN_RED)
 
 func deploy_decoy(player: CharacterBody3D) -> void:
-	if player.parry_cooldown_timer > 0.0:
-		player.spawn_popup_text("DECOY RECHARGING...", Color.GRAY)
+	if not _is_actor_alive(player) or player.parry_cooldown_timer > 0.0:
+		if _is_actor_alive(player):
+			player.spawn_popup_text("DECOY RECHARGING...", Color.GRAY)
 		return
 	player.parry_cooldown_timer = 12.0
+	if player.presentation:
+		player.presentation.play_utility_animation()
+	if not player.is_inside_tree():
+		var decoy = DECOY_DUMMY_SCENE.instantiate()
+		player.get_parent().add_child(decoy)
+		decoy.global_position = player.global_position + (-player.global_transform.basis.z * 3.0)
+		player.spawn_popup_text("DECOY DEPLOYED! (AGGRO 3.5s)", Color.LIGHT_GREEN)
+		return
+	await player.get_tree().create_timer(0.14).timeout
+	if not _is_actor_alive(player):
+		return
 	var decoy = DECOY_DUMMY_SCENE.instantiate()
 	player.get_parent().add_child(decoy)
 	decoy.global_position = player.global_position + (-player.global_transform.basis.z * 3.0)

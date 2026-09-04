@@ -5,16 +5,26 @@ extends Node3D
 
 const FLOATING_TEXT_SCENE = preload("res://scenes/floating_text.tscn")
 
-@onready var light_mesh: MeshInstance3D = $MeshInstance3D
+@onready var beacon: Node3D = find_child("beacon_light", true, false)
 
 func _ready() -> void:
 	add_to_group("remote_mines")
-	# Gentle blink tween
-	var tween: Tween = create_tween().set_loops()
-	tween.tween_property(light_mesh, "scale", Vector3(1.15, 1.15, 1.15), 0.3)
-	tween.tween_property(light_mesh, "scale", Vector3(1.0, 1.0, 1.0), 0.3)
+	# Plant dust & sound click
+	var vfx = get_node_or_null("/root/VFXManager")
+	if vfx:
+		vfx.spawn_sparks(global_position + Vector3(0, 0.1, 0), Vector3.UP, Color(0.9, 0.4, 0.2), 6, 2.5)
+
+	# Gentle beacon blink
+	if beacon:
+		var tween: Tween = create_tween().set_loops()
+		tween.tween_property(beacon, "scale", Vector3(1.25, 1.25, 1.25), 0.35)
+		tween.tween_property(beacon, "scale", Vector3(1.0, 1.0, 1.0), 0.35)
 
 func detonate(attacker: Node = null) -> void:
+	var vfx = get_node_or_null("/root/VFXManager")
+	if vfx:
+		vfx.spawn_mine_explosion(global_position, blast_radius)
+
 	var enemies: Array[Node] = get_tree().get_nodes_in_group("enemies")
 	for e in enemies:
 		if e and is_instance_valid(e) and e is Node3D:
@@ -30,8 +40,15 @@ func detonate(attacker: Node = null) -> void:
 	var popup: Node3D = FLOATING_TEXT_SCENE.instantiate()
 	get_parent().add_child(popup)
 	popup.global_position = global_position + Vector3(0, 1.5, 0)
-	if popup.has_node("Label3D"):
-		popup.get_node("Label3D").text = "BOOM! (250 DMG)"
-		popup.get_node("Label3D").modulate = Color.ORANGE_RED
+	var lbl: Label3D = popup.get_node_or_null("Label3D") as Label3D
+	if lbl:
+		lbl.text = "BOOM! (250 DMG)"
+		lbl.modulate = Color.ORANGE_RED
+	var tween: Tween = popup.create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(popup, "position:y", popup.position.y + 1.6, 0.6).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	if lbl:
+		tween.tween_property(lbl, "modulate:a", 0.0, 0.6).set_delay(0.2)
+	tween.chain().tween_callback(popup.queue_free)
 
 	queue_free()
