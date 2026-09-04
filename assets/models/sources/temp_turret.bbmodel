@@ -12,7 +12,7 @@
   "elements": [
     {
       "name": "tripod_center",
-      "uuid": "a491268a-51c1-4a3c-b497-7146e95d041c",
+      "uuid": "f437493c-7699-4621-96b0-e6c05cc1840d",
       "from": [
         -2.0,
         1.0,
@@ -93,7 +93,7 @@
     },
     {
       "name": "leg_front",
-      "uuid": "c12c70a6-eafe-49a3-9570-cab97e5d9cdb",
+      "uuid": "b939d154-0019-47c8-a6b5-1610a7fd2e45",
       "from": [
         -1.5,
         0.0,
@@ -174,7 +174,7 @@
     },
     {
       "name": "leg_back_l",
-      "uuid": "380522cc-2de4-47ce-84a5-7bff6cab2023",
+      "uuid": "f85a6ea0-1c9b-4ccf-85b2-4c1d0fb5975e",
       "from": [
         -6.5,
         0.0,
@@ -255,7 +255,7 @@
     },
     {
       "name": "leg_back_r",
-      "uuid": "b5f191e9-5367-497a-bebf-81742bec07c9",
+      "uuid": "ed7a86ce-fa4e-459c-ba38-5c00c89d675c",
       "from": [
         1.0,
         0.0,
@@ -336,7 +336,7 @@
     },
     {
       "name": "swivel_ring",
-      "uuid": "89aa356d-356f-474a-830a-12790b8c924c",
+      "uuid": "0f3763ea-5077-4399-a07b-fa75b0f4eb35",
       "from": [
         -3.0,
         4.5,
@@ -417,7 +417,7 @@
     },
     {
       "name": "turret_housing",
-      "uuid": "975aadf8-6b5d-43aa-8f97-62dcab18f786",
+      "uuid": "f671a936-d344-4c24-a3e0-8ce7eaa0d6f4",
       "from": [
         -4.0,
         6.0,
@@ -498,7 +498,7 @@
     },
     {
       "name": "ammo_drum",
-      "uuid": "4810ab5f-36e7-4840-8468-af32b9843136",
+      "uuid": "74e31624-8415-44a2-a09e-0a5cdc88bdab",
       "from": [
         -5.5,
         7.0,
@@ -579,7 +579,7 @@
     },
     {
       "name": "sensor_eye",
-      "uuid": "3b9465c2-0e69-4aa9-8168-ee4376e6ff75",
+      "uuid": "a7821fe6-47c1-4755-a6d0-4ef85c62053a",
       "from": [
         1.5,
         9.0,
@@ -660,7 +660,7 @@
     },
     {
       "name": "barrel_left",
-      "uuid": "93e3244c-46f9-4e8e-90bb-4a32599e534b",
+      "uuid": "b0cbe719-2c77-4275-91a6-5e1c05d096cc",
       "from": [
         -3.2,
         7.5,
@@ -741,7 +741,7 @@
     },
     {
       "name": "barrel_right",
-      "uuid": "c9716e7c-2157-47a0-a9b4-8eca388bcaae",
+      "uuid": "0d5d318a-c7aa-488f-8306-98533c7f3c66",
       "from": [
         -0.8,
         7.5,
@@ -824,32 +824,32 @@
   "outliner": [
     {
       "name": "root",
-      "uuid": "3ce70bea-e870-43cb-875d-82528115ed80",
+      "uuid": "33e0d386-a756-462e-bab0-d459a026ab83",
       "origin": [
         0,
         0,
         0
       ],
       "children": [
-        "a491268a-51c1-4a3c-b497-7146e95d041c",
-        "c12c70a6-eafe-49a3-9570-cab97e5d9cdb",
-        "380522cc-2de4-47ce-84a5-7bff6cab2023",
-        "b5f191e9-5367-497a-bebf-81742bec07c9",
-        "89aa356d-356f-474a-830a-12790b8c924c",
+        "f437493c-7699-4621-96b0-e6c05cc1840d",
+        "b939d154-0019-47c8-a6b5-1610a7fd2e45",
+        "f85a6ea0-1c9b-4ccf-85b2-4c1d0fb5975e",
+        "ed7a86ce-fa4e-459c-ba38-5c00c89d675c",
+        "0f3763ea-5077-4399-a07b-fa75b0f4eb35",
         {
           "name": "swivel",
-          "uuid": "5c90fe9d-e8b3-49bd-bc76-c08956dfa15f",
+          "uuid": "71440e18-5d8f-44d9-8c86-79d30b2cc745",
           "origin": [
             0,
             6,
             0
           ],
           "children": [
-            "975aadf8-6b5d-43aa-8f97-62dcab18f786",
-            "4810ab5f-36e7-4840-8468-af32b9843136",
-            "3b9465c2-0e69-4aa9-8168-ee4376e6ff75",
-            "93e3244c-46f9-4e8e-90bb-4a32599e534b",
-            "c9716e7c-2157-47a0-a9b4-8eca388bcaae"
+            "f671a936-d344-4c24-a3e0-8ce7eaa0d6f4",
+            "74e31624-8415-44a2-a09e-0a5cdc88bdab",
+            "a7821fe6-47c1-4755-a6d0-4ef85c62053a",
+            "b0cbe719-2c77-4275-91a6-5e1c05d096cc",
+            "0d5d318a-c7aa-488f-8306-98533c7f3c66"
           ]
         }
       ]
@@ -865,7 +865,7 @@
       "visible": true,
       "mode": "bitmap",
       "saved": true,
-      "uuid": "0bebaee8-e8a3-45fc-a338-1206357bfad3",
+      "uuid": "b233df4f-532f-42a9-808a-3a2bf7a169b9",
       "source": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAFrklEQVR4nOWYX2hbVRzHvzncgXQshdmo3UOqFG22aWUuolCHinOsSKU+7KXDF1GEPrghGxMcirANta4wGX2YfxC1GVqFyootnRb/tOuQNKXd2rWuURJt3cx0qbXTF1v53fSkJzf3nHPTm67W+4Gb3HN+yfnld87vX65vd/PP8/F4HBy6r6yszI79kx9BJZ/o2AsZqYtJBMIzUvnM6Cd47kAaKt7yVyv171mTMt/vuasSsXOLn8vKj30qXTsWi8EQFxcX5sr8k2o5GamDDLXjw3cnUL/jAbR3j9nK63eEEG9V60fIr9Vf+3AYh4+eyJmLRCIIBoMwchYT4MpSk2p5IawLH8RM9FDOHDc+CMC6lSR7AWuV+uPJ4awHxJO/2Oq1Gk80NDSgt7c3swG2O2ujTCZ3ajzWhDLv5BULG0GnTIba+RHJ0PqTUn9lsNz2XmRszN7DiJwQWMpmOIUMthpPyNyfy3bFL7nWHwqFbOd7yQPEBe2MTWnkhWINAe4BIsmFkCBZZWqtUn+8Vx8CKgxxMRHnnnH3ko2XeUDQJgfI9DsJAUp4FPPSJBh3GQZD3ycg476SHjPby7DzAGsOcON5VOrIUHJ3EZojfNNz8/OQEIsl8NDWCkz9/rc5Pv1N1Pxi1a03meMN62/AEy17lXX63u3blPKangGo2P/BGVz67Q/ccqMfp/sG8WjNluyYaNy+SdkHRPrlmz8+M5XxAL8P+GogYesitAEqdH3E+ts2KOVNOg9wCRmpwqAXq/FinXTKUsOovXtA2Qfsf1KjdyHxuUqCY4o66QQ3fYS2D9DpdpAEtRsQUtRJHW4TqK4P0HmAWwy3C+j6iKtzfynl9cassg/QUZQQiCjqpFNkJ8+ToEze3qPuA3Qe4DoEYrGEsk46wU0YaPuAInB+MNMt2uE70/r8vKqONjV/ply8JHpcKptGEh2+Z5Xff6zxJWWfcLh6Wvn9uqfulMoS0X7UvS5/HuEoB+hOqM02fztH10fU71M/L/hnwVA7Tn7xI4AyzLV12crZrp1glDh48uD34iX+X7eiyuCFQsZaN4OuQvQPjlw2Lx3jVYHsvaFLIro63Qb3uOkTyAOc8nlVAKSpajzzGI1g0KCr08t18suh32o8oQ0Bu0ycLGKWtvYR1s0oln5ye6vxjkKgqfk7ZZ3GkcdRDKR9Qve0Ur9YBbZsvlm6vp3xRaoCQNrmz1QhuOkTfoj2L2R7OZTtZfha3vtY+jzg5PvvoOtIxrjq3Zm54VYUNJ4omVP+uHDfHUp5f8tixrZy4dc0BgOzqHlw8alUxe2bkbg4kh0HNr2oXN+glzePvopAIFdRKpVCeXm5K+PN8TNwBRmpouHphqzBfV8PmRvAoftrwment20130u/HcitAm8ca8lbmM+5Mv46wY2mzeBj2gxYjC87O2xefCOyG/DaoZdhRZxbqvF8vLjQeOaSEF13yrwKJfJ2JG9ODAtu/LWNFeYlboKhW7xoxpuTVUpd4Zk6FAq5Pz95vhk0FkNBBaOXAwdfyROIc6shDOxOnnsGxfyV+6tRciFhXnTP8wCjl317GvMW4nOrwXjyAjEMeFIUPYNvgmg8YVCp49leRJxzEwYTJXDN6OWrUllYUQ1oHNhUn/2saDjHl06npX0AEWnvlspGRkZwfKP8ueH41CxOnJ2F6nlDc8c5rCQGNHWS9wmP7MxNUF92nTK9ZLw0Y+BqhenqpK5P0KH7s7XSGNY6SZRZMmVnZ2feF+3mlvTQcvgKVhIGj2OIJYJOnrCWitra2rwTp7nRoeiyP7e/bkmwdGET+L21J7AmQZqzK5+rLQQMcWBXJ6nUkaHW0xaNPz/5p0KFD/9lfACUfcD/HQaPw+BxGDwOg8dh8DgMHofB4zB4HAaPw+BxGDwOg8dh8DgMHofB4zB4HAaPw+BxGDwOg8dh8DgMHoet9A9Yaf4FelWAsj4DaCoAAAAASUVORK5CYII=",
       "width": 64,
       "height": 64,

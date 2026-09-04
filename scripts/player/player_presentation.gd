@@ -83,9 +83,17 @@ func spawn_popup_text(player: CharacterBody3D, text: String, color: Color) -> vo
 	var popup: Node3D = FLOATING_TEXT_SCENE.instantiate()
 	player.get_parent().add_child(popup)
 	popup.global_position = player.global_position + Vector3(0, 2.2, 0)
-	if popup.has_node("Label3D"):
-		popup.get_node("Label3D").text = text
-		popup.get_node("Label3D").modulate = color
+	var lbl: Label3D = popup.get_node_or_null("Label3D") as Label3D
+	if lbl:
+		lbl.text = text
+		lbl.modulate = color
+
+	var tween: Tween = popup.create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(popup, "position:y", popup.position.y + 1.6, 0.6).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	if lbl:
+		tween.tween_property(lbl, "modulate:a", 0.0, 0.6).set_delay(0.2)
+	tween.chain().tween_callback(popup.queue_free)
 
 func update_portal_compass(player: CharacterBody3D) -> void:
 	if not portal_compass or not is_instance_valid(portal_compass):

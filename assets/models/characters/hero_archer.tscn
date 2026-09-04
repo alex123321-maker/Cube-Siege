@@ -1,4 +1,4 @@
-[gd_scene load_steps=120 format=3 uid="uid://cs_hero_archer_1f47efbb"]
+[gd_scene load_steps=120 format=3 uid="uid://cs_hero_archer_0cbc511a"]
 
 [ext_resource type="Texture2D" path="res://assets/models/textures/hero_archer.png" id="1_tex"]
 
@@ -298,103 +298,103 @@ uv1_offset = Vector3(0.375, 0.5, 0)
 metallic = 0.0
 roughness = 0.9
 
-[sub_resource type="BoxMesh" id="BoxMesh_head_a25236"]
+[sub_resource type="BoxMesh" id="BoxMesh_head_bdd935"]
 material = SubResource("StandardMaterial3D_col_2")
 size = Vector3(0.418, 0.418, 0.418)
 
-[sub_resource type="BoxMesh" id="BoxMesh_hood_cowl_b00101"]
+[sub_resource type="BoxMesh" id="BoxMesh_hood_cowl_4b65e1"]
 material = SubResource("StandardMaterial3D_col_10")
 size = Vector3(0.484, 0.44, 0.484)
 
-[sub_resource type="BoxMesh" id="BoxMesh_hood_tail_49c6c3"]
+[sub_resource type="BoxMesh" id="BoxMesh_hood_tail_d19406"]
 material = SubResource("StandardMaterial3D_col_10")
 size = Vector3(0.22, 0.165, 0.077)
 
-[sub_resource type="BoxMesh" id="BoxMesh_feather_1f60d3"]
+[sub_resource type="BoxMesh" id="BoxMesh_feather_70d341"]
 material = SubResource("StandardMaterial3D_col_13")
 size = Vector3(0.044, 0.33, 0.0825)
 
-[sub_resource type="BoxMesh" id="BoxMesh_torso_a9102f"]
+[sub_resource type="BoxMesh" id="BoxMesh_torso_2a6643"]
 material = SubResource("StandardMaterial3D_col_11")
 size = Vector3(0.418, 0.66, 0.22)
 
-[sub_resource type="BoxMesh" id="BoxMesh_cloak_torso_e4ebf1"]
+[sub_resource type="BoxMesh" id="BoxMesh_cloak_torso_3f5391"]
 material = SubResource("StandardMaterial3D_col_10")
 size = Vector3(0.462, 0.5225, 0.2695)
 
-[sub_resource type="BoxMesh" id="BoxMesh_archer_belt_83a623"]
+[sub_resource type="BoxMesh" id="BoxMesh_archer_belt_5c6232"]
 material = SubResource("StandardMaterial3D_col_12")
 size = Vector3(0.451, 0.11, 0.253)
 
-[sub_resource type="BoxMesh" id="BoxMesh_quiver_tube_a79973"]
+[sub_resource type="BoxMesh" id="BoxMesh_quiver_tube_8b3ed9"]
 material = SubResource("StandardMaterial3D_col_17")
 size = Vector3(0.176, 0.66, 0.132)
 
-[sub_resource type="BoxMesh" id="BoxMesh_arrow_fletch1_ef2fef"]
+[sub_resource type="BoxMesh" id="BoxMesh_arrow_fletch1_b8b854"]
 material = SubResource("StandardMaterial3D_col_13")
 size = Vector3(0.044, 0.165, 0.044)
 
-[sub_resource type="BoxMesh" id="BoxMesh_arrow_fletch2_5c18fd"]
+[sub_resource type="BoxMesh" id="BoxMesh_arrow_fletch2_3280ea"]
 material = SubResource("StandardMaterial3D_col_13")
 size = Vector3(0.044, 0.176, 0.044)
 
-[sub_resource type="BoxMesh" id="BoxMesh_left_arm_bc60dc"]
+[sub_resource type="BoxMesh" id="BoxMesh_left_arm_f9c4bf"]
 material = SubResource("StandardMaterial3D_col_11")
 size = Vector3(0.198, 0.66, 0.198)
 
-[sub_resource type="BoxMesh" id="BoxMesh_l_bracer_1eb172"]
+[sub_resource type="BoxMesh" id="BoxMesh_l_bracer_fdb394"]
 material = SubResource("StandardMaterial3D_col_12")
 size = Vector3(0.22, 0.22, 0.22)
 
-[sub_resource type="BoxMesh" id="BoxMesh_bow_grip_875584"]
+[sub_resource type="BoxMesh" id="BoxMesh_bow_grip_44afe2"]
 material = SubResource("StandardMaterial3D_col_14")
 size = Vector3(0.055, 0.165, 0.055)
 
-[sub_resource type="BoxMesh" id="BoxMesh_bow_upper_f18a04"]
+[sub_resource type="BoxMesh" id="BoxMesh_bow_upper_ce60c2"]
 material = SubResource("StandardMaterial3D_col_14")
 size = Vector3(0.044, 0.495, 0.099)
 
-[sub_resource type="BoxMesh" id="BoxMesh_bow_lower_72f33b"]
+[sub_resource type="BoxMesh" id="BoxMesh_bow_lower_739d47"]
 material = SubResource("StandardMaterial3D_col_14")
 size = Vector3(0.044, 0.495, 0.099)
 
-[sub_resource type="BoxMesh" id="BoxMesh_bow_tip_top_526731"]
+[sub_resource type="BoxMesh" id="BoxMesh_bow_tip_top_8d1dd5"]
 material = SubResource("StandardMaterial3D_col_3")
 size = Vector3(0.044, 0.1375, 0.066)
 
-[sub_resource type="BoxMesh" id="BoxMesh_bow_tip_bot_7f434a"]
+[sub_resource type="BoxMesh" id="BoxMesh_bow_tip_bot_05e3b6"]
 material = SubResource("StandardMaterial3D_col_3")
 size = Vector3(0.044, 0.1375, 0.066)
 
-[sub_resource type="BoxMesh" id="BoxMesh_bow_string_79a674"]
+[sub_resource type="BoxMesh" id="BoxMesh_bow_string_a25e9d"]
 material = SubResource("StandardMaterial3D_col_15")
 size = Vector3(0.022, 1.32, 0.022)
 
-[sub_resource type="BoxMesh" id="BoxMesh_right_arm_b06655"]
+[sub_resource type="BoxMesh" id="BoxMesh_right_arm_94e9c4"]
 material = SubResource("StandardMaterial3D_col_11")
 size = Vector3(0.198, 0.66, 0.198)
 
-[sub_resource type="BoxMesh" id="BoxMesh_r_bracer_197e6c"]
+[sub_resource type="BoxMesh" id="BoxMesh_r_bracer_073bc8"]
 material = SubResource("StandardMaterial3D_col_12")
 size = Vector3(0.22, 0.22, 0.22)
 
-[sub_resource type="BoxMesh" id="BoxMesh_nocked_arrow_12fbe0"]
+[sub_resource type="BoxMesh" id="BoxMesh_nocked_arrow_470512"]
 material = SubResource("StandardMaterial3D_col_16")
 size = Vector3(0.022, 0.055, 0.66)
 
-[sub_resource type="BoxMesh" id="BoxMesh_right_leg_e22738"]
+[sub_resource type="BoxMesh" id="BoxMesh_right_leg_3cd32f"]
 material = SubResource("StandardMaterial3D_col_1")
 size = Vector3(0.198, 0.66, 0.198)
 
-[sub_resource type="BoxMesh" id="BoxMesh_r_boot_55b429"]
+[sub_resource type="BoxMesh" id="BoxMesh_r_boot_7cc305"]
 material = SubResource("StandardMaterial3D_col_12")
 size = Vector3(0.22, 0.33, 0.242)
 
-[sub_resource type="BoxMesh" id="BoxMesh_left_leg_3d54ab"]
+[sub_resource type="BoxMesh" id="BoxMesh_left_leg_5fa895"]
 material = SubResource("StandardMaterial3D_col_1")
 size = Vector3(0.198, 0.66, 0.198)
 
-[sub_resource type="BoxMesh" id="BoxMesh_l_boot_cd89c1"]
+[sub_resource type="BoxMesh" id="BoxMesh_l_boot_e779b4"]
 material = SubResource("StandardMaterial3D_col_12")
 size = Vector3(0.22, 0.33, 0.242)
 
@@ -562,10 +562,10 @@ tracks/0/path = NodePath("root/torso:rotation")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
-"times": PackedFloat32Array(0.0, 0.18, 0.24, 0.38),
+"times": PackedFloat32Array(0.0, 0.12, 0.26, 0.38),
 "transitions": PackedFloat32Array(1, 1, 1, 1),
 "update": 0,
-"values": [Vector3(0.0, 0.43633, 0.0), Vector3(0.0, 0.61087, 0.0), Vector3(0.0, 0.2618, 0.0), Vector3(0.06981, 0.2618, 0.0)]
+"values": [Vector3(0.0, 0.2618, 0.0), Vector3(0.0, 0.34907, 0.0), Vector3(0.06981, 0.2618, 0.0), Vector3(0.06981, 0.2618, 0.0)]
 }
 tracks/1/type = "value"
 tracks/1/imported = false
@@ -574,10 +574,10 @@ tracks/1/path = NodePath("root/torso/left_arm:rotation")
 tracks/1/interp = 1
 tracks/1/loop_wrap = true
 tracks/1/keys = {
-"times": PackedFloat32Array(0.0, 0.15, 0.24, 0.38),
+"times": PackedFloat32Array(0.0, 0.12, 0.24, 0.38),
 "transitions": PackedFloat32Array(1, 1, 1, 1),
 "update": 0,
-"values": [Vector3(-0.61087, 0.34907, -0.17453), Vector3(-1.48353, 0.5236, -0.08727), Vector3(-1.5708, 0.5236, -0.08727), Vector3(-0.61087, 0.34907, -0.17453)]
+"values": [Vector3(-1.5708, 0.5236, -0.08727), Vector3(-1.22173, 0.43633, -0.13963), Vector3(-0.61087, 0.34907, -0.17453), Vector3(-0.61087, 0.34907, -0.17453)]
 }
 tracks/2/type = "value"
 tracks/2/imported = false
@@ -586,10 +586,10 @@ tracks/2/path = NodePath("root/torso/right_arm:rotation")
 tracks/2/interp = 1
 tracks/2/loop_wrap = true
 tracks/2/keys = {
-"times": PackedFloat32Array(0.0, 0.15, 0.24, 0.38),
+"times": PackedFloat32Array(0.0, 0.12, 0.24, 0.38),
 "transitions": PackedFloat32Array(1, 1, 1, 1),
 "update": 0,
-"values": [Vector3(-0.2618, -0.17453, 0.17453), Vector3(-1.39626, -0.43633, 0.34907), Vector3(-0.5236, -0.17453, 0.61087), Vector3(-0.2618, -0.17453, 0.17453)]
+"values": [Vector3(-0.5236, -0.17453, 0.61087), Vector3(-1.0472, -0.34907, 0.34907), Vector3(-0.2618, -0.17453, 0.17453), Vector3(-0.2618, -0.17453, 0.17453)]
 }
 tracks/3/type = "value"
 tracks/3/imported = false
@@ -598,10 +598,10 @@ tracks/3/path = NodePath("root/torso/right_arm/arrow_hand:rotation")
 tracks/3/interp = 1
 tracks/3/loop_wrap = true
 tracks/3/keys = {
-"times": PackedFloat32Array(0.0, 0.15, 0.24, 0.38),
+"times": PackedFloat32Array(0.0, 0.12, 0.24, 0.38),
 "transitions": PackedFloat32Array(1, 1, 1, 1),
 "update": 0,
-"values": [Vector3(0.0, 0.0, 0.0), Vector3(0.0, 0.0, 0.0), Vector3(0.0, 0.0, 0.0), Vector3(0.7854, 0.0, 0.0)]
+"values": [Vector3(0.0, 0.0, 0.0), Vector3(0.34907, 0.0, 0.0), Vector3(0.0, 0.0, 0.0), Vector3(0.0, 0.0, 0.0)]
 }
 tracks/4/type = "value"
 tracks/4/imported = false
@@ -610,15 +610,15 @@ tracks/4/path = NodePath("root/torso/right_arm/arrow_hand:position")
 tracks/4/interp = 1
 tracks/4/loop_wrap = true
 tracks/4/keys = {
-"times": PackedFloat32Array(0.0, 0.15, 0.24, 0.38),
+"times": PackedFloat32Array(0.0, 0.12, 0.24, 0.38),
 "transitions": PackedFloat32Array(1, 1, 1, 1),
 "update": 0,
-"values": [Vector3(0.0, -0.44, 0.0), Vector3(0.0, -0.44, 0.11), Vector3(0.0, -0.44, -0.22), Vector3(0.0, -0.44, 0.0)]
+"values": [Vector3(0.0, -0.44, -0.22), Vector3(0.0, -0.44, -0.055), Vector3(0.0, -0.44, 0.0), Vector3(0.0, -0.44, 0.0)]
 }
 
 [sub_resource type="Animation" id="Animation_special"]
 resource_name = "special"
-length = 0.5
+length = 0.48
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
@@ -626,10 +626,10 @@ tracks/0/path = NodePath("root/torso:rotation")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
-"times": PackedFloat32Array(0.0, 0.25, 0.34, 0.5),
+"times": PackedFloat32Array(0.0, 0.16, 0.32, 0.48),
 "transitions": PackedFloat32Array(1, 1, 1, 1),
 "update": 0,
-"values": [Vector3(0.06981, 0.2618, 0.0), Vector3(0.03491, 0.7854, 0.0), Vector3(0.13963, 0.17453, 0.0), Vector3(0.06981, 0.2618, 0.0)]
+"values": [Vector3(0.13963, 0.17453, 0.0), Vector3(0.10472, 0.20944, 0.0), Vector3(0.06981, 0.2618, 0.0), Vector3(0.06981, 0.2618, 0.0)]
 }
 tracks/1/type = "value"
 tracks/1/imported = false
@@ -638,10 +638,10 @@ tracks/1/path = NodePath("root/torso:position")
 tracks/1/interp = 1
 tracks/1/loop_wrap = true
 tracks/1/keys = {
-"times": PackedFloat32Array(0.0, 0.25, 0.34, 0.5),
+"times": PackedFloat32Array(0.0, 0.16, 0.32, 0.48),
 "transitions": PackedFloat32Array(1, 1, 1, 1),
 "update": 0,
-"values": [Vector3(0.0, 0.66, 0.0), Vector3(0.0, 0.627, -0.044), Vector3(0.0, 0.6435, 0.044), Vector3(0.0, 0.66, 0.0)]
+"values": [Vector3(0.0, 0.638, 0.044), Vector3(0.0, 0.649, 0.0165), Vector3(0.0, 0.66, 0.0), Vector3(0.0, 0.66, 0.0)]
 }
 tracks/2/type = "value"
 tracks/2/imported = false
@@ -650,10 +650,10 @@ tracks/2/path = NodePath("root/torso/left_arm:rotation")
 tracks/2/interp = 1
 tracks/2/loop_wrap = true
 tracks/2/keys = {
-"times": PackedFloat32Array(0.0, 0.25, 0.34, 0.5),
+"times": PackedFloat32Array(0.0, 0.16, 0.32, 0.48),
 "transitions": PackedFloat32Array(1, 1, 1, 1),
 "update": 0,
-"values": [Vector3(-0.61087, 0.34907, -0.17453), Vector3(-1.6057, 0.69813, 0.0), Vector3(-1.8326, 0.61087, 0.17453), Vector3(-0.61087, 0.34907, -0.17453)]
+"values": [Vector3(-1.8326, 0.61087, 0.17453), Vector3(-1.309, 0.43633, -0.08727), Vector3(-0.61087, 0.34907, -0.17453), Vector3(-0.61087, 0.34907, -0.17453)]
 }
 tracks/3/type = "value"
 tracks/3/imported = false
@@ -662,15 +662,15 @@ tracks/3/path = NodePath("root/torso/right_arm:rotation")
 tracks/3/interp = 1
 tracks/3/loop_wrap = true
 tracks/3/keys = {
-"times": PackedFloat32Array(0.0, 0.25, 0.34, 0.5),
+"times": PackedFloat32Array(0.0, 0.16, 0.32, 0.48),
 "transitions": PackedFloat32Array(1, 1, 1, 1),
 "update": 0,
-"values": [Vector3(-0.2618, -0.17453, 0.17453), Vector3(-1.5708, -0.69813, 0.5236), Vector3(-0.34907, -0.2618, 0.7854), Vector3(-0.2618, -0.17453, 0.17453)]
+"values": [Vector3(-0.34907, -0.2618, 0.7854), Vector3(-0.95993, -0.34907, 0.34907), Vector3(-0.2618, -0.17453, 0.17453), Vector3(-0.2618, -0.17453, 0.17453)]
 }
 
 [sub_resource type="Animation" id="Animation_utility"]
 resource_name = "utility"
-length = 0.45
+length = 0.4
 tracks/0/type = "value"
 tracks/0/imported = false
 tracks/0/enabled = true
@@ -678,10 +678,10 @@ tracks/0/path = NodePath("root/torso/right_arm:rotation")
 tracks/0/interp = 1
 tracks/0/loop_wrap = true
 tracks/0/keys = {
-"times": PackedFloat32Array(0.0, 0.15, 0.3, 0.45),
+"times": PackedFloat32Array(0.0, 0.15, 0.28, 0.4),
 "transitions": PackedFloat32Array(1, 1, 1, 1),
 "update": 0,
-"values": [Vector3(-0.2618, -0.17453, 0.17453), Vector3(0.5236, -0.34907, 0.17453), Vector3(-1.5708, -0.17453, 0.17453), Vector3(-0.2618, -0.17453, 0.17453)]
+"values": [Vector3(-1.5708, -0.17453, 0.17453), Vector3(-0.7854, -0.17453, 0.17453), Vector3(-0.2618, -0.17453, 0.17453), Vector3(-0.2618, -0.17453, 0.17453)]
 }
 tracks/1/type = "value"
 tracks/1/imported = false
@@ -690,10 +690,10 @@ tracks/1/path = NodePath("root/torso:rotation")
 tracks/1/interp = 1
 tracks/1/loop_wrap = true
 tracks/1/keys = {
-"times": PackedFloat32Array(0.0, 0.15, 0.3, 0.45),
+"times": PackedFloat32Array(0.0, 0.15, 0.28, 0.4),
 "transitions": PackedFloat32Array(1, 1, 1, 1),
 "update": 0,
-"values": [Vector3(0.06981, 0.2618, 0.0), Vector3(0.17453, -0.2618, 0.0), Vector3(-0.08727, 0.34907, 0.0), Vector3(0.06981, 0.2618, 0.0)]
+"values": [Vector3(-0.08727, 0.34907, 0.0), Vector3(0.0, 0.2618, 0.0), Vector3(0.06981, 0.2618, 0.0), Vector3(0.06981, 0.2618, 0.0)]
 }
 
 [sub_resource type="Animation" id="Animation_ultimate"]
@@ -784,122 +784,122 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.66, 0.0)
 
 [node name="torso" type="MeshInstance3D" parent="root/torso"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.33, 0.0)
-mesh = SubResource("BoxMesh_torso_a9102f")
+mesh = SubResource("BoxMesh_torso_2a6643")
 
 [node name="cloak_torso" type="MeshInstance3D" parent="root/torso"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.37125, 0.00275)
-mesh = SubResource("BoxMesh_cloak_torso_e4ebf1")
+mesh = SubResource("BoxMesh_cloak_torso_3f5391")
 
 [node name="archer_belt" type="MeshInstance3D" parent="root/torso"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.055, 0.0)
-mesh = SubResource("BoxMesh_archer_belt_83a623")
+mesh = SubResource("BoxMesh_archer_belt_5c6232")
 
 [node name="quiver" type="Node3D" parent="root/torso"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.143, 0.44, 0.187)
 
 [node name="quiver_tube" type="MeshInstance3D" parent="root/torso/quiver"]
-mesh = SubResource("BoxMesh_quiver_tube_a79973")
+mesh = SubResource("BoxMesh_quiver_tube_8b3ed9")
 
 [node name="arrow_fletch1" type="MeshInstance3D" parent="root/torso/quiver"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.022, 0.385, -0.022)
-mesh = SubResource("BoxMesh_arrow_fletch1_ef2fef")
+mesh = SubResource("BoxMesh_arrow_fletch1_b8b854")
 
 [node name="arrow_fletch2" type="MeshInstance3D" parent="root/torso/quiver"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.022, 0.418, 0.022)
-mesh = SubResource("BoxMesh_arrow_fletch2_5c18fd")
+mesh = SubResource("BoxMesh_arrow_fletch2_3280ea")
 
 [node name="head" type="Node3D" parent="root/torso"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.66, 0.0)
 
 [node name="head" type="MeshInstance3D" parent="root/torso/head"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.209, 0.0)
-mesh = SubResource("BoxMesh_head_a25236")
+mesh = SubResource("BoxMesh_head_bdd935")
 
 [node name="hood_cowl" type="MeshInstance3D" parent="root/torso/head"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.2475, 0.0)
-mesh = SubResource("BoxMesh_hood_cowl_b00101")
+mesh = SubResource("BoxMesh_hood_cowl_4b65e1")
 
 [node name="hood_tail" type="MeshInstance3D" parent="root/torso/head"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.0275, 0.2475)
-mesh = SubResource("BoxMesh_hood_tail_49c6c3")
+mesh = SubResource("BoxMesh_hood_tail_d19406")
 
 [node name="feather" type="MeshInstance3D" parent="root/torso/head"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.231, 0.44, 0.09625)
-mesh = SubResource("BoxMesh_feather_1f60d3")
+mesh = SubResource("BoxMesh_feather_70d341")
 
 [node name="right_arm" type="Node3D" parent="root/torso"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.308, 0.55, 0.0)
 
 [node name="right_arm" type="MeshInstance3D" parent="root/torso/right_arm"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.22, 0.0)
-mesh = SubResource("BoxMesh_right_arm_b06655")
+mesh = SubResource("BoxMesh_right_arm_94e9c4")
 
 [node name="r_bracer" type="MeshInstance3D" parent="root/torso/right_arm"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.4125, 0.0)
-mesh = SubResource("BoxMesh_r_bracer_197e6c")
+mesh = SubResource("BoxMesh_r_bracer_073bc8")
 
 [node name="arrow_hand" type="Node3D" parent="root/torso/right_arm"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.44, 0.0)
 
 [node name="nocked_arrow" type="MeshInstance3D" parent="root/torso/right_arm/arrow_hand"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.0, -0.33)
-mesh = SubResource("BoxMesh_nocked_arrow_12fbe0")
+mesh = SubResource("BoxMesh_nocked_arrow_470512")
 
 [node name="left_arm" type="Node3D" parent="root/torso"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.308, 0.55, 0.0)
 
 [node name="left_arm" type="MeshInstance3D" parent="root/torso/left_arm"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.22, 0.0)
-mesh = SubResource("BoxMesh_left_arm_bc60dc")
+mesh = SubResource("BoxMesh_left_arm_f9c4bf")
 
 [node name="l_bracer" type="MeshInstance3D" parent="root/torso/left_arm"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.4125, 0.0)
-mesh = SubResource("BoxMesh_l_bracer_1eb172")
+mesh = SubResource("BoxMesh_l_bracer_fdb394")
 
 [node name="bow" type="Node3D" parent="root/torso/left_arm"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.44, -0.0935)
 
 [node name="bow_grip" type="MeshInstance3D" parent="root/torso/left_arm/bow"]
-mesh = SubResource("BoxMesh_bow_grip_875584")
+mesh = SubResource("BoxMesh_bow_grip_44afe2")
 
 [node name="bow_upper" type="MeshInstance3D" parent="root/torso/left_arm/bow"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.33, -0.033)
-mesh = SubResource("BoxMesh_bow_upper_f18a04")
+mesh = SubResource("BoxMesh_bow_upper_ce60c2")
 
 [node name="bow_lower" type="MeshInstance3D" parent="root/torso/left_arm/bow"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.33, -0.033)
-mesh = SubResource("BoxMesh_bow_lower_72f33b")
+mesh = SubResource("BoxMesh_bow_lower_739d47")
 
 [node name="bow_tip_top" type="MeshInstance3D" parent="root/torso/left_arm/bow"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.64625, 0.0165)
-mesh = SubResource("BoxMesh_bow_tip_top_526731")
+mesh = SubResource("BoxMesh_bow_tip_top_8d1dd5")
 
 [node name="bow_tip_bot" type="MeshInstance3D" parent="root/torso/left_arm/bow"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.64625, 0.0165)
-mesh = SubResource("BoxMesh_bow_tip_bot_7f434a")
+mesh = SubResource("BoxMesh_bow_tip_bot_05e3b6")
 
 [node name="bow_string" type="MeshInstance3D" parent="root/torso/left_arm/bow"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.0, 0.0715)
-mesh = SubResource("BoxMesh_bow_string_79a674")
+mesh = SubResource("BoxMesh_bow_string_a25e9d")
 
 [node name="right_leg" type="Node3D" parent="root"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.11, 0.66, 0.0)
 
 [node name="right_leg" type="MeshInstance3D" parent="root/right_leg"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.33, 0.0)
-mesh = SubResource("BoxMesh_right_leg_e22738")
+mesh = SubResource("BoxMesh_right_leg_3cd32f")
 
 [node name="r_boot" type="MeshInstance3D" parent="root/right_leg"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.495, 0.0)
-mesh = SubResource("BoxMesh_r_boot_55b429")
+mesh = SubResource("BoxMesh_r_boot_7cc305")
 
 [node name="left_leg" type="Node3D" parent="root"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.11, 0.66, 0.0)
 
 [node name="left_leg" type="MeshInstance3D" parent="root/left_leg"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.33, 0.0)
-mesh = SubResource("BoxMesh_left_leg_3d54ab")
+mesh = SubResource("BoxMesh_left_leg_5fa895")
 
 [node name="l_boot" type="MeshInstance3D" parent="root/left_leg"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.495, 0.0)
-mesh = SubResource("BoxMesh_l_boot_cd89c1")
+mesh = SubResource("BoxMesh_l_boot_e779b4")

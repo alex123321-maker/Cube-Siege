@@ -1,4 +1,4 @@
-[gd_scene load_steps=120 format=3 uid="uid://cs_remote_mine_0d51147d"]
+[gd_scene load_steps=120 format=3 uid="uid://cs_remote_mine_2a0c4159"]
 
 [ext_resource type="Texture2D" path="res://assets/models/textures/remote_mine.png" id="1_tex"]
 
@@ -298,35 +298,35 @@ uv1_offset = Vector3(0.375, 0.5, 0)
 metallic = 0.0
 roughness = 0.9
 
-[sub_resource type="BoxMesh" id="BoxMesh_mine_base_9c6410"]
+[sub_resource type="BoxMesh" id="BoxMesh_mine_base_04da1f"]
 material = SubResource("StandardMaterial3D_col_24")
 size = Vector3(0.495, 0.066, 0.495)
 
-[sub_resource type="BoxMesh" id="BoxMesh_mine_casing_969a07"]
+[sub_resource type="BoxMesh" id="BoxMesh_mine_casing_f65a11"]
 material = SubResource("StandardMaterial3D_col_24")
 size = Vector3(0.44, 0.099, 0.44)
 
-[sub_resource type="BoxMesh" id="BoxMesh_mine_hazard_rim_f18c34"]
+[sub_resource type="BoxMesh" id="BoxMesh_mine_hazard_rim_ad921c"]
 material = SubResource("StandardMaterial3D_col_25")
 size = Vector3(0.385, 0.033, 0.385)
 
-[sub_resource type="BoxMesh" id="BoxMesh_sensor_pin1_1606f1"]
+[sub_resource type="BoxMesh" id="BoxMesh_sensor_pin1_5a5288"]
 material = SubResource("StandardMaterial3D_col_22")
 size = Vector3(0.044, 0.044, 0.044)
 
-[sub_resource type="BoxMesh" id="BoxMesh_sensor_pin2_442b10"]
+[sub_resource type="BoxMesh" id="BoxMesh_sensor_pin2_2e8d8c"]
 material = SubResource("StandardMaterial3D_col_22")
 size = Vector3(0.044, 0.044, 0.044)
 
-[sub_resource type="BoxMesh" id="BoxMesh_sensor_pin3_aa9588"]
+[sub_resource type="BoxMesh" id="BoxMesh_sensor_pin3_a6b79c"]
 material = SubResource("StandardMaterial3D_col_22")
 size = Vector3(0.044, 0.044, 0.044)
 
-[sub_resource type="BoxMesh" id="BoxMesh_sensor_pin4_aa6209"]
+[sub_resource type="BoxMesh" id="BoxMesh_sensor_pin4_29e1cd"]
 material = SubResource("StandardMaterial3D_col_22")
 size = Vector3(0.044, 0.044, 0.044)
 
-[sub_resource type="BoxMesh" id="BoxMesh_beacon_light_db0eb0"]
+[sub_resource type="BoxMesh" id="BoxMesh_beacon_light_1ae978"]
 material = SubResource("StandardMaterial3D_col_27")
 size = Vector3(0.165, 0.0715, 0.165)
 
@@ -336,32 +336,32 @@ size = Vector3(0.165, 0.0715, 0.165)
 
 [node name="mine_base" type="MeshInstance3D" parent="root"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.033, 0.0)
-mesh = SubResource("BoxMesh_mine_base_9c6410")
+mesh = SubResource("BoxMesh_mine_base_04da1f")
 
 [node name="mine_casing" type="MeshInstance3D" parent="root"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.1155, 0.0)
-mesh = SubResource("BoxMesh_mine_casing_969a07")
+mesh = SubResource("BoxMesh_mine_casing_f65a11")
 
 [node name="mine_hazard_rim" type="MeshInstance3D" parent="root"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.1705, 0.0)
-mesh = SubResource("BoxMesh_mine_hazard_rim_f18c34")
+mesh = SubResource("BoxMesh_mine_hazard_rim_ad921c")
 
 [node name="sensor_pin1" type="MeshInstance3D" parent="root"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.154, 0.209, -0.154)
-mesh = SubResource("BoxMesh_sensor_pin1_1606f1")
+mesh = SubResource("BoxMesh_sensor_pin1_5a5288")
 
 [node name="sensor_pin2" type="MeshInstance3D" parent="root"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.154, 0.209, -0.154)
-mesh = SubResource("BoxMesh_sensor_pin2_442b10")
+mesh = SubResource("BoxMesh_sensor_pin2_2e8d8c")
 
 [node name="sensor_pin3" type="MeshInstance3D" parent="root"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.154, 0.209, 0.154)
-mesh = SubResource("BoxMesh_sensor_pin3_aa9588")
+mesh = SubResource("BoxMesh_sensor_pin3_a6b79c")
 
 [node name="sensor_pin4" type="MeshInstance3D" parent="root"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.154, 0.209, 0.154)
-mesh = SubResource("BoxMesh_sensor_pin4_aa6209")
+mesh = SubResource("BoxMesh_sensor_pin4_29e1cd")
 
 [node name="beacon_light" type="MeshInstance3D" parent="root"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.21175, 0.0)
-mesh = SubResource("BoxMesh_beacon_light_db0eb0")
+mesh = SubResource("BoxMesh_beacon_light_1ae978")

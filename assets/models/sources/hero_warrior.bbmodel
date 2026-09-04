@@ -12,7 +12,7 @@
   "elements": [
     {
       "name": "head",
-      "uuid": "c5857284-f4be-4519-ad2d-d2232b42e8ea",
+      "uuid": "0fde2d25-3960-444e-80f7-47b19c3d7cb8",
       "from": [
         -4,
         24,
@@ -93,7 +93,7 @@
     },
     {
       "name": "helmet_crest",
-      "uuid": "6f9fce26-2c2b-48ee-a927-a2a9a78ade4f",
+      "uuid": "e776509d-7ec3-464c-9735-18fec78e3525",
       "from": [
         -1,
         32,
@@ -174,7 +174,7 @@
     },
     {
       "name": "helmet_visor",
-      "uuid": "ccfaa341-21a3-491a-b307-1e8fa2388c24",
+      "uuid": "fee74079-7219-440a-8c6c-d79398ba1346",
       "from": [
         -4.3,
         26,
@@ -255,7 +255,7 @@
     },
     {
       "name": "helmet_top",
-      "uuid": "7bd33b90-a9c4-4cfe-9c07-7facd874c427",
+      "uuid": "ec309981-42e1-46fd-80a1-c7e36ee366b8",
       "from": [
         -4.2,
         31,
@@ -336,7 +336,7 @@
     },
     {
       "name": "torso",
-      "uuid": "4fd49f0d-ae32-4c07-af46-da044877129b",
+      "uuid": "ca7d9181-b6cd-43f4-9974-02ea44dd5402",
       "from": [
         -4,
         12,
@@ -417,7 +417,7 @@
     },
     {
       "name": "breastplate",
-      "uuid": "39795726-506d-486e-b8e3-4439bf38ce2a",
+      "uuid": "18729af6-7e01-4392-bf5f-fcb9fd4d8123",
       "from": [
         -4.5,
         14.5,
@@ -498,7 +498,7 @@
     },
     {
       "name": "belt",
-      "uuid": "051703f0-cc64-4925-8864-f4d61e166877",
+      "uuid": "a47ddcd5-daa3-419b-9020-4c7168a8e828",
       "from": [
         -4.6,
         12.0,
@@ -579,7 +579,7 @@
     },
     {
       "name": "belt_buckle",
-      "uuid": "d2a2c766-4a93-46b2-ae8d-eeeab85737ca",
+      "uuid": "8898b410-24aa-4f71-ab0a-99403b368a04",
       "from": [
         -1.5,
         12.0,
@@ -660,7 +660,7 @@
     },
     {
       "name": "right_arm",
-      "uuid": "50842595-59cf-491d-ab77-2a3492e72a8c",
+      "uuid": "9bb87b06-a6ec-440f-b62b-29815e0d1e15",
       "from": [
         -8,
         12,
@@ -741,7 +741,7 @@
     },
     {
       "name": "r_pauldron",
-      "uuid": "e365f0e0-57b5-4fda-a982-77ea2c7013f3",
+      "uuid": "c2a0615c-d413-408a-8cb8-035dc6cbecbd",
       "from": [
         -8.6,
         21.0,
@@ -822,7 +822,7 @@
     },
     {
       "name": "sword_handle",
-      "uuid": "3459aab3-5412-40f1-b958-d655dccb9671",
+      "uuid": "d728e48f-1e8d-4075-b123-98d64f976070",
       "from": [
         -6.5,
         11.5,
@@ -903,7 +903,7 @@
     },
     {
       "name": "sword_pommel",
-      "uuid": "ca7397b5-5929-4aa1-8823-79ac68a1ff7b",
+      "uuid": "f1e658ac-dad0-4215-bfb3-dbedc668fbc4",
       "from": [
         -6.8,
         11.2,
@@ -984,7 +984,7 @@
     },
     {
       "name": "sword_guard",
-      "uuid": "8eca51ce-65dc-4593-a9b4-31caf5c66210",
+      "uuid": "ba65c090-98ae-4c43-a6a4-d797fa19e6f3",
       "from": [
         -8.8,
         11.0,
@@ -1065,7 +1065,7 @@
     },
     {
       "name": "sword_blade",
-      "uuid": "856b1a88-5748-4b81-9c12-7c205ae0e233",
+      "uuid": "e899a287-9c82-4778-b441-329910b12353",
       "from": [
         -6.4,
         11.8,
@@ -1146,7 +1146,7 @@
     },
     {
       "name": "left_arm",
-      "uuid": "a01089b3-8253-4262-aa8c-f6bfbb071422",
+      "uuid": "d0871b3c-ff9e-4173-9324-43dcd8590870",
       "from": [
         4,
         12,
@@ -1227,7 +1227,7 @@
     },
     {
       "name": "l_pauldron",
-      "uuid": "b258a652-a98b-417b-9bd2-4d9626f7ce4f",
+      "uuid": "cff96f4a-a853-4d50-bbb4-f8f7751d0b2a",
       "from": [
         4.2,
         21.0,
@@ -1308,7 +1308,7 @@
     },
     {
       "name": "shield",
-      "uuid": "e65a11a9-86d3-4600-b7d6-abae12820aaa",
+      "uuid": "722f1e59-d0b6-40a6-90c0-850bdcab50ba",
       "from": [
         7.8,
         10.5,
@@ -1389,7 +1389,7 @@
     },
     {
       "name": "shield_rim",
-      "uuid": "7290e106-cb19-456a-8758-78d3bf2a3ccd",
+      "uuid": "a2df115d-3f12-4319-9c95-a722dfd369c8",
       "from": [
         7.7,
         9.8,
@@ -1470,7 +1470,7 @@
     },
     {
       "name": "shield_boss",
-      "uuid": "18564761-b8de-4489-ba0c-2eb5f2b5d2e8",
+      "uuid": "66b02935-912a-4d1b-91ef-bb506aebf3d3",
       "from": [
         8.8,
         15.0,
@@ -1551,7 +1551,7 @@
     },
     {
       "name": "right_leg",
-      "uuid": "e64d14dd-c633-4610-b60f-e8787fdad75c",
+      "uuid": "69e54250-f9cf-4262-b284-a382a5919e3f",
       "from": [
         -4,
         0,
@@ -1632,7 +1632,7 @@
     },
     {
       "name": "r_greave",
-      "uuid": "6798ded4-f26e-4dfd-ac57-40826f1f83e2",
+      "uuid": "838f38d1-d395-4970-ba94-d3514413a1c0",
       "from": [
         -4.2,
         1.0,
@@ -1713,7 +1713,7 @@
     },
     {
       "name": "left_leg",
-      "uuid": "ebf64da1-9369-4d5a-b36b-6cb741b21312",
+      "uuid": "9f51b62b-aec9-4b1b-9f31-577e00522b05",
       "from": [
         0,
         0,
@@ -1794,7 +1794,7 @@
     },
     {
       "name": "l_greave",
-      "uuid": "15f3f2a6-ffc0-4170-86ad-f7319254a645",
+      "uuid": "32e09863-dad5-425b-9c5a-cf70b8144297",
       "from": [
         -0.2,
         1.0,
@@ -1877,7 +1877,7 @@
   "outliner": [
     {
       "name": "root",
-      "uuid": "41937e63-8782-4af1-9732-cfed12259404",
+      "uuid": "9c45ab79-0d15-4476-bdb9-cd2a990e2ff9",
       "origin": [
         0,
         0,
@@ -1886,83 +1886,83 @@
       "children": [
         {
           "name": "torso",
-          "uuid": "e82f4274-f322-4b9b-a033-4968dfdcfd2a",
+          "uuid": "d4be675e-d8cb-474c-8a60-debf481aafd3",
           "origin": [
             0,
             12,
             0
           ],
           "children": [
-            "4fd49f0d-ae32-4c07-af46-da044877129b",
-            "39795726-506d-486e-b8e3-4439bf38ce2a",
-            "051703f0-cc64-4925-8864-f4d61e166877",
-            "d2a2c766-4a93-46b2-ae8d-eeeab85737ca",
+            "ca7d9181-b6cd-43f4-9974-02ea44dd5402",
+            "18729af6-7e01-4392-bf5f-fcb9fd4d8123",
+            "a47ddcd5-daa3-419b-9020-4c7168a8e828",
+            "8898b410-24aa-4f71-ab0a-99403b368a04",
             {
               "name": "head",
-              "uuid": "7947ce67-47cc-45d0-a1b0-3cd0592ec59f",
+              "uuid": "e3910862-8e33-49cd-8e21-e9ca00650575",
               "origin": [
                 0,
                 24,
                 0
               ],
               "children": [
-                "c5857284-f4be-4519-ad2d-d2232b42e8ea",
-                "6f9fce26-2c2b-48ee-a927-a2a9a78ade4f",
-                "ccfaa341-21a3-491a-b307-1e8fa2388c24",
-                "7bd33b90-a9c4-4cfe-9c07-7facd874c427"
+                "0fde2d25-3960-444e-80f7-47b19c3d7cb8",
+                "e776509d-7ec3-464c-9735-18fec78e3525",
+                "fee74079-7219-440a-8c6c-d79398ba1346",
+                "ec309981-42e1-46fd-80a1-c7e36ee366b8"
               ]
             },
             {
               "name": "right_arm",
-              "uuid": "dc2120e7-24e7-49be-ba90-e0df56cb75a4",
+              "uuid": "55de8197-5378-4097-9d0f-7903572f24b7",
               "origin": [
                 -6,
                 22,
                 0
               ],
               "children": [
-                "50842595-59cf-491d-ab77-2a3492e72a8c",
-                "e365f0e0-57b5-4fda-a982-77ea2c7013f3",
+                "9bb87b06-a6ec-440f-b62b-29815e0d1e15",
+                "c2a0615c-d413-408a-8cb8-035dc6cbecbd",
                 {
                   "name": "sword",
-                  "uuid": "0e1ab324-3ab5-415f-9b7b-9fa3ff722730",
+                  "uuid": "485ac1a9-1dd7-499d-8ed6-f558298ff9af",
                   "origin": [
                     -6,
                     12.5,
                     0
                   ],
                   "children": [
-                    "3459aab3-5412-40f1-b958-d655dccb9671",
-                    "ca7397b5-5929-4aa1-8823-79ac68a1ff7b",
-                    "8eca51ce-65dc-4593-a9b4-31caf5c66210",
-                    "856b1a88-5748-4b81-9c12-7c205ae0e233"
+                    "d728e48f-1e8d-4075-b123-98d64f976070",
+                    "f1e658ac-dad0-4215-bfb3-dbedc668fbc4",
+                    "ba65c090-98ae-4c43-a6a4-d797fa19e6f3",
+                    "e899a287-9c82-4778-b441-329910b12353"
                   ]
                 }
               ]
             },
             {
               "name": "left_arm",
-              "uuid": "d5265759-3e7a-4b04-ab33-6fd5ecc5d8e1",
+              "uuid": "8765dcbf-9dcc-460b-87bc-19e48365eee9",
               "origin": [
                 6,
                 22,
                 0
               ],
               "children": [
-                "a01089b3-8253-4262-aa8c-f6bfbb071422",
-                "b258a652-a98b-417b-9bd2-4d9626f7ce4f",
+                "d0871b3c-ff9e-4173-9324-43dcd8590870",
+                "cff96f4a-a853-4d50-bbb4-f8f7751d0b2a",
                 {
                   "name": "shield",
-                  "uuid": "ebda9bd2-cfc6-466e-a36b-c7d92ee9804e",
+                  "uuid": "73ef2d9e-cf2d-4f96-b0ff-6465b6183b5c",
                   "origin": [
                     6,
                     16,
                     0
                   ],
                   "children": [
-                    "e65a11a9-86d3-4600-b7d6-abae12820aaa",
-                    "7290e106-cb19-456a-8758-78d3bf2a3ccd",
-                    "18564761-b8de-4489-ba0c-2eb5f2b5d2e8"
+                    "722f1e59-d0b6-40a6-90c0-850bdcab50ba",
+                    "a2df115d-3f12-4319-9c95-a722dfd369c8",
+                    "66b02935-912a-4d1b-91ef-bb506aebf3d3"
                   ]
                 }
               ]
@@ -1971,28 +1971,28 @@
         },
         {
           "name": "right_leg",
-          "uuid": "340c9efa-0521-4948-9428-ec6514fa6626",
+          "uuid": "d75af08d-939f-40f7-88bc-bc933d43ab4d",
           "origin": [
             -2,
             12,
             0
           ],
           "children": [
-            "e64d14dd-c633-4610-b60f-e8787fdad75c",
-            "6798ded4-f26e-4dfd-ac57-40826f1f83e2"
+            "69e54250-f9cf-4262-b284-a382a5919e3f",
+            "838f38d1-d395-4970-ba94-d3514413a1c0"
           ]
         },
         {
           "name": "left_leg",
-          "uuid": "c06600ec-0fd5-4840-8cf3-0dbb32745262",
+          "uuid": "72365dff-d193-4155-9a7b-958d6332ba87",
           "origin": [
             2,
             12,
             0
           ],
           "children": [
-            "ebf64da1-9369-4d5a-b36b-6cb741b21312",
-            "15f3f2a6-ffc0-4170-86ad-f7319254a645"
+            "9f51b62b-aec9-4b1b-9f31-577e00522b05",
+            "32e09863-dad5-425b-9c5a-cf70b8144297"
           ]
         }
       ]
@@ -2008,7 +2008,7 @@
       "visible": true,
       "mode": "bitmap",
       "saved": true,
-      "uuid": "aa369a81-6a06-48d4-8636-10f6f1c0cd5d",
+      "uuid": "834af222-20ea-49e9-b1b7-cb5e2c560bb3",
       "source": "data:image/png;base64,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",
       "width": 64,
       "height": 64,
@@ -2018,11 +2018,11 @@
   "animations": [
     {
       "name": "idle",
-      "uuid": "d6040e0e-a14d-4635-b065-c43bee39f2a7",
+      "uuid": "cfb76fa0-0391-43f2-8186-7faa134b3f81",
       "loop": "loop",
       "length": 1.2,
       "animators": {
-        "e82f4274-f322-4b9b-a033-4968dfdcfd2a": {
+        "d4be675e-d8cb-474c-8a60-debf481aafd3": {
           "name": "torso",
           "type": "bone",
           "position": [
@@ -2102,7 +2102,7 @@
             }
           ]
         },
-        "7947ce67-47cc-45d0-a1b0-3cd0592ec59f": {
+        "e3910862-8e33-49cd-8e21-e9ca00650575": {
           "name": "head",
           "type": "bone",
           "rotation": [
@@ -2144,7 +2144,7 @@
             }
           ]
         },
-        "dc2120e7-24e7-49be-ba90-e0df56cb75a4": {
+        "55de8197-5378-4097-9d0f-7903572f24b7": {
           "name": "right_arm",
           "type": "bone",
           "rotation": [
@@ -2186,7 +2186,7 @@
             }
           ]
         },
-        "0e1ab324-3ab5-415f-9b7b-9fa3ff722730": {
+        "485ac1a9-1dd7-499d-8ed6-f558298ff9af": {
           "name": "sword",
           "type": "bone",
           "rotation": [
@@ -2228,7 +2228,7 @@
             }
           ]
         },
-        "d5265759-3e7a-4b04-ab33-6fd5ecc5d8e1": {
+        "8765dcbf-9dcc-460b-87bc-19e48365eee9": {
           "name": "left_arm",
           "type": "bone",
           "rotation": [
@@ -2274,11 +2274,11 @@
     },
     {
       "name": "walk",
-      "uuid": "20b46d60-bbd1-43d7-908e-396dde9de0bc",
+      "uuid": "b563efd7-00d9-4a5f-9f96-4b089465fbf8",
       "loop": "loop",
       "length": 0.8,
       "animators": {
-        "340c9efa-0521-4948-9428-ec6514fa6626": {
+        "d75af08d-939f-40f7-88bc-bc933d43ab4d": {
           "name": "right_leg",
           "type": "bone",
           "rotation": [
@@ -2320,7 +2320,7 @@
             }
           ]
         },
-        "c06600ec-0fd5-4840-8cf3-0dbb32745262": {
+        "72365dff-d193-4155-9a7b-958d6332ba87": {
           "name": "left_leg",
           "type": "bone",
           "rotation": [
@@ -2362,7 +2362,7 @@
             }
           ]
         },
-        "dc2120e7-24e7-49be-ba90-e0df56cb75a4": {
+        "55de8197-5378-4097-9d0f-7903572f24b7": {
           "name": "right_arm",
           "type": "bone",
           "rotation": [
@@ -2404,7 +2404,7 @@
             }
           ]
         },
-        "0e1ab324-3ab5-415f-9b7b-9fa3ff722730": {
+        "485ac1a9-1dd7-499d-8ed6-f558298ff9af": {
           "name": "sword",
           "type": "bone",
           "rotation": [
@@ -2446,7 +2446,7 @@
             }
           ]
         },
-        "d5265759-3e7a-4b04-ab33-6fd5ecc5d8e1": {
+        "8765dcbf-9dcc-460b-87bc-19e48365eee9": {
           "name": "left_arm",
           "type": "bone",
           "rotation": [
@@ -2488,7 +2488,7 @@
             }
           ]
         },
-        "e82f4274-f322-4b9b-a033-4968dfdcfd2a": {
+        "d4be675e-d8cb-474c-8a60-debf481aafd3": {
           "name": "torso",
           "type": "bone",
           "position": [
@@ -2596,41 +2596,17 @@
     },
     {
       "name": "attack",
-      "uuid": "a650a54c-e0d5-443c-8018-a4a2a20bb474",
+      "uuid": "8beeff38-003a-41cb-8d32-2e538beb10b5",
       "loop": "once",
       "length": 0.35,
       "animators": {
-        "dc2120e7-24e7-49be-ba90-e0df56cb75a4": {
+        "55de8197-5378-4097-9d0f-7903572f24b7": {
           "name": "right_arm",
           "type": "bone",
           "rotation": [
             {
               "channel": "rotation",
               "time": 0.0,
-              "interpolation": "linear",
-              "data_points": [
-                {
-                  "x": "-10",
-                  "y": "-5",
-                  "z": "5"
-                }
-              ]
-            },
-            {
-              "channel": "rotation",
-              "time": 0.1,
-              "interpolation": "linear",
-              "data_points": [
-                {
-                  "x": "-110",
-                  "y": "15",
-                  "z": "-15"
-                }
-              ]
-            },
-            {
-              "channel": "rotation",
-              "time": 0.22,
               "interpolation": "linear",
               "data_points": [
                 {
@@ -2642,6 +2618,30 @@
             },
             {
               "channel": "rotation",
+              "time": 0.12,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "10",
+                  "y": "15",
+                  "z": "-10"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.24,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-10",
+                  "y": "-5",
+                  "z": "5"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
               "time": 0.35,
               "interpolation": "linear",
               "data_points": [
@@ -2654,7 +2654,7 @@
             }
           ]
         },
-        "0e1ab324-3ab5-415f-9b7b-9fa3ff722730": {
+        "485ac1a9-1dd7-499d-8ed6-f558298ff9af": {
           "name": "sword",
           "type": "bone",
           "rotation": [
@@ -2664,31 +2664,31 @@
               "interpolation": "linear",
               "data_points": [
                 {
-                  "x": "-15",
-                  "y": "0",
-                  "z": "0"
-                }
-              ]
-            },
-            {
-              "channel": "rotation",
-              "time": 0.1,
-              "interpolation": "linear",
-              "data_points": [
-                {
-                  "x": "15",
-                  "y": "0",
-                  "z": "0"
-                }
-              ]
-            },
-            {
-              "channel": "rotation",
-              "time": 0.22,
-              "interpolation": "linear",
-              "data_points": [
-                {
                   "x": "-45",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.12,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-20",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.24,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-15",
                   "y": "0",
                   "z": "0"
                 }
@@ -2708,7 +2708,7 @@
             }
           ]
         },
-        "e82f4274-f322-4b9b-a033-4968dfdcfd2a": {
+        "d4be675e-d8cb-474c-8a60-debf481aafd3": {
           "name": "torso",
           "type": "bone",
           "rotation": [
@@ -2718,33 +2718,33 @@
               "interpolation": "linear",
               "data_points": [
                 {
-                  "x": "5",
-                  "y": "0",
-                  "z": "0"
-                }
-              ]
-            },
-            {
-              "channel": "rotation",
-              "time": 0.1,
-              "interpolation": "linear",
-              "data_points": [
-                {
-                  "x": "-2",
-                  "y": "-25",
-                  "z": "0"
-                }
-              ]
-            },
-            {
-              "channel": "rotation",
-              "time": 0.22,
-              "interpolation": "linear",
-              "data_points": [
-                {
                   "x": "12",
                   "y": "25",
                   "z": "-5"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.12,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "8",
+                  "y": "15",
+                  "z": "-2"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.24,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "5",
+                  "y": "0",
+                  "z": "0"
                 }
               ]
             },
@@ -2766,41 +2766,17 @@
     },
     {
       "name": "special",
-      "uuid": "010f5263-bc2b-4012-b698-feb1f49ac4f8",
+      "uuid": "2e389ace-287d-499e-85f7-73453c55dc37",
       "loop": "once",
-      "length": 0.55,
+      "length": 0.5,
       "animators": {
-        "dc2120e7-24e7-49be-ba90-e0df56cb75a4": {
+        "55de8197-5378-4097-9d0f-7903572f24b7": {
           "name": "right_arm",
           "type": "bone",
           "rotation": [
             {
               "channel": "rotation",
               "time": 0.0,
-              "interpolation": "linear",
-              "data_points": [
-                {
-                  "x": "-10",
-                  "y": "-5",
-                  "z": "5"
-                }
-              ]
-            },
-            {
-              "channel": "rotation",
-              "time": 0.18,
-              "interpolation": "linear",
-              "data_points": [
-                {
-                  "x": "-145",
-                  "y": "20",
-                  "z": "-30"
-                }
-              ]
-            },
-            {
-              "channel": "rotation",
-              "time": 0.32,
               "interpolation": "linear",
               "data_points": [
                 {
@@ -2812,7 +2788,7 @@
             },
             {
               "channel": "rotation",
-              "time": 0.44,
+              "time": 0.15,
               "interpolation": "linear",
               "data_points": [
                 {
@@ -2824,7 +2800,19 @@
             },
             {
               "channel": "rotation",
-              "time": 0.55,
+              "time": 0.32,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-10",
+                  "y": "-5",
+                  "z": "5"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.5,
               "interpolation": "linear",
               "data_points": [
                 {
@@ -2836,37 +2824,13 @@
             }
           ]
         },
-        "0e1ab324-3ab5-415f-9b7b-9fa3ff722730": {
+        "485ac1a9-1dd7-499d-8ed6-f558298ff9af": {
           "name": "sword",
           "type": "bone",
           "rotation": [
             {
               "channel": "rotation",
               "time": 0.0,
-              "interpolation": "linear",
-              "data_points": [
-                {
-                  "x": "-15",
-                  "y": "0",
-                  "z": "0"
-                }
-              ]
-            },
-            {
-              "channel": "rotation",
-              "time": 0.18,
-              "interpolation": "linear",
-              "data_points": [
-                {
-                  "x": "25",
-                  "y": "0",
-                  "z": "0"
-                }
-              ]
-            },
-            {
-              "channel": "rotation",
-              "time": 0.32,
               "interpolation": "linear",
               "data_points": [
                 {
@@ -2878,7 +2842,31 @@
             },
             {
               "channel": "rotation",
-              "time": 0.55,
+              "time": 0.15,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-25",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.32,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "-15",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "rotation",
+              "time": 0.5,
               "interpolation": "linear",
               "data_points": [
                 {
@@ -2890,37 +2878,13 @@
             }
           ]
         },
-        "e82f4274-f322-4b9b-a033-4968dfdcfd2a": {
+        "d4be675e-d8cb-474c-8a60-debf481aafd3": {
           "name": "torso",
           "type": "bone",
           "position": [
             {
               "channel": "position",
               "time": 0.0,
-              "interpolation": "linear",
-              "data_points": [
-                {
-                  "x": "0",
-                  "y": "0",
-                  "z": "0"
-                }
-              ]
-            },
-            {
-              "channel": "position",
-              "time": 0.18,
-              "interpolation": "linear",
-              "data_points": [
-                {
-                  "x": "0",
-                  "y": "-0.6",
-                  "z": "-1.0"
-                }
-              ]
-            },
-            {
-              "channel": "position",
-              "time": 0.32,
               "interpolation": "linear",
               "data_points": [
                 {
@@ -2932,7 +2896,31 @@
             },
             {
               "channel": "position",
-              "time": 0.55,
+              "time": 0.15,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "0",
+                  "y": "-0.3",
+                  "z": "0.8"
+                }
+              ]
+            },
+            {
+              "channel": "position",
+              "time": 0.32,
+              "interpolation": "linear",
+              "data_points": [
+                {
+                  "x": "0",
+                  "y": "0",
+                  "z": "0"
+                }
+              ]
+            },
+            {
+              "channel": "position",
+              "time": 0.5,
               "interpolation": "linear",
               "data_points": [
                 {
@@ -2950,21 +2938,21 @@
               "interpolation": "linear",
               "data_points": [
                 {
-                  "x": "5",
-                  "y": "0",
-                  "z": "0"
+                  "x": "18",
+                  "y": "45",
+                  "z": "-5"
                 }
               ]
             },
             {
               "channel": "rotation",
-              "time": 0.18,
+              "time": 0.15,
               "interpolation": "linear",
               "data_points": [
                 {
-                  "x": "-5",
-                  "y": "-45",
-                  "z": "0"
+                  "x": "8",
+                  "y": "15",
+                  "z": "-2"
                 }
               ]
             },
@@ -2974,15 +2962,15 @@
               "interpolation": "linear",
               "data_points": [
                 {
-                  "x": "18",
-                  "y": "45",
-                  "z": "-5"
+                  "x": "5",
+                  "y": "0",
+                  "z": "0"
                 }
               ]
             },
             {
               "channel": "rotation",
-              "time": 0.55,
+              "time": 0.5,
               "interpolation": "linear",
               "data_points": [
                 {
@@ -2998,11 +2986,11 @@
     },
     {
       "name": "utility",
-      "uuid": "0632bab6-d527-457d-8bbe-0ed472e4b8a5",
+      "uuid": "5fb86d5b-5000-4638-8724-50a8522e58f2",
       "loop": "hold",
       "length": 0.5,
       "animators": {
-        "d5265759-3e7a-4b04-ab33-6fd5ecc5d8e1": {
+        "8765dcbf-9dcc-460b-87bc-19e48365eee9": {
           "name": "left_arm",
           "type": "bone",
           "position": [
@@ -3082,7 +3070,7 @@
             }
           ]
         },
-        "e82f4274-f322-4b9b-a033-4968dfdcfd2a": {
+        "d4be675e-d8cb-474c-8a60-debf481aafd3": {
           "name": "torso",
           "type": "bone",
           "rotation": [
@@ -3124,7 +3112,7 @@
             }
           ]
         },
-        "dc2120e7-24e7-49be-ba90-e0df56cb75a4": {
+        "55de8197-5378-4097-9d0f-7903572f24b7": {
           "name": "right_arm",
           "type": "bone",
           "rotation": [
@@ -3170,11 +3158,11 @@
     },
     {
       "name": "block",
-      "uuid": "49d8274b-2e2d-4f2c-bac6-72d279e42d63",
+      "uuid": "96777992-480d-402a-b7aa-a83c9fd705de",
       "loop": "hold",
       "length": 0.5,
       "animators": {
-        "d5265759-3e7a-4b04-ab33-6fd5ecc5d8e1": {
+        "8765dcbf-9dcc-460b-87bc-19e48365eee9": {
           "name": "left_arm",
           "type": "bone",
           "position": [
@@ -3254,7 +3242,7 @@
             }
           ]
         },
-        "e82f4274-f322-4b9b-a033-4968dfdcfd2a": {
+        "d4be675e-d8cb-474c-8a60-debf481aafd3": {
           "name": "torso",
           "type": "bone",
           "rotation": [
@@ -3296,7 +3284,7 @@
             }
           ]
         },
-        "dc2120e7-24e7-49be-ba90-e0df56cb75a4": {
+        "55de8197-5378-4097-9d0f-7903572f24b7": {
           "name": "right_arm",
           "type": "bone",
           "rotation": [
@@ -3342,11 +3330,11 @@
     },
     {
       "name": "ultimate",
-      "uuid": "9e30afe8-73df-4eb6-9a92-81d7a7c1d9e0",
+      "uuid": "e3191521-56aa-4d41-98f2-f9a12083da66",
       "loop": "once",
       "length": 0.8,
       "animators": {
-        "dc2120e7-24e7-49be-ba90-e0df56cb75a4": {
+        "55de8197-5378-4097-9d0f-7903572f24b7": {
           "name": "right_arm",
           "type": "bone",
           "rotation": [
@@ -3412,7 +3400,7 @@
             }
           ]
         },
-        "0e1ab324-3ab5-415f-9b7b-9fa3ff722730": {
+        "485ac1a9-1dd7-499d-8ed6-f558298ff9af": {
           "name": "sword",
           "type": "bone",
           "rotation": [
@@ -3466,7 +3454,7 @@
             }
           ]
         },
-        "d5265759-3e7a-4b04-ab33-6fd5ecc5d8e1": {
+        "8765dcbf-9dcc-460b-87bc-19e48365eee9": {
           "name": "left_arm",
           "type": "bone",
           "rotation": [
@@ -3520,7 +3508,7 @@
             }
           ]
         },
-        "7947ce67-47cc-45d0-a1b0-3cd0592ec59f": {
+        "e3910862-8e33-49cd-8e21-e9ca00650575": {
           "name": "head",
           "type": "bone",
           "rotation": [
@@ -3574,7 +3562,7 @@
             }
           ]
         },
-        "e82f4274-f322-4b9b-a033-4968dfdcfd2a": {
+        "d4be675e-d8cb-474c-8a60-debf481aafd3": {
           "name": "torso",
           "type": "bone",
           "rotation": [

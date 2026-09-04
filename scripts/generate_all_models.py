@@ -392,27 +392,27 @@ def build_hero_warrior():
             bone_r_arm["uuid"]: {
                 "name": "right_arm", "type": "bone",
                 "rotation": [
-                    kf(0.00, -10, -5, 5),
-                    kf(0.10, -110, 15, -15),
-                    kf(0.22, 40, 35, -20),
+                    kf(0.00, 40, 35, -20),  # Impact strike pose at t=0 matching slash arc
+                    kf(0.12, 10, 15, -10),  # Follow-through
+                    kf(0.24, -10, -5, 5),   # Return to stance
                     kf(0.35, -10, -5, 5)
                 ]
             },
             bone_sword["uuid"]: {
                 "name": "sword", "type": "bone",
                 "rotation": [
-                    kf(0.00, -15, 0, 0),
-                    kf(0.10, 15, 0, 0),
-                    kf(0.22, -45, 0, 0),
+                    kf(0.00, -45, 0, 0),    # Blade swept forward at t=0
+                    kf(0.12, -20, 0, 0),
+                    kf(0.24, -15, 0, 0),
                     kf(0.35, -15, 0, 0)
                 ]
             },
             bone_torso["uuid"]: {
                 "name": "torso", "type": "bone",
                 "rotation": [
-                    kf(0.00, 5, 0, 0),
-                    kf(0.10, -2, -25, 0),
-                    kf(0.22, 12, 25, -5),
+                    kf(0.00, 12, 25, -5),   # Torso twisted into strike at t=0
+                    kf(0.12, 8, 15, -2),
+                    kf(0.24, 5, 0, 0),
                     kf(0.35, 5, 0, 0)
                 ]
             }
@@ -420,40 +420,39 @@ def build_hero_warrior():
     }
 
     anim_special = {
-        "name": "special", "uuid": uid(), "loop": "once", "length": 0.55,
+        "name": "special", "uuid": uid(), "loop": "once", "length": 0.50,
         "animators": {
             bone_r_arm["uuid"]: {
                 "name": "right_arm", "type": "bone",
                 "rotation": [
-                    kf(0.00, -10, -5, 5),
-                    kf(0.18, -145, 20, -30), # Big windup
-                    kf(0.32, 55, 60, -25),   # Huge cleave sweep
-                    kf(0.44, 25, 20, -10),
-                    kf(0.55, -10, -5, 5)
+                    kf(0.00, 55, 60, -25),  # 180-deg cleave sweep at t=0 matching shockwave
+                    kf(0.15, 25, 20, -10),  # Follow-through
+                    kf(0.32, -10, -5, 5),   # Return to stance
+                    kf(0.50, -10, -5, 5)
                 ]
             },
             bone_sword["uuid"]: {
                 "name": "sword", "type": "bone",
                 "rotation": [
-                    kf(0.00, -15, 0, 0),
-                    kf(0.18, 25, 0, 0),
-                    kf(0.32, -60, 0, 0),
-                    kf(0.55, -15, 0, 0)
+                    kf(0.00, -60, 0, 0),
+                    kf(0.15, -25, 0, 0),
+                    kf(0.32, -15, 0, 0),
+                    kf(0.50, -15, 0, 0)
                 ]
             },
             bone_torso["uuid"]: {
                 "name": "torso", "type": "bone",
                 "position": [
-                    kf_pos(0.00, 0, 0, 0),
-                    kf_pos(0.18, 0, -0.6, -1.0),
-                    kf_pos(0.32, 0, -0.8, 2.0),
-                    kf_pos(0.55, 0, 0, 0)
+                    kf_pos(0.00, 0, -0.8, 2.0),
+                    kf_pos(0.15, 0, -0.3, 0.8),
+                    kf_pos(0.32, 0, 0, 0),
+                    kf_pos(0.50, 0, 0, 0)
                 ],
                 "rotation": [
-                    kf(0.00, 5, 0, 0),
-                    kf(0.18, -5, -45, 0),
-                    kf(0.32, 18, 45, -5),
-                    kf(0.55, 5, 0, 0)
+                    kf(0.00, 18, 45, -5),
+                    kf(0.15, 8, 15, -2),
+                    kf(0.32, 5, 0, 0),
+                    kf(0.50, 5, 0, 0)
                 ]
             }
         }
@@ -695,78 +694,78 @@ def build_hero_archer():
         "animators": {
             bone_torso["uuid"]: {
                 "name": "torso", "type": "bone",
-                "rotation": [kf(0.0, 0, 25, 0), kf(0.18, 0, 35, 0), kf(0.24, 0, 15, 0), kf(0.38, 4, 15, 0)]
+                "rotation": [kf(0.0, 0, 15, 0), kf(0.12, 0, 20, 0), kf(0.26, 4, 15, 0), kf(0.38, 4, 15, 0)]
             },
             bone_l_arm["uuid"]: {
                 "name": "left_arm", "type": "bone",
                 "rotation": [
-                    kf(0.00, -35, 20, -10),
-                    kf(0.15, -85, 30, -5),  # Bow aimed forward
-                    kf(0.24, -90, 30, -5),  # Bow recoil
+                    kf(0.00, -90, 30, -5),  # Bow recoil at t=0 matching arrow launch
+                    kf(0.12, -70, 25, -8),  # Recoil settle
+                    kf(0.24, -35, 20, -10), # Ready
                     kf(0.38, -35, 20, -10)
                 ]
             },
             bone_r_arm["uuid"]: {
                 "name": "right_arm", "type": "bone",
                 "rotation": [
-                    kf(0.00, -15, -10, 10),
-                    kf(0.15, -80, -25, 20), # Draw string to cheek
-                    kf(0.24, -30, -10, 35), # Release string release recoil
+                    kf(0.00, -30, -10, 35), # String snap release at t=0
+                    kf(0.12, -60, -20, 20), # Reach toward quiver
+                    kf(0.24, -15, -10, 10), # Ready
                     kf(0.38, -15, -10, 10)
                 ]
             },
             bone_arrow_hand["uuid"]: {
                 "name": "arrow_hand", "type": "bone",
-                "position": [kf_pos(0.0, 0, 0, 0), kf_pos(0.15, 0, 0, 2.0), kf_pos(0.24, 0, 0, -4.0), kf_pos(0.38, 0, 0, 0)],
-                "rotation": [kf(0.0, 0, 0, 0), kf(0.15, 0, 0, 0), kf(0.24, 0, 0, 0), kf(0.38, 45, 0, 0)]
+                "position": [kf_pos(0.0, 0, 0, -4.0), kf_pos(0.12, 0, 0, -1.0), kf_pos(0.24, 0, 0, 0), kf_pos(0.38, 0, 0, 0)],
+                "rotation": [kf(0.0, 0, 0, 0), kf(0.12, 20, 0, 0), kf(0.24, 0, 0, 0), kf(0.38, 0, 0, 0)]
             }
         }
     }
 
     anim_special = {
-        "name": "special", "uuid": uid(), "loop": "once", "length": 0.50,
+        "name": "special", "uuid": uid(), "loop": "once", "length": 0.48,
         "animators": {
             bone_torso["uuid"]: {
                 "name": "torso", "type": "bone",
-                "position": [kf_pos(0.0, 0, 0, 0), kf_pos(0.25, 0, -0.6, -0.8), kf_pos(0.34, 0, -0.3, 0.8), kf_pos(0.50, 0, 0, 0)],
-                "rotation": [kf(0.0, 4, 15, 0), kf(0.25, 2, 45, 0), kf(0.34, 8, 10, 0), kf(0.50, 4, 15, 0)]
+                "position": [kf_pos(0.0, 0, -0.4, 0.8), kf_pos(0.16, 0, -0.2, 0.3), kf_pos(0.32, 0, 0, 0), kf_pos(0.48, 0, 0, 0)],
+                "rotation": [kf(0.0, 8, 10, 0), kf(0.16, 6, 12, 0), kf(0.32, 4, 15, 0), kf(0.48, 4, 15, 0)]
             },
             bone_l_arm["uuid"]: {
                 "name": "left_arm", "type": "bone",
                 "rotation": [
-                    kf(0.00, -35, 20, -10),
-                    kf(0.25, -92, 40, 0),   # High tension bow hold
-                    kf(0.34, -105, 35, 10), # Heavy recoil back
-                    kf(0.50, -35, 20, -10)
+                    kf(0.00, -105, 35, 10), # Massive piercing shot recoil at t=0
+                    kf(0.16, -75, 25, -5),
+                    kf(0.32, -35, 20, -10),
+                    kf(0.48, -35, 20, -10)
                 ]
             },
             bone_r_arm["uuid"]: {
                 "name": "right_arm", "type": "bone",
                 "rotation": [
-                    kf(0.00, -15, -10, 10),
-                    kf(0.25, -90, -40, 30), # Deep draw past ear
-                    kf(0.34, -20, -15, 45), # Huge snap release
-                    kf(0.50, -15, -10, 10)
+                    kf(0.00, -20, -15, 45), # Snap release at t=0
+                    kf(0.16, -55, -20, 20),
+                    kf(0.32, -15, -10, 10),
+                    kf(0.48, -15, -10, 10)
                 ]
             }
         }
     }
 
     anim_utility = {
-        "name": "utility", "uuid": uid(), "loop": "once", "length": 0.45,
+        "name": "utility", "uuid": uid(), "loop": "once", "length": 0.40,
         "animators": {
             bone_r_arm["uuid"]: {
                 "name": "right_arm", "type": "bone",
                 "rotation": [
-                    kf(0.00, -15, -10, 10),
-                    kf(0.15, 30, -20, 10),  # Reach to belt
-                    kf(0.30, -90, -10, 10), # Underhand forward toss
-                    kf(0.45, -15, -10, 10)
+                    kf(0.00, -90, -10, 10), # Underhand toss release at t=0
+                    kf(0.15, -45, -10, 10), # Follow-through
+                    kf(0.28, -15, -10, 10), # Return to ready
+                    kf(0.40, -15, -10, 10)
                 ]
             },
             bone_torso["uuid"]: {
                 "name": "torso", "type": "bone",
-                "rotation": [kf(0.0, 4, 15, 0), kf(0.15, 10, -15, 0), kf(0.30, -5, 20, 0), kf(0.45, 4, 15, 0)]
+                "rotation": [kf(0.0, -5, 20, 0), kf(0.15, 0, 15, 0), kf(0.28, 4, 15, 0), kf(0.40, 4, 15, 0)]
             }
         }
     }
@@ -963,57 +962,58 @@ def build_hero_engineer():
     }
 
     anim_attack = {
-        "name": "attack", "uuid": uid(), "loop": "once", "length": 0.48,
+        "name": "attack", "uuid": uid(), "loop": "once", "length": 0.45,
         "animators": {
             bone_r_arm["uuid"]: {
                 "name": "right_arm", "type": "bone",
                 "rotation": [
-                    kf(0.00, -100, 10, -15),
-                    kf(0.16, -145, 15, -20), # Cock hammer high
-                    kf(0.30, 50, 20, -10),   # Smash hammer down
-                    kf(0.40, 20, 10, -5),
-                    kf(0.48, -100, 10, -15)
+                    kf(0.00, 50, 20, -10),   # Smash hammer down
+                    kf(0.14, 20, 10, -5),
+                    kf(0.28, -100, 10, -15),
+                    kf(0.45, -100, 10, -15)
                 ]
             },
             bone_tool["uuid"]: {
                 "name": "wrench", "type": "bone",
                 "rotation": [
-                    kf(0.00, -35, 10, 0),
-                    kf(0.16, 20, 0, 0),
-                    kf(0.30, -70, 0, 0), # Slam hammer face down
-                    kf(0.48, -35, 10, 0)
+                    kf(0.00, -70, 0, 0),    # Hammer smash impact at t=0 matching shockwave
+                    kf(0.14, -40, 10, -5),  # Follow-through
+                    kf(0.28, -35, 10, 0),   # Re-lift hammer
+                    kf(0.45, -35, 10, 0)
                 ]
             },
             bone_torso["uuid"]: {
                 "name": "torso", "type": "bone",
-                "position": [kf_pos(0.0, 0, 0, 0), kf_pos(0.16, 0, 0.4, -0.5), kf_pos(0.30, 0, -1.0, 1.5), kf_pos(0.48, 0, 0, 0)],
-                "rotation": [kf(0.0, 6, -5, 0), kf(0.16, -6, -20, 0), kf(0.30, 20, 20, -5), kf(0.48, 6, -5, 0)]
+                "position": [kf_pos(0.0, 0, -1.0, 1.5), kf_pos(0.14, 0, -0.4, 0.5), kf_pos(0.28, 0, 0, 0), kf_pos(0.45, 0, 0, 0)],
+                "rotation": [kf(0.0, 20, 20, -5), kf(0.14, 10, 5, 0), kf(0.28, 6, -5, 0), kf(0.45, 6, -5, 0)]
             }
         }
     }
 
     anim_special = {
-        "name": "special", "uuid": uid(), "loop": "once", "length": 0.45,
+        "name": "special", "uuid": uid(), "loop": "once", "length": 0.40,
         "animators": {
             bone_torso["uuid"]: {
                 "name": "torso", "type": "bone",
-                "position": [kf_pos(0.0, 0, 0, 0), kf_pos(0.20, 0, -2.0, 0.5), kf_pos(0.45, 0, 0, 0)],
-                "rotation": [kf(0.0, 6, 0, 0), kf(0.20, 30, 0, 0), kf(0.45, 6, 0, 0)] # Squat to deploy
+                "position": [kf_pos(0.0, 0, -2.0, 0.5), kf_pos(0.15, 0, -0.8, 0.2), kf_pos(0.28, 0, 0, 0), kf_pos(0.40, 0, 0, 0)],
+                "rotation": [kf(0.0, 30, 0, 0), kf(0.15, 15, 0, 0), kf(0.28, 6, 0, 0), kf(0.40, 6, 0, 0)]
             },
             bone_l_arm["uuid"]: {
                 "name": "left_arm", "type": "bone",
                 "rotation": [
-                    kf(0.00, -15, 10, -10),
-                    kf(0.20, 45, 20, -20),  # Place turret down
-                    kf(0.45, -15, 10, -10)
+                    kf(0.00, 45, 20, -20),  # Turret placement down at t=0
+                    kf(0.15, 15, 15, -15),
+                    kf(0.28, -15, 10, -10),
+                    kf(0.40, -15, 10, -10)
                 ]
             },
             bone_r_arm["uuid"]: {
                 "name": "right_arm", "type": "bone",
                 "rotation": [
-                    kf(0.00, -100, 10, -15),
-                    kf(0.25, -20, 15, -10), # Tap wrench down on turret
-                    kf(0.45, -100, 10, -15)
+                    kf(0.00, -20, 15, -10), # Tap wrench down at t=0
+                    kf(0.15, -60, 12, -12),
+                    kf(0.28, -100, 10, -15),
+                    kf(0.40, -100, 10, -15)
                 ]
             }
         }

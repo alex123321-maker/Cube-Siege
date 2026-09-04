@@ -1,4 +1,4 @@
-[gd_scene load_steps=120 format=3 uid="uid://cs_decoy_dummy_e0f943df"]
+[gd_scene load_steps=120 format=3 uid="uid://cs_decoy_dummy_f36f39ca"]
 
 [ext_resource type="Texture2D" path="res://assets/models/textures/decoy_dummy.png" id="1_tex"]
 
@@ -298,51 +298,51 @@ uv1_offset = Vector3(0.375, 0.5, 0)
 metallic = 0.0
 roughness = 0.9
 
-[sub_resource type="BoxMesh" id="BoxMesh_wood_post_a86e1b"]
+[sub_resource type="BoxMesh" id="BoxMesh_wood_post_b75f03"]
 material = SubResource("StandardMaterial3D_col_35")
 size = Vector3(0.11, 1.43, 0.11)
 
-[sub_resource type="BoxMesh" id="BoxMesh_crossbar_045a07"]
+[sub_resource type="BoxMesh" id="BoxMesh_crossbar_ac11b1"]
 material = SubResource("StandardMaterial3D_col_35")
 size = Vector3(0.88, 0.11, 0.11)
 
-[sub_resource type="BoxMesh" id="BoxMesh_base_plank1_439e30"]
+[sub_resource type="BoxMesh" id="BoxMesh_base_plank1_a790fa"]
 material = SubResource("StandardMaterial3D_col_35")
 size = Vector3(0.66, 0.066, 0.165)
 
-[sub_resource type="BoxMesh" id="BoxMesh_base_plank2_47f717"]
+[sub_resource type="BoxMesh" id="BoxMesh_base_plank2_4de14a"]
 material = SubResource("StandardMaterial3D_col_35")
 size = Vector3(0.165, 0.066, 0.66)
 
-[sub_resource type="BoxMesh" id="BoxMesh_straw_torso_d85f17"]
+[sub_resource type="BoxMesh" id="BoxMesh_straw_torso_ba9a2c"]
 material = SubResource("StandardMaterial3D_col_30")
 size = Vector3(0.495, 0.715, 0.33)
 
-[sub_resource type="BoxMesh" id="BoxMesh_target_outer_2191b7"]
+[sub_resource type="BoxMesh" id="BoxMesh_target_outer_c03524"]
 material = SubResource("StandardMaterial3D_col_31")
 size = Vector3(0.385, 0.385, 0.0275)
 
-[sub_resource type="BoxMesh" id="BoxMesh_target_inner_eb93f9"]
+[sub_resource type="BoxMesh" id="BoxMesh_target_inner_e08add"]
 material = SubResource("StandardMaterial3D_col_32")
 size = Vector3(0.22, 0.22, 0.0275)
 
-[sub_resource type="BoxMesh" id="BoxMesh_target_bullseye_618667"]
+[sub_resource type="BoxMesh" id="BoxMesh_target_bullseye_579f28"]
 material = SubResource("StandardMaterial3D_col_31")
 size = Vector3(0.088, 0.11, 0.0275)
 
-[sub_resource type="BoxMesh" id="BoxMesh_straw_head_48b44a"]
+[sub_resource type="BoxMesh" id="BoxMesh_straw_head_d4bf75"]
 material = SubResource("StandardMaterial3D_col_30")
 size = Vector3(0.352, 0.3575, 0.352)
 
-[sub_resource type="BoxMesh" id="BoxMesh_hat_brim_984bd7"]
+[sub_resource type="BoxMesh" id="BoxMesh_hat_brim_266692"]
 material = SubResource("StandardMaterial3D_col_10")
 size = Vector3(0.605, 0.0715, 0.605)
 
-[sub_resource type="BoxMesh" id="BoxMesh_hat_cone_c7c7c4"]
+[sub_resource type="BoxMesh" id="BoxMesh_hat_cone_705e15"]
 material = SubResource("StandardMaterial3D_col_10")
 size = Vector3(0.308, 0.2035, 0.308)
 
-[sub_resource type="BoxMesh" id="BoxMesh_hat_feather_b86f18"]
+[sub_resource type="BoxMesh" id="BoxMesh_hat_feather_2749bb"]
 material = SubResource("StandardMaterial3D_col_13")
 size = Vector3(0.044, 0.3025, 0.0715)
 
@@ -352,48 +352,48 @@ size = Vector3(0.044, 0.3025, 0.0715)
 
 [node name="wood_post" type="MeshInstance3D" parent="root"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.715, 0.0)
-mesh = SubResource("BoxMesh_wood_post_a86e1b")
+mesh = SubResource("BoxMesh_wood_post_b75f03")
 
 [node name="crossbar" type="MeshInstance3D" parent="root"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 1.045, 0.0)
-mesh = SubResource("BoxMesh_crossbar_045a07")
+mesh = SubResource("BoxMesh_crossbar_ac11b1")
 
 [node name="base_plank1" type="MeshInstance3D" parent="root"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.033, 0.0)
-mesh = SubResource("BoxMesh_base_plank1_439e30")
+mesh = SubResource("BoxMesh_base_plank1_a790fa")
 
 [node name="base_plank2" type="MeshInstance3D" parent="root"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.033, 0.0)
-mesh = SubResource("BoxMesh_base_plank2_47f717")
+mesh = SubResource("BoxMesh_base_plank2_4de14a")
 
 [node name="straw_torso" type="MeshInstance3D" parent="root"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.9075, 0.0)
-mesh = SubResource("BoxMesh_straw_torso_d85f17")
+mesh = SubResource("BoxMesh_straw_torso_ba9a2c")
 
 [node name="target_outer" type="MeshInstance3D" parent="root"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.9075, -0.17325)
-mesh = SubResource("BoxMesh_target_outer_2191b7")
+mesh = SubResource("BoxMesh_target_outer_c03524")
 
 [node name="target_inner" type="MeshInstance3D" parent="root"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.9075, -0.18425)
-mesh = SubResource("BoxMesh_target_inner_eb93f9")
+mesh = SubResource("BoxMesh_target_inner_e08add")
 
 [node name="target_bullseye" type="MeshInstance3D" parent="root"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.9075, -0.19525)
-mesh = SubResource("BoxMesh_target_bullseye_618667")
+mesh = SubResource("BoxMesh_target_bullseye_579f28")
 
 [node name="straw_head" type="MeshInstance3D" parent="root"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 1.44375, 0.0)
-mesh = SubResource("BoxMesh_straw_head_48b44a")
+mesh = SubResource("BoxMesh_straw_head_d4bf75")
 
 [node name="hat_brim" type="MeshInstance3D" parent="root"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 1.60325, 0.0)
-mesh = SubResource("BoxMesh_hat_brim_984bd7")
+mesh = SubResource("BoxMesh_hat_brim_266692")
 
 [node name="hat_cone" type="MeshInstance3D" parent="root"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 1.74075, 0.0)
-mesh = SubResource("BoxMesh_hat_cone_c7c7c4")
+mesh = SubResource("BoxMesh_hat_cone_705e15")
 
 [node name="hat_feather" type="MeshInstance3D" parent="root"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.165, 1.85625, 0.11825)
-mesh = SubResource("BoxMesh_hat_feather_b86f18")
+mesh = SubResource("BoxMesh_hat_feather_2749bb")

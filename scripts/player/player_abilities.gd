@@ -152,10 +152,10 @@ func _execute_tactical_nuke(player: CharacterBody3D, target_pos: Vector3) -> voi
 
 	if vfx:
 		vfx.spawn_tactical_nuke_impact(target_pos)
-		vfx.spawn_tactical_nuke_burn(target_pos, 3.0)
+		vfx.spawn_tactical_nuke_burn(target_pos, 5.0)
 
-	# Ground plasma burn loop (6 ticks, every 0.5s for 3.0s total)
-	for i in range(6):
+	# Ground plasma burn loop (10 ticks, every 0.5s for 5.0s total)
+	for i in range(10):
 		await player.get_tree().create_timer(0.5).timeout
 		if not is_instance_valid(player) or not player.is_inside_tree():
 			return
@@ -214,7 +214,7 @@ func find_target_near_mouse(player: CharacterBody3D) -> Node3D:
 	var target_pos: Vector3 = intersect as Vector3
 	var enemies: Array[Node] = player.get_tree().get_nodes_in_group("enemies")
 	var closest: Node3D = null
-	var min_dist: float = 6.0
+	var min_dist: float = 14.0
 	for e in enemies:
 		if e and is_instance_valid(e) and e is Node3D:
 			var d = target_pos.distance_to((e as Node3D).global_position)
@@ -254,20 +254,11 @@ func deploy_decoy(player: CharacterBody3D) -> void:
 		player.spawn_popup_text("DECOY RECHARGING...", Color.GRAY)
 		return
 	player.parry_cooldown_timer = 12.0
-	if player.presentation:
-		player.presentation.play_utility_animation()
-	if not player.is_inside_tree():
-		var decoy = DECOY_DUMMY_SCENE.instantiate()
-		player.get_parent().add_child(decoy)
-		decoy.global_position = player.global_position + (-player.global_transform.basis.z * 3.0)
-		player.spawn_popup_text("DECOY DEPLOYED! (AGGRO 3.5s)", Color.LIGHT_GREEN)
-		return
-	await player.get_tree().create_timer(0.14).timeout
-	if not is_instance_valid(player) or not player.is_inside_tree():
-		return
 	var decoy = DECOY_DUMMY_SCENE.instantiate()
 	player.get_parent().add_child(decoy)
 	decoy.global_position = player.global_position + (-player.global_transform.basis.z * 3.0)
+	if player.presentation:
+		player.presentation.play_utility_animation()
 	player.spawn_popup_text("DECOY DEPLOYED! (AGGRO 3.5s)", Color.LIGHT_GREEN)
 
 func apply_card_upgrade(card_id: String, player: CharacterBody3D) -> void:

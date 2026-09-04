@@ -12,7 +12,7 @@
   "elements": [
     {
       "name": "mine_base",
-      "uuid": "9fb40ebc-5003-4a06-b27e-c9c6600ea088",
+      "uuid": "25d14dd4-be9f-4a8c-b327-2c673686b089",
       "from": [
         -4.5,
         0.0,
@@ -93,7 +93,7 @@
     },
     {
       "name": "mine_casing",
-      "uuid": "3db795ec-a4d7-433b-9c47-79a55d94b2f8",
+      "uuid": "1617dbee-a0bb-4ee9-86ae-f8d27875f798",
       "from": [
         -4.0,
         1.2,
@@ -174,7 +174,7 @@
     },
     {
       "name": "mine_hazard_rim",
-      "uuid": "de85e208-8f0a-4a87-b9bf-5dd1bcc13dd6",
+      "uuid": "867ee041-18d6-4d3d-a810-3549fa29f1e0",
       "from": [
         -3.5,
         2.8,
@@ -255,7 +255,7 @@
     },
     {
       "name": "sensor_pin1",
-      "uuid": "f07d0228-023a-41f4-ab73-8e5041dcb106",
+      "uuid": "17cd1d31-08d5-411d-9acb-5b2a137e3ac8",
       "from": [
         -3.2,
         3.4,
@@ -336,7 +336,7 @@
     },
     {
       "name": "sensor_pin2",
-      "uuid": "d3d31de8-c317-4b0f-959d-ca0bdbc8f7ea",
+      "uuid": "ad046f9d-e2fb-415f-bd53-64a4aaf721bc",
       "from": [
         2.4,
         3.4,
@@ -417,7 +417,7 @@
     },
     {
       "name": "sensor_pin3",
-      "uuid": "17d2f040-e6ef-4c72-b503-dac7e83488aa",
+      "uuid": "88adcd8d-b44b-4c9a-a64f-9928fd7ebcf1",
       "from": [
         -3.2,
         3.4,
@@ -498,7 +498,7 @@
     },
     {
       "name": "sensor_pin4",
-      "uuid": "9fdb011f-ba75-44e7-966a-c1b6289f3762",
+      "uuid": "afa2bb76-dc0e-450d-b65c-fa34a7646be2",
       "from": [
         2.4,
         3.4,
@@ -579,7 +579,7 @@
     },
     {
       "name": "beacon_light",
-      "uuid": "a6db8407-6f4b-454f-be71-aa73e28457e8",
+      "uuid": "873c86bb-c539-4e5c-a09d-8c0e6015b524",
       "from": [
         -1.5,
         3.2,
@@ -662,21 +662,21 @@
   "outliner": [
     {
       "name": "root",
-      "uuid": "9be61268-a423-41dc-9ad6-92a814b7e988",
+      "uuid": "ce4bef11-b18b-4297-b190-f7f4750fc40f",
       "origin": [
         0,
         0,
         0
       ],
       "children": [
-        "9fb40ebc-5003-4a06-b27e-c9c6600ea088",
-        "3db795ec-a4d7-433b-9c47-79a55d94b2f8",
-        "de85e208-8f0a-4a87-b9bf-5dd1bcc13dd6",
-        "f07d0228-023a-41f4-ab73-8e5041dcb106",
-        "d3d31de8-c317-4b0f-959d-ca0bdbc8f7ea",
-        "17d2f040-e6ef-4c72-b503-dac7e83488aa",
-        "9fdb011f-ba75-44e7-966a-c1b6289f3762",
-        "a6db8407-6f4b-454f-be71-aa73e28457e8"
+        "25d14dd4-be9f-4a8c-b327-2c673686b089",
+        "1617dbee-a0bb-4ee9-86ae-f8d27875f798",
+        "867ee041-18d6-4d3d-a810-3549fa29f1e0",
+        "17cd1d31-08d5-411d-9acb-5b2a137e3ac8",
+        "ad046f9d-e2fb-415f-bd53-64a4aaf721bc",
+        "88adcd8d-b44b-4c9a-a64f-9928fd7ebcf1",
+        "afa2bb76-dc0e-450d-b65c-fa34a7646be2",
+        "873c86bb-c539-4e5c-a09d-8c0e6015b524"
       ]
     }
   ],
@@ -690,7 +690,7 @@
       "visible": true,
       "mode": "bitmap",
       "saved": true,
-      "uuid": "36ae9f9f-74a4-4f8c-89a8-f8adc6e57d3e",
+      "uuid": "2e8b66f2-2e45-448a-bca3-595f32a88fb0",
       "source": "data:image/png;base64,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",
       "width": 64,
       "height": 64,

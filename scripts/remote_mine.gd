@@ -40,8 +40,15 @@ func detonate(attacker: Node = null) -> void:
 	var popup: Node3D = FLOATING_TEXT_SCENE.instantiate()
 	get_parent().add_child(popup)
 	popup.global_position = global_position + Vector3(0, 1.5, 0)
-	if popup.has_node("Label3D"):
-		popup.get_node("Label3D").text = "BOOM! (250 DMG)"
-		popup.get_node("Label3D").modulate = Color.ORANGE_RED
+	var lbl: Label3D = popup.get_node_or_null("Label3D") as Label3D
+	if lbl:
+		lbl.text = "BOOM! (250 DMG)"
+		lbl.modulate = Color.ORANGE_RED
+	var tween: Tween = popup.create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(popup, "position:y", popup.position.y + 1.6, 0.6).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	if lbl:
+		tween.tween_property(lbl, "modulate:a", 0.0, 0.6).set_delay(0.2)
+	tween.chain().tween_callback(popup.queue_free)
 
 	queue_free()
