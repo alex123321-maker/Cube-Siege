@@ -1,4 +1,4 @@
-[gd_scene load_steps=25 format=3 uid="uid://cmain001"]
+[gd_scene load_steps=24 format=3 uid="uid://cmain001"]
 
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="1_player"]
 [ext_resource type="PackedScene" path="res://scenes/portal.tscn" id="2_portal"]
@@ -15,7 +15,6 @@
 [ext_resource type="PackedScene" path="res://scenes/resource_stone.tscn" id="13_stone"]
 [ext_resource type="PackedScene" path="res://scenes/resource_iron.tscn" id="14_iron"]
 [ext_resource type="Script" path="res://scripts/safe_zone_detector.gd" id="15_safezone"]
-[ext_resource type="Script" path="res://scripts/save_manager.gd" id="16_save"]
 [ext_resource type="PackedScene" path="res://scenes/map_generator.tscn" id="17_mapgen"]
 [ext_resource type="PackedScene" path="res://scenes/card_draft_popup.tscn" id="18_carddraft"]
 [ext_resource type="PackedScene" path="res://scenes/prefabs/workbench.tscn" id="19_bench"]
@@ -330,5 +329,3 @@ script = ExtResource("15_safezone")
 building_system_path = NodePath("../BuildingSystem")
 wave_director_path = NodePath("../WaveDirector")
 
-[node name="SaveManager" type="Node" parent="."]
-script = ExtResource("16_save")

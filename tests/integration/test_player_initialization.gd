@@ -14,34 +14,67 @@ func test_player_initialization_defaults_warrior() -> void:
 	assert_not_null(player.interaction)
 	assert_not_null(player.presentation)
 	
-	var warrior_def = CharacterDefinition.get_definition(0)
 	assert_eq(player.current_class, player.CharacterClass.WARRIOR)
-	assert_eq(player.max_health, warrior_def.base_health)
-	assert_eq(player.current_health, warrior_def.base_health)
-	assert_eq(player.speed, warrior_def.base_speed)
-	assert_eq(player.attack_damage, warrior_def.base_attack_damage)
-	assert_eq(player.special_damage, warrior_def.base_special_damage)
+	assert_eq(player.max_health, 100.0)
+	assert_eq(player.current_health, 100.0)
+	assert_eq(player.speed, 7.0)
+	assert_eq(player.attack_damage, 25.0)
+	assert_eq(player.special_damage, 60.0)
+	assert_eq(player.dash_speed, 18.0)
+	assert_eq(player.dash_cooldown, 3.0)
 
-func test_player_set_class_archer() -> void:
+	# Interaction sensor check
+	var sensor = player.get_node_or_null("InteractionSensor") as Area3D
+	assert_not_null(sensor, "Player scene must contain InteractionSensor Area3D")
+	assert_false(sensor.monitorable, "InteractionSensor should not be monitorable")
+	assert_eq(sensor.collision_mask, 9, "InteractionSensor mask must be 9 (layers 1 and 4)")
+
+func test_player_set_class_archer_preserves_baseline_stats() -> void:
 	var player = PLAYER_SCENE.instantiate()
 	add_child_autoqfree(player)
 	
 	player.set_class(player.CharacterClass.ARCHER, false)
-	var archer_def = CharacterDefinition.get_definition(1)
 	assert_eq(player.current_class, player.CharacterClass.ARCHER)
-	assert_eq(player.max_health, archer_def.base_health)
-	assert_eq(player.speed, archer_def.base_speed)
-	assert_eq(player.attack_damage, archer_def.base_attack_damage)
-	assert_eq(player.special_damage, archer_def.base_special_damage)
+	assert_eq(player.max_health, 100.0)
+	assert_eq(player.speed, 7.0)
+	assert_eq(player.attack_damage, 25.0)
+	assert_eq(player.special_damage, 60.0)
 
-func test_player_set_class_engineer() -> void:
+func test_player_set_class_engineer_preserves_baseline_stats() -> void:
 	var player = PLAYER_SCENE.instantiate()
 	add_child_autoqfree(player)
 	
 	player.set_class(player.CharacterClass.ENGINEER, false)
-	var eng_def = CharacterDefinition.get_definition(2)
 	assert_eq(player.current_class, player.CharacterClass.ENGINEER)
-	assert_eq(player.max_health, eng_def.base_health)
-	assert_eq(player.speed, eng_def.base_speed)
-	assert_eq(player.attack_damage, eng_def.base_attack_damage)
-	assert_eq(player.special_damage, eng_def.base_special_damage)
+	assert_eq(player.max_health, 100.0)
+	assert_eq(player.speed, 7.0)
+	assert_eq(player.attack_damage, 25.0)
+	assert_eq(player.special_damage, 60.0)
+
+func test_mastery_multipliers_applied_and_not_wiped_by_set_class() -> void:
+	var player = PLAYER_SCENE.instantiate()
+	add_child_autoqfree(player)
+
+	# Manually invoke apply_mastery_stats with known base stats
+	player.attack_damage = 25.0
+	player.max_health = 100.0
+	player.current_health = 100.0
+	player.speed = 7.0
+	
+	var roster = get_node_or_null("/root/RosterManager")
+	if roster and roster.slots.size() > 0:
+		roster.slots[0].survival = 5 # +20 max HP bonus
+		roster.slots[0].bloodlust = 5 # +10% damage
+		player.apply_mastery_stats()
+		assert_almost_eq(player.max_health, 120.0, 0.01)
+		assert_almost_eq(player.attack_damage, 27.5, 0.01)
+
+		# Calling set_class must NOT overwrite mastery bonuses
+		player.set_class(player.CharacterClass.ARCHER, false)
+		assert_almost_eq(player.max_health, 120.0, 0.01)
+		assert_almost_eq(player.attack_damage, 27.5, 0.01)
+
+		# Reset slot
+		roster.slots[0].survival = 0
+		roster.slots[0].bloodlust = 0
+

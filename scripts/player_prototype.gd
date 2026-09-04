@@ -74,9 +74,22 @@ var is_parrying: bool:
 	get: return health.is_parrying
 	set(val): health.is_parrying = val
 
+var parry_cooldown_timer: float:
+	get: return health.parry_cooldown_timer
+	set(val): health.parry_cooldown_timer = val
+
 var focused_interactable: Node:
 	get: return interaction.focused_interactable
 	set(val): interaction.focused_interactable = val
+
+# External system paths & resolved references
+@export var building_system_path: NodePath = NodePath("../BuildingSystem")
+@export var radial_menu_path: NodePath = NodePath("../HUD/RadialMenu")
+@export var portal_path: NodePath = NodePath("../Portal")
+
+var building_system: Node = null
+var radial_menu: Control = null
+var portal: Node3D = null
 
 # Combat parameters
 @export var attack_damage: float = 25.0
@@ -104,9 +117,6 @@ var active_tether: Node3D = null
 
 const DUEL_TETHER_SCENE = preload("res://scenes/duel_tether.tscn")
 const FLOATING_TEXT_SCENE = preload("res://scenes/floating_text.tscn")
-
-var _cached_building_system: Node = null
-var _cached_radial_menu: Control = null
 
 func _ready() -> void:
 	add_to_group("player")
@@ -150,9 +160,21 @@ func _ready() -> void:
 		slash_area.set_owner_entity(self)
 		slash_area.monitoring = false
 
-	# Cache UI references
-	_cached_building_system = get_tree().root.find_child("BuildingSystem", true, false)
-	_cached_radial_menu = get_tree().root.find_child("RadialMenu", true, false) as Control
+	# Resolve external system references
+	if building_system_path and not building_system_path.is_empty():
+		building_system = get_node_or_null(building_system_path)
+	if not building_system and is_inside_tree():
+		building_system = get_tree().root.find_child("BuildingSystem", true, false)
+
+	if radial_menu_path and not radial_menu_path.is_empty():
+		radial_menu = get_node_or_null(radial_menu_path) as Control
+	if not radial_menu and is_inside_tree():
+		radial_menu = get_tree().root.find_child("RadialMenu", true, false) as Control
+
+	if portal_path and not portal_path.is_empty():
+		portal = get_node_or_null(portal_path) as Node3D
+	if not portal and is_inside_tree():
+		portal = get_tree().root.find_child("Portal", true, false) as Node3D
 
 func _physics_process(delta: float) -> void:
 	presentation.update_portal_compass(self)
@@ -188,10 +210,6 @@ func _physics_process(delta: float) -> void:
 		perform_ultimate()
 
 	# Subsystem processing
-	if interaction.candidate_nodes.is_empty():
-		# Maintain fallback candidates from scene group
-		interaction.update_candidates(get_tree().get_nodes_in_group("interactables"))
-
 	interaction.process_interaction(self, delta)
 	movement.process_movement(self, delta, duel_target if is_dueling else null)
 	aim.handle_aim(self, duel_target if is_dueling else null)
@@ -224,16 +242,9 @@ func apply_mastery_stats() -> void:
 
 func set_class(new_class: CharacterClass, show_popup: bool = true) -> void:
 	current_class = new_class
-	var def = CharacterDefinition.get_definition(new_class as int)
-	if def:
-		max_health = def.base_health
-		current_health = max_health
-		speed = def.base_speed
-		dash_speed = def.dash_speed
-		dash_cooldown = def.dash_cooldown
-		attack_damage = def.base_attack_damage
-		special_damage = def.base_special_damage
-		ultimate_cooldown = def.ultimate_cooldown
+	var bus_cls = get_node_or_null("/root/EventBus")
+	if bus_cls:
+		bus_cls.player_class_changed.emit(int(new_class))
 
 	# Visual appearance setup
 	var torso: MeshInstance3D = find_child("torso", true, false) as MeshInstance3D
@@ -555,19 +566,27 @@ func toggle_remote_mine() -> void:
 	if is_instance_valid(active_remote_mine):
 		active_remote_mine.detonate(self)
 		active_remote_mine = null
+		parry_cooldown_timer = 3.5
 	else:
+		if parry_cooldown_timer > 0.0:
+			spawn_popup_text("MINE RECHARGING...", Color.GRAY)
+			return
 		var mine_scene = preload("res://scenes/prefabs/remote_mine.tscn")
 		active_remote_mine = mine_scene.instantiate()
 		get_parent().add_child(active_remote_mine)
-		active_remote_mine.global_position = global_position + (-global_transform.basis.z * 1.5)
-		spawn_popup_text("MINE ARMED! [Q] TO DETONATE", Color.CORAL)
+		active_remote_mine.global_position = global_position
+		spawn_popup_text("MINE PLANTED! [Q] DETONATE", Color.INDIAN_RED)
 
 func deploy_decoy() -> void:
+	if parry_cooldown_timer > 0.0:
+		spawn_popup_text("DECOY RECHARGING...", Color.GRAY)
+		return
+	parry_cooldown_timer = 12.0
 	var decoy_scene = preload("res://scenes/prefabs/decoy_dummy.tscn")
 	var decoy = decoy_scene.instantiate()
 	get_parent().add_child(decoy)
-	decoy.global_position = global_position + (-global_transform.basis.z * 2.0)
-	spawn_popup_text("DECOY DEPLOYED!", Color.AQUAMARINE)
+	decoy.global_position = global_position + (-global_transform.basis.z * 3.0)
+	spawn_popup_text("DECOY DEPLOYED! (AGGRO 3.5s)", Color.LIGHT_GREEN)
 
 func apply_card_upgrade(card_id: String) -> void:
 	match card_id:
@@ -584,7 +603,7 @@ func apply_card_upgrade(card_id: String) -> void:
 			dash_cooldown *= 0.65
 			spawn_popup_text("+20% SPEED!", Color(0.2, 0.9, 1.0))
 		"HEAVY_MASONRY":
-			var bs: Node = get_tree().root.find_child("BuildingSystem", true, false)
+			var bs: Node = building_system if building_system else (get_tree().root.find_child("BuildingSystem", true, false) if is_inside_tree() else null)
 			if bs:
 				var placed: Dictionary = bs.get("placed_buildings")
 				if placed:
@@ -611,8 +630,8 @@ func spawn_popup_text(msg: String, col: Color) -> void:
 	presentation.spawn_popup_text(self, msg, col)
 
 func is_in_build_mode() -> bool:
-	if _cached_building_system and _cached_building_system.get("current_prefab_type") != null and _cached_building_system.current_prefab_type != 0:
+	if building_system and building_system.get("current_prefab_type") != null and building_system.current_prefab_type != 0:
 		return true
-	if _cached_radial_menu and _cached_radial_menu.visible:
+	if radial_menu and radial_menu.visible:
 		return true
 	return false

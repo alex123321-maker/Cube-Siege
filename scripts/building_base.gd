@@ -19,6 +19,16 @@ var grid_coord: Vector2i = Vector2i.ZERO
 
 const FLOATING_TEXT_SCENE = preload("res://scenes/floating_text.tscn")
 
+func _enter_tree() -> void:
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if reg:
+		reg.register_building(self)
+
+func _exit_tree() -> void:
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if reg:
+		reg.unregister_building(self)
+
 func _ready() -> void:
 	if not mesh_instance:
 		mesh_instance = find_child("*Mesh*", true, false) as MeshInstance3D

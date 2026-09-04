@@ -69,7 +69,7 @@ static func execute_interaction(node: Node, player: Node, is_shift: bool = false
 		ActionType.REPAIR:
 			if node.has_method("repair") and node.get("current_health") != null:
 				if node.current_health < node.max_health:
-					var bs: Node = player.get_tree().root.find_child("BuildingSystem", true, false)
+					var bs: Node = player.building_system if ("building_system" in player and player.building_system) else (player.get_tree().root.find_child("BuildingSystem", true, false) if (player.get_tree() and player.get_tree().root) else null)
 					if bs and bs.has_method("spend_resources") and bs.spend_resources(1, 0, 0):
 						node.repair(100.0)
 					elif player.has_method("spawn_popup_text"):

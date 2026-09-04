@@ -16,6 +16,19 @@ func _ready() -> void:
 		eb.boss_defeated.connect(func(boss): unregister_boss(boss))
 		eb.enemy_killed.connect(func(enemy, _pos): unregister_enemy(enemy))
 
+	call_deferred("_scan_existing_entities")
+
+func _scan_existing_entities() -> void:
+	if not is_inside_tree():
+		return
+	for b in get_tree().get_nodes_in_group("buildings"):
+		if b is Node3D:
+			register_building(b as Node3D)
+	for e in get_tree().get_nodes_in_group("enemies"):
+		register_enemy(e)
+	for boss in get_tree().get_nodes_in_group("boss"):
+		register_boss(boss)
+
 func register_building(b: Node3D) -> void:
 	if b and not buildings.has(b):
 		buildings.append(b)

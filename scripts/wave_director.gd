@@ -42,7 +42,13 @@ func _on_phase_changed(is_night: bool, day_number: int) -> void:
 	if not is_night:
 		# Morning sun burns surviving weak grunts
 		var reg = get_node_or_null("/root/EntityRegistry")
-		var enemies: Array[Node] = reg.get_enemies().duplicate() if (reg and not reg.enemies.is_empty()) else get_tree().get_nodes_in_group("enemies")
+		var enemies: Array[Node] = []
+		if reg:
+			enemies = reg.get_enemies().duplicate()
+		for e in get_tree().get_nodes_in_group("enemies"):
+			if not enemies.has(e):
+				enemies.append(e)
+
 		for e in enemies:
 			if is_instance_valid(e) and e.has_method("die"):
 				e.die()
@@ -56,8 +62,8 @@ func set_safe_zone_cells(cells: Array[Vector2i]) -> void:
 
 func try_spawn_wave_enemy() -> void:
 	var reg = get_node_or_null("/root/EntityRegistry")
-	var enemy_count: int = reg.get_enemy_count() if (reg and not reg.enemies.is_empty()) else get_tree().get_nodes_in_group("enemies").size()
-	var has_boss: bool = reg.has_active_boss() if (reg and not reg.bosses.is_empty()) else not get_tree().get_nodes_in_group("boss").is_empty()
+	var enemy_count: int = reg.get_enemy_count() if reg else get_tree().get_nodes_in_group("enemies").size()
+	var has_boss: bool = reg.has_active_boss() if reg else not get_tree().get_nodes_in_group("boss").is_empty()
 	var effective_max: int = 4 if has_boss else max_concurrent_enemies
 	if enemy_count >= effective_max:
 		return

@@ -114,6 +114,19 @@ class GitHubClient:
             return data[0].get("number")
         return None
 
+    def get_open_prs(self) -> List[Dict[str, Any]]:
+        """Return open PR numbers and their source branches."""
+        rc, stdout, stderr = self.run_gh([
+            "pr", "list",
+            "--state", "open",
+            "--json", "number,headRefName",
+            "--limit", "100",
+        ])
+        if rc != 0:
+            raise GitHubError(f"Failed to list open PRs: {stderr or stdout}")
+        data = json.loads(stdout)
+        return data if isinstance(data, list) else []
+
     def get_pr_details(self, pr_number: int) -> Dict[str, Any]:
         """Fetch general PR details (state, headRefOid, isDraft, author, url, reviewDecision)."""
         rc, stdout, stderr = self.run_gh([

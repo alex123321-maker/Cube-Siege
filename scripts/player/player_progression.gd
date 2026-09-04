@@ -33,11 +33,12 @@ func add_xp(amount: float, player_node: Node = null) -> void:
 			bus_xp.player_xp_changed.emit(current_xp, xp_to_next_level, player_level)
 
 func apply_mastery_stats(player_node: Node = null) -> Dictionary:
-	var mastery_mgr = player_node.get_node_or_null("/root/MasteryManager") if player_node else null
-	if not mastery_mgr:
+	var roster = player_node.get_node_or_null("/root/RosterManager") if player_node else null
+	if not roster or not roster.has_method("get_character_multipliers"):
 		return {}
 
-	var mults: Dictionary = mastery_mgr.get_stat_multipliers()
+	var slot_idx: int = roster.selected_slot_index if "selected_slot_index" in roster else 0
+	var mults: Dictionary = roster.get_character_multipliers(slot_idx)
 	if mults.has("resource_mult"):
 		resource_multiplier = maxi(1, int(roundf(mults.resource_mult)))
 	return mults

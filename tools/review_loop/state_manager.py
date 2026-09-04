@@ -114,7 +114,11 @@ class StateManager:
         self.lock_file = Path(
             lock_file or self.state_file.with_suffix(".lock")
         )
-        self.state: Dict[str, Any] = {"prs": {}, "allowlist": []}
+        self.state: Dict[str, Any] = {
+            "prs": {},
+            "allowlist": [],
+            "branch_conversations": {},
+        }
         self._load_no_lock()
 
     # ------------- low-level I/O (no locking) ------------- #
@@ -130,6 +134,7 @@ class StateManager:
                     self.state = data
                     self.state.setdefault("prs", {})
                     self.state.setdefault("allowlist", [])
+                    self.state.setdefault("branch_conversations", {})
         except Exception as e:
             logger.warning(
                 "Failed to load state file '%s': %s. Re-initializing.",
@@ -197,6 +202,49 @@ class StateManager:
         self._load_no_lock()
         return self.state.get("prs", {}).get(str(pr_number))
 
+    def remember_branch_conversation(
+        self, branch: str, conversation_id: str
+    ) -> None:
+        """Remember the active agent conversation before a PR exists."""
+        normalized_branch = str(branch or "").strip()
+        normalized_conversation = str(conversation_id or "").strip()
+        if not normalized_branch or not normalized_conversation:
+            raise ValueError("Branch and conversation ID are required.")
+
+        with self._transact():
+            mappings = self.state.setdefault("branch_conversations", {})
+            mappings[normalized_branch] = {
+                "conversation_id": normalized_conversation,
+                "updated_at": time.time(),
+            }
+
+    def get_branch_conversation(self, branch: str) -> Optional[str]:
+        """Return the most recently observed conversation for a branch."""
+        self._load_no_lock()
+        entry = self.state.get("branch_conversations", {}).get(
+            str(branch or "").strip()
+        )
+        if isinstance(entry, str):
+            return entry or None
+        if isinstance(entry, dict):
+            return entry.get("conversation_id") or None
+        return None
+
+    def get_branch_conversations(self) -> Dict[str, str]:
+        """Return all valid branch-to-conversation mappings."""
+        self._load_no_lock()
+        result: Dict[str, str] = {}
+        for branch, entry in self.state.get("branch_conversations", {}).items():
+            if isinstance(entry, str):
+                conversation_id = entry
+            elif isinstance(entry, dict):
+                conversation_id = entry.get("conversation_id", "")
+            else:
+                continue
+            if branch and conversation_id:
+                result[str(branch)] = str(conversation_id)
+        return result
+
     # ------------- PR Registration & Lifecycle ------------- #
 
     def register_pr(
@@ -210,6 +258,11 @@ class StateManager:
         destroy active processing state.
         """
         with self._transact():
+            mappings = self.state.setdefault("branch_conversations", {})
+            mappings[branch] = {
+                "conversation_id": conversation_id,
+                "updated_at": time.time(),
+            }
             key = str(pr_number)
             if key in self.state["prs"]:
                 self.state["prs"][key]["conversation_id"] = conversation_id

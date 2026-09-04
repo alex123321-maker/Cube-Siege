@@ -16,8 +16,21 @@ var duel_opponent: Node = null
 
 const FLOATING_TEXT_SCENE = preload("res://scenes/floating_text.tscn")
 
+func _enter_tree() -> void:
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if reg:
+		reg.register_enemy(self)
+
+func _exit_tree() -> void:
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if reg:
+		reg.unregister_enemy(self)
+
 func _ready() -> void:
 	add_to_group("enemies")
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if reg:
+		reg.register_enemy(self)
 	current_health = max_health
 	update_hp_label()
 	if hurtbox and hurtbox.has_signal("damaged"):

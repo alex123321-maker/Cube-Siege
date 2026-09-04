@@ -43,10 +43,10 @@ func test_character_catalog_classes_match_specification() -> void:
 	assert_not_null(archer)
 	assert_eq(archer.class_id, 1)
 	assert_eq(archer.character_name, "Лучник")
-	assert_eq(archer.base_health, 80.0)
+	assert_eq(archer.base_health, 100.0)
 
 	var eng = CharacterDefinition.get_definition(2)
 	assert_not_null(eng)
 	assert_eq(eng.class_id, 2)
 	assert_eq(eng.character_name, "Инженер")
-	assert_eq(eng.base_health, 110.0)
+	assert_eq(eng.base_health, 100.0)

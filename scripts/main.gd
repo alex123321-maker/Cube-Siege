@@ -4,7 +4,7 @@ extends Node3D
 @onready var radial_menu: Control = $HUD/RadialMenu
 @onready var player: Node = $Player
 @onready var overlay: Control = $HUD/GameOverOverlay
-@onready var save_manager: Node = get_node_or_null("/root/SaveManager") if has_node("/root/SaveManager") else get_node_or_null("SaveManager")
+@onready var save_manager: Node = get_node_or_null("/root/SaveManager")
 @onready var day_night: Node = $DayNightCycle
 @onready var hud: CanvasLayer = $HUD
 

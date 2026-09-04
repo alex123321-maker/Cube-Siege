@@ -50,7 +50,10 @@ func update_portal_compass(player: CharacterBody3D) -> void:
 		return
 
 	if not cached_portal or not is_instance_valid(cached_portal):
-		cached_portal = player.get_tree().root.find_child("Portal", true, false) as Node3D
+		if "portal" in player and player.portal:
+			cached_portal = player.portal
+		elif player.get_tree() and player.get_tree().root:
+			cached_portal = player.get_tree().root.find_child("Portal", true, false) as Node3D
 	if not cached_portal:
 		return
 

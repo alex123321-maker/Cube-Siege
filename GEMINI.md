@@ -63,6 +63,7 @@
 * **Scope discipline**: Не чинить попутный технический долг, не добавлять "улучшений" вне скоупа Issue.
 * **Ветки и PR**:
   * Каждая задача реализуется в отдельной ветке: `feat/N-description`, `fix/N-description`, `refactor/N-description`.
+  * Создавать PR только через `python tools/review_loop/create_pr.py -- <аргументы gh pr create>`. Прямой `gh pr create` запрещён, поскольку он не гарантирует регистрацию сессии для автономного review loop.
   * Pull Request обязан содержать `Closes #N` (или `Fixes #N`) и чек-лист каждого Acceptance Criterion.
   * Issue не закрывается вручную — закрытие происходит автоматически при merge PR.
 

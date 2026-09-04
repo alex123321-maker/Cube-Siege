@@ -158,7 +158,8 @@ python tools/verify.py
 | **Инспекция дерева нод** | `python tools/gdmcp.py tree --depth 4` |
 | **Запуск игры (Headless smoke)** | `godot --headless --path . --quit-after 100` |
 | **Просмотр задачи GitHub** | `gh issue view <N>` |
-| **Регистрация PR в review loop** | `python tools/review_loop/register.py` |
+| **Создание PR + регистрация** | `python tools/review_loop/create_pr.py -- <аргументы gh pr create>` |
+| **Ручная регистрация PR** | `python tools/review_loop/register.py` |
 | **Статус review watcher** | `python tools/review_loop/install.py status` |
 | **Запуск watcher (run-once)** | `python tools/review_loop/watcher.py --run-once` |
 
@@ -177,7 +178,7 @@ Gemini / Antigravity реализует фичу
   ↓
 Создание ветки + тесты + верификация
   ↓
-Создание Pull Request (`gh pr create`)
+Создание Pull Request (`python tools/review_loop/create_pr.py -- <аргументы gh pr create>`)
   ↓
 Автоматическая регистрация PR в review loop через Antigravity Hook (`.agents/hooks.json`)
   ↓
@@ -193,7 +194,17 @@ Watcher фиксирует появление нового head SHA, снима�
 
 ### 9.2. Регистрация PR в цикле
 
-Регистрация происходит **автоматически** через штатный Antigravity Hook (`.agents/hooks.json`), который передаёт `conversationId` на `stdin` скрипту `register.py --from-hook` при остановке агента или завершении инструмента.
+Основной путь регистрации — `create_pr.py`: обёртка проверяет наличие `conversationId`, обеспечивает запуск фонового watcher, создаёт (или находит существующий) PR и сохраняет привязку до успешного завершения команды. Прямой `gh pr create` не используется.
+
+Штатный Antigravity Hook (`.agents/hooks.json`) служит дополнительной страховкой. До появления PR он запоминает привязку текущей ветки к `conversationId`, а после появления PR повторяет идемпотентную регистрацию. На каждом цикле watcher сопоставляет сохранённые ветки с открытыми PR, поэтому временный сбой регистрации исправляется автоматически. Диагностика хука сохраняется в `.review_loop/hook.log`.
+
+```bash
+# Все аргументы после -- передаются в gh pr create
+python tools/review_loop/create_pr.py -- --title "feat: example" --body "Closes #N"
+
+# Явная сессия для ручного/аварийного запуска
+python tools/review_loop/create_pr.py --conversation-id <id> -- --title "feat: example" --body-file pr.md
+```
 
 При необходимости ручной регистрации или управления списком:
 
@@ -223,6 +234,9 @@ python tools/review_loop/register.py --reactivate <pr_number>
 ```bash
 # Установка службы автозапуска
 python tools/review_loop/install.py install
+
+# Идемпотентно установить задачу и сразу запустить watcher
+python tools/review_loop/install.py ensure
 
 # Запуск фонового вотчера
 python tools/review_loop/install.py start
@@ -276,5 +290,6 @@ agy --conversation <id> -p "..." --dangerously-skip-permissions
 ### 9.5. Логи и состояние
 
 * **Лог работы**: `.review_loop/watcher.log` (добавляется в `.gitignore`, не содержит токенов и секретов).
+* **Лог регистрации из hooks**: `.review_loop/hook.log` (показывает сохранение сессии, регистрацию PR и ошибки hook-пути).
 * **Файл состояния**: `.review_loop/state.json` (хранит маппинг PR ↔ conversation ID, идентификаторы обработанных событий, блокировки от параллельных запусков).
 * **Файл блокировки**: `.review_loop/state.lock` (advisory file lock для безопасности при одновременной работе watcher + hook процессов).

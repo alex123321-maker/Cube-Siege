@@ -200,6 +200,39 @@ class ReviewWatcher:
             except Exception as e:
                 logger.warning("Could not auto-detect repo owner: %s", e)
 
+    def reconcile_registrations(self) -> None:
+        """Recover open PR registrations from hook-observed branch mappings."""
+        mappings = self.state.get_branch_conversations()
+        if not mappings:
+            return
+
+        registered = self.state.get_registered_prs()
+        registered_branches = {
+            str(entry.get("branch") or "")
+            for entry in registered.values()
+            if isinstance(entry, dict)
+        }
+        unmatched_mappings = {
+            branch: conversation_id
+            for branch, conversation_id in mappings.items()
+            if branch not in registered_branches
+        }
+        if not unmatched_mappings:
+            return
+
+        for pr in self.github.get_open_prs():
+            pr_number = pr.get("number")
+            branch = str(pr.get("headRefName") or "").strip()
+            conversation_id = unmatched_mappings.get(branch)
+            if not pr_number or not conversation_id or str(pr_number) in registered:
+                continue
+            self.state.register_pr(int(pr_number), conversation_id, branch)
+            logger.info(
+                "Recovered registration for PR #%s on branch '%s' from hook state.",
+                pr_number,
+                branch,
+            )
+
     def check_pr_events(self, pr_number: int, pr_info: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
         Inspect PR for new, unhandled, allowed review events.
@@ -643,6 +676,7 @@ class ReviewWatcher:
     def run_cycle(self) -> None:
         """Run a single polling cycle across all active registered PRs."""
         self.init_allowlist_if_empty()
+        self.reconcile_registrations()
         prs = self.state.get_registered_prs()
         if not prs:
             logger.debug("No registered PRs to watch.")

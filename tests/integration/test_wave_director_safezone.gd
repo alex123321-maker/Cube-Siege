@@ -8,6 +8,16 @@ class MockEnemy extends Node3D:
 	func _init() -> void:
 		add_to_group("enemies")
 
+	func _enter_tree() -> void:
+		var reg = get_node_or_null("/root/EntityRegistry")
+		if reg:
+			reg.register_enemy(self)
+
+	func _exit_tree() -> void:
+		var reg = get_node_or_null("/root/EntityRegistry")
+		if reg:
+			reg.unregister_enemy(self)
+
 	func die() -> void:
 		died = true
 
@@ -41,3 +51,30 @@ func test_wave_director_morning_sun_destroys_enemies() -> void:
 
 	assert_true(enemy1.died, "Morning phase transition should kill surviving enemy 1")
 	assert_true(enemy2.died, "Morning phase transition should kill surviving enemy 2")
+
+func test_wave_director_morning_sun_destroys_preexisting_and_spawned_enemies() -> void:
+	var reg = get_node_or_null("/root/EntityRegistry")
+	var director = WaveDirectorClass.new()
+	add_child_autoqfree(director)
+
+	# 1 pre-existing enemy registered via tree / EntityRegistry
+	var pre_existing = MockEnemy.new()
+	add_child_autoqfree(pre_existing)
+	if reg:
+		reg.register_enemy(pre_existing)
+
+	# 1 spawned enemy
+	var spawned = MockEnemy.new()
+	add_child_autoqfree(spawned)
+	if reg:
+		reg.register_enemy(spawned)
+
+	assert_eq(get_tree().get_nodes_in_group("enemies").size(), 2)
+	if reg:
+		assert_eq(reg.get_enemy_count(), 2, "EntityRegistry must track both pre-existing and spawned enemies")
+
+	# Dawn arrives
+	director._on_phase_changed(false, 3)
+
+	assert_true(pre_existing.died, "Morning sun must destroy pre-existing enemies")
+	assert_true(spawned.died, "Morning sun must destroy spawned wave enemies")

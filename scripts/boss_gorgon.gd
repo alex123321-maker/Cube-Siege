@@ -29,9 +29,25 @@ var has_hit_player_in_charge: bool = false
 
 const FLOATING_TEXT_SCENE = preload("res://scenes/floating_text.tscn")
 
+func _enter_tree() -> void:
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if reg:
+		reg.register_enemy(self)
+		reg.register_boss(self)
+
+func _exit_tree() -> void:
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if reg:
+		reg.unregister_enemy(self)
+		reg.unregister_boss(self)
+
 func _ready() -> void:
 	add_to_group("enemies")
 	add_to_group("boss")
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if reg:
+		reg.register_enemy(self)
+		reg.register_boss(self)
 	current_health = max_health
 	emit_signal("boss_health_changed", current_health, max_health)
 	update_hp_label()

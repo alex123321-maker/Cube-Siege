@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3 uid="uid://cplayer001"]
+[gd_scene load_steps=9 format=3 uid="uid://cplayer001"]
 
 [ext_resource type="Script" path="res://scripts/player_prototype.gd" id="1_proto"]
 [ext_resource type="Script" path="res://scripts/hitbox_area.gd" id="2_hitbox"]
@@ -9,6 +9,9 @@ size = Vector3(0.8, 1.8, 0.8)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_slash"]
 size = Vector3(3.0, 2.6, 2.6)
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_sensor"]
+radius = 4.5
 
 [sub_resource type="StandardMaterial3D" id="Mat_Compass_Arrow"]
 albedo_color = Color(0.2, 0.9, 1, 1)
@@ -59,3 +62,12 @@ font_size = 20
 outline_size = 5
 outline_color = Color(0, 0, 0, 1)
 text = "⮵ ПОРТАЛ: 0m"
+
+[node name="InteractionSensor" type="Area3D" parent="."]
+collision_layer = 0
+collision_mask = 9
+monitorable = false
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="InteractionSensor"]
+shape = SubResource("SphereShape3D_sensor")
+

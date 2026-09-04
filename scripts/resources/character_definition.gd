@@ -45,14 +45,14 @@ static func _init_catalog() -> void:
 	archer.class_id = 1
 	archer.character_name = "Лучник"
 	archer.title = "Следопыт Лесов"
-	archer.base_health = 80.0
-	archer.base_speed = 8.0
-	archer.dash_speed = 20.0
+	archer.base_health = 100.0
+	archer.base_speed = 7.0
+	archer.dash_speed = 18.0
 	archer.dash_duration = 0.15
-	archer.dash_cooldown = 2.5
-	archer.base_attack_damage = 18.0
-	archer.base_special_damage = 45.0
-	archer.ultimate_cooldown = 30.0
+	archer.dash_cooldown = 3.0
+	archer.base_attack_damage = 25.0
+	archer.base_special_damage = 60.0
+	archer.ultimate_cooldown = 25.0
 	_character_catalog[archer.class_id] = archer
 
 	# Engineer
@@ -60,12 +60,12 @@ static func _init_catalog() -> void:
 	eng.class_id = 2
 	eng.character_name = "Инженер"
 	eng.title = "Мастер Фортификаций"
-	eng.base_health = 110.0
-	eng.base_speed = 6.5
-	eng.dash_speed = 16.0
+	eng.base_health = 100.0
+	eng.base_speed = 7.0
+	eng.dash_speed = 18.0
 	eng.dash_duration = 0.15
-	eng.dash_cooldown = 3.5
-	eng.base_attack_damage = 22.0
-	eng.base_special_damage = 50.0
-	eng.ultimate_cooldown = 60.0
+	eng.dash_cooldown = 3.0
+	eng.base_attack_damage = 25.0
+	eng.base_special_damage = 60.0
+	eng.ultimate_cooldown = 25.0
 	_character_catalog[eng.class_id] = eng

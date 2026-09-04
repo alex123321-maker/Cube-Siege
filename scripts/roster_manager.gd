@@ -1,54 +1,57 @@
 extends Node
 
-const ROSTER_PATH = "user://character_roster.json"
-
-var selected_slot_index: int = 0
 var return_to_character_select: bool = false
 
-var slots: Array[Dictionary] = [
-	{
-		"class_id": 0,
-		"class_name": "Воин",
-		"title": "Рыцарь Авангарда",
-		"is_alive": true,
-		"level": 1,
-		"max_day": 0,
-		"battle_xp": 0,
-		"available_points": 5,
-		"bloodlust": 0,
-		"survival": 0,
-		"agility": 0,
-		"crafting": 0
-	},
-	{
-		"class_id": 1,
-		"class_name": "Лучник",
-		"title": "Следопыт Лесов",
-		"is_alive": true,
-		"level": 1,
-		"max_day": 0,
-		"battle_xp": 0,
-		"available_points": 5,
-		"bloodlust": 0,
-		"survival": 0,
-		"agility": 0,
-		"crafting": 0
-	},
-	{
-		"class_id": 2,
-		"class_name": "Инженер",
-		"title": "Мастер Фортификаций",
-		"is_alive": true,
-		"level": 1,
-		"max_day": 0,
-		"battle_xp": 0,
-		"available_points": 5,
-		"bloodlust": 0,
-		"survival": 0,
-		"agility": 0,
-		"crafting": 0
-	}
-]
+var _local_selected_slot_index: int = 0
+var _local_slots: Array = []
+
+var selected_slot_index: int:
+	get:
+		var save_mgr = get_node_or_null("/root/SaveManager")
+		if save_mgr:
+			return save_mgr.selected_slot_index
+		return _local_selected_slot_index
+	set(val):
+		var save_mgr = get_node_or_null("/root/SaveManager")
+		if save_mgr:
+			save_mgr.selected_slot_index = val
+		_local_selected_slot_index = val
+
+var slots: Array:
+	get:
+		var save_mgr = get_node_or_null("/root/SaveManager")
+		if save_mgr and not save_mgr.roster_slots.is_empty():
+			return save_mgr.roster_slots
+		if _local_slots.is_empty():
+			_local_slots = _create_default_slots()
+		return _local_slots
+	set(val):
+		var save_mgr = get_node_or_null("/root/SaveManager")
+		if save_mgr:
+			save_mgr.roster_slots = val
+		_local_slots = val
+
+func _create_default_slots() -> Array:
+	var save_cls = load("res://scripts/save_manager.gd")
+	if save_cls and save_cls.has_method("get_default_roster_slots"):
+		return save_cls.get_default_roster_slots()
+	return [
+		{
+			"class_id": 0, "class_name": "Воин", "title": "Рыцарь Авангарда",
+			"is_alive": true, "level": 1, "max_day": 0, "battle_xp": 0,
+			"available_points": 5, "bloodlust": 0, "survival": 0, "agility": 0, "crafting": 0
+		},
+		{
+			"class_id": 1, "class_name": "Лучник", "title": "Следопыт Лесов",
+			"is_alive": true, "level": 1, "max_day": 0, "battle_xp": 0,
+			"available_points": 5, "bloodlust": 0, "survival": 0, "agility": 0, "crafting": 0
+		},
+		{
+			"class_id": 2, "class_name": "Инженер", "title": "Мастер Фортификаций",
+			"is_alive": true, "level": 1, "max_day": 0, "battle_xp": 0,
+			"available_points": 5, "bloodlust": 0, "survival": 0, "agility": 0, "crafting": 0
+		}
+	]
 
 func _ready() -> void:
 	load_roster()
@@ -134,49 +137,8 @@ func record_run_end(evacuated: bool, day: int, gained_xp: int) -> void:
 func save_roster() -> void:
 	var save_mgr = get_node_or_null("/root/SaveManager")
 	if save_mgr:
-		save_mgr.roster_slots = slots
-		save_mgr.selected_slot_index = selected_slot_index
 		save_mgr.save_to_disk()
-		return
-
-	# Fallback if SaveManager is not loaded (e.g. isolated test environment)
-	var file = FileAccess.open(ROSTER_PATH, FileAccess.WRITE)
-	if not file:
-		return
-	var data = {
-		"selected_slot": selected_slot_index,
-		"slots": slots
-	}
-	file.store_string(JSON.stringify(data, "\t"))
-	file.close()
 
 func load_roster() -> void:
-	var save_mgr = get_node_or_null("/root/SaveManager")
-	if save_mgr and save_mgr.roster_slots.size() == 3:
-		slots.clear()
-		for item in save_mgr.roster_slots:
-			if item is Dictionary:
-				slots.append(item)
-		selected_slot_index = save_mgr.selected_slot_index
-		return
-
-	# Fallback / migration from legacy file
-	if not FileAccess.file_exists(ROSTER_PATH):
-		return
-	var file = FileAccess.open(ROSTER_PATH, FileAccess.READ)
-	if not file:
-		return
-	var text = file.get_as_text()
-	file.close()
-	var parsed = JSON.parse_string(text)
-	if parsed is Dictionary:
-		selected_slot_index = parsed.get("selected_slot", 0)
-		var loaded_slots = parsed.get("slots", [])
-		if loaded_slots is Array and loaded_slots.size() == 3:
-			slots.clear()
-			for item in loaded_slots:
-				if item is Dictionary:
-					slots.append(item)
-			if save_mgr:
-				save_mgr.roster_slots = slots
-				save_mgr.selected_slot_index = selected_slot_index
+	# SaveManager is authoritative and loads during startup
+	pass
