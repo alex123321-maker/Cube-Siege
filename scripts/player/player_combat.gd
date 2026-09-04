@@ -16,8 +16,15 @@ func update_timers(delta: float) -> void:
 	if special_cooldown_timer > 0.0:
 		special_cooldown_timer -= delta
 
+func _is_actor_alive(player: Variant) -> bool:
+	if not is_instance_valid(player) or not (player is Node) or not player.is_inside_tree():
+		return false
+	if "current_health" in player and player.current_health <= 0.0:
+		return false
+	return true
+
 func perform_attack(player: CharacterBody3D, current_class: int, is_dashing: bool, is_dueling: bool) -> void:
-	if attack_cooldown_timer > 0.0 or is_dashing:
+	if not _is_actor_alive(player) or attack_cooldown_timer > 0.0 or is_dashing:
 		return
 
 	match current_class:
@@ -29,7 +36,7 @@ func perform_attack(player: CharacterBody3D, current_class: int, is_dashing: boo
 				trigger_slash(player, attack_damage, 5.0, 90.0, is_dueling)
 				return
 			await player.get_tree().create_timer(0.06).timeout
-			if is_instance_valid(player) and player.is_inside_tree():
+			if _is_actor_alive(player):
 				trigger_slash(player, attack_damage, 5.0, 90.0, is_dueling)
 		1: # CharacterClass.ARCHER
 			attack_cooldown_timer = 0.38
@@ -39,7 +46,7 @@ func perform_attack(player: CharacterBody3D, current_class: int, is_dashing: boo
 				trigger_arrow_shot(player, attack_damage, 1, 28.0)
 				return
 			await player.get_tree().create_timer(0.08).timeout
-			if is_instance_valid(player) and player.is_inside_tree():
+			if _is_actor_alive(player):
 				trigger_arrow_shot(player, attack_damage, 1, 28.0)
 		2: # CharacterClass.ENGINEER
 			attack_cooldown_timer = 0.48
@@ -49,11 +56,11 @@ func perform_attack(player: CharacterBody3D, current_class: int, is_dashing: boo
 				trigger_hammer_smash(player, attack_damage * 1.35, is_dueling)
 				return
 			await player.get_tree().create_timer(0.12).timeout
-			if is_instance_valid(player) and player.is_inside_tree():
+			if _is_actor_alive(player):
 				trigger_hammer_smash(player, attack_damage * 1.35, is_dueling)
 
 func perform_special_attack(player: CharacterBody3D, current_class: int, is_dashing: bool, is_dueling: bool, abilities: PlayerAbilities) -> void:
-	if special_cooldown_timer > 0.0 or is_dashing:
+	if not _is_actor_alive(player) or special_cooldown_timer > 0.0 or is_dashing:
 		return
 
 	match current_class:
@@ -65,7 +72,7 @@ func perform_special_attack(player: CharacterBody3D, current_class: int, is_dash
 				trigger_slash(player, special_damage, 12.0, 180.0, is_dueling)
 				return
 			await player.get_tree().create_timer(0.15).timeout
-			if is_instance_valid(player) and player.is_inside_tree():
+			if _is_actor_alive(player):
 				trigger_slash(player, special_damage, 12.0, 180.0, is_dueling)
 		1: # CharacterClass.ARCHER
 			special_cooldown_timer = 5.0
@@ -78,7 +85,7 @@ func perform_special_attack(player: CharacterBody3D, current_class: int, is_dash
 				trigger_piercing_arrow(player, special_damage * 1.3, 6, 36.0)
 				return
 			await player.get_tree().create_timer(0.28).timeout
-			if is_instance_valid(player) and player.is_inside_tree():
+			if _is_actor_alive(player):
 				trigger_piercing_arrow(player, special_damage * 1.3, 6, 36.0)
 		2: # CharacterClass.ENGINEER
 			special_cooldown_timer = 5.0
@@ -89,7 +96,7 @@ func perform_special_attack(player: CharacterBody3D, current_class: int, is_dash
 					abilities.deploy_temp_turret(player)
 					return
 				await player.get_tree().create_timer(0.15).timeout
-				if is_instance_valid(player) and player.is_inside_tree():
+				if _is_actor_alive(player):
 					abilities.deploy_temp_turret(player)
 			else:
 				push_warning("PlayerCombat: cannot deploy temp turret because abilities dependency is missing.")

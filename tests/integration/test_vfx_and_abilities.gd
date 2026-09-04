@@ -186,3 +186,59 @@ func test_tactical_nuke_decoupled_gameplay_execution() -> void:
 	# Verify that damage is dealt independently of VFX
 	player.abilities._apply_nuke_burn_damage(player, enemy.global_position, 25.0, 10.0)
 	assert_true(true, "Tactical nuke damage methods execute directly without VFX callbacks")
+
+func test_windup_actions_cancel_on_player_death() -> void:
+	var player = PLAYER_SCENE.instantiate()
+	add_child_autoqfree(player)
+
+	# 1. Archer piercing arrow with 0.28s wind-up: kill player at 0.05s
+	player.set_class(player.CharacterClass.ARCHER, false)
+	player.combat.special_cooldown_timer = 0.0
+	player.perform_special_attack()
+
+	# Simulate death before wind-up finishes
+	player.health.current_health = 0.0
+
+	# Await past wind-up timer
+	await wait_seconds(0.35)
+
+	# Verify no arrow projectile was spawned under parent
+	var arrows = []
+	for child in get_tree().root.get_children():
+		if child.name.begins_with("ArrowProjectile"):
+			arrows.append(child)
+	assert_eq(arrows.size(), 0, "No projectile should spawn if player dies during wind-up")
+
+	# 2. Engineer turret with 0.15s wind-up: kill player at 0.02s
+	player.set_class(player.CharacterClass.ENGINEER, false)
+	player.health.current_health = 100.0
+	player.combat.special_cooldown_timer = 0.0
+	player.perform_special_attack()
+
+	player.health.current_health = 0.0
+	await wait_seconds(0.20)
+
+	var turrets = get_tree().get_nodes_in_group("buildings")
+	var temp_turrets = []
+	for t in turrets:
+		if t.name.begins_with("TempTurret"):
+			temp_turrets.append(t)
+	assert_eq(temp_turrets.size(), 0, "No turret should deploy if engineer dies during placement wind-up")
+
+func test_engineer_turret_animation_continuity() -> void:
+	var player = PLAYER_SCENE.instantiate()
+	add_child_autoqfree(player)
+	player.set_class(player.CharacterClass.ENGINEER, false)
+
+	# Initial special attack starts animation
+	player.combat.special_cooldown_timer = 0.0
+	player.perform_special_attack()
+	assert_true(player.anim_player.is_playing())
+	assert_eq(player.anim_player.current_animation, "special")
+
+	# Await past 0.15s placement
+	await wait_seconds(0.20)
+
+	# deploy_temp_turret must NOT have restarted the animation back to 0.0
+	assert_gt(player.anim_player.current_animation_position, 0.15, "Animation must continue past 0.15s placement pose without restarting")
+

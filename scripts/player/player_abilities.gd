@@ -223,15 +223,24 @@ func find_target_near_mouse(player: CharacterBody3D) -> Node3D:
 				closest = e as Node3D
 	return closest
 
+func _is_actor_alive(player: Variant) -> bool:
+	if not is_instance_valid(player) or not (player is Node) or not player.is_inside_tree():
+		return false
+	if "current_health" in player and player.current_health <= 0.0:
+		return false
+	return true
+
 func deploy_temp_turret(player: CharacterBody3D) -> void:
+	if not _is_actor_alive(player):
+		return
 	var turret = TEMP_TURRET_SCENE.instantiate()
 	player.get_parent().add_child(turret)
 	turret.global_position = player.global_position + (-player.global_transform.basis.z * 1.5)
-	if player.presentation:
-		player.presentation.play_special_animation()
 	player.spawn_popup_text("TURRET DEPLOYED!", Color.GOLD)
 
 func toggle_remote_mine(player: CharacterBody3D) -> void:
+	if not _is_actor_alive(player):
+		return
 	if is_instance_valid(active_remote_mine):
 		if player.presentation:
 			player.presentation.play_utility_animation()
@@ -250,8 +259,9 @@ func toggle_remote_mine(player: CharacterBody3D) -> void:
 		player.spawn_popup_text("MINE PLANTED! [Q] DETONATE", Color.INDIAN_RED)
 
 func deploy_decoy(player: CharacterBody3D) -> void:
-	if player.parry_cooldown_timer > 0.0:
-		player.spawn_popup_text("DECOY RECHARGING...", Color.GRAY)
+	if not _is_actor_alive(player) or player.parry_cooldown_timer > 0.0:
+		if _is_actor_alive(player):
+			player.spawn_popup_text("DECOY RECHARGING...", Color.GRAY)
 		return
 	player.parry_cooldown_timer = 12.0
 	if player.presentation:
@@ -263,7 +273,7 @@ func deploy_decoy(player: CharacterBody3D) -> void:
 		player.spawn_popup_text("DECOY DEPLOYED! (AGGRO 3.5s)", Color.LIGHT_GREEN)
 		return
 	await player.get_tree().create_timer(0.14).timeout
-	if not is_instance_valid(player) or not player.is_inside_tree():
+	if not _is_actor_alive(player):
 		return
 	var decoy = DECOY_DUMMY_SCENE.instantiate()
 	player.get_parent().add_child(decoy)
