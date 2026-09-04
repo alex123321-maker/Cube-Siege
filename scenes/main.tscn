@@ -315,7 +315,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0.9, -12)
 script = ExtResource("10_daynight")
 sun_light_path = NodePath("../SunLight")
 world_env_path = NodePath("../WorldEnvironment")
-hud_path = NodePath("../HUD")
 
 [node name="WaveDirector" type="Node" parent="."]
 script = ExtResource("11_wave")

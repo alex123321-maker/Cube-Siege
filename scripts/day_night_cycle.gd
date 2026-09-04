@@ -9,7 +9,6 @@ signal time_updated(seconds_left: float, total_duration: float, is_night: bool)
 
 @export var sun_light_path: NodePath
 @export var world_env_path: NodePath
-@export var hud_path: NodePath
 
 var current_day: int = 1
 var is_night: bool = false
@@ -17,7 +16,6 @@ var time_left: float = 180.0
 
 var sun_light: DirectionalLight3D = null
 var world_env: WorldEnvironment = null
-var hud: CanvasLayer = null
 
 # Colors for day/sunset/night
 const COLOR_DAY_SUN = Color(1.0, 0.96, 0.9, 1.0)
@@ -32,8 +30,6 @@ func _ready() -> void:
 		sun_light = get_node(sun_light_path)
 	if has_node(world_env_path):
 		world_env = get_node(world_env_path)
-	if has_node(hud_path):
-		hud = get_node(hud_path)
 
 	time_left = day_duration
 	is_night = false
@@ -41,8 +37,10 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	time_left -= delta
-	emit_signal("time_updated", time_left, night_duration if is_night else day_duration, is_night)
-	update_hud_display()
+	var total_duration: float = night_duration if is_night else day_duration
+	emit_signal("time_updated", time_left, total_duration, is_night)
+	if get_node_or_null("/root/EventBus"):
+		EventBus.cycle_time_updated.emit(time_left, total_duration, is_night, current_day)
 	update_ambient_lighting(delta)
 
 	if time_left <= 0.0:
@@ -78,23 +76,6 @@ func skip_to_night() -> void:
 	if not is_night:
 		start_night()
 
-func update_hud_display() -> void:
-	if not hud:
-		hud = get_tree().root.find_child("HUD", true, false)
-	if hud and hud.has_node("Margin/TopCenter/DayNightLabel"):
-		var label: Label = hud.get_node("Margin/TopCenter/DayNightLabel")
-		var minutes: int = int(time_left) / 60
-		var seconds: int = int(time_left) % 60
-		if is_night:
-			label.text = "NIGHT %d [SIEGE]  %02d:%02d" % [current_day, minutes, seconds]
-			label.modulate = Color(1.0, 0.3, 0.3, 1.0)
-		else:
-			if time_left <= 30.0:
-				label.text = "DAY %d [SUNSET]  %02d:%02d" % [current_day, minutes, seconds]
-				label.modulate = Color(1.0, 0.6, 0.1, 1.0)
-			else:
-				label.text = "DAY %d  %02d:%02d" % [current_day, minutes, seconds]
-				label.modulate = Color.WHITE
 
 func transition_lighting(to_night: bool) -> void:
 	if not sun_light:

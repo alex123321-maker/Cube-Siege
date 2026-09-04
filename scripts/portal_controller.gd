@@ -17,6 +17,7 @@ var extraction_progress: float = 0.0
 
 var current_state: State = State.BROKEN
 var charge_timer: float = 0.0
+var current_day: int = 1
 
 @onready var prompt_label: Label3D = $PromptLabel
 @onready var pad_mesh: MeshInstance3D = $PortalPad
@@ -26,6 +27,9 @@ const FLOATING_TEXT_SCENE = preload("res://scenes/floating_text.tscn")
 func _ready() -> void:
 	add_to_group("interactables")
 	add_to_group("portal")
+	var eb = get_node_or_null("/root/EventBus")
+	if eb:
+		eb.day_started.connect(func(d: int): current_day = d)
 	update_visuals()
 
 func _process(delta: float) -> void:
@@ -131,22 +135,20 @@ func evacuate_player(player: Node) -> void:
 	update_visuals()
 
 	# Award Battle XP to RosterManager
-	var cycle: Node = get_tree().root.find_child("DayNightCycle", true, false)
-	var day_num: int = cycle.current_day if cycle else 1
 	var earned_xp: int = 150
 	if player and "player_level" in player:
 		earned_xp += int(player.player_level) * 50
 
 	var roster: Node = get_node_or_null("/root/RosterManager")
 	if roster and roster.has_method("record_run_end"):
-		roster.record_run_end(true, day_num, earned_xp)
+		roster.record_run_end(true, current_day, earned_xp)
 
 	spawn_floating_text("EVACUATED! +%d BATTLE XP" % earned_xp, Color.GOLD)
 
-	# Notify HUD or Game Manager to show Victory screen
-	var main_node: Node = get_tree().root.find_child("Main", true, false)
-	if main_node and main_node.has_method("show_victory"):
-		main_node.show_victory()
+	# Notify Game Manager via EventBus
+	var eb = get_node_or_null("/root/EventBus")
+	if eb:
+		eb.portal_evacuated.emit(current_day, earned_xp)
 
 func spawn_floating_text(msg: String, col: Color) -> void:
 	var popup: Node3D = FLOATING_TEXT_SCENE.instantiate()

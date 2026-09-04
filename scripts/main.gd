@@ -15,6 +15,10 @@ func _ready() -> void:
 	if player and player.has_signal("player_died"):
 		player.player_died.connect(_on_player_died)
 
+	var eb = get_node_or_null("/root/EventBus")
+	if eb:
+		eb.portal_evacuated.connect(func(_day: int, _xp: int): show_victory())
+
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.is_pressed() and not event.is_echo():
 		if event.keycode == KEY_B and OS.is_debug_build():

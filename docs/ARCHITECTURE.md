@@ -15,8 +15,9 @@
 - **Слабая связанность через `EventBus`** (`scripts/event_bus.gd`):
   Центральный узел сигналов для взаимодействия систем без прямых циклических ссылок:
   - `resources_changed`, `building_placed`, `building_destroyed`
-  - `day_started`, `night_started`, `wave_started`, `wave_cleared`
+  - `day_started`, `night_started`, `cycle_time_updated`, `wave_started`, `wave_cleared`
   - `player_health_changed`, `player_xp_changed`, `player_level_up`, `player_class_changed`, `player_died`
+  - `portal_repair_started`, `portal_repair_complete`, `portal_evacuation_started`, `portal_evacuated`
   - `boss_spawned`, `boss_defeated`
   - `workbench_opened` (открытие модального окна верстака без прямого поиска HUD)
 - **Иерархия базовых классов**:
@@ -131,4 +132,10 @@ graph TD
 - **Оптимизация SiegeBreaker**: вместо сканирования сцены каждый кадр таранщик опрашивает `EntityRegistry` с интервалом ретаргетинга 0.8с с кэшированием квадрата расстояния.
 - **WaveDirector**: проверка лимита врагов и присутствия боссов за $O(1)$ через `EntityRegistry`.
 - **GDExtension Boundary**: нативный класс `NativeProbe` (`src/native_probe.cpp`) поддерживает сборку C++ и проверку `is_native_loaded()` в CI.
+
+### 4.3. Разделение UI и предметной области (UI / Domain Separation)
+- **Отсутствие обратной связи Domain -> UI**: Игровые компоненты (`DayNightCycle`, `PortalController`, `BuildingSystem`) не производят поиск UI-узлов (`HUD`, `Control`) через SceneTree и не мутируют состояние интерфейса напрямую.
+- **Самостоятельный рендеринг HUD**: `HUD` (`scripts/hud.gd`) подписан на `EventBus.cycle_time_updated` (или локальный сигнал `DayNightCycle.time_updated` в тестах) и самостоятельно управляет форматированием и палитрой `DayNightLabel`.
+- **Явные зависимости UI**: Интерактивные элементы управления (например, `BtnSkipNight` в `scripts/hud.gd` и `WorkbenchModal` в `scripts/workbench_modal.gd`) используют предварительно разрешённые типизированные зависимости (`day_night_cycle: DayNightCycle`, `building_system: BuildingSystem`) вместо глобального discovery (`root.find_child`).
+- **События завершения ран-сессии**: `PortalController` публикует событие `EventBus.portal_evacuated(day_number, earned_xp)`, на которое подписан корневой координатор `Main` (`scripts/main.gd`) для вызова `show_victory()`.
 

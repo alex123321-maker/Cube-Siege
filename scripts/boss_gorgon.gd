@@ -241,15 +241,15 @@ func spawn_damage_text(amount: float, custom_text: String = "", custom_color: Co
 func die() -> void:
 	emit_signal("boss_defeated")
 
-	# Massive XP explosion
+	# Massive XP explosion and resource drop
 	var players: Array[Node] = get_tree().get_nodes_in_group("player")
-	if not players.is_empty() and is_instance_valid(players[0]) and players[0].has_method("add_xp"):
-		players[0].add_xp(250.0)
-
-	# Massive resource drop
-	var bs: Node = get_tree().root.find_child("BuildingSystem", true, false)
-	if bs:
-		bs.add_resource(20, 20, 10)
+	if not players.is_empty() and is_instance_valid(players[0]):
+		if players[0].has_method("add_xp"):
+			players[0].add_xp(250.0)
+		if "building_system" in players[0] and players[0].building_system:
+			var bs: BuildingSystem = players[0].building_system as BuildingSystem
+			if bs:
+				bs.add_resource(20, 20, 10)
 
 	# Spawn Relic Pedestal
 	var relic_scene = preload("res://scenes/prefabs/relic_pedestal.tscn")
