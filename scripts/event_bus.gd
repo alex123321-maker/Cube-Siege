@@ -12,10 +12,12 @@ signal player_died()
 # Building events
 signal building_placed(building_id: String, cell: Vector2i, building: Node)
 signal building_destroyed(cell: Vector2i, building: Node)
+signal workbench_opened()
 
 # Game flow events
 signal day_started(day_number: int)
 signal night_started(night_number: int)
+signal cycle_time_updated(seconds_left: float, total_duration: float, is_night: bool, day_number: int)
 signal wave_started(wave_number: int, enemy_count: int)
 signal wave_cleared(wave_number: int)
 
@@ -29,6 +31,7 @@ signal player_class_changed(new_class: int)
 signal portal_repair_started()
 signal portal_repair_complete()
 signal portal_evacuation_started()
+signal portal_evacuated(day_number: int, earned_xp: int)
 
 # Boss events
 signal boss_spawned(boss: Node)

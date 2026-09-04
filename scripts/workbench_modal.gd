@@ -1,5 +1,8 @@
 extends Control
 
+@export var building_system_path: NodePath = NodePath("../../BuildingSystem")
+var building_system: BuildingSystem = null
+
 @onready var tabs: TabContainer = $Panel/TabContainer
 @onready var mastery_mgr: Node = get_node_or_null("/root/MasteryManager")
 
@@ -21,7 +24,25 @@ var has_boots: bool = false
 func _ready() -> void:
 	visible = false
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	if has_node(building_system_path):
+		building_system = get_node(building_system_path) as BuildingSystem
+	var bus = get_node_or_null("/root/EventBus")
+	if bus and bus.has_signal("workbench_opened"):
+		bus.workbench_opened.connect(open)
 	update_ui()
+
+func _get_building_system() -> BuildingSystem:
+	if building_system:
+		return building_system
+	if has_node(building_system_path):
+		building_system = get_node(building_system_path) as BuildingSystem
+		if building_system:
+			return building_system
+	var player = get_tree().get_first_node_in_group("player")
+	if player and "building_system" in player and player.building_system:
+		building_system = player.building_system as BuildingSystem
+		return building_system
+	return null
 
 func open() -> void:
 	visible = true
@@ -37,7 +58,7 @@ func _input(event: InputEvent) -> void:
 		close()
 
 func update_ui() -> void:
-	var bs = get_tree().root.find_child("BuildingSystem", true, false)
+	var bs: BuildingSystem = _get_building_system()
 	var wood: int = bs.wood_count if bs else 0
 	var stone: int = bs.stone_count if bs else 0
 	var iron: int = bs.iron_count if bs else 0
@@ -67,11 +88,8 @@ func update_ui() -> void:
 			btn_craft.text = "🔨 Ремесло (" + str(mastery_mgr.crafting) + "/25)\n[+3% Сбор, +4% HP Зданий]"
 
 func _on_craft_weapon_pressed() -> void:
-	var bs = get_tree().root.find_child("BuildingSystem", true, false)
-	if bs and bs.stone_count >= 4 and bs.iron_count >= 4:
-		bs.stone_count -= 4
-		bs.iron_count -= 4
-		bs.update_hud_counters()
+	var bs: BuildingSystem = _get_building_system()
+	if bs and bs.spend_resources(0, 4, 4):
 		has_weapon = true
 		var player = get_tree().get_first_node_in_group("player")
 		if player:
@@ -80,10 +98,8 @@ func _on_craft_weapon_pressed() -> void:
 		update_ui()
 
 func _on_craft_armor_pressed() -> void:
-	var bs = get_tree().root.find_child("BuildingSystem", true, false)
-	if bs and bs.iron_count >= 6:
-		bs.iron_count -= 6
-		bs.update_hud_counters()
+	var bs: BuildingSystem = _get_building_system()
+	if bs and bs.spend_resources(0, 0, 6):
 		has_armor = true
 		var player = get_tree().get_first_node_in_group("player")
 		if player:
@@ -94,11 +110,8 @@ func _on_craft_armor_pressed() -> void:
 		update_ui()
 
 func _on_craft_boots_pressed() -> void:
-	var bs = get_tree().root.find_child("BuildingSystem", true, false)
-	if bs and bs.wood_count >= 4 and bs.iron_count >= 2:
-		bs.wood_count -= 4
-		bs.iron_count -= 2
-		bs.update_hud_counters()
+	var bs: BuildingSystem = _get_building_system()
+	if bs and bs.spend_resources(4, 0, 2):
 		has_boots = true
 		var player = get_tree().get_first_node_in_group("player")
 		if player:
@@ -108,19 +121,15 @@ func _on_craft_boots_pressed() -> void:
 
 # Salvage actions
 func _on_salvage_wood_pressed() -> void:
-	var bs = get_tree().root.find_child("BuildingSystem", true, false)
-	if bs and bs.wood_count >= 10:
-		bs.wood_count -= 10
-		bs.iron_count += 1
-		bs.update_hud_counters()
+	var bs: BuildingSystem = _get_building_system()
+	if bs and bs.spend_resources(10, 0, 0):
+		bs.add_resource(0, 0, 1)
 		update_ui()
 
 func _on_salvage_stone_pressed() -> void:
-	var bs = get_tree().root.find_child("BuildingSystem", true, false)
-	if bs and bs.stone_count >= 10:
-		bs.stone_count -= 10
-		bs.iron_count += 1
-		bs.update_hud_counters()
+	var bs: BuildingSystem = _get_building_system()
+	if bs and bs.spend_resources(0, 10, 0):
+		bs.add_resource(0, 0, 1)
 		update_ui()
 
 # Mastery points

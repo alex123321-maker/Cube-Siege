@@ -4,7 +4,7 @@ extends Node3D
 @onready var radial_menu: Control = $HUD/RadialMenu
 @onready var player: Node = $Player
 @onready var overlay: Control = $HUD/GameOverOverlay
-@onready var save_manager: Node = $SaveManager
+@onready var save_manager: Node = get_node_or_null("/root/SaveManager")
 @onready var day_night: Node = $DayNightCycle
 @onready var hud: CanvasLayer = $HUD
 
@@ -15,9 +15,13 @@ func _ready() -> void:
 	if player and player.has_signal("player_died"):
 		player.player_died.connect(_on_player_died)
 
+	var eb = get_node_or_null("/root/EventBus")
+	if eb:
+		eb.portal_evacuated.connect(func(_day: int, _xp: int): show_victory())
+
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.is_pressed() and not event.is_echo():
-		if event.keycode == KEY_B:
+		if event.keycode == KEY_B and OS.is_debug_build():
 			spawn_boss_gorgon()
 
 func spawn_boss_gorgon() -> void:
@@ -28,6 +32,9 @@ func spawn_boss_gorgon() -> void:
 		boss.global_position = player.global_position + Vector3(0, 0, -18)
 	if hud and hud.has_method("show_boss_bar"):
 		hud.show_boss_bar(boss)
+	var eb = get_node_or_null("/root/EventBus")
+	if eb:
+		eb.boss_spawned.emit(boss)
 
 func _on_player_died() -> void:
 	if save_manager:

@@ -19,6 +19,16 @@ var grid_coord: Vector2i = Vector2i.ZERO
 
 const FLOATING_TEXT_SCENE = preload("res://scenes/floating_text.tscn")
 
+func _enter_tree() -> void:
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if reg:
+		reg.register_building(self)
+
+func _exit_tree() -> void:
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if reg:
+		reg.unregister_building(self)
+
 func _ready() -> void:
 	if not mesh_instance:
 		mesh_instance = find_child("*Mesh*", true, false) as MeshInstance3D
@@ -31,6 +41,30 @@ func _ready() -> void:
 
 func is_ready_for_pickup() -> bool:
 	return true
+
+func is_interactable() -> bool:
+	return true
+
+func interact(player: Node, is_shift: bool = false) -> void:
+	if is_shift:
+		demolish(player)
+	else:
+		interact_repair(player)
+
+func interact_repair(player: Node) -> bool:
+	if current_health >= max_health:
+		return false
+	var bs: BuildingSystem = null
+	if player and "building_system" in player and player.building_system:
+		bs = player.building_system as BuildingSystem
+	if bs:
+		if bs.spend_resources(1, 0, 0):
+			return repair(100.0)
+		elif player and player.has_method("spawn_popup_text"):
+			player.spawn_popup_text("NEED 1 WOOD!", Color.ORANGE)
+	else:
+		push_warning("BuildingBase: cannot repair because Player.building_system is not wired.")
+	return false
 
 func set_focused(focused: bool) -> void:
 	if not hp_label:
@@ -58,14 +92,18 @@ func set_interaction_progress(progress: float) -> void:
 	hp_label.text = "[%s] %d%%\n%s..." % [bar_str, int(progress * 100), action]
 	hp_label.modulate = Color(0.2, 1.0, 0.4)
 
-func demolish(_player: Node) -> void:
-	var bs: Node = get_tree().root.find_child("BuildingSystem", true, false)
+func demolish(player: Node = null) -> void:
+	var bs: BuildingSystem = null
+	if player and "building_system" in player and player.building_system:
+		bs = player.building_system as BuildingSystem
 	if bs:
 		var ref_w: int = int(wood_cost * 0.5)
 		var ref_s: int = int(stone_cost * 0.5)
 		var ref_i: int = int(iron_cost * 0.5)
 		bs.add_resource(ref_w, ref_s, ref_i)
 		spawn_damage_text(0, "+REFUND (%dW %dS %dI)" % [ref_w, ref_s, ref_i], Color.GOLD)
+	elif player:
+		push_warning("BuildingBase: cannot refund resources because Player.building_system is not wired.")
 
 	destroy_building()
 

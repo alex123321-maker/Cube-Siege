@@ -1,14 +1,47 @@
 extends Node
 
-const SAVE_PATH = "user://mastery_save.json"
+var _local_mastery: Dictionary = {
+	"total_battle_xp": 0,
+	"available_points": 5,
+	"bloodlust": 0,
+	"survival": 0,
+	"agility": 0,
+	"crafting": 0
+}
 
-var total_battle_xp: int = 0
-var available_points: int = 5 # Start with 5 points to test right away!
+func _get_mastery_dict() -> Dictionary:
+	var save_mgr = get_node_or_null("/root/SaveManager")
+	if save_mgr:
+		if save_mgr.mastery.is_empty():
+			var save_cls = load("res://scripts/save_manager.gd")
+			if save_cls and save_cls.has_method("get_default_mastery"):
+				save_mgr.mastery = save_cls.get_default_mastery()
+		return save_mgr.mastery
+	return _local_mastery
 
-var bloodlust: int = 0 # Max 25
-var survival: int = 0  # Max 25
-var agility: int = 0   # Max 25
-var crafting: int = 0  # Max 25
+var total_battle_xp: int:
+	get: return _get_mastery_dict().get("total_battle_xp", 0)
+	set(val): _get_mastery_dict()["total_battle_xp"] = val
+
+var available_points: int:
+	get: return _get_mastery_dict().get("available_points", 5)
+	set(val): _get_mastery_dict()["available_points"] = val
+
+var bloodlust: int:
+	get: return _get_mastery_dict().get("bloodlust", 0)
+	set(val): _get_mastery_dict()["bloodlust"] = val
+
+var survival: int:
+	get: return _get_mastery_dict().get("survival", 0)
+	set(val): _get_mastery_dict()["survival"] = val
+
+var agility: int:
+	get: return _get_mastery_dict().get("agility", 0)
+	set(val): _get_mastery_dict()["agility"] = val
+
+var crafting: int:
+	get: return _get_mastery_dict().get("crafting", 0)
+	set(val): _get_mastery_dict()["crafting"] = val
 
 func _ready() -> void:
 	load_mastery()
@@ -63,32 +96,10 @@ func get_stat_multipliers() -> Dictionary:
 	}
 
 func save_mastery() -> void:
-	var file = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-	if not file:
-		return
-	var data = {
-		"total_battle_xp": total_battle_xp,
-		"available_points": available_points,
-		"bloodlust": bloodlust,
-		"survival": survival,
-		"agility": agility,
-		"crafting": crafting
-	}
-	file.store_string(JSON.stringify(data))
-	file.close()
+	var save_mgr = get_node_or_null("/root/SaveManager")
+	if save_mgr:
+		save_mgr.save_to_disk()
 
 func load_mastery() -> void:
-	if not FileAccess.file_exists(SAVE_PATH):
-		return
-	var file = FileAccess.open(SAVE_PATH, FileAccess.READ)
-	if not file:
-		return
-	var parsed = JSON.parse_string(file.get_as_text())
-	file.close()
-	if parsed is Dictionary:
-		total_battle_xp = parsed.get("total_battle_xp", 0)
-		available_points = parsed.get("available_points", 5)
-		bloodlust = parsed.get("bloodlust", 0)
-		survival = parsed.get("survival", 0)
-		agility = parsed.get("agility", 0)
-		crafting = parsed.get("crafting", 0)
+	# SaveManager is authoritative and loads during startup
+	pass

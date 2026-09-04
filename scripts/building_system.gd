@@ -12,10 +12,40 @@ enum PrefabType { NONE, WOOD_WALL, FLOOR_SPIKES, ARCHER_TOWER, IRON_WALL, BALLIS
 var current_prefab_type: PrefabType = PrefabType.NONE
 var placed_buildings: Dictionary = {} # Vector2i -> BuildingBase
 
-# Player inventory counters
-var wood_count: int = 16
-var stone_count: int = 8
-var iron_count: int = 4
+const ResourceWallet = preload("res://scripts/economy/resource_wallet.gd")
+const BuildingDefinition = preload("res://scripts/resources/building_definition.gd")
+
+var wallet: ResourceWallet = ResourceWallet.new(16, 8, 4)
+
+var wood_count: int:
+	get:
+		return wallet.get_wood()
+	set(val):
+		var diff = val - wallet.get_wood()
+		if diff > 0:
+			wallet.add_resource(diff, 0, 0)
+		elif diff < 0:
+			wallet.spend_resources(-diff, 0, 0)
+
+var stone_count: int:
+	get:
+		return wallet.get_stone()
+	set(val):
+		var diff = val - wallet.get_stone()
+		if diff > 0:
+			wallet.add_resource(0, diff, 0)
+		elif diff < 0:
+			wallet.spend_resources(0, -diff, 0)
+
+var iron_count: int:
+	get:
+		return wallet.get_iron()
+	set(val):
+		var diff = val - wallet.get_iron()
+		if diff > 0:
+			wallet.add_resource(0, 0, diff)
+		elif diff < 0:
+			wallet.spend_resources(0, 0, -diff)
 
 # Preview Hologram
 var preview_node: Node3D = null
@@ -23,26 +53,16 @@ var preview_mesh: MeshInstance3D = null
 var green_mat: StandardMaterial3D = null
 var red_mat: StandardMaterial3D = null
 
-const PREFABS = {
-	PrefabType.WOOD_WALL: preload("res://scenes/prefabs/wood_wall.tscn"),
-	PrefabType.FLOOR_SPIKES: preload("res://scenes/prefabs/floor_spikes.tscn"),
-	PrefabType.ARCHER_TOWER: preload("res://scenes/prefabs/archer_tower.tscn"),
-	PrefabType.IRON_WALL: preload("res://scenes/prefabs/iron_wall.tscn"),
-	PrefabType.BALLISTA: preload("res://scenes/prefabs/ballista_tower.tscn")
-}
-
-const COSTS = {
-	PrefabType.WOOD_WALL: {"wood": 4, "stone": 0, "iron": 0},
-	PrefabType.FLOOR_SPIKES: {"wood": 2, "stone": 1, "iron": 0},
-	PrefabType.ARCHER_TOWER: {"wood": 6, "stone": 2, "iron": 0},
-	PrefabType.IRON_WALL: {"wood": 0, "stone": 2, "iron": 2},
-	PrefabType.BALLISTA: {"wood": 0, "stone": 4, "iron": 4}
-}
-
 func _ready() -> void:
+	wallet.resources_changed.connect(_on_wallet_resources_changed)
 	setup_materials()
 	setup_preview()
-	update_hud_counters()
+	_on_wallet_resources_changed(wallet.get_wood(), wallet.get_stone(), wallet.get_iron())
+
+func _on_wallet_resources_changed(wood: int, stone: int, iron: int) -> void:
+	emit_signal("resources_updated", wood, stone, iron)
+	if get_node_or_null("/root/EventBus"):
+		EventBus.resources_changed.emit(wood, stone, iron)
 
 func setup_materials() -> void:
 	green_mat = StandardMaterial3D.new()
@@ -139,24 +159,24 @@ func is_cell_free(cell: Vector2i) -> bool:
 	return true
 
 func has_enough_resources(type: PrefabType) -> bool:
-	if not COSTS.has(type):
+	var def: BuildingDefinition = BuildingDefinition.get_definition(type)
+	if not def:
 		return false
-	var c: Dictionary = COSTS[type]
-	return wood_count >= c.wood and stone_count >= c.stone and iron_count >= c.iron
+	return wallet.has_resources(def.wood_cost, def.stone_cost, def.iron_cost)
 
 func place_building(snapped_pos: Vector3, cell: Vector2i, type: PrefabType) -> void:
-	if not PREFABS.has(type):
+	var def: BuildingDefinition = BuildingDefinition.get_definition(type)
+	if not def:
 		return
 
-	# Deduct costs
-	var c: Dictionary = COSTS[type]
-	wood_count -= c.wood
-	stone_count -= c.stone
-	iron_count -= c.iron
-	update_hud_counters()
+	# Deduct costs via authoritative wallet
+	if not wallet.spend_resources(def.wood_cost, def.stone_cost, def.iron_cost):
+		return
 
 	# Spawn building
-	var b_scene: PackedScene = PREFABS[type]
+	var b_scene: PackedScene = load(def.scene_path)
+	if not b_scene:
+		return
 	var building: Node3D = b_scene.instantiate()
 	get_parent().add_child(building)
 	building.global_position = snapped_pos
@@ -217,20 +237,14 @@ func get_aimed_grid_position() -> Vector3:
 	return Vector3.ZERO
 
 func add_resource(wood: int = 0, stone: int = 0, iron: int = 0) -> void:
-	wood_count += wood
-	stone_count += stone
-	iron_count += iron
-	update_hud_counters()
-	if get_node_or_null("/root/EventBus"):
-		EventBus.resources_changed.emit(wood_count, stone_count, iron_count)
+	wallet.add_resource(wood, stone, iron)
+
+func spend_resources(wood: int = 0, stone: int = 0, iron: int = 0) -> bool:
+	return wallet.spend_resources(wood, stone, iron)
+
+func has_resources(wood: int = 0, stone: int = 0, iron: int = 0) -> bool:
+	return wallet.has_resources(wood, stone, iron)
 
 func update_hud_counters() -> void:
-	var hud: CanvasLayer = get_tree().root.find_child("HUD", true, false)
-	if not hud: return
-
-	if hud.has_node("Margin/TopLeft/Resources/WoodBox/WoodLabel"):
-		hud.get_node("Margin/TopLeft/Resources/WoodBox/WoodLabel").text = "WOOD: %d / 25" % wood_count
-	if hud.has_node("Margin/TopLeft/Resources/StoneBox/StoneLabel"):
-		hud.get_node("Margin/TopLeft/Resources/StoneBox/StoneLabel").text = "STONE: %d / 25" % stone_count
-	if hud.has_node("Margin/TopLeft/Resources/IronBox/IronLabel"):
-		hud.get_node("Margin/TopLeft/Resources/IronBox/IronLabel").text = "IRON: %d" % iron_count
+	# Deprecated direct mutation: UI components now react to EventBus.resources_changed
+	pass

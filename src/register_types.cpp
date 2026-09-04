@@ -1,5 +1,5 @@
 #include "register_types.h"
-#include "player_controller.h"
+#include "native_probe.h"
 
 #include <gdextension_interface.h>
 #include <godot_cpp/core/defs.hpp>
@@ -11,7 +11,7 @@ void initialize_cube_siege_module(ModuleInitializationLevel p_level) {
     if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
         return;
     }
-    ClassDB::register_class<PlayerController>();
+    ClassDB::register_class<NativeProbe>();
 }
 
 void uninitialize_cube_siege_module(ModuleInitializationLevel p_level) {

@@ -20,10 +20,14 @@ const SCENE_IRON = preload("res://scenes/resource_iron.tscn")
 @onready var resources_container: Node3D = $Resources
 @onready var terrain_container: Node3D = $Terrain
 
-# Materials
+# Materials & Shared Resources
 var mat_grass_cliff: StandardMaterial3D
 var mat_rock_cliff: StandardMaterial3D
 var mat_border_cliff: StandardMaterial3D
+var shared_box_shape: BoxShape3D
+var mesh_grass_cliff: BoxMesh
+var mesh_rock_cliff: BoxMesh
+var mesh_border_cliff: BoxMesh
 
 func _ready() -> void:
 	setup_materials()
@@ -41,6 +45,21 @@ func setup_materials() -> void:
 	mat_border_cliff = StandardMaterial3D.new()
 	mat_border_cliff.albedo_color = Color(0.25, 0.26, 0.28, 1.0)
 	mat_border_cliff.roughness = 0.95
+
+	shared_box_shape = BoxShape3D.new()
+	shared_box_shape.size = Vector3(1.0, 1.0, 1.0)
+
+	mesh_grass_cliff = BoxMesh.new()
+	mesh_grass_cliff.size = Vector3(1.0, 1.0, 1.0)
+	mesh_grass_cliff.material = mat_grass_cliff
+
+	mesh_rock_cliff = BoxMesh.new()
+	mesh_rock_cliff.size = Vector3(1.0, 1.0, 1.0)
+	mesh_rock_cliff.material = mat_rock_cliff
+
+	mesh_border_cliff = BoxMesh.new()
+	mesh_border_cliff.size = Vector3(1.0, 1.0, 1.0)
+	mesh_border_cliff.material = mat_border_cliff
 
 func init_noises() -> void:
 	if random_seed:
@@ -129,19 +148,24 @@ func create_cube(x: int, y_layer: int, z: int, mat: Material) -> void:
 	body.collision_mask = 0
 	body.add_to_group("terrain")
 
-	# 1.0 x 1.0 x 1.0 Cube Mesh
+	# 1.0 x 1.0 x 1.0 Cube Mesh (Re-using shared mesh resource per material)
 	var mesh_inst: MeshInstance3D = MeshInstance3D.new()
-	var box_mesh: BoxMesh = BoxMesh.new()
-	box_mesh.size = Vector3(1.0, 1.0, 1.0)
-	box_mesh.material = mat
-	mesh_inst.mesh = box_mesh
+	if mat == mat_grass_cliff:
+		mesh_inst.mesh = mesh_grass_cliff
+	elif mat == mat_rock_cliff:
+		mesh_inst.mesh = mesh_rock_cliff
+	elif mat == mat_border_cliff:
+		mesh_inst.mesh = mesh_border_cliff
+	else:
+		var box_mesh: BoxMesh = BoxMesh.new()
+		box_mesh.size = Vector3(1.0, 1.0, 1.0)
+		box_mesh.material = mat
+		mesh_inst.mesh = box_mesh
 	body.add_child(mesh_inst)
 
-	# 1.0 x 1.0 x 1.0 Cube Collision Box
+	# 1.0 x 1.0 x 1.0 Cube Collision Box (Re-using shared shape resource)
 	var col: CollisionShape3D = CollisionShape3D.new()
-	var box_shape: BoxShape3D = BoxShape3D.new()
-	box_shape.size = Vector3(1.0, 1.0, 1.0)
-	col.shape = box_shape
+	col.shape = shared_box_shape if shared_box_shape else BoxShape3D.new()
 	body.add_child(col)
 
 func spawn_resource(scene: PackedScene, pos: Vector3) -> void:

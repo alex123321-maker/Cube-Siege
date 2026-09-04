@@ -1,3 +1,4 @@
+class_name ResourceRock
 extends StaticBody3D
 
 enum RockType { STONE, IRON }
@@ -64,6 +65,12 @@ func break_rock() -> void:
 func is_ready_for_pickup() -> bool:
 	return is_destroyed and not is_harvested
 
+func is_interactable() -> bool:
+	return is_ready_for_pickup()
+
+func interact(player: Node, _is_shift: bool = false) -> void:
+	harvest(player)
+
 func set_focused(focused: bool) -> void:
 	if not is_ready_for_pickup() or not prompt_label:
 		return
@@ -101,7 +108,9 @@ func harvest(player: Node) -> void:
 		mult = player.resource_multiplier
 	var total_yield: int = resource_yield * mult
 
-	var building_system: Node = get_tree().root.find_child("BuildingSystem", true, false)
+	var building_system: BuildingSystem = null
+	if player and "building_system" in player and player.building_system:
+		building_system = player.building_system as BuildingSystem
 	if building_system:
 		if rock_type == RockType.STONE:
 			building_system.add_resource(0, total_yield, 0)
@@ -109,6 +118,8 @@ func harvest(player: Node) -> void:
 		else:
 			building_system.add_resource(0, 0, total_yield)
 			spawn_damage_text(0, "+%d IRON" % total_yield, Color(1.0, 0.7, 0.3))
+	elif player:
+		push_warning("ResourceRock: cannot add resources because Player.building_system is not wired.")
 
 	var tween: Tween = create_tween()
 	tween.tween_property(rock_mesh, "scale", Vector3.ZERO, 0.2)

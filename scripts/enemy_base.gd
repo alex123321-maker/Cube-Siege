@@ -16,8 +16,21 @@ var duel_opponent: Node = null
 
 const FLOATING_TEXT_SCENE = preload("res://scenes/floating_text.tscn")
 
+func _enter_tree() -> void:
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if reg:
+		reg.register_enemy(self)
+
+func _exit_tree() -> void:
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if reg:
+		reg.unregister_enemy(self)
+
 func _ready() -> void:
 	add_to_group("enemies")
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if reg:
+		reg.register_enemy(self)
 	current_health = max_health
 	update_hp_label()
 	if hurtbox and hurtbox.has_signal("damaged"):
@@ -117,6 +130,14 @@ func die() -> void:
 	var players: Array[Node] = get_tree().get_nodes_in_group("player")
 	if not players.is_empty() and is_instance_valid(players[0]) and players[0].has_method("add_xp"):
 		players[0].add_xp(_get_xp_reward())
+
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if reg:
+		reg.unregister_enemy(self)
+
+	var eb = get_node_or_null("/root/EventBus")
+	if eb:
+		eb.enemy_killed.emit(self, global_position)
 
 	var tween: Tween = create_tween()
 	tween.tween_property(self, "scale", Vector3.ZERO, 0.2)
