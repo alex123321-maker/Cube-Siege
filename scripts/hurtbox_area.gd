@@ -18,7 +18,11 @@ func _ready() -> void:
 		target_node = get_parent()
 
 	if has_node(mesh_to_flash_path):
-		mesh_to_flash = get_node(mesh_to_flash_path)
+		var candidate = get_node(mesh_to_flash_path)
+		if candidate is MeshInstance3D:
+			mesh_to_flash = candidate
+		elif candidate is Node3D:
+			mesh_to_flash = candidate.find_child("*", true, false) as MeshInstance3D
 		if mesh_to_flash and mesh_to_flash.mesh and mesh_to_flash.mesh.material:
 			original_material = mesh_to_flash.mesh.material
 

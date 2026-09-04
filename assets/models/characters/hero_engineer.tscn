@@ -1,0 +1,808 @@
+[gd_scene load_steps=120 format=3 uid="uid://cs_hero_engineer_0dd36470"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_0"]
+albedo_color = Color(0.22, 0.42, 0.76, 1)
+metallic = 0.05
+roughness = 0.8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_1"]
+albedo_color = Color(0.14, 0.18, 0.28, 1)
+metallic = 0.0
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_2"]
+albedo_color = Color(0.92, 0.74, 0.60, 1)
+metallic = 0.0
+roughness = 0.85
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_3"]
+albedo_color = Color(0.95, 0.78, 0.22, 1)
+metallic = 0.85
+roughness = 0.25
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_4"]
+albedo_color = Color(0.38, 0.24, 0.16, 1)
+metallic = 0.05
+roughness = 0.85
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_5"]
+albedo_color = Color(0.85, 0.16, 0.20, 1)
+metallic = 0.1
+roughness = 0.55
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_6"]
+albedo_color = Color(0.28, 0.18, 0.12, 1)
+metallic = 0.0
+roughness = 0.9
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_7"]
+albedo_color = Color(0.52, 0.55, 0.60, 1)
+metallic = 0.65
+roughness = 0.45
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_8"]
+albedo_color = Color(0.75, 0.80, 0.88, 1)
+metallic = 0.82
+roughness = 0.25
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_9"]
+albedo_color = Color(0.90, 0.93, 0.97, 1)
+metallic = 0.92
+roughness = 0.18
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_10"]
+albedo_color = Color(0.18, 0.45, 0.30, 1)
+metallic = 0.05
+roughness = 0.8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_11"]
+albedo_color = Color(0.25, 0.58, 0.40, 1)
+metallic = 0.05
+roughness = 0.8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_12"]
+albedo_color = Color(0.48, 0.32, 0.20, 1)
+metallic = 0.05
+roughness = 0.85
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_13"]
+albedo_color = Color(0.94, 0.96, 0.98, 1)
+metallic = 0.0
+roughness = 0.7
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_14"]
+albedo_color = Color(0.35, 0.22, 0.14, 1)
+metallic = 0.05
+roughness = 0.75
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_15"]
+albedo_color = Color(0.85, 0.95, 0.9, 1)
+metallic = 0.2
+roughness = 0.3
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_16"]
+albedo_color = Color(0.78, 0.65, 0.45, 1)
+metallic = 0.0
+roughness = 0.8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_17"]
+albedo_color = Color(0.32, 0.20, 0.14, 1)
+metallic = 0.05
+roughness = 0.85
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_18"]
+albedo_color = Color(0.3, 1.0, 0.6, 1)
+metallic = 0.1
+roughness = 0.2
+emission_enabled = true
+emission = Color(0.3, 1.0, 0.6, 1)
+emission_energy_multiplier = 2.0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_20"]
+albedo_color = Color(0.16, 0.28, 0.36, 1)
+metallic = 0.05
+roughness = 0.85
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_21"]
+albedo_color = Color(0.68, 0.46, 0.30, 1)
+metallic = 0.05
+roughness = 0.8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_22"]
+albedo_color = Color(0.86, 0.64, 0.25, 1)
+metallic = 0.85
+roughness = 0.28
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_23"]
+albedo_color = Color(0.15, 0.85, 0.92, 1)
+metallic = 0.3
+roughness = 0.1
+emission_enabled = true
+emission = Color(0.15, 0.85, 0.92, 1)
+emission_energy_multiplier = 2.5
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_24"]
+albedo_color = Color(0.24, 0.26, 0.28, 1)
+metallic = 0.75
+roughness = 0.45
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_25"]
+albedo_color = Color(0.95, 0.48, 0.12, 1)
+metallic = 0.1
+roughness = 0.6
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_26"]
+albedo_color = Color(0.96, 0.78, 0.15, 1)
+metallic = 0.1
+roughness = 0.5
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_27"]
+albedo_color = Color(1.0, 0.18, 0.15, 1)
+metallic = 0.1
+roughness = 0.3
+emission_enabled = true
+emission = Color(1.0, 0.18, 0.15, 1)
+emission_energy_multiplier = 3.0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_28"]
+albedo_color = Color(0.2, 0.95, 0.3, 1)
+metallic = 0.1
+roughness = 0.3
+emission_enabled = true
+emission = Color(0.2, 0.95, 0.3, 1)
+emission_energy_multiplier = 3.0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_29"]
+albedo_color = Color(0.82, 0.45, 0.32, 1)
+metallic = 0.85
+roughness = 0.35
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_30"]
+albedo_color = Color(0.86, 0.78, 0.46, 1)
+metallic = 0.0
+roughness = 0.95
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_31"]
+albedo_color = Color(0.9, 0.2, 0.15, 1)
+metallic = 0.05
+roughness = 0.8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_32"]
+albedo_color = Color(0.95, 0.95, 0.95, 1)
+metallic = 0.0
+roughness = 0.8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_33"]
+albedo_color = Color(0.42, 0.46, 0.50, 1)
+metallic = 0.8
+roughness = 0.3
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_34"]
+albedo_color = Color(0.85, 0.52, 0.22, 1)
+metallic = 0.82
+roughness = 0.32
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_35"]
+albedo_color = Color(0.45, 0.30, 0.18, 1)
+metallic = 0.0
+roughness = 0.9
+
+[sub_resource type="BoxMesh" id="BoxMesh_head_44bf45"]
+material = SubResource("StandardMaterial3D_col_2")
+size = Vector3(0.44, 0.44, 0.44)
+
+[sub_resource type="BoxMesh" id="BoxMesh_engineer_hair_080c51"]
+material = SubResource("StandardMaterial3D_col_4")
+size = Vector3(0.462, 0.1925, 0.462)
+
+[sub_resource type="BoxMesh" id="BoxMesh_goggles_frame_1fb675"]
+material = SubResource("StandardMaterial3D_col_22")
+size = Vector3(0.484, 0.11, 0.044)
+
+[sub_resource type="BoxMesh" id="BoxMesh_goggle_lens_l_8ef929"]
+material = SubResource("StandardMaterial3D_col_23")
+size = Vector3(0.143, 0.088, 0.022)
+
+[sub_resource type="BoxMesh" id="BoxMesh_goggle_lens_r_1d727b"]
+material = SubResource("StandardMaterial3D_col_23")
+size = Vector3(0.143, 0.088, 0.022)
+
+[sub_resource type="BoxMesh" id="BoxMesh_goggles_strap_ffa407"]
+material = SubResource("StandardMaterial3D_col_4")
+size = Vector3(0.473, 0.077, 0.451)
+
+[sub_resource type="BoxMesh" id="BoxMesh_torso_7a49b6"]
+material = SubResource("StandardMaterial3D_col_20")
+size = Vector3(0.462, 0.66, 0.242)
+
+[sub_resource type="BoxMesh" id="BoxMesh_leather_apron_a72db1"]
+material = SubResource("StandardMaterial3D_col_21")
+size = Vector3(0.484, 0.5225, 0.264)
+
+[sub_resource type="BoxMesh" id="BoxMesh_tool_pouch_l_8b8fb1"]
+material = SubResource("StandardMaterial3D_col_4")
+size = Vector3(0.055, 0.22, 0.154)
+
+[sub_resource type="BoxMesh" id="BoxMesh_brass_buckle_6b491f"]
+material = SubResource("StandardMaterial3D_col_22")
+size = Vector3(0.165, 0.11, 0.022)
+
+[sub_resource type="BoxMesh" id="BoxMesh_powerpack_box_dcd78c"]
+material = SubResource("StandardMaterial3D_col_24")
+size = Vector3(0.385, 0.5225, 0.176)
+
+[sub_resource type="BoxMesh" id="BoxMesh_powerpack_cell_9e4552"]
+material = SubResource("StandardMaterial3D_col_22")
+size = Vector3(0.275, 0.385, 0.055)
+
+[sub_resource type="BoxMesh" id="BoxMesh_exhaust_pipe_98b28d"]
+material = SubResource("StandardMaterial3D_col_29")
+size = Vector3(0.066, 0.2475, 0.066)
+
+[sub_resource type="BoxMesh" id="BoxMesh_indicator_light_81c577"]
+material = SubResource("StandardMaterial3D_col_28")
+size = Vector3(0.0715, 0.0825, 0.055)
+
+[sub_resource type="BoxMesh" id="BoxMesh_right_arm_d71681"]
+material = SubResource("StandardMaterial3D_col_20")
+size = Vector3(0.22, 0.66, 0.22)
+
+[sub_resource type="BoxMesh" id="BoxMesh_r_heavy_glove_7908c9"]
+material = SubResource("StandardMaterial3D_col_21")
+size = Vector3(0.242, 0.2475, 0.242)
+
+[sub_resource type="BoxMesh" id="BoxMesh_tool_handle_f06217"]
+material = SubResource("StandardMaterial3D_col_24")
+size = Vector3(0.055, 0.22, 0.66)
+
+[sub_resource type="BoxMesh" id="BoxMesh_hammer_head_613273"]
+material = SubResource("StandardMaterial3D_col_24")
+size = Vector3(0.143, 0.2475, 0.275)
+
+[sub_resource type="BoxMesh" id="BoxMesh_hammer_face_4a278a"]
+material = SubResource("StandardMaterial3D_col_22")
+size = Vector3(0.121, 0.2255, 0.055)
+
+[sub_resource type="BoxMesh" id="BoxMesh_wrench_claw1_7031e6"]
+material = SubResource("StandardMaterial3D_col_24")
+size = Vector3(0.077, 0.11, 0.2475)
+
+[sub_resource type="BoxMesh" id="BoxMesh_wrench_claw2_6dc7a3"]
+material = SubResource("StandardMaterial3D_col_24")
+size = Vector3(0.077, 0.11, 0.2475)
+
+[sub_resource type="BoxMesh" id="BoxMesh_left_arm_27501a"]
+material = SubResource("StandardMaterial3D_col_20")
+size = Vector3(0.22, 0.66, 0.22)
+
+[sub_resource type="BoxMesh" id="BoxMesh_l_heavy_glove_02c0e6"]
+material = SubResource("StandardMaterial3D_col_21")
+size = Vector3(0.242, 0.2475, 0.242)
+
+[sub_resource type="BoxMesh" id="BoxMesh_hand_detonator_d4b5d8"]
+material = SubResource("StandardMaterial3D_col_27")
+size = Vector3(0.088, 0.165, 0.11)
+
+[sub_resource type="BoxMesh" id="BoxMesh_right_leg_ce237a"]
+material = SubResource("StandardMaterial3D_col_20")
+size = Vector3(0.22, 0.66, 0.22)
+
+[sub_resource type="BoxMesh" id="BoxMesh_r_work_boot_fc4fcf"]
+material = SubResource("StandardMaterial3D_col_24")
+size = Vector3(0.242, 0.275, 0.275)
+
+[sub_resource type="BoxMesh" id="BoxMesh_left_leg_c3a9a1"]
+material = SubResource("StandardMaterial3D_col_20")
+size = Vector3(0.22, 0.66, 0.22)
+
+[sub_resource type="BoxMesh" id="BoxMesh_l_work_boot_f79a34"]
+material = SubResource("StandardMaterial3D_col_24")
+size = Vector3(0.242, 0.275, 0.275)
+
+[sub_resource type="Animation" id="Animation_idle"]
+resource_name = "idle"
+length = 1.2
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("root/torso:rotation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0.0, 0.6, 1.2),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(0.10472, -0.08727, 0.0), Vector3(0.13963, -0.08727, 0.0), Vector3(0.10472, -0.08727, 0.0)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("root/torso:position")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0.0, 0.6, 1.2),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(0.0, 0.66, 0.0), Vector3(0.0, 0.6325, 0.0), Vector3(0.0, 0.66, 0.0)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("root/torso/head:rotation")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0.0, 0.6, 1.2),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(-0.10472, 0.08727, 0.0), Vector3(-0.13963, 0.08727, 0.0), Vector3(-0.10472, 0.08727, 0.0)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("root/torso/right_arm:rotation")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0.0, 0.6, 1.2),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(-1.74533, 0.17453, -0.2618), Vector3(-1.67552, 0.17453, -0.2618), Vector3(-1.74533, 0.17453, -0.2618)]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("root/torso/right_arm/wrench:rotation")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0.0, 0.6, 1.2),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(-0.61087, 0.17453, 0.0), Vector3(-0.61087, 0.17453, 0.0), Vector3(-0.61087, 0.17453, 0.0)]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("root/torso/left_arm:rotation")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"times": PackedFloat32Array(0.0, 0.6, 1.2),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(-0.2618, 0.17453, -0.17453), Vector3(-0.31416, 0.17453, -0.17453), Vector3(-0.2618, 0.17453, -0.17453)]
+}
+
+[sub_resource type="Animation" id="Animation_walk"]
+resource_name = "walk"
+length = 0.8
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("root/right_leg:rotation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0.0, 0.4, 0.8),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(-0.55851, 0.0, 0.0), Vector3(0.55851, 0.0, 0.0), Vector3(-0.55851, 0.0, 0.0)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("root/left_leg:rotation")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0.0, 0.4, 0.8),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(0.55851, 0.0, 0.0), Vector3(-0.55851, 0.0, 0.0), Vector3(0.55851, 0.0, 0.0)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("root/torso/right_arm:rotation")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0.0, 0.4, 0.8),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(-1.22173, 0.17453, -0.17453), Vector3(-1.91986, 0.17453, -0.2618), Vector3(-1.22173, 0.17453, -0.17453)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("root/torso/left_arm:rotation")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0.0, 0.4, 0.8),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(-0.5236, 0.17453, -0.17453), Vector3(0.5236, 0.17453, -0.17453), Vector3(-0.5236, 0.17453, -0.17453)]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("root/torso:rotation")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0.0, 0.4, 0.8),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(0.10472, -0.13963, 0.0), Vector3(0.10472, 0.13963, 0.0), Vector3(0.10472, -0.13963, 0.0)]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("root/torso:position")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"times": PackedFloat32Array(0.0, 0.2, 0.4, 0.6, 0.8),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector3(0.0, 0.66, 0.0), Vector3(0.0, 0.693, 0.0), Vector3(0.0, 0.66, 0.0), Vector3(0.0, 0.693, 0.0), Vector3(0.0, 0.66, 0.0)]
+}
+
+[sub_resource type="Animation" id="Animation_attack"]
+resource_name = "attack"
+length = 0.48
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("root/torso/right_arm:rotation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0.0, 0.16, 0.3, 0.4, 0.48),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector3(-1.74533, 0.17453, -0.2618), Vector3(-2.53073, 0.2618, -0.34907), Vector3(0.87266, 0.34907, -0.17453), Vector3(0.34907, 0.17453, -0.08727), Vector3(-1.74533, 0.17453, -0.2618)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("root/torso/right_arm/wrench:rotation")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0.0, 0.16, 0.3, 0.48),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Vector3(-0.61087, 0.17453, 0.0), Vector3(0.34907, 0.0, 0.0), Vector3(-1.22173, 0.0, 0.0), Vector3(-0.61087, 0.17453, 0.0)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("root/torso:rotation")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0.0, 0.16, 0.3, 0.48),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Vector3(0.10472, -0.08727, 0.0), Vector3(-0.10472, -0.34907, 0.0), Vector3(0.34907, 0.34907, -0.08727), Vector3(0.10472, -0.08727, 0.0)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("root/torso:position")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0.0, 0.16, 0.3, 0.48),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Vector3(0.0, 0.66, 0.0), Vector3(0.0, 0.682, -0.0275), Vector3(0.0, 0.605, 0.0825), Vector3(0.0, 0.66, 0.0)]
+}
+
+[sub_resource type="Animation" id="Animation_special"]
+resource_name = "special"
+length = 0.45
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("root/torso:rotation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0.0, 0.2, 0.45),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(0.10472, 0.0, 0.0), Vector3(0.5236, 0.0, 0.0), Vector3(0.10472, 0.0, 0.0)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("root/torso:position")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0.0, 0.2, 0.45),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(0.0, 0.66, 0.0), Vector3(0.0, 0.55, 0.0275), Vector3(0.0, 0.66, 0.0)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("root/torso/left_arm:rotation")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0.0, 0.2, 0.45),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(-0.2618, 0.17453, -0.17453), Vector3(0.7854, 0.34907, -0.34907), Vector3(-0.2618, 0.17453, -0.17453)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("root/torso/right_arm:rotation")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0.0, 0.25, 0.45),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(-1.74533, 0.17453, -0.2618), Vector3(-0.34907, 0.2618, -0.17453), Vector3(-1.74533, 0.17453, -0.2618)]
+}
+
+[sub_resource type="Animation" id="Animation_utility"]
+resource_name = "utility"
+length = 0.45
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("root/torso:rotation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0.0, 0.18, 0.45),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(0.10472, 0.0, 0.0), Vector3(0.43633, -0.2618, 0.0), Vector3(0.10472, 0.0, 0.0)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("root/torso:position")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0.0, 0.18, 0.45),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Vector3(0.0, 0.66, 0.0), Vector3(0.0, 0.5775, 0.011), Vector3(0.0, 0.66, 0.0)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("root/torso/left_arm:rotation")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0.0, 0.18, 0.3, 0.45),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Vector3(-0.2618, 0.17453, -0.17453), Vector3(0.69813, -0.17453, 0.2618), Vector3(-0.87266, -0.34907, 0.43633), Vector3(-0.2618, 0.17453, -0.17453)]
+}
+
+[sub_resource type="Animation" id="Animation_ultimate"]
+resource_name = "ultimate"
+length = 0.75
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("root/torso/left_arm:rotation")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0.0, 0.2, 0.55, 0.75),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Vector3(-0.2618, 0.17453, -0.17453), Vector3(-2.18166, -0.5236, 0.7854), Vector3(-2.18166, -0.5236, 0.7854), Vector3(-0.2618, 0.17453, -0.17453)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("root/torso/right_arm:rotation")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0.0, 0.25, 0.55, 0.75),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Vector3(-1.74533, 0.17453, -0.2618), Vector3(-1.0472, 0.34907, -0.34907), Vector3(-1.0472, 0.34907, -0.34907), Vector3(-1.74533, 0.17453, -0.2618)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("root/torso/head:rotation")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0.0, 0.25, 0.55, 0.75),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Vector3(-0.10472, 0.08727, 0.0), Vector3(-0.17453, 0.2618, 0.0), Vector3(-0.17453, 0.2618, 0.0), Vector3(-0.10472, 0.08727, 0.0)]
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("root/torso:rotation")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0.0, 0.25, 0.55, 0.75),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Vector3(0.10472, -0.08727, 0.0), Vector3(0.03491, 0.17453, 0.0), Vector3(0.03491, 0.17453, 0.0), Vector3(0.10472, -0.08727, 0.0)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_hero_engineer"]
+_data = {
+"idle": SubResource("Animation_idle"),
+"walk": SubResource("Animation_walk"),
+"attack": SubResource("Animation_attack"),
+"special": SubResource("Animation_special"),
+"utility": SubResource("Animation_utility"),
+"ultimate": SubResource("Animation_ultimate")
+}
+
+[node name="HeroEngineer" type="Node3D"]
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+libraries = {
+"": SubResource("AnimationLibrary_hero_engineer")
+}
+
+[node name="root" type="Node3D" parent="."]
+
+[node name="torso" type="Node3D" parent="root"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.66, 0.0)
+
+[node name="torso" type="MeshInstance3D" parent="root/torso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.33, 0.0)
+mesh = SubResource("BoxMesh_torso_7a49b6")
+
+[node name="leather_apron" type="MeshInstance3D" parent="root/torso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.31625, -0.0055)
+mesh = SubResource("BoxMesh_leather_apron_a72db1")
+
+[node name="tool_pouch_l" type="MeshInstance3D" parent="root/torso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.264, 0.165, 0.022)
+mesh = SubResource("BoxMesh_tool_pouch_l_8b8fb1")
+
+[node name="brass_buckle" type="MeshInstance3D" parent="root/torso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.066, -0.1375)
+mesh = SubResource("BoxMesh_brass_buckle_6b491f")
+
+[node name="powerpack" type="Node3D" parent="root/torso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.33, 0.1925)
+
+[node name="powerpack_box" type="MeshInstance3D" parent="root/torso/powerpack"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.04125, 0.022)
+mesh = SubResource("BoxMesh_powerpack_box_dcd78c")
+
+[node name="powerpack_cell" type="MeshInstance3D" parent="root/torso/powerpack"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.0275, 0.1375)
+mesh = SubResource("BoxMesh_powerpack_cell_9e4552")
+
+[node name="exhaust_pipe" type="MeshInstance3D" parent="root/torso/powerpack"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.143, 0.34375, 0.0055)
+mesh = SubResource("BoxMesh_exhaust_pipe_98b28d")
+
+[node name="indicator_light" type="MeshInstance3D" parent="root/torso/powerpack"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.10175, 0.20625, 0.143)
+mesh = SubResource("BoxMesh_indicator_light_81c577")
+
+[node name="head" type="Node3D" parent="root/torso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.66, 0.0)
+
+[node name="head" type="MeshInstance3D" parent="root/torso/head"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.22, 0.0)
+mesh = SubResource("BoxMesh_head_44bf45")
+
+[node name="engineer_hair" type="MeshInstance3D" parent="root/torso/head"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.37125, 0.0)
+mesh = SubResource("BoxMesh_engineer_hair_080c51")
+
+[node name="goggles_frame" type="MeshInstance3D" parent="root/torso/head"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.3025, -0.231)
+mesh = SubResource("BoxMesh_goggles_frame_1fb675")
+
+[node name="goggle_lens_l" type="MeshInstance3D" parent="root/torso/head"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.1265, 0.3025, -0.253)
+mesh = SubResource("BoxMesh_goggle_lens_l_8ef929")
+
+[node name="goggle_lens_r" type="MeshInstance3D" parent="root/torso/head"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.1265, 0.3025, -0.253)
+mesh = SubResource("BoxMesh_goggle_lens_r_1d727b")
+
+[node name="goggles_strap" type="MeshInstance3D" parent="root/torso/head"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.3025, 0.0055)
+mesh = SubResource("BoxMesh_goggles_strap_ffa407")
+
+[node name="right_arm" type="Node3D" parent="root/torso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.341, 0.55, 0.0)
+
+[node name="right_arm" type="MeshInstance3D" parent="root/torso/right_arm"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.22, 0.0)
+mesh = SubResource("BoxMesh_right_arm_d71681")
+
+[node name="r_heavy_glove" type="MeshInstance3D" parent="root/torso/right_arm"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.45375, 0.0)
+mesh = SubResource("BoxMesh_r_heavy_glove_7908c9")
+
+[node name="wrench" type="Node3D" parent="root/torso/right_arm"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.5225, 0.0)
+
+[node name="tool_handle" type="MeshInstance3D" parent="root/torso/right_arm/wrench"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.0275, 0.11)
+mesh = SubResource("BoxMesh_tool_handle_f06217")
+
+[node name="hammer_head" type="MeshInstance3D" parent="root/torso/right_arm/wrench"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.01375, -0.3575)
+mesh = SubResource("BoxMesh_hammer_head_613273")
+
+[node name="hammer_face" type="MeshInstance3D" parent="root/torso/right_arm/wrench"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.01375, -0.5115)
+mesh = SubResource("BoxMesh_hammer_face_4a278a")
+
+[node name="wrench_claw1" type="MeshInstance3D" parent="root/torso/right_arm/wrench"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.11, 0.56375)
+mesh = SubResource("BoxMesh_wrench_claw1_7031e6")
+
+[node name="wrench_claw2" type="MeshInstance3D" parent="root/torso/right_arm/wrench"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.055, 0.56375)
+mesh = SubResource("BoxMesh_wrench_claw2_6dc7a3")
+
+[node name="left_arm" type="Node3D" parent="root/torso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.341, 0.55, 0.0)
+
+[node name="left_arm" type="MeshInstance3D" parent="root/torso/left_arm"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.0, -0.22, 0.0)
+mesh = SubResource("BoxMesh_left_arm_27501a")
+
+[node name="l_heavy_glove" type="MeshInstance3D" parent="root/torso/left_arm"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.45375, 0.0)
+mesh = SubResource("BoxMesh_l_heavy_glove_02c0e6")
+
+[node name="gadget" type="Node3D" parent="root/torso/left_arm"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.5225, 0.0)
+
+[node name="hand_detonator" type="MeshInstance3D" parent="root/torso/left_arm/gadget"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.0, -0.121)
+mesh = SubResource("BoxMesh_hand_detonator_d4b5d8")
+
+[node name="right_leg" type="Node3D" parent="root"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.121, 0.66, 0.0)
+
+[node name="right_leg" type="MeshInstance3D" parent="root/right_leg"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.33, 0.0)
+mesh = SubResource("BoxMesh_right_leg_ce237a")
+
+[node name="r_work_boot" type="MeshInstance3D" parent="root/right_leg"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.5225, -0.0055)
+mesh = SubResource("BoxMesh_r_work_boot_fc4fcf")
+
+[node name="left_leg" type="Node3D" parent="root"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.121, 0.66, 0.0)
+
+[node name="left_leg" type="MeshInstance3D" parent="root/left_leg"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.33, 0.0)
+mesh = SubResource("BoxMesh_left_leg_c3a9a1")
+
+[node name="l_work_boot" type="MeshInstance3D" parent="root/left_leg"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.5225, -0.0055)
+mesh = SubResource("BoxMesh_l_work_boot_f79a34")

@@ -6,34 +6,76 @@ class_name PlayerPresentation
 const FLOATING_TEXT_SCENE = preload("res://scenes/floating_text.tscn")
 
 var anim_player: AnimationPlayer = null
+var active_model: Node3D = null
 var portal_compass: Node3D = null
 var compass_label_3d: Label3D = null
 var cached_portal: Node3D = null
 
 func setup(player_node: CharacterBody3D) -> void:
-	anim_player = player_node.find_child("AnimationPlayer", true, false) as AnimationPlayer
 	portal_compass = player_node.get_node_or_null("PortalCompass") as Node3D
 	if portal_compass:
 		compass_label_3d = portal_compass.get_node_or_null("CompassLabel") as Label3D
+
+	var default_model = player_node.get_node_or_null("Visuals/HeroWarrior") as Node3D
+	if not default_model:
+		default_model = player_node.find_child("HeroWarrior", true, false) as Node3D
+	set_active_model(default_model)
+
+func set_active_model(model: Node3D) -> void:
+	active_model = model
+	if active_model and is_instance_valid(active_model):
+		anim_player = active_model.get_node_or_null("AnimationPlayer") as AnimationPlayer
+		if not anim_player:
+			anim_player = active_model.find_child("AnimationPlayer", true, false) as AnimationPlayer
+	else:
+		anim_player = null
 
 func update_animations(body: CharacterBody3D, is_parrying: bool, is_dashing: bool) -> void:
 	if not anim_player:
 		return
 
+	var cur = anim_player.current_animation
+	if cur in ["attack", "special", "utility", "ultimate"]:
+		return
+
 	if is_parrying:
-		if anim_player.current_animation != "block":
-			anim_player.play("block")
+		if cur != "block" and cur != "utility":
+			if anim_player.has_animation("block"):
+				anim_player.play("block")
+			elif anim_player.has_animation("utility"):
+				anim_player.play("utility")
 	elif is_dashing or body.velocity.length_squared() > 0.5:
-		if anim_player.current_animation != "walk" and anim_player.current_animation != "attack":
+		if cur != "walk":
 			anim_player.play("walk")
 	else:
-		if anim_player.current_animation != "idle" and anim_player.current_animation != "attack":
+		if cur != "idle":
 			anim_player.play("idle")
 
 func play_attack_animation() -> void:
 	if anim_player and anim_player.has_animation("attack"):
 		anim_player.stop()
 		anim_player.play("attack")
+
+func play_special_animation() -> void:
+	if anim_player and anim_player.has_animation("special"):
+		anim_player.stop()
+		anim_player.play("special")
+	elif anim_player and anim_player.has_animation("attack"):
+		anim_player.stop()
+		anim_player.play("attack")
+
+func play_utility_animation() -> void:
+	if anim_player and anim_player.has_animation("utility"):
+		anim_player.stop()
+		anim_player.play("utility")
+	elif anim_player and anim_player.has_animation("block"):
+		anim_player.stop()
+		anim_player.play("block")
+
+func play_ultimate_animation() -> void:
+	if anim_player and anim_player.has_animation("ultimate"):
+		anim_player.stop()
+		anim_player.play("ultimate")
 
 func spawn_popup_text(player: CharacterBody3D, text: String, color: Color) -> void:
 	if not player or not player.is_inside_tree():

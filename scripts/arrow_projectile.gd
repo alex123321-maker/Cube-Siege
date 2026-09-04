@@ -22,6 +22,14 @@ func setup(p_direction: Vector3, p_damage: float, p_owner: Node, p_pierce: int =
 		$Hitbox.damage = damage
 		$Hitbox.set_owner_entity(p_owner)
 
+	# Attach flight trail VFX
+	var vfx = get_node_or_null("/root/VFXManager")
+	if vfx:
+		if pierce_count > 1:
+			vfx.attach_piercing_trail(self)
+		else:
+			vfx.attach_arrow_trail(self)
+
 func _physics_process(delta: float) -> void:
 	global_position += direction * speed * delta
 	lifetime -= delta
@@ -45,7 +53,16 @@ func _on_hitbox_area_entered(area: Area3D) -> void:
 	# Direct damage dealing
 	var hit_direction: Vector3 = direction
 	hit_direction.y = 0.0
-	area.take_damage(damage, hit_direction * 4.0, "projectile", shooter_entity)
+	var attacker = shooter_entity if is_instance_valid(shooter_entity) else null
+	area.take_damage(damage, hit_direction * 4.0, "projectile", attacker)
+
+	# Hit feedback VFX
+	var vfx = get_node_or_null("/root/VFXManager")
+	if vfx:
+		if pierce_count > 1:
+			vfx.spawn_pierce_ripple(global_position, direction)
+		else:
+			vfx.spawn_sparks(global_position, -direction, Color(1.0, 0.9, 0.4), 8, 4.0)
 
 	pierce_count -= 1
 	if pierce_count <= 0:

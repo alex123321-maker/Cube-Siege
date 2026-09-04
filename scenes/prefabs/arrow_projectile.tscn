@@ -1,23 +1,59 @@
-[gd_scene load_steps=6 format=3 uid="uid://carrowproj01"]
+[gd_scene load_steps=9 format=3 uid="uid://carrowproj01"]
 
 [ext_resource type="Script" path="res://scripts/arrow_projectile.gd" id="1_arrow"]
 [ext_resource type="Script" path="res://scripts/hitbox_area.gd" id="2_hitbox"]
 
-[sub_resource type="StandardMaterial3D" id="Mat_ArrowShaft"]
-albedo_color = Color(0.95, 0.9, 0.5, 1.0)
+[sub_resource type="StandardMaterial3D" id="Mat_WoodShaft"]
+albedo_color = Color(0.78, 0.65, 0.45, 1)
+roughness = 0.8
 
-[sub_resource type="BoxMesh" id="BoxMesh_Arrow"]
-material = SubResource("Mat_ArrowShaft")
-size = Vector3(0.08, 0.08, 0.7)
+[sub_resource type="BoxMesh" id="BoxMesh_Shaft"]
+material = SubResource("Mat_WoodShaft")
+size = Vector3(0.06, 0.06, 0.8)
+
+[sub_resource type="StandardMaterial3D" id="Mat_Feathers"]
+albedo_color = Color(0.92, 0.95, 0.98, 1)
+roughness = 0.6
+
+[sub_resource type="BoxMesh" id="BoxMesh_FletchingH"]
+material = SubResource("Mat_Feathers")
+size = Vector3(0.18, 0.02, 0.22)
+
+[sub_resource type="BoxMesh" id="BoxMesh_FletchingV"]
+material = SubResource("Mat_Feathers")
+size = Vector3(0.02, 0.18, 0.22)
+
+[sub_resource type="StandardMaterial3D" id="Mat_TipIron"]
+albedo_color = Color(0.55, 0.58, 0.62, 1)
+metallic = 0.85
+roughness = 0.25
+
+[sub_resource type="BoxMesh" id="BoxMesh_Tip"]
+material = SubResource("Mat_TipIron")
+size = Vector3(0.12, 0.12, 0.18)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_arrowhit"]
-size = Vector3(1.0, 1.0, 1.2)
+size = Vector3(0.8, 0.8, 1.0)
 
 [node name="ArrowProjectile" type="Node3D"]
 script = ExtResource("1_arrow")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
-mesh = SubResource("BoxMesh_Arrow")
+[node name="Model" type="Node3D" parent="."]
+
+[node name="Shaft" type="MeshInstance3D" parent="Model"]
+mesh = SubResource("BoxMesh_Shaft")
+
+[node name="FletchH" type="MeshInstance3D" parent="Model"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.28)
+mesh = SubResource("BoxMesh_FletchingH")
+
+[node name="FletchV" type="MeshInstance3D" parent="Model"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.28)
+mesh = SubResource("BoxMesh_FletchingV")
+
+[node name="Tip" type="MeshInstance3D" parent="Model"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.45)
+mesh = SubResource("BoxMesh_Tip")
 
 [node name="Hitbox" type="Area3D" parent="."]
 collision_layer = 0

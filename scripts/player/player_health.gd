@@ -42,6 +42,11 @@ func take_damage(damage: float, attacker: Node = null, is_dashing: bool = false,
 		parry_cooldown_timer = 3.0
 		parry_triggered.emit(true)
 
+		if player_node and is_instance_valid(player_node):
+			var vfx = player_node.get_node_or_null("/root/VFXManager")
+			if vfx:
+				vfx.spawn_parry_clash(player_node.global_position)
+
 		# Stun nearby enemies on successful parry
 		if player_node and is_instance_valid(player_node):
 			var enemies: Array[Node] = player_node.get_tree().get_nodes_in_group("enemies")
