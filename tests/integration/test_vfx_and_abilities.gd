@@ -171,21 +171,37 @@ func test_tactical_nuke_decoupled_gameplay_execution() -> void:
 	add_child_autoqfree(player)
 	player.set_class(player.CharacterClass.ENGINEER, false)
 
-	# Create dummy target enemy
+	# Create dummy target enemy that records damages
 	var enemy = Area3D.new()
 	enemy.add_to_group("enemies")
 	add_child_autoqfree(enemy)
 	enemy.global_position = Vector3(0, 0, -2.0)
 
-	var damage_received = 0.0
-	var damage_type_received = ""
-	enemy.set_script(load("res://scripts/hurtbox_area.gd"))
+	var custom_script = GDScript.new()
+	custom_script.source_code = """extends Area3D
+var recorded_damages: Array = []
+var recorded_types: Array = []
+var recorded_knockbacks: Array = []
+func _on_damaged(amount: float, knockback: Vector3, dmg_type: String, _attacker: Node) -> void:
+	recorded_damages.append(amount)
+	recorded_types.append(dmg_type)
+	recorded_knockbacks.append(knockback)
+"""
+	custom_script.reload()
+	enemy.set_script(custom_script)
 
-	# Test direct application of impact and burn methods owned by gameplay
+	# Test direct application of impact damage owned by gameplay
 	player.abilities._apply_nuke_impact_damage(player, enemy.global_position, 300.0, 10.0)
-	# Verify that damage is dealt independently of VFX
+	assert_eq(enemy.recorded_damages.size(), 1, "Impact damage must be registered")
+	assert_eq(enemy.recorded_damages[0], 300.0, "Impact damage must equal 300.0")
+	assert_eq(enemy.recorded_types[0], "nuke", "Impact damage type must be 'nuke'")
+
+	# Test direct application of burn damage owned by gameplay
 	player.abilities._apply_nuke_burn_damage(player, enemy.global_position, 25.0, 10.0)
-	assert_true(true, "Tactical nuke damage methods execute directly without VFX callbacks")
+	assert_eq(enemy.recorded_damages.size(), 2, "Burn damage must be registered")
+	assert_eq(enemy.recorded_damages[1], 25.0, "Burn damage must equal 25.0")
+	assert_eq(enemy.recorded_types[1], "burn", "Burn damage type must be 'burn'")
+	assert_eq(enemy.recorded_knockbacks[1], Vector3.ZERO, "Burn damage must have zero knockback")
 
 func test_windup_actions_cancel_on_player_death() -> void:
 	var player = PLAYER_SCENE.instantiate()
