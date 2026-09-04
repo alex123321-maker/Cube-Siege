@@ -68,10 +68,7 @@ func update_ui() -> void:
 
 func _on_craft_weapon_pressed() -> void:
 	var bs = get_tree().root.find_child("BuildingSystem", true, false)
-	if bs and bs.stone_count >= 4 and bs.iron_count >= 4:
-		bs.stone_count -= 4
-		bs.iron_count -= 4
-		bs.update_hud_counters()
+	if bs and bs.spend_resources(0, 4, 4):
 		has_weapon = true
 		var player = get_tree().get_first_node_in_group("player")
 		if player:
@@ -81,9 +78,7 @@ func _on_craft_weapon_pressed() -> void:
 
 func _on_craft_armor_pressed() -> void:
 	var bs = get_tree().root.find_child("BuildingSystem", true, false)
-	if bs and bs.iron_count >= 6:
-		bs.iron_count -= 6
-		bs.update_hud_counters()
+	if bs and bs.spend_resources(0, 0, 6):
 		has_armor = true
 		var player = get_tree().get_first_node_in_group("player")
 		if player:
@@ -95,10 +90,7 @@ func _on_craft_armor_pressed() -> void:
 
 func _on_craft_boots_pressed() -> void:
 	var bs = get_tree().root.find_child("BuildingSystem", true, false)
-	if bs and bs.wood_count >= 4 and bs.iron_count >= 2:
-		bs.wood_count -= 4
-		bs.iron_count -= 2
-		bs.update_hud_counters()
+	if bs and bs.spend_resources(4, 0, 2):
 		has_boots = true
 		var player = get_tree().get_first_node_in_group("player")
 		if player:
@@ -109,18 +101,14 @@ func _on_craft_boots_pressed() -> void:
 # Salvage actions
 func _on_salvage_wood_pressed() -> void:
 	var bs = get_tree().root.find_child("BuildingSystem", true, false)
-	if bs and bs.wood_count >= 10:
-		bs.wood_count -= 10
-		bs.iron_count += 1
-		bs.update_hud_counters()
+	if bs and bs.spend_resources(10, 0, 0):
+		bs.add_resource(0, 0, 1)
 		update_ui()
 
 func _on_salvage_stone_pressed() -> void:
 	var bs = get_tree().root.find_child("BuildingSystem", true, false)
-	if bs and bs.stone_count >= 10:
-		bs.stone_count -= 10
-		bs.iron_count += 1
-		bs.update_hud_counters()
+	if bs and bs.spend_resources(0, 10, 0):
+		bs.add_resource(0, 0, 1)
 		update_ui()
 
 # Mastery points

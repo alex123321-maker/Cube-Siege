@@ -102,14 +102,7 @@ func attempt_repair(_player: Node) -> void:
 	if not building_system:
 		return
 
-	var wood: int = building_system.get("wood_count")
-	var stone: int = building_system.get("stone_count")
-
-	if wood >= required_wood and stone >= required_stone:
-		building_system.wood_count -= required_wood
-		building_system.stone_count -= required_stone
-		building_system.update_hud_counters()
-
+	if building_system.has_method("spend_resources") and building_system.spend_resources(required_wood, required_stone, 0):
 		current_state = State.CHARGING
 		charge_timer = charge_duration
 		emit_signal("portal_repaired")
