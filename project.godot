@@ -19,6 +19,7 @@ config/features=PackedStringArray("4.6", "Forward Plus")
 [autoload]
 
 EventBus="*res://scripts/event_bus.gd"
+SaveManager="*res://scripts/save_manager.gd"
 MasteryManager="*res://scripts/mastery_manager.gd"
 RosterManager="*res://scripts/roster_manager.gd"
 MCPRuntimeProbe="*uid://bsg12huaf1u5i"

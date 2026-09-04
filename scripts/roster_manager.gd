@@ -132,6 +132,14 @@ func record_run_end(evacuated: bool, day: int, gained_xp: int) -> void:
 	save_roster()
 
 func save_roster() -> void:
+	var save_mgr = get_node_or_null("/root/SaveManager")
+	if save_mgr:
+		save_mgr.roster_slots = slots
+		save_mgr.selected_slot_index = selected_slot_index
+		save_mgr.save_to_disk()
+		return
+
+	# Fallback if SaveManager is not loaded (e.g. isolated test environment)
 	var file = FileAccess.open(ROSTER_PATH, FileAccess.WRITE)
 	if not file:
 		return
@@ -143,6 +151,16 @@ func save_roster() -> void:
 	file.close()
 
 func load_roster() -> void:
+	var save_mgr = get_node_or_null("/root/SaveManager")
+	if save_mgr and save_mgr.roster_slots.size() == 3:
+		slots.clear()
+		for item in save_mgr.roster_slots:
+			if item is Dictionary:
+				slots.append(item)
+		selected_slot_index = save_mgr.selected_slot_index
+		return
+
+	# Fallback / migration from legacy file
 	if not FileAccess.file_exists(ROSTER_PATH):
 		return
 	var file = FileAccess.open(ROSTER_PATH, FileAccess.READ)
@@ -159,3 +177,6 @@ func load_roster() -> void:
 			for item in loaded_slots:
 				if item is Dictionary:
 					slots.append(item)
+			if save_mgr:
+				save_mgr.roster_slots = slots
+				save_mgr.selected_slot_index = selected_slot_index

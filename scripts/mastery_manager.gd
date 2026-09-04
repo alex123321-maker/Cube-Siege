@@ -63,6 +63,20 @@ func get_stat_multipliers() -> Dictionary:
 	}
 
 func save_mastery() -> void:
+	var save_mgr = get_node_or_null("/root/SaveManager")
+	if save_mgr:
+		save_mgr.mastery = {
+			"total_battle_xp": total_battle_xp,
+			"available_points": available_points,
+			"bloodlust": bloodlust,
+			"survival": survival,
+			"agility": agility,
+			"crafting": crafting
+		}
+		save_mgr.save_to_disk()
+		return
+
+	# Fallback if SaveManager is not loaded
 	var file = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if not file:
 		return
@@ -78,6 +92,18 @@ func save_mastery() -> void:
 	file.close()
 
 func load_mastery() -> void:
+	var save_mgr = get_node_or_null("/root/SaveManager")
+	if save_mgr and not save_mgr.mastery.is_empty():
+		var m = save_mgr.mastery
+		total_battle_xp = m.get("total_battle_xp", 0)
+		available_points = m.get("available_points", 5)
+		bloodlust = m.get("bloodlust", 0)
+		survival = m.get("survival", 0)
+		agility = m.get("agility", 0)
+		crafting = m.get("crafting", 0)
+		return
+
+	# Fallback / migration from legacy file
 	if not FileAccess.file_exists(SAVE_PATH):
 		return
 	var file = FileAccess.open(SAVE_PATH, FileAccess.READ)
@@ -92,3 +118,5 @@ func load_mastery() -> void:
 		survival = parsed.get("survival", 0)
 		agility = parsed.get("agility", 0)
 		crafting = parsed.get("crafting", 0)
+		if save_mgr:
+			save_mgr.mastery = parsed
