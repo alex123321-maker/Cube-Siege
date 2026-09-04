@@ -64,5 +64,5 @@ func expire() -> void:
 		vfx.spawn_puff(global_position + Vector3(0, 1.0, 0), Color(0.86, 0.78, 0.46), 24, 5.0)
 
 	var tween: Tween = create_tween()
-	tween.tween_property(self, "scale", Vector3.ZERO, 0.15)
+	tween.tween_property(self, "scale", Vector3(0.01, 0.01, 0.01), 0.15)
 	tween.chain().tween_callback(queue_free)

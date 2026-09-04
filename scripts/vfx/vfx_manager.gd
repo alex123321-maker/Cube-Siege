@@ -5,11 +5,30 @@ extends Node
 ## Guarantees 0 orphaned nodes, automatic lifecycle cleanup, and no memory leaks.
 
 var active_effect_ids: Dictionary = {}
+var _timed_effects: Array[Dictionary] = []
 var _container: Node3D = null
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_ensure_container()
+
+func _process(_delta: float) -> void:
+	if _timed_effects.is_empty():
+		return
+	var now: int = Time.get_ticks_msec()
+	var remaining: Array[Dictionary] = []
+	for item in _timed_effects:
+		var id: int = item.get("id", 0)
+		var obj = instance_from_id(id)
+		if not obj or not is_instance_valid(obj) or obj.is_queued_for_deletion():
+			active_effect_ids.erase(id)
+			continue
+		if now >= item.get("expires_at", 0):
+			obj.queue_free()
+			active_effect_ids.erase(id)
+		else:
+			remaining.append(item)
+	_timed_effects = remaining
 
 func _ensure_container() -> Node3D:
 	if not _container or not is_instance_valid(_container) or not _container.is_inside_tree():
@@ -45,12 +64,10 @@ func register_effect(node: Node, auto_free_time: float = 0.0) -> Node:
 		active_effect_ids.erase(id)
 	)
 	if auto_free_time > 0.0:
-		var timer = get_tree().create_timer(auto_free_time)
-		timer.timeout.connect(func():
-			var obj = instance_from_id(id)
-			if obj and is_instance_valid(obj) and not obj.is_queued_for_deletion():
-				obj.queue_free()
-		)
+		_timed_effects.append({
+			"id": id,
+			"expires_at": Time.get_ticks_msec() + int(auto_free_time * 1000.0)
+		})
 	return node
 
 # =========================================================================
@@ -67,7 +84,8 @@ func spawn_slash_arc(pos: Vector3, aim_dir: Vector3, radius: float = 2.2, arc_de
 
 	var forward = aim_dir.normalized()
 	if forward.length_squared() > 0.01:
-		arc_root.look_at(arc_root.global_position + forward, Vector3.UP)
+		var up = Vector3.UP if abs(forward.dot(Vector3.UP)) < 0.99 else Vector3.FORWARD
+		arc_root.look_at(arc_root.global_position + forward, up)
 
 	# Mesh: Curved ribbon / fan matching the slash arc
 	var im = ImmediateMesh.new()
@@ -184,7 +202,11 @@ func spawn_shockwave(pos: Vector3, max_radius: float = 3.0, col: Color = Color(0
 	return root
 
 ## Active parry window stance aura
-func spawn_parry_stance_aura(player: CharacterBody3D) -> Node3D:
+func spawn_parry_stance_aura(player: CharacterBody3D, max_duration: float = 0.5) -> Node3D:
+	if not player or not is_instance_valid(player):
+		return null
+	dismiss_parry_stance_aura(player)
+
 	var root = Node3D.new()
 	root.name = "ParryStanceAura"
 	player.add_child(root)
@@ -209,8 +231,24 @@ func spawn_parry_stance_aura(player: CharacterBody3D) -> Node3D:
 	t.tween_property(mat, "albedo_color:a", 0.7, 0.15)
 	t.tween_property(mat, "albedo_color:a", 0.35, 0.15)
 
-	register_effect(root)
+	var safety_timer = root.get_tree().create_timer(max_duration)
+	var r_id = root.get_instance_id()
+	safety_timer.timeout.connect(func():
+		var node = instance_from_id(r_id)
+		if node and is_instance_valid(node):
+			node.queue_free()
+	)
+
+	register_effect(root, max_duration + 0.1)
 	return root
+
+func dismiss_parry_stance_aura(player: CharacterBody3D) -> void:
+	if not player or not is_instance_valid(player):
+		return
+	var old = player.get_node_or_null("ParryStanceAura")
+	if old and is_instance_valid(old):
+		old.name = "ParryStanceAura_Freed"
+		old.queue_free()
 
 ## Brilliant parry clash feedback
 func spawn_parry_clash(pos: Vector3) -> void:
@@ -237,9 +275,11 @@ func spawn_parry_clash(pos: Vector3) -> void:
 	register_effect(flash, 0.2)
 
 ## Duel Arena aura & Target lock
-func spawn_duel_indicator(target: Node3D) -> Node3D:
+func spawn_duel_indicator(target: Node3D, max_duration: float = 15.0) -> Node3D:
 	if not target or not is_instance_valid(target):
 		return null
+	dismiss_duel_indicator(target)
+
 	var root = Node3D.new()
 	root.name = "DuelTargetIndicator"
 	target.add_child(root)
@@ -259,9 +299,57 @@ func spawn_duel_indicator(target: Node3D) -> Node3D:
 	root.add_child(mi)
 
 	var t = root.create_tween().set_loops()
-	t.tween_property(root, "rotation:y", TAU, 1.5).as_relative()
+	t.tween_property(root, "rotation:y", TAU, 1.8)
 
-	register_effect(root)
+	var safety_timer = root.get_tree().create_timer(max_duration)
+	var r_id = root.get_instance_id()
+	safety_timer.timeout.connect(func():
+		var node = instance_from_id(r_id)
+		if node and is_instance_valid(node):
+			node.queue_free()
+	)
+
+	register_effect(root, max_duration + 0.1)
+	return root
+
+func dismiss_duel_indicator(target: Node3D) -> void:
+	if not target or not is_instance_valid(target):
+		return
+	var old = target.get_node_or_null("DuelTargetIndicator")
+	if old and is_instance_valid(old):
+		old.name = "DuelTargetIndicator_Freed"
+		old.queue_free()
+
+## Pre-shot charge aura on bow tip
+func spawn_arrow_charge(player: CharacterBody3D, duration: float = 0.28) -> Node3D:
+	if not player or not is_instance_valid(player):
+		return null
+	var root = Node3D.new()
+	root.name = "ArrowChargeVFX"
+	player.add_child(root)
+	root.position = Vector3(0.35, 1.0, -0.85)
+
+	var sphere = SphereMesh.new()
+	sphere.radius = 0.18
+	sphere.height = 0.36
+	var mi = MeshInstance3D.new()
+	mi.mesh = sphere
+	var mat = StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.albedo_color = Color(0.3, 0.95, 1.0, 0.8)
+	mat.emission_enabled = true
+	mat.emission = Color(0.3, 0.95, 1.0)
+	mat.emission_energy_multiplier = 3.0
+	mi.material_override = mat
+	root.add_child(mi)
+
+	var t = root.create_tween()
+	t.tween_property(mi, "scale", Vector3(1.4, 1.4, 1.4), duration * 0.7)
+	t.tween_property(mi, "scale", Vector3(0.2, 0.2, 0.2), duration * 0.3)
+	t.chain().tween_callback(root.queue_free)
+
+	register_effect(root, duration + 0.1)
 	return root
 
 # =========================================================================
@@ -420,21 +508,14 @@ func spawn_mine_explosion(pos: Vector3, radius: float = 4.5) -> void:
 	spawn_puff(pos + Vector3(0, 0.5, 0), Color(1.0, 0.45, 0.1), 24, 7.0)
 	spawn_puff(pos + Vector3(0, 1.2, 0), Color(0.2, 0.2, 0.2), 16, 4.0)
 
-## Tactical Nuke Cinematic Sequence
-func spawn_tactical_nuke_sequence(
-	parent: Node,
-	target_pos: Vector3,
-	on_impact_callback: Callable,
-	on_burn_tick_callback: Callable,
-	on_finish_callback: Callable = Callable()
-) -> Node3D:
+## Tactical Nuke Telegraph: warning zone and falling missile
+func spawn_tactical_nuke_telegraph(target_pos: Vector3, duration: float = 1.2) -> Node3D:
 	var container = _ensure_container()
 	var nuke_root = Node3D.new()
-	nuke_root.name = "TacticalNukeSequence"
+	nuke_root.name = "NukeTelegraph"
 	container.add_child(nuke_root)
 	nuke_root.global_position = target_pos
 
-	# STAGE 1: Target Telegraph (10m radius with rotating hazard chevrons)
 	var telegraph = MeshInstance3D.new()
 	var cyl = CylinderMesh.new()
 	cyl.top_radius = 10.0
@@ -444,17 +525,16 @@ func spawn_tactical_nuke_sequence(
 	var tel_mat = StandardMaterial3D.new()
 	tel_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	tel_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	tel_mat.albedo_color = Color(1.0, 0.2, 0.0, 0.2)
+	tel_mat.albedo_color = Color(1.0, 0.2, 0.0, 0.25)
 	telegraph.material_override = tel_mat
 	nuke_root.add_child(telegraph)
 	telegraph.position = Vector3(0, 0.03, 0)
 
-	# Pulsing telegraph warning
-	var tel_tween = telegraph.create_tween().set_loops(4)
-	tel_tween.tween_property(tel_mat, "albedo_color:a", 0.55, 0.15)
+	var loops = max(1, int(duration / 0.3))
+	var tel_tween = telegraph.create_tween().set_loops(loops)
+	tel_tween.tween_property(tel_mat, "albedo_color:a", 0.6, 0.15)
 	tel_tween.tween_property(tel_mat, "albedo_color:a", 0.2, 0.15)
 
-	# Falling Warhead Missile (descends from Y=35 to Y=0 in 1.2s)
 	var missile = Node3D.new()
 	var missile_mesh = MeshInstance3D.new()
 	var m_cyl = CylinderMesh.new()
@@ -467,7 +547,6 @@ func spawn_tactical_nuke_sequence(
 	missile_mesh.material_override = m_mat
 	missile.add_child(missile_mesh)
 
-	# Flame trail on missile
 	var m_trail = attach_arrow_trail(missile, Color(1.0, 0.5, 0.1, 0.9))
 	m_trail.amount = 30
 	m_trail.lifetime = 0.4
@@ -477,72 +556,74 @@ func spawn_tactical_nuke_sequence(
 	missile.rotation_degrees = Vector3(180, 0, 0)
 
 	var missile_tween = missile.create_tween()
-	missile_tween.tween_property(missile, "position:y", 0.0, 1.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	missile_tween.tween_property(missile, "position:y", 0.0, duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	missile_tween.chain().tween_callback(nuke_root.queue_free)
 
-	# STAGE 2: Detonation on arrival
-	missile_tween.chain().tween_callback(func():
-		missile.queue_free()
-		telegraph.visible = false
+	register_effect(nuke_root, duration + 0.1)
+	return nuke_root
 
-		# Massive Detonation VFX
-		spawn_shockwave(target_pos, 14.0, Color(1.0, 0.5, 0.1), 0.6)
-		spawn_shockwave(target_pos, 9.0, Color(1.0, 1.0, 0.8), 0.35)
-		spawn_parry_clash(target_pos)
+## Tactical Nuke Impact: shockwaves, brilliant flash, rising mushroom cloud
+func spawn_tactical_nuke_impact(target_pos: Vector3) -> void:
+	spawn_shockwave(target_pos, 14.0, Color(1.0, 0.5, 0.1), 0.6)
+	spawn_shockwave(target_pos, 9.0, Color(1.0, 1.0, 0.8), 0.35)
+	spawn_parry_clash(target_pos)
+	spawn_puff(target_pos + Vector3(0, 1.0, 0), Color(1.0, 0.6, 0.1), 40, 12.0)
+	spawn_puff(target_pos + Vector3(0, 3.5, 0), Color(1.0, 0.3, 0.0), 32, 8.0)
+	spawn_puff(target_pos + Vector3(0, 6.0, 0), Color(0.2, 0.2, 0.2), 36, 6.0)
 
-		# Giant voxel mushroom cloud & fireball
-		spawn_puff(target_pos + Vector3(0, 1.0, 0), Color(1.0, 0.6, 0.1), 40, 12.0)
-		spawn_puff(target_pos + Vector3(0, 3.5, 0), Color(1.0, 0.3, 0.0), 32, 8.0)
-		spawn_puff(target_pos + Vector3(0, 6.0, 0), Color(0.2, 0.2, 0.2), 36, 6.0)
+## Tactical Nuke Ground Burn Field: glowing plasma cracks, rising embers
+func spawn_tactical_nuke_burn(target_pos: Vector3, duration: float = 3.0) -> Node3D:
+	var container = _ensure_container()
+	var burn_zone = MeshInstance3D.new()
+	var b_cyl = CylinderMesh.new()
+	b_cyl.top_radius = 10.0
+	b_cyl.bottom_radius = 10.0
+	b_cyl.height = 0.05
+	burn_zone.mesh = b_cyl
+	var b_mat = StandardMaterial3D.new()
+	b_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	b_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	b_mat.albedo_color = Color(1.0, 0.35, 0.05, 0.4)
+	burn_zone.material_override = b_mat
+	container.add_child(burn_zone)
+	burn_zone.global_position = target_pos + Vector3(0, 0.04, 0)
 
-		# Invoke gameplay damage callback
+	var t = burn_zone.create_tween()
+	t.tween_interval(duration * 0.7)
+	t.tween_property(b_mat, "albedo_color:a", 0.0, duration * 0.3)
+	t.chain().tween_callback(burn_zone.queue_free)
+
+	register_effect(burn_zone, duration + 0.1)
+	return burn_zone
+
+## Tactical Nuke Composite Visual Sequence (convenience wrapper)
+func spawn_tactical_nuke_sequence(
+	parent: Node,
+	target_pos: Vector3,
+	on_impact_callback: Callable = Callable(),
+	on_burn_tick_callback: Callable = Callable(),
+	on_finish_callback: Callable = Callable()
+) -> Node3D:
+	var telegraph = spawn_tactical_nuke_telegraph(target_pos, 1.2)
+
+	var timer = get_tree().create_timer(1.2)
+	timer.timeout.connect(func():
+		spawn_tactical_nuke_impact(target_pos)
 		if on_impact_callback.is_valid():
 			on_impact_callback.call()
 
-		# STAGE 3: Scorched Earth / Radiation Burn Zone (5 seconds)
-		var burn_zone = MeshInstance3D.new()
-		var b_cyl = CylinderMesh.new()
-		b_cyl.top_radius = 10.0
-		b_cyl.bottom_radius = 10.0
-		b_cyl.height = 0.05
-		burn_zone.mesh = b_cyl
-		var b_mat = StandardMaterial3D.new()
-		b_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		b_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		b_mat.albedo_color = Color(1.0, 0.35, 0.05, 0.4)
-		burn_zone.material_override = b_mat
-		nuke_root.add_child(burn_zone)
-		burn_zone.position = Vector3(0, 0.04, 0)
+		var burn = spawn_tactical_nuke_burn(target_pos, 3.0)
 
-		# Handle burn ticks via timer loop
-		var elapsed = 0.0
-		var burn_duration = 5.0
-		var tick_rate = 0.5
-
-		var tick_timer = nuke_root.get_tree().create_timer(tick_rate)
-		var tick_func: Callable
-		tick_func = func():
-			elapsed += tick_rate
-			if on_burn_tick_callback.is_valid():
-				on_burn_tick_callback.call()
-			# Subtle residual ember puffs
-			spawn_puff(target_pos + Vector3(randf_range(-6, 6), 0.5, randf_range(-6, 6)), Color(1.0, 0.4, 0.1), 4, 1.5)
-
-			if elapsed < burn_duration and is_instance_valid(nuke_root):
-				nuke_root.get_tree().create_timer(tick_rate).timeout.connect(tick_func)
-			else:
-				# STAGE 4: Clean fadeout & removal
-				if is_instance_valid(burn_zone):
-					var fade_t = burn_zone.create_tween()
-					fade_t.tween_property(b_mat, "albedo_color:a", 0.0, 0.8)
-					fade_t.chain().tween_callback(func():
-						if on_finish_callback.is_valid():
-							on_finish_callback.call()
-						if is_instance_valid(nuke_root):
-							nuke_root.queue_free()
-					)
-
-		tick_timer.timeout.connect(tick_func)
+		# If caller provided burn callbacks, service them
+		var ticks = 6
+		for i in range(ticks):
+			var tick_t = get_tree().create_timer((i + 1) * 0.5)
+			tick_t.timeout.connect(func():
+				if on_burn_tick_callback.is_valid():
+					on_burn_tick_callback.call()
+				spawn_puff(target_pos + Vector3(randf_range(-6, 6), 0.5, randf_range(-6, 6)), Color(1.0, 0.4, 0.1), 4, 1.5)
+				if i == ticks - 1 and on_finish_callback.is_valid():
+					on_finish_callback.call()
+			)
 	)
-
-	register_effect(nuke_root, 8.0)
-	return nuke_root
+	return telegraph

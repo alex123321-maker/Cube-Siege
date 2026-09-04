@@ -1,0 +1,6 @@
+[gd_scene format=3 uid="uid://bshowcasevfx"]
+
+[ext_resource type="Script" path="res://scripts/capture_vfx_showcase.gd" id="1_showcase"]
+
+[node name="ShowcaseVFX" type="Node"]
+script = ExtResource("1_showcase")

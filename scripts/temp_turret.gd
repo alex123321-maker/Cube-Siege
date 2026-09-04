@@ -69,5 +69,5 @@ func explode_and_free() -> void:
 		vfx.spawn_puff(global_position + Vector3(0, 0.6, 0), Color(0.2, 0.2, 0.2), 16, 3.5)
 
 	var tween: Tween = create_tween()
-	tween.tween_property(self, "scale", Vector3.ZERO, 0.2)
+	tween.tween_property(self, "scale", Vector3(0.01, 0.01, 0.01), 0.2)
 	tween.chain().tween_callback(queue_free)

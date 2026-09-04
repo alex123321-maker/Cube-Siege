@@ -21,7 +21,141 @@ Each character includes 6 complete animations:
 import json
 import math
 import os
+import re
 import uuid
+import base64
+from PIL import Image, ImageDraw
+
+
+def generate_model_texture(model_name: str, output_path: str) -> str:
+    img = Image.new("RGBA", (64, 64), (0, 0, 0, 255))
+    draw = ImageDraw.Draw(img)
+
+    for col_idx, col_data in PALETTE_COLORS.items():
+        tx = (col_idx % 8) * 8
+        ty = (col_idx // 8) * 8
+
+        # Base fill
+        # Parse Godot Color(r, g, b, a)
+        albedo_str = col_data["albedo"]
+        m = re.findall(r"[0-9\.]+", albedo_str)
+        if len(m) >= 3:
+            br = int(float(m[0]) * 255)
+            bg = int(float(m[1]) * 255)
+            bb = int(float(m[2]) * 255)
+        else:
+            br, bg, bb = 128, 128, 128
+
+        draw.rectangle([tx, ty, tx + 7, ty + 7], fill=(br, bg, bb, 255))
+
+        # Specialized voxel micro-surface texturing
+        if col_idx in [8, 7]: # Steel plate & iron
+            # Bevel highlights
+            draw.line([tx, ty, tx + 6, ty], fill=(min(255, br + 50), min(255, bg + 50), min(255, bb + 50), 255))
+            draw.line([tx, ty, tx, ty + 6], fill=(min(255, br + 50), min(255, bg + 50), min(255, bb + 50), 255))
+            # Bevel shadows
+            draw.line([tx + 1, ty + 7, tx + 7, ty + 7], fill=(max(0, br - 60), max(0, bg - 60), max(0, bb - 60), 255))
+            draw.line([tx + 7, ty + 1, tx + 7, ty + 7], fill=(max(0, br - 60), max(0, bg - 60), max(0, bb - 60), 255))
+            # Plate seam
+            draw.line([tx + 1, ty + 3, tx + 6, ty + 3], fill=(max(0, br - 40), max(0, bg - 40), max(0, bb - 40), 255))
+            # 4 Corner rivets
+            for rx, ry in [(tx + 1, ty + 1), (tx + 6, ty + 1), (tx + 1, ty + 6), (tx + 6, ty + 6)]:
+                draw.point((rx, ry), fill=(max(0, br - 90), max(0, bg - 90), max(0, bb - 90), 255))
+            draw.point((tx + 1, ty + 1), fill=(255, 255, 255, 255))
+
+        elif col_idx == 9: # Polished blade steel
+            draw.line([tx, ty, tx, ty + 7], fill=(255, 255, 255, 255))
+            draw.line([tx + 7, ty, tx + 7, ty + 7], fill=(255, 255, 255, 255))
+            draw.line([tx + 3, ty, tx + 3, ty + 7], fill=(160, 175, 195, 255))
+            draw.line([tx + 4, ty, tx + 4, ty + 7], fill=(190, 205, 225, 255))
+
+        elif col_idx == 3: # Gold trim
+            draw.line([tx, ty, tx + 6, ty], fill=(255, 240, 140, 255))
+            draw.line([tx, ty, tx, ty + 6], fill=(255, 240, 140, 255))
+            draw.line([tx + 1, ty + 7, tx + 7, ty + 7], fill=(150, 100, 20, 255))
+            draw.line([tx + 7, ty + 1, tx + 7, ty + 7], fill=(150, 100, 20, 255))
+            draw.polygon([(tx + 3, ty + 2), (tx + 5, ty + 3), (tx + 3, ty + 5), (tx + 2, ty + 3)], fill=(255, 250, 180, 255))
+            draw.point((tx + 3, ty + 3), fill=(255, 255, 220, 255))
+
+        elif col_idx in [4, 12, 17, 21]: # Leathers
+            # Edge stitches
+            for sy in [ty + 1, ty + 3, ty + 5, ty + 7]:
+                draw.point((tx, sy), fill=(min(255, br + 80), min(255, bg + 70), min(255, bb + 40), 255))
+                draw.point((tx + 7, sy), fill=(min(255, br + 80), min(255, bg + 70), min(255, bb + 40), 255))
+            draw.point((tx + 2, ty + 2), fill=(min(255, br + 30), bg, bb, 255))
+            draw.point((tx + 5, ty + 5), fill=(max(0, br - 30), bg, bb, 255))
+
+        elif col_idx in [0, 1, 5, 10, 11, 20]: # Woven fabrics
+            for i in range(8):
+                draw.point((tx + i, ty + ((i * 3) % 8)), fill=(min(255, br + 35), min(255, bg + 35), min(255, bb + 35), 255))
+                draw.point((tx + i, ty + ((i * 3 + 4) % 8)), fill=(max(0, br - 35), max(0, bg - 35), max(0, bb - 35), 255))
+
+        elif col_idx in [6, 14, 16, 35]: # Woods
+            draw.line([tx, ty + 2, tx + 7, ty + 2], fill=(max(0, br - 35), max(0, bg - 30), max(0, bb - 25), 255))
+            draw.line([tx, ty + 5, tx + 7, ty + 5], fill=(max(0, br - 35), max(0, bg - 30), max(0, bb - 25), 255))
+            draw.line([tx + 2, ty, tx + 2, ty + 7], fill=(min(255, br + 50), min(255, bg + 45), min(255, bb + 35), 255))
+
+        elif col_idx == 13: # Feather
+            draw.line([tx + 3, ty, tx + 3, ty + 7], fill=(170, 185, 200, 255))
+            for i in range(8):
+                draw.point((tx + 1, ty + i), fill=(215, 225, 235, 255))
+                draw.point((tx + 5, ty + i), fill=(215, 225, 235, 255))
+
+        elif col_idx == 23: # Goggle lens cyan
+            draw.rectangle([tx, ty, tx + 7, ty + 7], outline=(40, 45, 50, 255))
+            draw.line([tx + 2, ty + 5, tx + 5, ty + 2], fill=(255, 255, 255, 255))
+            draw.point((tx + 3, ty + 3), fill=(220, 255, 255, 255))
+
+        elif col_idx == 22: # Brass
+            draw.line([tx, ty, tx + 6, ty], fill=(250, 215, 120, 255))
+            draw.line([tx, ty, tx, ty + 6], fill=(250, 215, 120, 255))
+            draw.line([tx + 1, ty + 7, tx + 7, ty + 7], fill=(130, 95, 30, 255))
+            draw.line([tx + 7, ty + 1, tx + 7, ty + 7], fill=(130, 95, 30, 255))
+            draw.rectangle([tx + 3, ty + 2, tx + 4, ty + 5], fill=(170, 120, 40, 255))
+
+        elif col_idx in [25, 26]: # Hazard stripes
+            for px in range(8):
+                for py in range(8):
+                    if ((px + py) // 2) % 2 == 0:
+                        draw.point((tx + px, ty + py), fill=(245, 200, 40, 255))
+                    else:
+                        draw.point((tx + px, ty + py), fill=(35, 35, 40, 255))
+
+        elif col_idx == 30: # Straw burlap
+            for i in range(8):
+                draw.line([tx + i, ty + ((i * 2) % 8), tx + i, ty + ((i * 2 + 3) % 8)], fill=(250, 235, 160, 255))
+                draw.point((tx + i, ty + ((i * 3) % 8)), fill=(160, 135, 70, 255))
+
+        elif col_idx in [31, 32]: # Target
+            draw.rectangle([tx, ty, tx + 7, ty + 7], fill=(240, 240, 240, 255))
+            draw.ellipse([tx + 1, ty + 1, tx + 6, ty + 6], fill=(225, 45, 35, 255))
+            draw.ellipse([tx + 2, ty + 2, tx + 5, ty + 5], fill=(245, 245, 245, 255))
+            draw.rectangle([tx + 3, ty + 3, tx + 4, ty + 4], fill=(235, 30, 20, 255))
+
+        elif col_idx in [24, 33]: # Turret steel & dark cast iron
+            draw.line([tx, ty, tx + 6, ty], fill=(150, 160, 170, 255))
+            draw.line([tx, ty, tx, ty + 6], fill=(150, 160, 170, 255))
+            draw.line([tx + 1, ty + 7, tx + 7, ty + 7], fill=(65, 70, 75, 255))
+            draw.line([tx + 7, ty + 1, tx + 7, ty + 7], fill=(65, 70, 75, 255))
+            for bx, by in [(tx + 1, ty + 1), (tx + 6, ty + 1), (tx + 1, ty + 6), (tx + 6, ty + 6)]:
+                draw.point((bx, by), fill=(40, 45, 50, 255))
+                draw.point((bx, by + 1 if by == ty + 1 else by - 1), fill=(180, 190, 200, 255))
+
+        elif col_idx in [27, 28]: # Indicator LEDs
+            draw.ellipse([tx + 1, ty + 1, tx + 6, ty + 6], fill=(br, bg, bb, 255))
+            draw.point((tx + 3, ty + 3), fill=(255, 255, 255, 255))
+            draw.point((tx + 4, ty + 3), fill=(255, 255, 255, 255))
+
+        else:
+            # Subtle edge shading
+            draw.line([tx, ty, tx + 6, ty], fill=(min(255, int(br * 1.2)), min(255, int(bg * 1.2)), min(255, int(bb * 1.2)), 255))
+            draw.line([tx + 1, ty + 7, tx + 7, ty + 7], fill=(int(br * 0.8), int(bg * 0.8), int(bb * 0.8), 255))
+
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    img.save(output_path, "PNG")
+
+    with open(output_path, "rb") as f:
+        return base64.b64encode(f.read()).decode("utf-8")
 
 SCALE = 0.055  # 32 units * 0.055 = ~1.76m height in Godot
 
@@ -75,6 +209,8 @@ def uid():
     return str(uuid.uuid4())
 
 def make_cube(name, p_from, p_to, origin, color=0, rot=[0, 0, 0]):
+    tx = (color % 8) * 8
+    ty = (color // 8) * 8
     return {
         "name": name,
         "uuid": uid(),
@@ -84,12 +220,12 @@ def make_cube(name, p_from, p_to, origin, color=0, rot=[0, 0, 0]):
         "rotation": rot,
         "color": color,
         "faces": {
-            "north": {"uv": [0, 0, 8, 8]},
-            "south": {"uv": [0, 0, 8, 8]},
-            "east": {"uv": [0, 0, 8, 8]},
-            "west": {"uv": [0, 0, 8, 8]},
-            "up": {"uv": [0, 0, 8, 8]},
-            "down": {"uv": [0, 0, 8, 8]}
+            "north": {"uv": [tx, ty, tx + 8, ty + 8], "texture": 0},
+            "south": {"uv": [tx, ty, tx + 8, ty + 8], "texture": 0},
+            "east": {"uv": [tx, ty, tx + 8, ty + 8], "texture": 0},
+            "west": {"uv": [tx, ty, tx + 8, ty + 8], "texture": 0},
+            "up": {"uv": [tx, ty, tx + 8, ty + 8], "texture": 0},
+            "down": {"uv": [tx, ty, tx + 8, ty + 8], "texture": 0}
         }
     }
 
@@ -1103,17 +1239,31 @@ def generate_tscn(bbmodel, output_path, root_node_name="ModelRoot"):
     lines.append(f'[gd_scene load_steps=120 format=3 {uid_attr}]')
     lines.append("")
 
-    # 1. Materials SubResources
+    # 1. Texture ExtResource
+    model_name = bbmodel["name"]
+    tex_path = f"res://assets/models/textures/{model_name}.png"
+    lines.append(f'[ext_resource type="Texture2D" path="{tex_path}" id="1_tex"]')
+    lines.append("")
+
+    # 2. Materials SubResources
     mat_ids = {}
     for col_idx, col_data in PALETTE_COLORS.items():
         res_id = f"StandardMaterial3D_col_{col_idx}"
         mat_ids[col_idx] = res_id
+        tx = (col_idx % 8) * 8
+        ty = (col_idx // 8) * 8
+        uv_x = round(tx / 64.0, 5)
+        uv_y = round(ty / 64.0, 5)
         lines.append(f'[sub_resource type="StandardMaterial3D" id="{res_id}"]')
-        lines.append(f'albedo_color = {col_data["albedo"]}')
+        lines.append('albedo_texture = ExtResource("1_tex")')
+        lines.append('texture_filter = 0')
+        lines.append('uv1_scale = Vector3(0.125, 0.125, 1)')
+        lines.append(f'uv1_offset = Vector3({uv_x}, {uv_y}, 0)')
         lines.append(f'metallic = {col_data["metallic"]}')
         lines.append(f'roughness = {col_data["roughness"]}')
         if "emission" in col_data:
             lines.append('emission_enabled = true')
+            lines.append('emission_texture = ExtResource("1_tex")')
             lines.append(f'emission = {col_data["emission"]}')
             lines.append(f'emission_energy_multiplier = {col_data.get("emission_energy", 1.0)}')
         lines.append("")
@@ -1311,6 +1461,27 @@ def main():
     ]
 
     for bb, bb_path, tscn_path, root_name in models:
+        m_name = bb["name"]
+        tex_path = f"assets/models/textures/{m_name}.png"
+        b64_data = generate_model_texture(m_name, tex_path)
+        print(f"Generated texture atlas: {tex_path}")
+
+        bb["textures"] = [{
+            "name": m_name,
+            "folder": "textures",
+            "id": "0",
+            "particle": False,
+            "render_mode": "default",
+            "visible": True,
+            "mode": "bitmap",
+            "saved": True,
+            "uuid": uid(),
+            "source": f"data:image/png;base64,{b64_data}",
+            "width": 64,
+            "height": 64,
+            "relative_path": f"../textures/{m_name}.png"
+        }]
+
         os.makedirs(os.path.dirname(bb_path), exist_ok=True)
         with open(bb_path, "w", encoding="utf-8") as f:
             json.dump(bb, f, indent=2)

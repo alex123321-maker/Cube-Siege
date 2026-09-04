@@ -1,281 +1,392 @@
-[gd_scene load_steps=120 format=3 uid="uid://cs_hero_warrior_db0e882c"]
+[gd_scene load_steps=120 format=3 uid="uid://cs_hero_warrior_442b6d68"]
+
+[ext_resource type="Texture2D" path="res://assets/models/textures/hero_warrior.png" id="1_tex"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_0"]
-albedo_color = Color(0.22, 0.42, 0.76, 1)
+albedo_texture = ExtResource("1_tex")
+texture_filter = 0
+uv1_scale = Vector3(0.125, 0.125, 1)
+uv1_offset = Vector3(0.0, 0.0, 0)
 metallic = 0.05
 roughness = 0.8
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_1"]
-albedo_color = Color(0.14, 0.18, 0.28, 1)
+albedo_texture = ExtResource("1_tex")
+texture_filter = 0
+uv1_scale = Vector3(0.125, 0.125, 1)
+uv1_offset = Vector3(0.125, 0.0, 0)
 metallic = 0.0
 roughness = 0.9
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_2"]
-albedo_color = Color(0.92, 0.74, 0.60, 1)
+albedo_texture = ExtResource("1_tex")
+texture_filter = 0
+uv1_scale = Vector3(0.125, 0.125, 1)
+uv1_offset = Vector3(0.25, 0.0, 0)
 metallic = 0.0
 roughness = 0.85
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_3"]
-albedo_color = Color(0.95, 0.78, 0.22, 1)
+albedo_texture = ExtResource("1_tex")
+texture_filter = 0
+uv1_scale = Vector3(0.125, 0.125, 1)
+uv1_offset = Vector3(0.375, 0.0, 0)
 metallic = 0.85
 roughness = 0.25
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_4"]
-albedo_color = Color(0.38, 0.24, 0.16, 1)
+albedo_texture = ExtResource("1_tex")
+texture_filter = 0
+uv1_scale = Vector3(0.125, 0.125, 1)
+uv1_offset = Vector3(0.5, 0.0, 0)
 metallic = 0.05
 roughness = 0.85
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_5"]
-albedo_color = Color(0.85, 0.16, 0.20, 1)
+albedo_texture = ExtResource("1_tex")
+texture_filter = 0
+uv1_scale = Vector3(0.125, 0.125, 1)
+uv1_offset = Vector3(0.625, 0.0, 0)
 metallic = 0.1
 roughness = 0.55
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_6"]
-albedo_color = Color(0.28, 0.18, 0.12, 1)
+albedo_texture = ExtResource("1_tex")
+texture_filter = 0
+uv1_scale = Vector3(0.125, 0.125, 1)
+uv1_offset = Vector3(0.75, 0.0, 0)
 metallic = 0.0
 roughness = 0.9
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_7"]
-albedo_color = Color(0.52, 0.55, 0.60, 1)
+albedo_texture = ExtResource("1_tex")
+texture_filter = 0
+uv1_scale = Vector3(0.125, 0.125, 1)
+uv1_offset = Vector3(0.875, 0.0, 0)
 metallic = 0.65
 roughness = 0.45
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_8"]
-albedo_color = Color(0.75, 0.80, 0.88, 1)
+albedo_texture = ExtResource("1_tex")
+texture_filter = 0
+uv1_scale = Vector3(0.125, 0.125, 1)
+uv1_offset = Vector3(0.0, 0.125, 0)
 metallic = 0.82
 roughness = 0.25
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_9"]
-albedo_color = Color(0.90, 0.93, 0.97, 1)
+albedo_texture = ExtResource("1_tex")
+texture_filter = 0
+uv1_scale = Vector3(0.125, 0.125, 1)
+uv1_offset = Vector3(0.125, 0.125, 0)
 metallic = 0.92
 roughness = 0.18
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_10"]
-albedo_color = Color(0.18, 0.45, 0.30, 1)
+albedo_texture = ExtResource("1_tex")
+texture_filter = 0
+uv1_scale = Vector3(0.125, 0.125, 1)
+uv1_offset = Vector3(0.25, 0.125, 0)
 metallic = 0.05
 roughness = 0.8
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_11"]
-albedo_color = Color(0.25, 0.58, 0.40, 1)
+albedo_texture = ExtResource("1_tex")
+texture_filter = 0
+uv1_scale = Vector3(0.125, 0.125, 1)
+uv1_offset = Vector3(0.375, 0.125, 0)
 metallic = 0.05
 roughness = 0.8
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_12"]
-albedo_color = Color(0.48, 0.32, 0.20, 1)
+albedo_texture = ExtResource("1_tex")
+texture_filter = 0
+uv1_scale = Vector3(0.125, 0.125, 1)
+uv1_offset = Vector3(0.5, 0.125, 0)
 metallic = 0.05
 roughness = 0.85
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_13"]
-albedo_color = Color(0.94, 0.96, 0.98, 1)
+albedo_texture = ExtResource("1_tex")
+texture_filter = 0
+uv1_scale = Vector3(0.125, 0.125, 1)
+uv1_offset = Vector3(0.625, 0.125, 0)
 metallic = 0.0
 roughness = 0.7
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_14"]
-albedo_color = Color(0.35, 0.22, 0.14, 1)
+albedo_texture = ExtResource("1_tex")
+texture_filter = 0
+uv1_scale = Vector3(0.125, 0.125, 1)
+uv1_offset = Vector3(0.75, 0.125, 0)
 metallic = 0.05
 roughness = 0.75
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_15"]
-albedo_color = Color(0.85, 0.95, 0.9, 1)
+albedo_texture = ExtResource("1_tex")
+texture_filter = 0
+uv1_scale = Vector3(0.125, 0.125, 1)
+uv1_offset = Vector3(0.875, 0.125, 0)
 metallic = 0.2
 roughness = 0.3
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_16"]
-albedo_color = Color(0.78, 0.65, 0.45, 1)
+albedo_texture = ExtResource("1_tex")
+texture_filter = 0
+uv1_scale = Vector3(0.125, 0.125, 1)
+uv1_offset = Vector3(0.0, 0.25, 0)
 metallic = 0.0
 roughness = 0.8
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_17"]
-albedo_color = Color(0.32, 0.20, 0.14, 1)
+albedo_texture = ExtResource("1_tex")
+texture_filter = 0
+uv1_scale = Vector3(0.125, 0.125, 1)
+uv1_offset = Vector3(0.125, 0.25, 0)
 metallic = 0.05
 roughness = 0.85
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_18"]
-albedo_color = Color(0.3, 1.0, 0.6, 1)
+albedo_texture = ExtResource("1_tex")
+texture_filter = 0
+uv1_scale = Vector3(0.125, 0.125, 1)
+uv1_offset = Vector3(0.25, 0.25, 0)
 metallic = 0.1
 roughness = 0.2
 emission_enabled = true
+emission_texture = ExtResource("1_tex")
 emission = Color(0.3, 1.0, 0.6, 1)
 emission_energy_multiplier = 2.0
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_20"]
-albedo_color = Color(0.16, 0.28, 0.36, 1)
+albedo_texture = ExtResource("1_tex")
+texture_filter = 0
+uv1_scale = Vector3(0.125, 0.125, 1)
+uv1_offset = Vector3(0.5, 0.25, 0)
 metallic = 0.05
 roughness = 0.85
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_21"]
-albedo_color = Color(0.68, 0.46, 0.30, 1)
+albedo_texture = ExtResource("1_tex")
+texture_filter = 0
+uv1_scale = Vector3(0.125, 0.125, 1)
+uv1_offset = Vector3(0.625, 0.25, 0)
 metallic = 0.05
 roughness = 0.8
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_22"]
-albedo_color = Color(0.86, 0.64, 0.25, 1)
+albedo_texture = ExtResource("1_tex")
+texture_filter = 0
+uv1_scale = Vector3(0.125, 0.125, 1)
+uv1_offset = Vector3(0.75, 0.25, 0)
 metallic = 0.85
 roughness = 0.28
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_23"]
-albedo_color = Color(0.15, 0.85, 0.92, 1)
+albedo_texture = ExtResource("1_tex")
+texture_filter = 0
+uv1_scale = Vector3(0.125, 0.125, 1)
+uv1_offset = Vector3(0.875, 0.25, 0)
 metallic = 0.3
 roughness = 0.1
 emission_enabled = true
+emission_texture = ExtResource("1_tex")
 emission = Color(0.15, 0.85, 0.92, 1)
 emission_energy_multiplier = 2.5
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_24"]
-albedo_color = Color(0.24, 0.26, 0.28, 1)
+albedo_texture = ExtResource("1_tex")
+texture_filter = 0
+uv1_scale = Vector3(0.125, 0.125, 1)
+uv1_offset = Vector3(0.0, 0.375, 0)
 metallic = 0.75
 roughness = 0.45
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_25"]
-albedo_color = Color(0.95, 0.48, 0.12, 1)
+albedo_texture = ExtResource("1_tex")
+texture_filter = 0
+uv1_scale = Vector3(0.125, 0.125, 1)
+uv1_offset = Vector3(0.125, 0.375, 0)
 metallic = 0.1
 roughness = 0.6
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_26"]
-albedo_color = Color(0.96, 0.78, 0.15, 1)
+albedo_texture = ExtResource("1_tex")
+texture_filter = 0
+uv1_scale = Vector3(0.125, 0.125, 1)
+uv1_offset = Vector3(0.25, 0.375, 0)
 metallic = 0.1
 roughness = 0.5
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_27"]
-albedo_color = Color(1.0, 0.18, 0.15, 1)
+albedo_texture = ExtResource("1_tex")
+texture_filter = 0
+uv1_scale = Vector3(0.125, 0.125, 1)
+uv1_offset = Vector3(0.375, 0.375, 0)
 metallic = 0.1
 roughness = 0.3
 emission_enabled = true
+emission_texture = ExtResource("1_tex")
 emission = Color(1.0, 0.18, 0.15, 1)
 emission_energy_multiplier = 3.0
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_28"]
-albedo_color = Color(0.2, 0.95, 0.3, 1)
+albedo_texture = ExtResource("1_tex")
+texture_filter = 0
+uv1_scale = Vector3(0.125, 0.125, 1)
+uv1_offset = Vector3(0.5, 0.375, 0)
 metallic = 0.1
 roughness = 0.3
 emission_enabled = true
+emission_texture = ExtResource("1_tex")
 emission = Color(0.2, 0.95, 0.3, 1)
 emission_energy_multiplier = 3.0
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_29"]
-albedo_color = Color(0.82, 0.45, 0.32, 1)
+albedo_texture = ExtResource("1_tex")
+texture_filter = 0
+uv1_scale = Vector3(0.125, 0.125, 1)
+uv1_offset = Vector3(0.625, 0.375, 0)
 metallic = 0.85
 roughness = 0.35
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_30"]
-albedo_color = Color(0.86, 0.78, 0.46, 1)
+albedo_texture = ExtResource("1_tex")
+texture_filter = 0
+uv1_scale = Vector3(0.125, 0.125, 1)
+uv1_offset = Vector3(0.75, 0.375, 0)
 metallic = 0.0
 roughness = 0.95
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_31"]
-albedo_color = Color(0.9, 0.2, 0.15, 1)
+albedo_texture = ExtResource("1_tex")
+texture_filter = 0
+uv1_scale = Vector3(0.125, 0.125, 1)
+uv1_offset = Vector3(0.875, 0.375, 0)
 metallic = 0.05
 roughness = 0.8
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_32"]
-albedo_color = Color(0.95, 0.95, 0.95, 1)
+albedo_texture = ExtResource("1_tex")
+texture_filter = 0
+uv1_scale = Vector3(0.125, 0.125, 1)
+uv1_offset = Vector3(0.0, 0.5, 0)
 metallic = 0.0
 roughness = 0.8
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_33"]
-albedo_color = Color(0.42, 0.46, 0.50, 1)
+albedo_texture = ExtResource("1_tex")
+texture_filter = 0
+uv1_scale = Vector3(0.125, 0.125, 1)
+uv1_offset = Vector3(0.125, 0.5, 0)
 metallic = 0.8
 roughness = 0.3
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_34"]
-albedo_color = Color(0.85, 0.52, 0.22, 1)
+albedo_texture = ExtResource("1_tex")
+texture_filter = 0
+uv1_scale = Vector3(0.125, 0.125, 1)
+uv1_offset = Vector3(0.25, 0.5, 0)
 metallic = 0.82
 roughness = 0.32
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_col_35"]
-albedo_color = Color(0.45, 0.30, 0.18, 1)
+albedo_texture = ExtResource("1_tex")
+texture_filter = 0
+uv1_scale = Vector3(0.125, 0.125, 1)
+uv1_offset = Vector3(0.375, 0.5, 0)
 metallic = 0.0
 roughness = 0.9
 
-[sub_resource type="BoxMesh" id="BoxMesh_head_9c44c1"]
+[sub_resource type="BoxMesh" id="BoxMesh_head_0f55bd"]
 material = SubResource("StandardMaterial3D_col_2")
 size = Vector3(0.44, 0.44, 0.44)
 
-[sub_resource type="BoxMesh" id="BoxMesh_helmet_crest_5f41c4"]
+[sub_resource type="BoxMesh" id="BoxMesh_helmet_crest_278266"]
 material = SubResource("StandardMaterial3D_col_5")
 size = Vector3(0.11, 0.22, 0.495)
 
-[sub_resource type="BoxMesh" id="BoxMesh_helmet_visor_c7eaac"]
+[sub_resource type="BoxMesh" id="BoxMesh_helmet_visor_36013b"]
 material = SubResource("StandardMaterial3D_col_7")
 size = Vector3(0.473, 0.165, 0.066)
 
-[sub_resource type="BoxMesh" id="BoxMesh_helmet_top_cdba13"]
+[sub_resource type="BoxMesh" id="BoxMesh_helmet_top_493a30"]
 material = SubResource("StandardMaterial3D_col_8")
 size = Vector3(0.462, 0.0825, 0.462)
 
-[sub_resource type="BoxMesh" id="BoxMesh_torso_5e2a7d"]
+[sub_resource type="BoxMesh" id="BoxMesh_torso_0aa1be"]
 material = SubResource("StandardMaterial3D_col_0")
 size = Vector3(0.44, 0.66, 0.22)
 
-[sub_resource type="BoxMesh" id="BoxMesh_breastplate_d7936f"]
+[sub_resource type="BoxMesh" id="BoxMesh_breastplate_3f4c19"]
 material = SubResource("StandardMaterial3D_col_8")
 size = Vector3(0.495, 0.495, 0.297)
 
-[sub_resource type="BoxMesh" id="BoxMesh_belt_d9bd64"]
+[sub_resource type="BoxMesh" id="BoxMesh_belt_4f41a3"]
 material = SubResource("StandardMaterial3D_col_4")
 size = Vector3(0.506, 0.121, 0.286)
 
-[sub_resource type="BoxMesh" id="BoxMesh_belt_buckle_745093"]
+[sub_resource type="BoxMesh" id="BoxMesh_belt_buckle_67bb4e"]
 material = SubResource("StandardMaterial3D_col_3")
 size = Vector3(0.165, 0.121, 0.022)
 
-[sub_resource type="BoxMesh" id="BoxMesh_right_arm_2f8524"]
+[sub_resource type="BoxMesh" id="BoxMesh_right_arm_55493d"]
 material = SubResource("StandardMaterial3D_col_0")
 size = Vector3(0.22, 0.66, 0.22)
 
-[sub_resource type="BoxMesh" id="BoxMesh_r_pauldron_f598c2"]
+[sub_resource type="BoxMesh" id="BoxMesh_r_pauldron_ceaa9f"]
 material = SubResource("StandardMaterial3D_col_3")
 size = Vector3(0.242, 0.22, 0.286)
 
-[sub_resource type="BoxMesh" id="BoxMesh_sword_handle_802e4c"]
+[sub_resource type="BoxMesh" id="BoxMesh_sword_handle_a06dc4"]
 material = SubResource("StandardMaterial3D_col_4")
 size = Vector3(0.055, 0.11, 0.1925)
 
-[sub_resource type="BoxMesh" id="BoxMesh_sword_pommel_fe1aa4"]
+[sub_resource type="BoxMesh" id="BoxMesh_sword_pommel_1c4afb"]
 material = SubResource("StandardMaterial3D_col_3")
 size = Vector3(0.088, 0.143, 0.055)
 
-[sub_resource type="BoxMesh" id="BoxMesh_sword_guard_ca1e65"]
+[sub_resource type="BoxMesh" id="BoxMesh_sword_guard_b55f9d"]
 material = SubResource("StandardMaterial3D_col_3")
 size = Vector3(0.308, 0.165, 0.055)
 
-[sub_resource type="BoxMesh" id="BoxMesh_sword_blade_29c0a3"]
+[sub_resource type="BoxMesh" id="BoxMesh_sword_blade_1b81d0"]
 material = SubResource("StandardMaterial3D_col_9")
 size = Vector3(0.044, 0.077, 0.7975)
 
-[sub_resource type="BoxMesh" id="BoxMesh_left_arm_37320b"]
+[sub_resource type="BoxMesh" id="BoxMesh_left_arm_6c6061"]
 material = SubResource("StandardMaterial3D_col_0")
 size = Vector3(0.22, 0.66, 0.22)
 
-[sub_resource type="BoxMesh" id="BoxMesh_l_pauldron_b17095"]
+[sub_resource type="BoxMesh" id="BoxMesh_l_pauldron_c4ee5d"]
 material = SubResource("StandardMaterial3D_col_3")
 size = Vector3(0.242, 0.22, 0.286)
 
-[sub_resource type="BoxMesh" id="BoxMesh_shield_d1c5db"]
+[sub_resource type="BoxMesh" id="BoxMesh_shield_ebc66f"]
 material = SubResource("StandardMaterial3D_col_5")
 size = Vector3(0.055, 0.715, 0.495)
 
-[sub_resource type="BoxMesh" id="BoxMesh_shield_rim_784769"]
+[sub_resource type="BoxMesh" id="BoxMesh_shield_rim_adc416"]
 material = SubResource("StandardMaterial3D_col_3")
 size = Vector3(0.055, 0.792, 0.528)
 
-[sub_resource type="BoxMesh" id="BoxMesh_shield_boss_f502a0"]
+[sub_resource type="BoxMesh" id="BoxMesh_shield_boss_d53ff8"]
 material = SubResource("StandardMaterial3D_col_8")
 size = Vector3(0.0385, 0.22, 0.165)
 
-[sub_resource type="BoxMesh" id="BoxMesh_right_leg_35319e"]
+[sub_resource type="BoxMesh" id="BoxMesh_right_leg_9145e5"]
 material = SubResource("StandardMaterial3D_col_7")
 size = Vector3(0.22, 0.66, 0.22)
 
-[sub_resource type="BoxMesh" id="BoxMesh_r_greave_c49632"]
+[sub_resource type="BoxMesh" id="BoxMesh_r_greave_b471e2"]
 material = SubResource("StandardMaterial3D_col_8")
 size = Vector3(0.242, 0.385, 0.264)
 
-[sub_resource type="BoxMesh" id="BoxMesh_left_leg_b346a4"]
+[sub_resource type="BoxMesh" id="BoxMesh_left_leg_decec1"]
 material = SubResource("StandardMaterial3D_col_7")
 size = Vector3(0.22, 0.66, 0.22)
 
-[sub_resource type="BoxMesh" id="BoxMesh_l_greave_80e288"]
+[sub_resource type="BoxMesh" id="BoxMesh_l_greave_457513"]
 material = SubResource("StandardMaterial3D_col_8")
 size = Vector3(0.242, 0.385, 0.264)
 
@@ -730,113 +841,113 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.66, 0.0)
 
 [node name="torso" type="MeshInstance3D" parent="root/torso"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.33, 0.0)
-mesh = SubResource("BoxMesh_torso_5e2a7d")
+mesh = SubResource("BoxMesh_torso_0aa1be")
 
 [node name="breastplate" type="MeshInstance3D" parent="root/torso"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.385, 0.0)
-mesh = SubResource("BoxMesh_breastplate_d7936f")
+mesh = SubResource("BoxMesh_breastplate_3f4c19")
 
 [node name="belt" type="MeshInstance3D" parent="root/torso"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.0605, 0.0)
-mesh = SubResource("BoxMesh_belt_d9bd64")
+mesh = SubResource("BoxMesh_belt_4f41a3")
 
 [node name="belt_buckle" type="MeshInstance3D" parent="root/torso"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.0605, -0.143)
-mesh = SubResource("BoxMesh_belt_buckle_745093")
+mesh = SubResource("BoxMesh_belt_buckle_67bb4e")
 
 [node name="head" type="Node3D" parent="root/torso"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.66, 0.0)
 
 [node name="head" type="MeshInstance3D" parent="root/torso/head"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.22, 0.0)
-mesh = SubResource("BoxMesh_head_9c44c1")
+mesh = SubResource("BoxMesh_head_0f55bd")
 
 [node name="helmet_crest" type="MeshInstance3D" parent="root/torso/head"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.55, 0.0)
-mesh = SubResource("BoxMesh_helmet_crest_5f41c4")
+mesh = SubResource("BoxMesh_helmet_crest_278266")
 
 [node name="helmet_visor" type="MeshInstance3D" parent="root/torso/head"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.1925, -0.231)
-mesh = SubResource("BoxMesh_helmet_visor_c7eaac")
+mesh = SubResource("BoxMesh_helmet_visor_36013b")
 
 [node name="helmet_top" type="MeshInstance3D" parent="root/torso/head"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.42625, 0.0)
-mesh = SubResource("BoxMesh_helmet_top_cdba13")
+mesh = SubResource("BoxMesh_helmet_top_493a30")
 
 [node name="right_arm" type="Node3D" parent="root/torso"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.33, 0.55, 0.0)
 
 [node name="right_arm" type="MeshInstance3D" parent="root/torso/right_arm"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.22, 0.0)
-mesh = SubResource("BoxMesh_right_arm_2f8524")
+mesh = SubResource("BoxMesh_right_arm_55493d")
 
 [node name="r_pauldron" type="MeshInstance3D" parent="root/torso/right_arm"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.022, 0.055, 0.0)
-mesh = SubResource("BoxMesh_r_pauldron_f598c2")
+mesh = SubResource("BoxMesh_r_pauldron_ceaa9f")
 
 [node name="sword" type="Node3D" parent="root/torso/right_arm"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.5225, 0.0)
 
 [node name="sword_handle" type="MeshInstance3D" parent="root/torso/right_arm/sword"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.0, 0.01375)
-mesh = SubResource("BoxMesh_sword_handle_802e4c")
+mesh = SubResource("BoxMesh_sword_handle_a06dc4")
 
 [node name="sword_pommel" type="MeshInstance3D" parent="root/torso/right_arm/sword"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.0, 0.1375)
-mesh = SubResource("BoxMesh_sword_pommel_fe1aa4")
+mesh = SubResource("BoxMesh_sword_pommel_1c4afb")
 
 [node name="sword_guard" type="MeshInstance3D" parent="root/torso/right_arm/sword"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.0, -0.11)
-mesh = SubResource("BoxMesh_sword_guard_ca1e65")
+mesh = SubResource("BoxMesh_sword_guard_b55f9d")
 
 [node name="sword_blade" type="MeshInstance3D" parent="root/torso/right_arm/sword"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, 0.0, -0.53625)
-mesh = SubResource("BoxMesh_sword_blade_29c0a3")
+mesh = SubResource("BoxMesh_sword_blade_1b81d0")
 
 [node name="left_arm" type="Node3D" parent="root/torso"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.33, 0.55, 0.0)
 
 [node name="left_arm" type="MeshInstance3D" parent="root/torso/left_arm"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.22, 0.0)
-mesh = SubResource("BoxMesh_left_arm_37320b")
+mesh = SubResource("BoxMesh_left_arm_6c6061")
 
 [node name="l_pauldron" type="MeshInstance3D" parent="root/torso/left_arm"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.022, 0.055, 0.0)
-mesh = SubResource("BoxMesh_l_pauldron_b17095")
+mesh = SubResource("BoxMesh_l_pauldron_c4ee5d")
 
 [node name="shield" type="Node3D" parent="root/torso/left_arm"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.33, 0.0)
 
 [node name="shield" type="MeshInstance3D" parent="root/torso/left_arm/shield"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.1265, 0.055, 0.0)
-mesh = SubResource("BoxMesh_shield_d1c5db")
+mesh = SubResource("BoxMesh_shield_ebc66f")
 
 [node name="shield_rim" type="MeshInstance3D" parent="root/torso/left_arm/shield"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.121, 0.055, 0.0)
-mesh = SubResource("BoxMesh_shield_rim_784769")
+mesh = SubResource("BoxMesh_shield_rim_adc416")
 
 [node name="shield_boss" type="MeshInstance3D" parent="root/torso/left_arm/shield"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.17325, 0.055, 0.0)
-mesh = SubResource("BoxMesh_shield_boss_f502a0")
+mesh = SubResource("BoxMesh_shield_boss_d53ff8")
 
 [node name="right_leg" type="Node3D" parent="root"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.11, 0.66, 0.0)
 
 [node name="right_leg" type="MeshInstance3D" parent="root/right_leg"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.33, 0.0)
-mesh = SubResource("BoxMesh_right_leg_35319e")
+mesh = SubResource("BoxMesh_right_leg_9145e5")
 
 [node name="r_greave" type="MeshInstance3D" parent="root/right_leg"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.4125, 0.0)
-mesh = SubResource("BoxMesh_r_greave_c49632")
+mesh = SubResource("BoxMesh_r_greave_b471e2")
 
 [node name="left_leg" type="Node3D" parent="root"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.11, 0.66, 0.0)
 
 [node name="left_leg" type="MeshInstance3D" parent="root/left_leg"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.33, 0.0)
-mesh = SubResource("BoxMesh_left_leg_b346a4")
+mesh = SubResource("BoxMesh_left_leg_decec1")
 
 [node name="l_greave" type="MeshInstance3D" parent="root/left_leg"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.0, -0.4125, 0.0)
-mesh = SubResource("BoxMesh_l_greave_80e288")
+mesh = SubResource("BoxMesh_l_greave_457513")

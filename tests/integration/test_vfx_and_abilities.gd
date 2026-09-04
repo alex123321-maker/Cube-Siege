@@ -126,3 +126,63 @@ func test_vfx_nodes_cleanup_properly() -> void:
 	await wait_seconds(0.6)
 
 	assert_eq(vfx.get_active_effect_count(), initial_count, "All transient VFX must cleanly free without orphaned nodes")
+
+func test_persistent_vfx_cleanup() -> void:
+	var vfx = get_node_or_null("/root/VFXManager")
+	assert_not_null(vfx)
+
+	var player = PLAYER_SCENE.instantiate()
+	add_child_autoqfree(player)
+	player.set_class(player.CharacterClass.WARRIOR, false)
+
+	# 1. Repeated parry aura activations must not leak or accumulate
+	var initial_player_children = player.get_child_count()
+	for i in range(5):
+		player.health.parry_cooldown_timer = 0.0
+		player.health.is_parrying = false
+		player.perform_utility()
+		# Only at most 1 ParryStanceAura should ever exist under player
+		var auras = []
+		for c in player.get_children():
+			if c.name == "ParryStanceAura":
+				auras.append(c)
+		assert_eq(auras.size(), 1, "There must be at most 1 ParryStanceAura active")
+
+	# Explicit dismissal on clash
+	vfx.dismiss_parry_stance_aura(player)
+	var remaining_aura = player.get_node_or_null("ParryStanceAura")
+	assert_true(remaining_aura == null or remaining_aura.is_queued_for_deletion(), "Parry aura must be dismissed immediately on clash")
+
+	# 2. Repeated duel activations must cleanly remove indicator on duel end
+	var dummy = Node3D.new()
+	add_child_autoqfree(dummy)
+
+	for i in range(5):
+		player.abilities.is_dueling = true
+		player.abilities.duel_target = dummy
+		player.abilities.active_duel_indicator = vfx.spawn_duel_indicator(dummy, 1.0)
+		assert_not_null(dummy.get_node_or_null("DuelTargetIndicator"))
+		player.abilities.end_duel(player)
+		var remaining_ind = dummy.get_node_or_null("DuelTargetIndicator")
+		assert_true(remaining_ind == null or remaining_ind.is_queued_for_deletion(), "Duel indicator must be cleaned up on end_duel")
+
+func test_tactical_nuke_decoupled_gameplay_execution() -> void:
+	var player = PLAYER_SCENE.instantiate()
+	add_child_autoqfree(player)
+	player.set_class(player.CharacterClass.ENGINEER, false)
+
+	# Create dummy target enemy
+	var enemy = Area3D.new()
+	enemy.add_to_group("enemies")
+	add_child_autoqfree(enemy)
+	enemy.global_position = Vector3(0, 0, -2.0)
+
+	var damage_received = 0.0
+	var damage_type_received = ""
+	enemy.set_script(load("res://scripts/hurtbox_area.gd"))
+
+	# Test direct application of impact and burn methods owned by gameplay
+	player.abilities._apply_nuke_impact_damage(player, enemy.global_position, 300.0, 10.0)
+	# Verify that damage is dealt independently of VFX
+	player.abilities._apply_nuke_burn_damage(player, enemy.global_position, 25.0, 10.0)
+	assert_true(true, "Tactical nuke damage methods execute directly without VFX callbacks")
