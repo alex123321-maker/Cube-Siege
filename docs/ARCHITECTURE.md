@@ -92,17 +92,36 @@ graph TD
 
 ---
 
-## 3. Схема сохранения и Архитектурный долг (Persistence Tech Debt)
+## 3. Схема сохранения и персистентность (Consolidated Persistence)
 
-> [!WARNING]
-> **CURRENT TECH DEBT: Тройное дублирование владения сохранениями**  
-> В текущей кодовой базе сохранение состояния распределено между тремя независимыми менеджерами, пишущими в три разных JSON-файла:
+Сохранение состояния полностью консолидировано под единым синглтоном `SaveManager` (`scripts/save_manager.gd`) с версионированной схемой данных (`SAVE_VERSION = 2`):
 
-| Менеджер | Файл сохранения | Хранимые данные | Поведение при поражении / победе |
+| Компонент | Роль в системе | Хранимые секции | Фактический файл |
 | :--- | :--- | :--- | :--- |
-| **SaveManager** (`scripts/save_manager.gd`) | `user://cube_siege_save.json` | `meta_xp`, `survived_runs`, `heroes_roster`, `unlocked_classes` | При победе: +500 `meta_xp`, запись героя в ростер выживших.<br>При поражении: герой удаляется из списка `heroes_roster`. |
-| **RosterManager** (`scripts/roster_manager.gd`) | `user://character_roster.json` | `slots` (3 класса), уровень, боевой опыт `battle_xp`, очки талантов (`bloodlust`, `survival`, `agility`, `crafting`) | При победе: начисление `battle_xp`, рост уровня.<br>При поражении: сброс параметров персонажа к 1 уровню (без удаления слота). |
-| **MasteryManager** (`scripts/mastery_manager.gd`) | `user://mastery_save.json` | Общий боевой опыт `total_battle_xp`, доступные очки, прокачанные ветки дерева талантов | Хранит глобальное состояние дерева талантов независимо от сессий. |
+| **SaveManager** (`scripts/save_manager.gd`) | Авторитетный фасад персистентности, валидация JSON, миграция со схемы v1 и сайдкаров. | `meta_xp`, `survived_runs`, `unlocked_classes`, `roster_slots`, `mastery`, `run_history` | `user://cube_siege_save.json` |
+| **RosterManager** (`scripts/roster_manager.gd`) | Доменный фасад управления персонажами, слотами классов и опытом забегов. | Делегирует в `SaveManager.save_data.roster_slots` | Единое хранилище `SaveManager` |
+| **MasteryManager** (`scripts/mastery_manager.gd`) | Доменный фасад глобального дерева талантов и мета-очков. | Делегирует в `SaveManager.save_data.mastery` | Единое хранилище `SaveManager` |
 
-* **Точки вызова**: `scenes/main.gd` при завершении игры обращается к `SaveManager`, а `scripts/player_prototype.gd` и `scenes/portal.tscn` вызывают `RosterManager.record_run_end()`.
-* **Задача будущего рефакторинга**: консолидация всех сохранений под единый фасад `SaveManager` с версионированной схемой данных и устранением конфликтов логики пермадеса.
+* **Автоматическая миграция**: При обнаружении старых файлов `user://character_roster.json` или `user://mastery_save.json` данные автоматически импортируются в схему v2 `SaveManager`, предотвращая потерю прогресса игроков.
+* **Изоляция в тестах**: Экспортное свойство `@export var auto_load: bool = true` позволяет тестовым экземплярам запускаться без побочных эффектов чтения реального файла пользователя.
+
+---
+
+## 4. Декомпозиция подсистем и реестры сущностей
+
+### 4.1. Архитектура игрока (Player Subsystem Composition)
+Монолитный `player_prototype.gd` декомпозирован на 6 специализированных подсистем при сохранении полного публичного API:
+- `PlayerMovement`: расчет перемещения, изометрия, рывок уклонения и физика столкновений.
+- `PlayerAim`: прицеливание через плоскость камеры и twin-stick клавиши.
+- `PlayerHealth`: обработка урона, окно парирования щитом [Q] и эмит смерти.
+- `PlayerProgression`: прокачка XP, уровни, масштабирование характеристик и вампиризм.
+- `PlayerInteraction`: сбор кандидатов в радиусе 4.5м, выбор лучшего кандидата и удержание клавиши [E].
+- `PlayerPresentation`: координация анимаций Blockbench, стрелка компаса портала и плавающие числа.
+- `InteractableTarget`: типизированный интерфейсный контракт взаимодействия (`HARVEST`, `REPAIR`, `DEMOLISH`, `PORTAL_REPAIR`, `PORTAL_EVACUATE`, `WORKBENCH`).
+
+### 4.2. Реестр сущностей (EntityRegistry & EventBus)
+- **EntityRegistry** (`scripts/core/entity_registry.gd`): отслеживает активные постройки, врагов и боссов. Автоматически синхронизируется с событиями `EventBus` (`building_placed`, `building_destroyed`, `boss_spawned`, `boss_defeated`, `enemy_killed`).
+- **Оптимизация SiegeBreaker**: вместо сканирования сцены каждый кадр таранщик опрашивает `EntityRegistry` с интервалом ретаргетинга 0.8с с кэшированием квадрата расстояния.
+- **WaveDirector**: проверка лимита врагов и присутствия боссов за $O(1)$ через `EntityRegistry`.
+- **GDExtension Boundary**: нативный класс `NativeProbe` (`src/native_probe.cpp`) поддерживает сборку C++ и проверку `is_native_loaded()` в CI.
+
