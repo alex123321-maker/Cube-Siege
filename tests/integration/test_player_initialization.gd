@@ -15,6 +15,7 @@ func test_player_initialization_defaults_warrior() -> void:
 	assert_not_null(player.presentation)
 	assert_not_null(player.combat)
 	assert_not_null(player.abilities)
+	assert_not_null(player.orientation)
 	
 	assert_eq(player.current_class, player.CharacterClass.WARRIOR)
 	assert_eq(player.max_health, 100.0)
