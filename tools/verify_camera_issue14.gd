@@ -317,19 +317,37 @@ func _run_verification() -> void:
 			_update_telemetry()
 		settings_modal.close_modal()
 
-		# Verify persistence in GameSettings
-		var game_settings = root.get_node_or_null("GameSettings")
-		if not game_settings:
-			var gs_script = load("res://scripts/game_settings.gd")
-			game_settings = gs_script.new()
-			root.add_child(game_settings)
+		# Verify persistence across restart via clean startup instance loading from disk
+		var gs_script = load("res://scripts/game_settings.gd")
+		var clean_startup_settings = gs_script.new()
+		clean_startup_settings.auto_load = true
+		root.add_child(clean_startup_settings)
+		var persisted_distance = clean_startup_settings.get_camera_distance()
+		clean_startup_settings.queue_free()
 
-		game_settings.load_settings()
-		if game_settings.camera_distance != CameraMath.Preset.FAR:
-			printerr("[FAIL] GameSettings camera_distance expected CameraMath.Preset.FAR, got: ", game_settings.camera_distance)
+		if persisted_distance != CameraMath.Preset.FAR:
+			printerr("[FAIL] Persistence restart check failed! Expected FAR, got: ", persisted_distance)
 			quit(1)
 			return
-		print("[PASS] Settings persisted to disk as FAR. Restoring to MEDIUM...")
+
+		# Also verify the raw JSON file written to user://
+		var file = FileAccess.open("user://game_settings.json", FileAccess.READ)
+		if not file:
+			printerr("[FAIL] Could not open user://game_settings.json")
+			quit(1)
+			return
+		var json_dict = JSON.parse_string(file.get_as_text())
+		file.close()
+		if not json_dict or json_dict.get("camera_distance", -1) != CameraMath.Preset.FAR:
+			printerr("[FAIL] Disk JSON camera_distance expected FAR, got: ", json_dict)
+			quit(1)
+			return
+
+		print("[PASS] Scenario 6: Clean startup instance and disk JSON confirm preset persisted across restart.")
+		var game_settings = root.get_node_or_null("GameSettings")
+		if not game_settings:
+			game_settings = gs_script.new()
+			root.add_child(game_settings)
 		game_settings.set_camera_distance(CameraMath.Preset.MEDIUM, true)
 		camera.set_distance_preset(CameraMath.Preset.MEDIUM, true)
 		for i in range(15):
@@ -337,48 +355,65 @@ func _run_verification() -> void:
 			_update_telemetry()
 
 	# =========================================================================
-	# SCENARIO 7: Aiming & Combat (LMB / RMB / Q) across Presets
+	# SCENARIO 7: Aiming & Combat (LMB / RMB / Q) across Presets (Normal & Max Pan)
 	# =========================================================================
-	_set_banner("[7/10] Aiming & Combat (LMB/RMB/Q) across Presets", "Attack, Special, and Utility abilities under normal & panned camera")
+	_set_banner("[7/10] Aiming & Combat across Presets", "Attacking under normal camera & maximum peripheral pan (4.0m) on Close, Medium, Far")
 	var test_presets = [
-		{"preset": CameraMath.Preset.CLOSE, "name": "CLOSE"},
-		{"preset": CameraMath.Preset.MEDIUM, "name": "MEDIUM"},
-		{"preset": CameraMath.Preset.FAR, "name": "FAR"}
+		{"preset": CameraMath.Preset.CLOSE, "name": "CLOSE", "edge": Vector2(vp_size.x, vp_center.y), "dir_name": "East (Right)"},
+		{"preset": CameraMath.Preset.MEDIUM, "name": "MEDIUM", "edge": Vector2(vp_center.x, 0.0), "dir_name": "North (Top)"},
+		{"preset": CameraMath.Preset.FAR, "name": "FAR", "edge": Vector2(0.0, vp_center.y), "dir_name": "West (Left)"}
 	]
 
 	for tp in test_presets:
 		camera.set_distance_preset(tp.preset, false)
-		for i in range(25):
+		camera.mouse_override = vp_center
+		for i in range(30):
 			await process_frame
 			_update_telemetry()
 
-		# Aim East & LMB Slash Attack
-		camera.mouse_override = Vector2(vp_size.x * 0.8, vp_center.y)
-		for i in range(10):
-			await process_frame
-			_update_telemetry()
+		# Part A: Normal center aiming attack
 		player.perform_attack()
 		for i in range(15):
 			await process_frame
 			_update_telemetry()
 
-		# Aim North & RMB Special / Parry
-		camera.mouse_override = Vector2(vp_center.x, vp_size.y * 0.15)
-		for i in range(10):
+		# Part B: Maximum peripheral pan aiming attack (reach ~4.0m)
+		camera.mouse_override = tp.edge
+		for i in range(70):
 			await process_frame
 			_update_telemetry()
-		player.perform_special_attack()
-		for i in range(15):
+			if abs(camera.get_peripheral_offset().length() - 4.0) < 0.08:
+				break
+
+		var pan_len = camera.get_peripheral_offset().length()
+		print("[VERIFY-CAMERA] Preset %s at max pan: %.2fm (expected ~4.0m)" % [tp.name, pan_len])
+		var min_expected_pan = 3.70
+		if pan_len < min_expected_pan:
+			printerr("[FAIL] Preset %s failed to reach max pan before combat! Length: %.2f (expected >= %.2f)" % [tp.name, pan_len, min_expected_pan])
+			quit(1)
+			return
+
+		# Execute LMB Slash Attack under max peripheral pan
+		player.perform_attack()
+		for i in range(18):
 			await process_frame
 			_update_telemetry()
 
-		# Aim South-West & Q Utility
-		camera.mouse_override = Vector2(vp_size.x * 0.15, vp_size.y * 0.85)
-		for i in range(10):
+		# Execute RMB Special / Parry under max peripheral pan
+		player.perform_special_attack()
+		for i in range(18):
 			await process_frame
 			_update_telemetry()
+
+		# Execute Q Utility under max peripheral pan
 		player.perform_utility()
-		for i in range(15):
+		for i in range(18):
+			await process_frame
+			_update_telemetry()
+
+		# Return cursor to center
+		camera.mouse_override = vp_center
+		for i in range(25):
 			await process_frame
 			_update_telemetry()
 
@@ -388,7 +423,7 @@ func _run_verification() -> void:
 	for i in range(20):
 		await process_frame
 		_update_telemetry()
-	print("[PASS] Scenario 7: Combat abilities and cursor aiming verified across all 3 presets.")
+	print("[PASS] Scenario 7: Combat abilities and cursor aiming verified under maximum pan (4.0m) across all 3 presets.")
 
 	# =========================================================================
 	# SCENARIO 8: Building Placement under Peripheral Pan

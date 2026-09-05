@@ -161,6 +161,30 @@ func test_player_aim_under_panned_camera() -> void:
 		var preserved_aim = aim.resolve_cursor_aim(player.global_position, dz_hit as Vector3, 0.6)
 		assert_almost_eq(preserved_aim.x, 1.0, 0.05, "Aim direction should be preserved when cursor is inside deadzone")
 
+func test_player_aim_with_default_camera_uses_viewport_mouse_and_does_not_use_sentinel() -> void:
+	var player = CharacterBody3D.new()
+	add_child_autoqfree(player)
+	player.position = Vector3(0.0, 0.9, 0.0)
+
+	var camera = CameraFollow.new()
+	add_child_autoqfree(camera)
+	camera.target = player
+	camera.current = true
+	camera._init_camera_transform()
+
+	# In default state, camera.mouse_override is (-9999, -9999)
+	assert_eq(camera.mouse_override, Vector2(-9999, -9999), "Camera default mouse_override must be (-9999, -9999)")
+
+	var aim = PlayerAim.new()
+	assert_eq(aim.mouse_override, Vector2(-9999, -9999), "PlayerAim default mouse_override must be (-9999, -9999)")
+
+	# Calling handle_aim with default camera state must use vp.get_mouse_position(), NOT (-9999, -9999)
+	aim.handle_aim(player, null, 0.6)
+	var vp = player.get_viewport()
+	var expected_vp_mouse = vp.get_mouse_position() if vp else Vector2.ZERO
+	assert_eq(aim.last_mouse_pos, expected_vp_mouse, "PlayerAim must use viewport mouse position when camera override is at default sentinel (-9999, -9999)")
+	assert_ne(aim.last_mouse_pos, Vector2(-9999, -9999), "PlayerAim must NEVER treat camera default sentinel as active override")
+
 func test_building_system_placement_under_panned_camera() -> void:
 	var player = CharacterBody3D.new()
 	add_child_autoqfree(player)
