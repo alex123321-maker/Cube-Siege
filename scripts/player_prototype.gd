@@ -267,6 +267,19 @@ func _physics_process(delta: float) -> void:
 	combat.update_timers(delta)
 	abilities.update_timers(delta, self)
 
+	# Locomotion and aim directions computed before action inputs
+	var input_dir: Vector2 = Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	var raw_move_dir: Vector3 = Vector3(input_dir.x, 0.0, input_dir.y)
+	if raw_move_dir.length_squared() > 0.001:
+		raw_move_dir = raw_move_dir.normalized()
+	else:
+		raw_move_dir = Vector3.ZERO
+
+	var deadzone: float = orientation.settings.aim_deadzone if orientation.settings else 0.6
+	var target_aim: Vector3 = aim.handle_aim(self, duel_target if is_dueling else null, deadzone)
+	if target_aim.length_squared() > 0.001:
+		orientation.aim_direction = Vector3(target_aim.x, 0.0, target_aim.z).normalized()
+
 	# Action inputs
 	if Input.is_action_just_pressed("dash"):
 		movement.perform_dash(-global_transform.basis.z)
@@ -285,17 +298,6 @@ func _physics_process(delta: float) -> void:
 
 	# Subsystem processing
 	interaction.process_interaction(self, delta)
-
-	# Locomotion and orientation
-	var input_dir: Vector2 = Input.get_vector("move_left", "move_right", "move_up", "move_down")
-	var raw_move_dir: Vector3 = Vector3(input_dir.x, 0.0, input_dir.y)
-	if raw_move_dir.length_squared() > 0.001:
-		raw_move_dir = raw_move_dir.normalized()
-	else:
-		raw_move_dir = Vector3.ZERO
-
-	var deadzone: float = orientation.settings.aim_deadzone if orientation.settings else 0.6
-	var target_aim: Vector3 = aim.handle_aim(self, duel_target if is_dueling else null, deadzone)
 
 	orientation.process_orientation(self, delta, target_aim, raw_move_dir)
 	movement.process_movement(self, delta, duel_target if is_dueling else null, orientation.directional_speed_multiplier)
@@ -421,7 +423,7 @@ func perform_ultimate() -> void:
 			var target_dir: Vector3 = (target.global_position - global_position).normalized() if target else orientation.aim_direction
 			orientation.request_action(
 				"ultimate",
-				func(): abilities.perform_ultimate(self, int(current_class)),
+				func(): abilities.perform_warrior_ultimate(self, target),
 				true,
 				deg_to_rad(25.0),
 				target_dir

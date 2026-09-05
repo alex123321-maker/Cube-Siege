@@ -156,3 +156,37 @@ func test_smooth_redirection_mid_turn() -> void:
 	# Should not crash, should not NaN, and should adjust rotation continuously
 	assert_true(orientation.body_facing_direction.is_finite())
 	assert_almost_eq(orientation.body_facing_direction.length(), 1.0, 0.01)
+
+func test_kinematic_reversal_direction_continuity() -> void:
+	var orientation = PlayerOrientation.new()
+	orientation.setup(Vector3(0.0, 0.0, -1.0))
+
+	# Turn towards (1, 0, 0) for 6 frames to establish non-zero angular velocity
+	for i in range(6):
+		orientation.step_rotation(0.016, Vector3(1.0, 0.0, 0.0))
+
+	var initial_vel: float = orientation.angular_velocity
+	var initial_sign: float = signf(initial_vel)
+	assert_ne(initial_sign, 0.0, "Angular velocity should be non-zero while rotating")
+
+	# Suddenly reverse target direction to opposite side (-1, 0, 0)
+	var facing_before: Vector3 = orientation.body_facing_direction
+	orientation.step_rotation(0.016, Vector3(-1.0, 0.0, 0.0))
+
+	# Velocity must keep its original sign (braking) and rotation delta must continue in velocity direction
+	assert_eq(signf(orientation.angular_velocity), initial_sign, "Velocity sign must be preserved during initial braking step")
+	assert_lt(absf(orientation.angular_velocity), absf(initial_vel), "Velocity magnitude should decelerate toward zero")
+	var angle_delta: float = facing_before.signed_angle_to(orientation.body_facing_direction, Vector3.UP)
+	assert_eq(signf(angle_delta), initial_sign, "Body must continue turning in the direction of angular_velocity during reversal brake")
+
+	# Step until velocity reaches zero
+	var max_steps: int = 50
+	while absf(orientation.angular_velocity) > 0.001 and max_steps > 0:
+		orientation.step_rotation(0.016, Vector3(-1.0, 0.0, 0.0))
+		max_steps -= 1
+
+	assert_almost_eq(orientation.angular_velocity, 0.0, 0.01, "Velocity should reach zero before reversing")
+
+	# Next step must accelerate in the new target direction (opposite sign)
+	orientation.step_rotation(0.016, Vector3(-1.0, 0.0, 0.0))
+	assert_eq(signf(orientation.angular_velocity), -initial_sign, "After braking to zero, angular velocity must accelerate toward new target")

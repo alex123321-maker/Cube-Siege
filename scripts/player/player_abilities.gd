@@ -49,20 +49,22 @@ func perform_parry(player: CharacterBody3D) -> void:
 				anim_player.stop()
 				anim_player.play("block")
 
-func perform_ultimate(player: CharacterBody3D, current_class: int) -> void:
+func perform_ultimate(player: CharacterBody3D, current_class: int, locked_target: Node3D = null) -> void:
 	if ultimate_cooldown_timer > 0.0:
 		return
 
 	match current_class:
 		0: # CharacterClass.WARRIOR
-			perform_warrior_ultimate(player)
+			perform_warrior_ultimate(player, locked_target)
 		1: # CharacterClass.ARCHER
 			perform_archer_ultimate(player)
 		2: # CharacterClass.ENGINEER
 			perform_engineer_ultimate(player)
 
-func perform_warrior_ultimate(player: CharacterBody3D) -> void:
-	var target: Node3D = find_target_near_mouse(player)
+func perform_warrior_ultimate(player: CharacterBody3D, locked_target: Node3D = null) -> void:
+	var target: Node3D = locked_target
+	if not (target and is_instance_valid(target) and target.is_inside_tree()):
+		target = find_target_near_mouse(player)
 	if not target:
 		player.spawn_popup_text("НЕТ ЦЕЛИ ДЛЯ ДУЭЛИ!", Color.ORANGE)
 		return

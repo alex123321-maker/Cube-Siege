@@ -139,3 +139,112 @@ func test_building_placement_without_facing_requirement() -> void:
 	building_system.place_building(target_pos, target_cell, building_system.PrefabType.WOOD_WALL)
 	assert_true(building_system.placed_buildings.has(target_cell), "Building should be placed immediately regardless of player body facing direction")
 	assert_false(player.orientation.is_action_pending(), "Building system must never queue into player orientation buffer")
+
+func test_buffered_attack_tracks_moving_aim_during_turn() -> void:
+	var player = PLAYER_SCENE.instantiate()
+	add_child_autoqfree(player)
+	player.orientation.setup(Vector3(0.0, 0.0, -1.0)) # Facing North (-Z)
+	player.set_class(player.CharacterClass.WARRIOR, false)
+	player.combat.attack_cooldown_timer = 0.0
+
+	# Initial aim is East (+X), outside 20° warrior attack tolerance
+	player.orientation.aim_direction = Vector3(1.0, 0.0, 0.0)
+	var fired: Array[bool] = [false]
+	var fire_facing: Array[Vector3] = [Vector3.ZERO]
+	var attack_cb = func():
+		fired[0] = true
+		fire_facing[0] = player.orientation.body_facing_direction
+
+	# Request attack without custom target dir (like perform_attack)
+	var immediate: bool = player.orientation.request_action("attack", attack_cb, true, deg_to_rad(20.0))
+	assert_false(immediate, "Attack should buffer because angle is 90° > 20°")
+	assert_true(player.orientation.is_action_pending())
+
+	# Rotate for a few frames towards East
+	for i in range(3):
+		player.orientation.process_orientation(player, 0.016, Vector3(1.0, 0.0, 0.0), Vector3.ZERO)
+
+	assert_false(fired[0], "Should not have fired yet")
+
+	# Now player swings mouse to South (+Z) before reaching East
+	var new_aim: Vector3 = Vector3(0.0, 0.0, 1.0)
+	var max_frames: int = 100
+	while player.orientation.is_action_pending() and max_frames > 0:
+		player.orientation.process_orientation(player, 0.016, new_aim, Vector3.ZERO)
+		max_frames -= 1
+
+	assert_true(fired[0], "Attack should fire once facing updated aim")
+	assert_false(player.orientation.is_action_pending())
+	# Facing should be within tolerance cone of updated aim (South), NOT stale initial aim (East)
+	assert_lt(fire_facing[0].angle_to(new_aim), deg_to_rad(20.0) + 0.01, "Attack must fire facing within tolerance of updated aim (South)")
+	assert_gt(fire_facing[0].angle_to(Vector3(1.0, 0.0, 0.0)), deg_to_rad(60.0), "Attack must not fire toward stale initial aim (East)")
+
+func test_non_directional_action_clears_buffered_attack() -> void:
+	var player = PLAYER_SCENE.instantiate()
+	add_child_autoqfree(player)
+	player.orientation.setup(Vector3(0.0, 0.0, -1.0))
+	player.set_class(player.CharacterClass.WARRIOR, false)
+
+	var attack_fired: Array[bool] = [false]
+	var attack_cb = func(): attack_fired[0] = true
+
+	# Buffer attack behind (South)
+	player.orientation.aim_direction = Vector3(0.0, 0.0, 1.0)
+	player.orientation.request_action("attack", attack_cb, true, deg_to_rad(20.0))
+	assert_true(player.orientation.is_action_pending(), "Attack should be pending")
+
+	# Trigger non-directional utility action (Parry)
+	player.health.parry_cooldown_timer = 0.0
+	player.perform_utility()
+
+	assert_true(player.health.is_parrying, "Parry should activate immediately")
+	assert_false(player.orientation.is_action_pending(), "Non-directional action must clear buffered pending attack")
+
+	# Simulate further rotation frames to South
+	for i in range(30):
+		player.orientation.process_orientation(player, 0.016, Vector3(0.0, 0.0, 1.0), Vector3.ZERO)
+
+	assert_false(attack_fired[0], "Buffered attack was cleared and must never auto-execute")
+
+func test_warrior_ultimate_locks_initial_target_when_mouse_moves() -> void:
+	var player = PLAYER_SCENE.instantiate()
+	add_child_autoqfree(player)
+	player.set_class(player.CharacterClass.WARRIOR, false)
+	player.orientation.setup(Vector3(0.0, 0.0, -1.0))
+	player.abilities.ultimate_cooldown_timer = 0.0
+
+	# Create two mock enemies
+	var enemy_a = Node3D.new()
+	enemy_a.name = "EnemyA"
+	enemy_a.add_to_group("enemies")
+	add_child_autoqfree(enemy_a)
+	enemy_a.global_position = player.global_position + Vector3(5.0, 0.0, 0.0) # East (+X)
+
+	var enemy_b = Node3D.new()
+	enemy_b.name = "EnemyB"
+	enemy_b.add_to_group("enemies")
+	add_child_autoqfree(enemy_b)
+	enemy_b.global_position = player.global_position + Vector3(-5.0, 0.0, 0.0) # West (-X)
+
+	# Direct ultimate request targeting enemy_a
+	var target_dir: Vector3 = (enemy_a.global_position - player.global_position).normalized()
+	player.orientation.request_action(
+		"ultimate",
+		func(): player.abilities.perform_warrior_ultimate(player, enemy_a),
+		true,
+		deg_to_rad(25.0),
+		target_dir
+	)
+	assert_true(player.orientation.is_action_pending(), "Ultimate should be pending because 90° > 25°")
+
+	# While turning towards Enemy A, simulate mouse moving to Enemy B
+	var max_frames: int = 60
+	while player.orientation.is_action_pending() and max_frames > 0:
+		# Mouse points to West (enemy_b), but ultimate was locked on enemy_a
+		player.orientation.process_orientation(player, 0.016, Vector3(-1.0, 0.0, 0.0), Vector3.ZERO)
+		max_frames -= 1
+
+	assert_false(player.orientation.is_action_pending(), "Ultimate should have executed")
+	assert_true(player.abilities.is_dueling, "Player should be dueling")
+	assert_eq(player.abilities.duel_target, enemy_a, "Duel target must be locked target Enemy A, not Enemy B")
+	player.end_duel()

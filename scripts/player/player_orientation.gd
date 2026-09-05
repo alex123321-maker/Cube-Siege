@@ -85,8 +85,10 @@ func step_rotation(delta: float, target_direction: Vector3) -> void:
 	var cur_speed: float = absf(angular_velocity)
 	var cur_sign: float = signf(angular_velocity)
 
+	var is_reversing: bool = (cur_speed > 0.001 and cur_sign != 0.0 and cur_sign != turn_sign)
+
 	# If currently rotating in the opposite direction from target, brake first!
-	if cur_speed > 0.001 and cur_sign != 0.0 and cur_sign != turn_sign:
+	if is_reversing:
 		cur_speed = maxf(0.0, cur_speed - decel * delta)
 		if cur_speed <= 0.0:
 			angular_velocity = 0.0
@@ -108,14 +110,18 @@ func step_rotation(delta: float, target_direction: Vector3) -> void:
 		angular_velocity = turn_sign * cur_speed
 
 	var step_angle: float = absf(angular_velocity) * delta
-	if step_angle >= abs_diff:
+	if not is_reversing and step_angle >= abs_diff:
 		# Reached target this tick: snap cleanly to target
 		body_facing_direction = target_norm
 		angular_velocity = 0.0
 		is_turning = false
 	else:
-		body_facing_direction = body_facing_direction.rotated(Vector3.UP, turn_sign * step_angle).normalized()
-		is_turning = true
+		if absf(angular_velocity) > 0.0001:
+			var rot_sign: float = signf(angular_velocity)
+			body_facing_direction = body_facing_direction.rotated(Vector3.UP, rot_sign * step_angle).normalized()
+			is_turning = true
+		else:
+			is_turning = abs_diff > 0.0005
 
 func process_orientation(body: CharacterBody3D, delta: float, target_aim_dir: Vector3, current_move_dir: Vector3) -> void:
 	# 1. Update aim direction
@@ -192,12 +198,14 @@ func request_action(
 	custom_target_dir: Vector3 = Vector3.ZERO
 ) -> bool:
 	if not requires_facing:
+		pending_action = {}
 		if action_callable.is_valid():
 			action_callable.call()
 		return true
 
 	var tol: float = tolerance if tolerance > 0.0 else (settings.base_facing_tolerance if settings else 0.2618)
-	var target: Vector3 = custom_target_dir if custom_target_dir.length_squared() > 0.001 else aim_direction
+	var has_custom_target: bool = custom_target_dir.length_squared() > 0.001
+	var target: Vector3 = custom_target_dir if has_custom_target else aim_direction
 	target = Vector3(target.x, 0.0, target.z).normalized()
 
 	var angle: float = body_facing_direction.angle_to(target)
@@ -208,12 +216,13 @@ func request_action(
 		return true
 
 	# Target is outside tolerance: buffer action and turn toward it
+	# If no explicit custom target is provided, store Vector3.ZERO so rotation dynamically tracks live aim_direction
 	pending_action = {
 		"action_id": action_id,
 		"callable": action_callable,
 		"requires_facing": true,
 		"tolerance": tol,
-		"target_direction": target
+		"target_direction": target if has_custom_target else Vector3.ZERO
 	}
 	return false
 
