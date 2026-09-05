@@ -60,9 +60,9 @@ func _ready() -> void:
 	_on_wallet_resources_changed(wallet.get_wood(), wallet.get_stone(), wallet.get_iron())
 
 func _on_wallet_resources_changed(wood: int, stone: int, iron: int) -> void:
-	emit_signal("resources_updated", wood, stone, iron)
-	if get_node_or_null("/root/EventBus"):
-		EventBus.resources_changed.emit(wood, stone, iron)
+	var eb = get_node_or_null("/root/EventBus")
+	if eb and eb.has_signal("resources_changed"):
+		eb.resources_changed.emit(wood, stone, iron)
 
 func setup_materials() -> void:
 	green_mat = StandardMaterial3D.new()
@@ -191,16 +191,18 @@ func place_building(snapped_pos: Vector3, cell: Vector2i, type: PrefabType) -> v
 		building.connect("building_destroyed", Callable(self, "_on_building_destroyed"))
 
 	emit_signal("building_placed", cell, building)
-	if get_node_or_null("/root/EventBus"):
-		EventBus.building_placed.emit(str(type), cell, building)
+	var eb_placed = get_node_or_null("/root/EventBus")
+	if eb_placed and eb_placed.has_signal("building_placed"):
+		eb_placed.building_placed.emit(str(type), cell, building)
 
 func _on_building_destroyed(b: Node) -> void:
 	if b.has_method("get") and b.get("grid_coord") != null:
 		var c: Vector2i = b.grid_coord
 		if placed_buildings.has(c):
 			placed_buildings.erase(c)
-			if get_node_or_null("/root/EventBus"):
-				EventBus.building_destroyed.emit(c, b)
+			var eb_dest = get_node_or_null("/root/EventBus")
+			if eb_dest and eb_dest.has_signal("building_destroyed"):
+				eb_dest.building_destroyed.emit(c, b)
 
 func get_aimed_grid_position() -> Vector3:
 	var vp: Viewport = get_viewport()

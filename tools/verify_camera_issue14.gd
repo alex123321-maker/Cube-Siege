@@ -35,6 +35,7 @@ func _run_verification() -> void:
 
 	# Keep cursor in deadzone center during preset captures
 	var vp_size = root.get_visible_rect().size
+	print("[VERIFY-CAMERA] Root viewport visible rect size: ", vp_size)
 	if vp_size.x <= 10.0:
 		vp_size = Vector2(1280.0, 720.0)
 	var vp_center = vp_size * 0.5
@@ -103,8 +104,10 @@ func _run_verification() -> void:
 
 	# 5. Right edge pan test
 	camera.mouse_override = Vector2(vp_size.x, vp_center.y)
-	for i in range(60):
+	for i in range(120):
 		await process_frame
+		if abs(camera.get_peripheral_offset().length() - 4.0) < 0.05:
+			break
 	var right_periph = camera.get_peripheral_offset()
 	print("[VERIFY-CAMERA] Right edge pan offset: ", right_periph.length(), " vec: ", right_periph)
 	if abs(right_periph.length() - 4.0) > 0.1:
@@ -116,8 +119,10 @@ func _run_verification() -> void:
 
 	# 6. Top edge pan test
 	camera.mouse_override = Vector2(vp_center.x, 0.0)
-	for i in range(60):
+	for i in range(120):
 		await process_frame
+		if abs(camera.get_peripheral_offset().length() - 4.0) < 0.05:
+			break
 	var top_periph = camera.get_peripheral_offset()
 	print("[VERIFY-CAMERA] Top edge pan offset: ", top_periph.length(), " vec: ", top_periph)
 	if abs(top_periph.length() - 4.0) > 0.1:
@@ -129,8 +134,10 @@ func _run_verification() -> void:
 
 	# 7. Corner diagonal pan test (clamp <= 4.0m)
 	camera.mouse_override = Vector2(vp_size.x, 0.0)
-	for i in range(60):
+	for i in range(120):
 		await process_frame
+		if abs(camera.get_peripheral_offset().length() - 4.0) < 0.05:
+			break
 	var corner_periph = camera.get_peripheral_offset()
 	print("[VERIFY-CAMERA] Corner diagonal pan offset: ", corner_periph.length(), " vec: ", corner_periph)
 	if corner_periph.length() > 4.05:
@@ -154,15 +161,41 @@ func _run_verification() -> void:
 	# 9. Building occlusion under peripheral pan
 	var wall_scene = preload("res://scenes/prefabs/wood_wall.tscn")
 	if wall_scene:
-		var wall = wall_scene.instantiate()
-		main.add_child(wall)
-		wall.global_position = player.global_position + (camera.global_position - player.global_position) * 0.5
-		wall.global_position.y = 0.5
 		camera.mouse_override = Vector2(vp_size.x, vp_center.y)
 		for i in range(30):
 			await process_frame
+
+		var wall = wall_scene.instantiate()
+		main.add_child(wall)
+		var ray_start = camera.global_position
+		var ray_end = player.global_position + Vector3(0.0, 0.9, 0.0)
+		var occlude_pt = ray_end + (ray_start - ray_end) * 0.1
+		wall.global_position = occlude_pt - Vector3(0.0, 1.0, 0.0)
+
+		for i in range(15):
+			await process_frame
+			camera.check_occlusion()
+
 		_capture_screenshot("docs/screenshots/camera/09_building_occlusion_panned.png")
-		print("[PASS] Building occlusion tested under peripheral pan!")
+
+		# Assert building is occluding and transparency is set to 0.6
+		if abs(wall.current_transparency - 0.6) > 0.05:
+			printerr("[FAIL] Building occlusion transparency expected 0.6, got: ", wall.current_transparency)
+			quit(1)
+			return
+		print("[PASS] Building occlusion transparency verified: 0.6")
+
+		# Move wall away and verify restoration to 0.0
+		wall.global_position = Vector3(100.0, 0.0, 100.0)
+		for i in range(15):
+			await process_frame
+			camera.check_occlusion()
+
+		if abs(wall.current_transparency - 0.0) > 0.05:
+			printerr("[FAIL] Building occlusion restoration expected 0.0, got: ", wall.current_transparency)
+			quit(1)
+			return
+		print("[PASS] Building occlusion transparency restored to 0.0!")
 
 	print("[VERIFY-CAMERA] All verification steps passed successfully!")
 	quit(0)

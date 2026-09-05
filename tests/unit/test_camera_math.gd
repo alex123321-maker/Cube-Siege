@@ -137,3 +137,68 @@ func test_viewport_aspect_ratios_16_9_and_21_9() -> void:
 	# Point at 200 px is peripheral
 	var left_21_9 = CameraMath.calculate_deadzone_factors(Vector2(200.0, 540.0), vp_21_9, 0.70)
 	assert_true(left_21_9.x < 0.0, "Left peripheral in 21:9 must produce negative X offset")
+
+func test_clamp_offset_to_safe_frustum_keeps_target_visible_on_narrow_viewport() -> void:
+	var base_offset = Vector3(15.0, 20.0, 15.0)
+	var cam_basis = Basis.looking_at(-base_offset.normalized(), Vector3.UP)
+	var max_offset = 4.0
+	var safe_margin = 0.80
+
+	# 1. Standard 16:9 viewport (1280 x 720) - 4.0m pan is well within 80% safe margin, not clamped
+	var vp_standard = Vector2(1280.0, 720.0)
+	var raw_offset = Vector3(max_offset, 0.0, 0.0)
+	var clamped_standard = CameraMath.clamp_offset_to_safe_frustum(raw_offset, base_offset, cam_basis, vp_standard, 45.0, safe_margin)
+	assert_almost_eq(clamped_standard.length(), max_offset, 0.01, "On standard 16:9 viewport, 4.0m pan should remain full")
+
+	# 2. Narrow vertical viewport (300 x 900) - 4.0m lateral pan would push player close to edge
+	var vp_narrow = Vector2(300.0, 900.0)
+	var ground_dirs = CameraMath.get_ground_plane_directions(cam_basis)
+	var lateral_offset = ground_dirs["right"] * max_offset
+	var clamped_narrow = CameraMath.clamp_offset_to_safe_frustum(lateral_offset, base_offset, cam_basis, vp_narrow, 45.0, safe_margin)
+
+	# Clamped offset must be scaled down
+	assert_true(clamped_narrow.length() < max_offset, "On narrow viewport (300x900), lateral offset should be scaled down")
+	assert_true(clamped_narrow.length() > 1.0, "Clamped offset should still allow non-zero pan")
+
+	# Verify projection of player with clamped offset is strictly within safe margin
+	var p_world = -(base_offset + clamped_narrow)
+	var p_cam = cam_basis.inverse() * p_world
+	var half_h = (-p_cam.z) * tan(deg_to_rad(45.0) * 0.5)
+	var half_w = half_h * (vp_narrow.x / vp_narrow.y)
+	var nx = absf(p_cam.x) / half_w
+	var ny = absf(p_cam.y) / half_h
+	assert_true(nx <= safe_margin + 0.01, "Projected X must be within safe margin 0.80, got: %f" % nx)
+	assert_true(ny <= safe_margin + 0.01, "Projected Y must be within safe margin 0.80, got: %f" % ny)
+
+	# 3. Extreme narrow viewport (200 x 800)
+	var vp_extreme = Vector2(200.0, 800.0)
+	var clamped_extreme = CameraMath.clamp_offset_to_safe_frustum(lateral_offset, base_offset, cam_basis, vp_extreme, 45.0, safe_margin)
+	assert_true(clamped_extreme.length() < clamped_narrow.length(), "More extreme aspect ratio should scale down offset further")
+
+	var p_world_ext = -(base_offset + clamped_extreme)
+	var p_cam_ext = cam_basis.inverse() * p_world_ext
+	var half_h_ext = (-p_cam_ext.z) * tan(deg_to_rad(45.0) * 0.5)
+	var half_w_ext = half_h_ext * (vp_extreme.x / vp_extreme.y)
+	var nx_ext = absf(p_cam_ext.x) / half_w_ext
+	assert_true(nx_ext <= safe_margin + 0.01, "Projected X in extreme viewport must be within safe margin, got: %f" % nx_ext)
+
+func test_calculate_target_peripheral_offset_integrates_safe_frustum_clamp() -> void:
+	var base_offset = Vector3(15.0, 20.0, 15.0)
+	var cam_basis = Basis.looking_at(-base_offset.normalized(), Vector3.UP)
+	var vp_narrow = Vector2(300.0, 900.0)
+
+	# Right edge cursor on narrow viewport
+	var edge_pos = Vector2(vp_narrow.x, vp_narrow.y * 0.5)
+	var offset = CameraMath.calculate_target_peripheral_offset(edge_pos, vp_narrow, cam_basis, 4.0, 0.70, base_offset)
+
+	# Check that offset was computed and clamped safely
+	assert_true(offset.length() > 0.5, "Should have non-zero peripheral offset")
+	assert_true(offset.length() <= 4.0, "Should not exceed max offset 4.0")
+
+	# Target remains inside safe frustum
+	var p_world = -(base_offset + offset)
+	var p_cam = cam_basis.inverse() * p_world
+	var half_h = (-p_cam.z) * tan(deg_to_rad(45.0) * 0.5)
+	var half_w = half_h * (vp_narrow.x / vp_narrow.y)
+	var nx = absf(p_cam.x) / half_w
+	assert_true(nx <= 0.81, "Calculated offset must keep target within safe frustum")

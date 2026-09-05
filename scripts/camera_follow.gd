@@ -112,7 +112,8 @@ func _process(delta: float) -> void:
 					vp_size,
 					fixed_basis,
 					max_peripheral_offset,
-					deadzone_ratio
+					deadzone_ratio,
+					current_base_offset
 				)
 
 	# Smoothly interpolate peripheral offset (prevents snapping, ensures smooth return)
