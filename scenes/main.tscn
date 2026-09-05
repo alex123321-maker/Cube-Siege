@@ -1,4 +1,4 @@
-[gd_scene load_steps=24 format=3 uid="uid://cmain001"]
+[gd_scene load_steps=25 format=3 uid="uid://cmain001"]
 
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="1_player"]
 [ext_resource type="PackedScene" path="res://scenes/portal.tscn" id="2_portal"]
@@ -20,6 +20,7 @@
 [ext_resource type="PackedScene" path="res://scenes/prefabs/workbench.tscn" id="19_bench"]
 [ext_resource type="PackedScene" path="res://scenes/workbench_modal.tscn" id="20_benchmodal"]
 [ext_resource type="PackedScene" path="res://scenes/skills_action_bar.tscn" id="21_skillsbar"]
+[ext_resource type="PackedScene" path="res://scenes/settings_modal.tscn" id="22_settingsmodal"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_main"]
 sky_top_color = Color(0.35, 0.55, 0.85, 1.0)
@@ -146,6 +147,10 @@ horizontal_alignment = 1
 [node name="BtnSkipNight" type="Button" parent="HUD/Margin/TopCenter"]
 layout_mode = 2
 text = ">| Ночь"
+
+[node name="BtnSettings" type="Button" parent="HUD/Margin/TopCenter"]
+layout_mode = 2
+text = "⚙"
 
 [node name="BossBarContainer" type="VBoxContainer" parent="HUD/Margin"]
 visible = false
@@ -296,6 +301,9 @@ vertical_alignment = 1
 [node name="CardDraftPopup" parent="HUD" instance=ExtResource("18_carddraft")]
 
 [node name="WorkbenchModal" parent="HUD" instance=ExtResource("20_benchmodal")]
+visible = false
+
+[node name="SettingsModal" parent="HUD" instance=ExtResource("22_settingsmodal")]
 visible = false
 
 [node name="Enemies" type="Node3D" parent="."]

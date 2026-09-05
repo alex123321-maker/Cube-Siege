@@ -36,3 +36,6 @@ signal portal_evacuated(day_number: int, earned_xp: int)
 # Boss events
 signal boss_spawned(boss: Node)
 signal boss_defeated(boss: Node)
+
+# Camera / Settings events
+signal camera_distance_changed(preset: int, offset: Vector3)

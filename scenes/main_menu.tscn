@@ -173,9 +173,31 @@ theme_override_font_sizes/font_size = 20
 text = "НАСТРОЙКИ"
 horizontal_alignment = 1
 
+[node name="CameraDistanceRow" type="HBoxContainer" parent="ViewSettings/Panel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="Label" type="Label" parent="ViewSettings/Panel/VBox/CameraDistanceRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Дальность камеры:"
+
+[node name="CameraOption" type="OptionButton" parent="ViewSettings/Panel/VBox/CameraDistanceRow"]
+custom_minimum_size = Vector2(140, 36)
+layout_mode = 2
+item_count = 3
+popup/item_0/text = "Близко"
+popup/item_0/id = 0
+popup/item_1/text = "Средне"
+popup/item_1/id = 1
+popup/item_2/text = "Далеко"
+popup/item_2/id = 2
+
 [node name="Desc" type="Label" parent="ViewSettings/Panel/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.6, 0.65, 0.75, 1)
+theme_override_font_sizes/font_size = 12
 text = "Параметры графики и аудио находятся в разработке."
 horizontal_alignment = 1
 autowrap_mode = 2

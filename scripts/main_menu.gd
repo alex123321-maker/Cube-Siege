@@ -24,13 +24,32 @@ var inspecting_slot_index: int = 0
 @onready var btn_talent_agil: Button = $ViewTalents/VBox/Grid/BtnAgil
 @onready var btn_talent_craft: Button = $ViewTalents/VBox/Grid/BtnCraft
 
+@onready var camera_option: OptionButton = get_node_or_null("ViewSettings/Panel/VBox/CameraDistanceRow/CameraOption")
+
 func _ready() -> void:
+	_setup_settings_ui()
 	if roster_mgr and roster_mgr.return_to_character_select:
 		roster_mgr.return_to_character_select = false
 		show_view("characters")
 	else:
 		show_view("main")
 	update_character_cards()
+
+func _setup_settings_ui() -> void:
+	if camera_option:
+		camera_option.clear()
+		camera_option.add_item("Близко", 0)
+		camera_option.add_item("Средне", 1)
+		camera_option.add_item("Далеко", 2)
+		var gs = get_node_or_null("/root/GameSettings")
+		if gs:
+			camera_option.select(gs.get_camera_distance())
+		camera_option.item_selected.connect(_on_camera_distance_selected)
+
+func _on_camera_distance_selected(index: int) -> void:
+	var gs = get_node_or_null("/root/GameSettings")
+	if gs:
+		gs.set_camera_distance(index)
 
 func show_view(view_name: String) -> void:
 	view_main.visible = (view_name == "main")
@@ -41,6 +60,10 @@ func show_view(view_name: String) -> void:
 		update_character_cards()
 	elif view_name == "talents":
 		update_talents_ui()
+	elif view_name == "settings":
+		var gs = get_node_or_null("/root/GameSettings")
+		if gs and camera_option:
+			camera_option.select(gs.get_camera_distance())
 
 # --- Main View Buttons ---
 func _on_btn_play_pressed() -> void:

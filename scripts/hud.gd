@@ -28,6 +28,13 @@ func _ready() -> void:
 	if has_node("Margin/TopCenter/BtnSkipNight"):
 		$Margin/TopCenter/BtnSkipNight.pressed.connect(_on_skip_night_pressed)
 
+	if has_node("Margin/TopCenter/BtnSettings"):
+		$Margin/TopCenter/BtnSettings.pressed.connect(func():
+			var modal = get_node_or_null("SettingsModal")
+			if modal and modal.has_method("open_modal"):
+				modal.open_modal()
+		)
+
 	# EventBus listeners for decoupled architecture (single source of truth)
 	var eb = get_node_or_null("/root/EventBus")
 	if eb:

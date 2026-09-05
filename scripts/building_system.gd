@@ -53,6 +53,8 @@ var preview_mesh: MeshInstance3D = null
 var green_mat: StandardMaterial3D = null
 var red_mat: StandardMaterial3D = null
 
+var mouse_override: Vector2 = Vector2(-9999, -9999)
+
 func _ready() -> void:
 	wallet.resources_changed.connect(_on_wallet_resources_changed)
 	setup_materials()
@@ -61,8 +63,9 @@ func _ready() -> void:
 
 func _on_wallet_resources_changed(wood: int, stone: int, iron: int) -> void:
 	emit_signal("resources_updated", wood, stone, iron)
-	if get_node_or_null("/root/EventBus"):
-		EventBus.resources_changed.emit(wood, stone, iron)
+	var eb = get_node_or_null("/root/EventBus")
+	if eb and eb.has_signal("resources_changed"):
+		eb.resources_changed.emit(wood, stone, iron)
 
 func setup_materials() -> void:
 	green_mat = StandardMaterial3D.new()
@@ -191,16 +194,18 @@ func place_building(snapped_pos: Vector3, cell: Vector2i, type: PrefabType) -> v
 		building.connect("building_destroyed", Callable(self, "_on_building_destroyed"))
 
 	emit_signal("building_placed", cell, building)
-	if get_node_or_null("/root/EventBus"):
-		EventBus.building_placed.emit(str(type), cell, building)
+	var eb_placed = get_node_or_null("/root/EventBus")
+	if eb_placed and eb_placed.has_signal("building_placed"):
+		eb_placed.building_placed.emit(str(type), cell, building)
 
 func _on_building_destroyed(b: Node) -> void:
 	if b.has_method("get") and b.get("grid_coord") != null:
 		var c: Vector2i = b.grid_coord
 		if placed_buildings.has(c):
 			placed_buildings.erase(c)
-			if get_node_or_null("/root/EventBus"):
-				EventBus.building_destroyed.emit(c, b)
+			var eb_dest = get_node_or_null("/root/EventBus")
+			if eb_dest and eb_dest.has_signal("building_destroyed"):
+				eb_dest.building_destroyed.emit(c, b)
 
 func get_aimed_grid_position() -> Vector3:
 	var vp: Viewport = get_viewport()
@@ -208,7 +213,7 @@ func get_aimed_grid_position() -> Vector3:
 	var cam: Camera3D = vp.get_camera_3d()
 	if not cam: return Vector3.ZERO
 
-	var mouse_pos: Vector2 = vp.get_mouse_position()
+	var mouse_pos: Vector2 = mouse_override if mouse_override.x >= 0.0 else vp.get_mouse_position()
 	var ray_origin: Vector3 = cam.project_ray_origin(mouse_pos)
 	var ray_normal: Vector3 = cam.project_ray_normal(mouse_pos)
 

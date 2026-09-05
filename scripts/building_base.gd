@@ -11,6 +11,7 @@ signal health_changed(current: float, max_hp: float)
 @export var iron_cost: int = 0
 
 var current_health: float = 250.0
+var current_transparency: float = 0.0
 var grid_coord: Vector2i = Vector2i.ZERO
 
 @onready var hurtbox: Area3D = get_node_or_null("Hurtbox") as Area3D
@@ -159,6 +160,7 @@ func destroy_building() -> void:
 	tween.chain().tween_callback(queue_free)
 
 func set_transparency(alpha_trans: float) -> void:
+	current_transparency = alpha_trans
 	for child in find_children("*", "MeshInstance3D", true, false):
 		if child is MeshInstance3D:
 			(child as MeshInstance3D).transparency = alpha_trans
