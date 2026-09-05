@@ -176,24 +176,40 @@ func test_building_system_placement_under_panned_camera() -> void:
 	var vp_size = vp.get_visible_rect().size if vp else Vector2(1280, 720)
 	var vp_center = vp_size * 0.5
 
-	# Pan to top edge
-	camera.mouse_override = Vector2(vp_center.x, 0.0)
+	# Pan to right edge
+	camera.mouse_override = Vector2(vp_size.x, vp_center.y)
 	for i in range(50):
 		camera._process(0.033)
 
 	var building_system = BuildingSystem.new()
 	add_child_autoqfree(building_system)
 
-	# Verify grid positioning calculates valid coordinates from camera
-	var grid_pos = building_system.get_aimed_grid_position()
-	assert_true(grid_pos.is_finite(), "Aimed grid position should be finite under panned camera")
-	assert_almost_eq(grid_pos.y, 0.0, 0.01, "Grid position Y should be on ground level 0")
+	# Control screen-space cursor input targeting an exact known grid cell (Vector3(6, 0, 4))
+	var target_grid = Vector3(6.0, 0.0, 4.0)
+	var screen_pos = camera.unproject_position(target_grid)
+	building_system.mouse_override = screen_pos
 
-	# Select prefab and verify preview position tracks correctly
+	# Verify grid positioning calculates the exact target cell from camera ray
+	var aimed_pos = building_system.get_aimed_grid_position()
+	assert_eq(aimed_pos, target_grid, "BuildingSystem must aim at the exact target cell under panned camera")
+	assert_eq(int(aimed_pos.x), 6, "Aimed cell X must match 6")
+	assert_eq(int(aimed_pos.z), 4, "Aimed cell Z must match 4")
+
+	# Select prefab and verify preview position tracks correctly under cursor
 	building_system.select_prefab(BuildingSystem.PrefabType.WOOD_WALL)
 	building_system._process(0.016)
 	assert_true(building_system.preview_node.visible, "Preview hologram must be visible during prefab placement")
-	assert_almost_eq(building_system.preview_node.global_position.y, 0.0, 0.01, "Hologram preview must snap to ground level")
+	assert_eq(building_system.preview_node.global_position, target_grid, "Hologram preview must snap to aimed grid under cursor")
+
+	# Execute real building placement under panned camera
+	var cell = Vector2i(int(aimed_pos.x), int(aimed_pos.z))
+	building_system.place_building(aimed_pos, cell, BuildingSystem.PrefabType.WOOD_WALL)
+	assert_true(building_system.placed_buildings.has(cell), "Building must be registered in placed_buildings")
+	var placed_node = building_system.placed_buildings[cell]
+	assert_not_null(placed_node, "Placed building instance must not be null")
+	assert_eq(placed_node.global_position, target_grid, "Placed building world position must match target grid")
+	assert_eq(placed_node.grid_coord, cell, "Placed building grid_coord must match cell")
+
 	building_system.cancel_build_mode()
 	assert_false(building_system.preview_node.visible, "Preview hologram must hide on cancel")
 
@@ -295,4 +311,47 @@ func test_narrow_viewport_screen_space_safety() -> void:
 	var half_w = 360.0 * 0.5
 	var center_dist_x = absf(screen_pos.x - half_w)
 	assert_true(center_dist_x / half_w <= 0.85, "Player must remain within 85% safe screen-space half-extent on narrow viewport")
+
+func test_viewport_resize_transition_guarantees_player_remains_on_screen_every_frame() -> void:
+	var sub_vp = SubViewport.new()
+	# Start with standard 16:9 viewport
+	sub_vp.size = Vector2i(1280, 720)
+	add_child_autoqfree(sub_vp)
+
+	var player = CharacterBody3D.new()
+	sub_vp.add_child(player)
+	player.position = Vector3(0.0, 0.9, 0.0)
+
+	var camera = CameraFollow.new()
+	sub_vp.add_child(camera)
+	camera.target = player
+	camera.current = true
+	camera._init_camera_transform()
+
+	# Establish full 4.0m pan on 16:9
+	camera.mouse_override = Vector2(1280.0, 360.0)
+	for i in range(80):
+		camera._process(0.016)
+
+	assert_almost_eq(camera.get_peripheral_offset().length(), 4.0, 0.15, "Initial pan on 16:9 should reach ~4.0m")
+
+	# Suddenly resize viewport to extreme narrow portrait aspect ratio (320 x 800)
+	sub_vp.size = Vector2i(320, 800)
+	camera.mouse_override = Vector2(320.0, 400.0)
+
+	# Verify on EVERY SINGLE FRAME of the resize transition that the player never leaves the safe screen margin
+	var half_w = 320.0 * 0.5
+	var half_h = 800.0 * 0.5
+	for frame in range(60):
+		camera._process(0.016)
+		var screen_pos = camera.unproject_position(player.global_position)
+		assert_true(screen_pos.x >= 0.0, "Frame %d: Player X must be >= 0 (on screen)" % frame)
+		assert_true(screen_pos.x <= 320.0, "Frame %d: Player X must be <= 320 (on screen)" % frame)
+		assert_true(screen_pos.y >= 0.0, "Frame %d: Player Y must be >= 0 (on screen)" % frame)
+		assert_true(screen_pos.y <= 800.0, "Frame %d: Player Y must be <= 800 (on screen)" % frame)
+
+		var nx = absf(screen_pos.x - half_w) / half_w
+		var ny = absf(screen_pos.y - half_h) / half_h
+		assert_true(nx <= 0.85, "Frame %d: Player NDC X must remain within safe margin 0.85, got: %f" % [frame, nx])
+		assert_true(ny <= 0.85, "Frame %d: Player NDC Y must remain within safe margin 0.85, got: %f" % [frame, ny])
 

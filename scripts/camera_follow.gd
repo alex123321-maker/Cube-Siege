@@ -122,6 +122,21 @@ func _process(delta: float) -> void:
 		clampf(1.0 - exp(-pan_speed * delta), 0.0, 1.0)
 	)
 
+	# Strictly enforce safe-frustum clamp on current offset every frame,
+	# ensuring resize or preset changes never leave player outside safe screen bounds.
+	var vp_current: Viewport = get_viewport()
+	if vp_current:
+		var current_vp_size: Vector2 = vp_current.get_visible_rect().size
+		if current_vp_size.x > 10.0 and current_vp_size.y > 10.0:
+			current_peripheral_offset = CameraMath.clamp_offset_to_safe_frustum(
+				current_peripheral_offset,
+				current_base_offset,
+				fixed_basis,
+				current_vp_size,
+				CameraMath.FIXED_FOV,
+				CameraMath.DEFAULT_SAFE_FRUSTUM_MARGIN
+			)
+
 	# Desired position: character anchor + selected distance preset + peripheral pan
 	var desired_pos: Vector3 = target.global_position + current_base_offset + current_peripheral_offset
 
@@ -130,6 +145,25 @@ func _process(delta: float) -> void:
 		desired_pos,
 		clampf(1.0 - exp(-follow_speed * delta), 0.0, 1.0)
 	)
+
+	# Also clamp actual global_position's peripheral displacement against safe frustum.
+	# When a sudden resize or preset change occurs, global_position immediately conforms
+	# to the safe frustum margin so the character NEVER leaves the screen even on frame 1 of resize.
+	if vp_current:
+		var current_vp_size: Vector2 = vp_current.get_visible_rect().size
+		if current_vp_size.x > 10.0 and current_vp_size.y > 10.0:
+			var actual_disp: Vector3 = global_position - (target.global_position + current_base_offset)
+			actual_disp.y = 0.0
+			var safe_disp: Vector3 = CameraMath.clamp_offset_to_safe_frustum(
+				actual_disp,
+				current_base_offset,
+				fixed_basis,
+				current_vp_size,
+				CameraMath.FIXED_FOV,
+				CameraMath.DEFAULT_SAFE_FRUSTUM_MARGIN
+			)
+			if safe_disp.length_squared() < actual_disp.length_squared() - 0.0001:
+				global_position = target.global_position + current_base_offset + safe_disp
 
 	# Ensure orientation remains strictly fixed after translation
 	transform.basis = fixed_basis

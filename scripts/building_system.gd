@@ -53,6 +53,8 @@ var preview_mesh: MeshInstance3D = null
 var green_mat: StandardMaterial3D = null
 var red_mat: StandardMaterial3D = null
 
+var mouse_override: Vector2 = Vector2(-9999, -9999)
+
 func _ready() -> void:
 	wallet.resources_changed.connect(_on_wallet_resources_changed)
 	setup_materials()
@@ -60,6 +62,7 @@ func _ready() -> void:
 	_on_wallet_resources_changed(wallet.get_wood(), wallet.get_stone(), wallet.get_iron())
 
 func _on_wallet_resources_changed(wood: int, stone: int, iron: int) -> void:
+	emit_signal("resources_updated", wood, stone, iron)
 	var eb = get_node_or_null("/root/EventBus")
 	if eb and eb.has_signal("resources_changed"):
 		eb.resources_changed.emit(wood, stone, iron)
@@ -210,7 +213,7 @@ func get_aimed_grid_position() -> Vector3:
 	var cam: Camera3D = vp.get_camera_3d()
 	if not cam: return Vector3.ZERO
 
-	var mouse_pos: Vector2 = vp.get_mouse_position()
+	var mouse_pos: Vector2 = mouse_override if mouse_override.x >= 0.0 else vp.get_mouse_position()
 	var ray_origin: Vector3 = cam.project_ray_origin(mouse_pos)
 	var ray_normal: Vector3 = cam.project_ray_normal(mouse_pos)
 
