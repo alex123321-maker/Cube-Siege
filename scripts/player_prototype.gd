@@ -207,14 +207,19 @@ func _ready() -> void:
 
 	# Connect component signals to root
 	health.health_changed.connect(func(cur, mx): health_changed.emit(cur, mx))
-	health.parry_triggered.connect(func(succ): parry_triggered.emit(succ))
+	health.parry_triggered.connect(func(succ):
+		if succ:
+			orientation.cancel_pending_action()
+		parry_triggered.emit(succ)
+	)
 	health.player_died.connect(func():
 		orientation.cancel_pending_action()
 		player_died.emit()
 	)
-	progression.xp_changed.connect(func(cur, mx, lvl): xp_changed.emit(cur, mx, lvl))
-	progression.level_up_reached.connect(func(lvl): level_up_reached.emit(lvl))
-	movement.dash_performed.connect(func(): dash_performed.emit())
+	movement.dash_performed.connect(func():
+		orientation.cancel_pending_action()
+		dash_performed.emit()
+	)
 
 	# Interaction sensor setup if present
 	var sensor = get_node_or_null("InteractionSensor") as Area3D
@@ -420,10 +425,16 @@ func perform_ultimate() -> void:
 	match current_class:
 		CharacterClass.WARRIOR:
 			var target: Node3D = find_target_near_mouse()
-			var target_dir: Vector3 = (target.global_position - global_position).normalized() if target else orientation.aim_direction
+			if not target:
+				spawn_popup_text("НЕТ ЦЕЛИ ДЛЯ ДУЭЛИ!", Color.ORANGE)
+				return
+			var target_id: int = target.get_instance_id()
+			var target_dir: Vector3 = (target.global_position - global_position).normalized()
 			orientation.request_action(
 				"ultimate",
-				func(): abilities.perform_warrior_ultimate(self, target),
+				func():
+					var resolved_target = instance_from_id(target_id) as Node3D
+					abilities.perform_warrior_ultimate(self, resolved_target, true),
 				true,
 				deg_to_rad(25.0),
 				target_dir

@@ -198,7 +198,6 @@ func request_action(
 	custom_target_dir: Vector3 = Vector3.ZERO
 ) -> bool:
 	if not requires_facing:
-		pending_action = {}
 		if action_callable.is_valid():
 			action_callable.call()
 		return true
