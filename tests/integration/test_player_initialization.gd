@@ -15,6 +15,7 @@ func test_player_initialization_defaults_warrior() -> void:
 	assert_not_null(player.presentation)
 	assert_not_null(player.combat)
 	assert_not_null(player.abilities)
+	assert_not_null(player.orientation)
 	
 	assert_eq(player.current_class, player.CharacterClass.WARRIOR)
 	assert_eq(player.max_health, 100.0)
@@ -79,4 +80,30 @@ func test_mastery_multipliers_applied_and_not_wiped_by_set_class() -> void:
 		# Reset slot
 		roster.slots[0].survival = 0
 		roster.slots[0].bloodlust = 0
+
+func test_player_root_retransmits_progression_signals() -> void:
+	var player = PLAYER_SCENE.instantiate()
+	add_child_autoqfree(player)
+
+	var xp_emitted: Array[Dictionary] = []
+	var lvl_emitted: Array[int] = []
+
+	player.xp_changed.connect(func(cur, mx, lvl):
+		xp_emitted.append({"current": cur, "max": mx, "level": lvl})
+	)
+	player.level_up_reached.connect(func(lvl):
+		lvl_emitted.append(lvl)
+	)
+
+	# Add XP: base xp_to_next_level is 100. Adding 50 XP triggers xp_changed
+	player.add_xp(50.0)
+	assert_eq(xp_emitted.size(), 1, "Player.xp_changed root signal must be emitted upon gaining XP")
+	assert_almost_eq(xp_emitted[0].current, 50.0, 0.01)
+	assert_eq(lvl_emitted.size(), 0, "Level up should not have triggered yet")
+
+	# Add 100 XP more: triggers level up and xp_changed
+	player.add_xp(100.0)
+	assert_gt(xp_emitted.size(), 1, "Player.xp_changed must be emitted on level up as well")
+	assert_eq(lvl_emitted.size(), 1, "Player.level_up_reached root signal must be emitted on level up")
+	assert_eq(lvl_emitted[0], 2, "Level reached must be 2")
 

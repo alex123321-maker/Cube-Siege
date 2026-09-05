@@ -41,7 +41,7 @@ func perform_dash(facing_dir: Vector3) -> bool:
 	dash_performed.emit()
 	return true
 
-func process_movement(body: CharacterBody3D, delta: float, forced_target: Node3D = null) -> Vector3:
+func process_movement(body: CharacterBody3D, delta: float, forced_target: Node3D = null, speed_multiplier: float = 1.0) -> Vector3:
 	var move_dir: Vector3 = Vector3.ZERO
 
 	if forced_target and is_instance_valid(forced_target):
@@ -64,8 +64,9 @@ func process_movement(body: CharacterBody3D, delta: float, forced_target: Node3D
 
 		if direction.length_squared() > 0.001:
 			move_dir = direction.normalized()
-			body.velocity.x = move_dir.x * speed
-			body.velocity.z = move_dir.z * speed
+			var effective_speed: float = speed * speed_multiplier
+			body.velocity.x = move_dir.x * effective_speed
+			body.velocity.z = move_dir.z * effective_speed
 		else:
 			body.velocity.x = move_toward(body.velocity.x, 0.0, speed)
 			body.velocity.z = move_toward(body.velocity.z, 0.0, speed)

@@ -22,6 +22,10 @@ var interaction: PlayerInteraction = PlayerInteraction.new()
 var presentation: PlayerPresentation = PlayerPresentation.new()
 var combat: PlayerCombat = PlayerCombat.new()
 var abilities: PlayerAbilities = PlayerAbilities.new()
+var orientation: PlayerOrientation = PlayerOrientation.new()
+
+@export var orientation_settings: PlayerOrientationSettings = null
+@export var debug_orientation: bool = false
 
 # Delegated properties for external API compatibility
 var speed: float:
@@ -83,6 +87,35 @@ var parry_cooldown_timer: float:
 var focused_interactable: Node:
 	get: return interaction.focused_interactable
 	set(val): interaction.focused_interactable = val
+
+# Delegated orientation properties
+var body_facing_direction: Vector3:
+	get: return orientation.body_facing_direction
+
+var aim_direction: Vector3:
+	get: return orientation.aim_direction
+
+var move_direction: Vector3:
+	get: return orientation.move_direction
+
+var directional_speed_multiplier: float:
+	get: return orientation.directional_speed_multiplier
+
+var body_aim_angle: float:
+	get: return orientation.body_aim_angle
+
+var body_move_angle: float:
+	get: return orientation.body_move_angle
+
+var angular_velocity: float:
+	get: return orientation.angular_velocity
+
+var is_turning: bool:
+	get: return orientation.is_turning
+
+var is_action_pending: bool:
+	get: return orientation.is_action_pending()
+
 
 # External system paths & resolved references
 @export var building_system_path: NodePath = NodePath("../BuildingSystem")
@@ -164,13 +197,31 @@ func _ready() -> void:
 	add_to_group("player")
 	presentation.setup(self)
 
+	if orientation_settings:
+		orientation.settings = orientation_settings
+	var initial_fwd: Vector3 = -global_transform.basis.z
+	initial_fwd.y = 0.0
+	orientation.setup(initial_fwd if initial_fwd.length_squared() > 0.01 else Vector3(0.0, 0.0, -1.0))
+	if debug_orientation:
+		orientation.set_debug_enabled(true, self)
+
 	# Connect component signals to root
 	health.health_changed.connect(func(cur, mx): health_changed.emit(cur, mx))
-	health.parry_triggered.connect(func(succ): parry_triggered.emit(succ))
-	health.player_died.connect(func(): player_died.emit())
+	health.parry_triggered.connect(func(succ):
+		if succ:
+			orientation.cancel_pending_action()
+		parry_triggered.emit(succ)
+	)
+	health.player_died.connect(func():
+		orientation.cancel_pending_action()
+		player_died.emit()
+	)
 	progression.xp_changed.connect(func(cur, mx, lvl): xp_changed.emit(cur, mx, lvl))
 	progression.level_up_reached.connect(func(lvl): level_up_reached.emit(lvl))
-	movement.dash_performed.connect(func(): dash_performed.emit())
+	movement.dash_performed.connect(func():
+		orientation.cancel_pending_action()
+		dash_performed.emit()
+	)
 
 	# Interaction sensor setup if present
 	var sensor = get_node_or_null("InteractionSensor") as Area3D
@@ -223,6 +274,19 @@ func _physics_process(delta: float) -> void:
 	combat.update_timers(delta)
 	abilities.update_timers(delta, self)
 
+	# Locomotion and aim directions computed before action inputs
+	var input_dir: Vector2 = Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	var raw_move_dir: Vector3 = Vector3(input_dir.x, 0.0, input_dir.y)
+	if raw_move_dir.length_squared() > 0.001:
+		raw_move_dir = raw_move_dir.normalized()
+	else:
+		raw_move_dir = Vector3.ZERO
+
+	var deadzone: float = orientation.settings.aim_deadzone if orientation.settings else 0.6
+	var target_aim: Vector3 = aim.handle_aim(self, duel_target if is_dueling else null, deadzone)
+	if target_aim.length_squared() > 0.001:
+		orientation.aim_direction = Vector3(target_aim.x, 0.0, target_aim.z).normalized()
+
 	# Action inputs
 	if Input.is_action_just_pressed("dash"):
 		movement.perform_dash(-global_transform.basis.z)
@@ -241,9 +305,16 @@ func _physics_process(delta: float) -> void:
 
 	# Subsystem processing
 	interaction.process_interaction(self, delta)
-	movement.process_movement(self, delta, duel_target if is_dueling else null)
-	aim.handle_aim(self, duel_target if is_dueling else null)
+
+	orientation.process_orientation(self, delta, target_aim, raw_move_dir)
+	movement.process_movement(self, delta, duel_target if is_dueling else null, orientation.directional_speed_multiplier)
 	presentation.update_animations(self, health.is_parrying, movement.is_dashing)
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_F3:
+			debug_orientation = not debug_orientation
+			orientation.set_debug_enabled(debug_orientation, self)
 
 func take_damage(damage: float, attacker: Node = null) -> void:
 	health.take_damage(damage, attacker, movement.is_dashing, is_dueling, duel_target, self)
@@ -301,13 +372,30 @@ func set_class(new_class: CharacterClass, show_popup: bool = true) -> void:
 			if show_popup: spawn_popup_text("КЛАСС: ИНЖЕНЕР [МОЛОТ & ТУРЕЛИ]", Color(1.0, 0.6, 0.2))
 
 func perform_attack() -> void:
-	combat.perform_attack(self, int(current_class), movement.is_dashing, abilities.is_dueling)
+	if combat.attack_cooldown_timer > 0.0 or movement.is_dashing:
+		return
+	orientation.request_action(
+		"attack",
+		func(): combat.perform_attack(self, int(current_class), movement.is_dashing, abilities.is_dueling),
+		true
+	)
 
 func perform_special_attack() -> void:
-	combat.perform_special_attack(self, int(current_class), movement.is_dashing, abilities.is_dueling, abilities)
+	if combat.special_cooldown_timer > 0.0 or movement.is_dashing:
+		return
+	orientation.request_action(
+		"special",
+		func(): combat.perform_special_attack(self, int(current_class), movement.is_dashing, abilities.is_dueling, abilities),
+		true
+	)
 
 func perform_utility() -> void:
-	abilities.perform_utility(self, int(current_class))
+	# Utility actions (Parry, Decoy, Mine) do not require facing
+	orientation.request_action(
+		"utility",
+		func(): abilities.perform_utility(self, int(current_class)),
+		false
+	)
 
 func perform_parry() -> void:
 	abilities.perform_parry(self)
@@ -316,7 +404,49 @@ func perform_dash() -> void:
 	movement.perform_dash(-global_transform.basis.z)
 
 func perform_ultimate() -> void:
-	abilities.perform_ultimate(self, int(current_class))
+	if abilities.ultimate_cooldown_timer > 0.0:
+		return
+	match current_class:
+		CharacterClass.WARRIOR:
+			var target: Node3D = find_target_near_mouse()
+			if not target:
+				spawn_popup_text("НЕТ ЦЕЛИ ДЛЯ ДУЭЛИ!", Color.ORANGE)
+				return
+			var target_id: int = target.get_instance_id()
+			var target_dir_provider: Callable = func() -> Vector3:
+				var t = instance_from_id(target_id) as Node3D
+				if not t or not is_instance_valid(t) or not t.is_inside_tree():
+					return Vector3.ZERO
+				if "current_health" in t and t.current_health <= 0.0:
+					return Vector3.ZERO
+				var diff: Vector3 = t.global_position - global_position
+				diff.y = 0.0
+				return diff.normalized()
+
+			orientation.request_action(
+				"ultimate",
+				func():
+					var resolved_target = instance_from_id(target_id) as Node3D
+					abilities.perform_warrior_ultimate(self, resolved_target, true),
+				true,
+				-1.0,
+				Vector3.ZERO,
+				target_dir_provider
+			)
+		CharacterClass.ARCHER:
+			# Eagle Eye is a self-buff, does not require facing
+			orientation.request_action(
+				"ultimate",
+				func(): abilities.perform_ultimate(self, int(current_class)),
+				false
+			)
+		CharacterClass.ENGINEER:
+			# Tactical Nuke strikes from orbit, does not require body facing
+			orientation.request_action(
+				"ultimate",
+				func(): abilities.perform_ultimate(self, int(current_class)),
+				false
+			)
 
 func end_duel() -> void:
 	abilities.end_duel(self)

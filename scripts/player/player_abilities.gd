@@ -37,6 +37,8 @@ func perform_utility(player: CharacterBody3D, current_class: int) -> void:
 
 func perform_parry(player: CharacterBody3D) -> void:
 	if player.health.trigger_parry(0.5, 6.0):
+		if player.orientation:
+			player.orientation.cancel_pending_action()
 		var vfx = player.get_node_or_null("/root/VFXManager")
 		if vfx:
 			active_parry_aura = vfx.spawn_parry_stance_aura(player, 0.5)
@@ -49,23 +51,39 @@ func perform_parry(player: CharacterBody3D) -> void:
 				anim_player.stop()
 				anim_player.play("block")
 
-func perform_ultimate(player: CharacterBody3D, current_class: int) -> void:
+func perform_ultimate(player: CharacterBody3D, current_class: int, locked_target: Node3D = null, target_was_locked: bool = false) -> void:
 	if ultimate_cooldown_timer > 0.0:
 		return
 
 	match current_class:
 		0: # CharacterClass.WARRIOR
-			perform_warrior_ultimate(player)
+			perform_warrior_ultimate(player, locked_target, target_was_locked or (locked_target != null))
 		1: # CharacterClass.ARCHER
 			perform_archer_ultimate(player)
 		2: # CharacterClass.ENGINEER
 			perform_engineer_ultimate(player)
 
-func perform_warrior_ultimate(player: CharacterBody3D) -> void:
-	var target: Node3D = find_target_near_mouse(player)
-	if not target:
+func perform_warrior_ultimate(player: CharacterBody3D, locked_target: Node3D = null, target_was_locked: bool = false) -> void:
+	var is_locked: bool = target_was_locked or (locked_target != null)
+	var target: Node3D = locked_target
+	if is_locked:
+		# If a locked target was specified, it must remain valid and alive; automatic retarget is strictly forbidden
+		if not _is_actor_alive(locked_target):
+			player.spawn_popup_text("ЦЕЛЬ ПОТЕРЯНА!", Color.ORANGE)
+			return
+		target = locked_target
+	else:
+		target = find_target_near_mouse(player)
+		if not target:
+			player.spawn_popup_text("НЕТ ЦЕЛИ ДЛЯ ДУЭЛИ!", Color.ORANGE)
+			return
+
+	if not _is_actor_alive(target):
 		player.spawn_popup_text("НЕТ ЦЕЛИ ДЛЯ ДУЭЛИ!", Color.ORANGE)
 		return
+
+	if player.orientation:
+		player.orientation.cancel_pending_action()
 
 	is_dueling = true
 	duel_target = target
@@ -89,6 +107,8 @@ func perform_warrior_ultimate(player: CharacterBody3D) -> void:
 func perform_archer_ultimate(player: CharacterBody3D) -> void:
 	if is_eagle_eye:
 		return
+	if player.orientation:
+		player.orientation.cancel_pending_action()
 	ultimate_cooldown_timer = 25.0
 	is_eagle_eye = true
 
@@ -107,6 +127,8 @@ func perform_archer_ultimate(player: CharacterBody3D) -> void:
 		t.tween_property(cam, "size", 34.0, 0.5)
 
 func perform_engineer_ultimate(player: CharacterBody3D) -> void:
+	if player.orientation:
+		player.orientation.cancel_pending_action()
 	ultimate_cooldown_timer = 60.0
 	var target_pos: Vector3 = get_nuke_target_position(player)
 
@@ -216,17 +238,23 @@ func find_target_near_mouse(player: CharacterBody3D) -> Node3D:
 	var closest: Node3D = null
 	var min_dist: float = 14.0
 	for e in enemies:
-		if e and is_instance_valid(e) and e is Node3D:
+		if e and is_instance_valid(e) and e is Node3D and _is_actor_alive(e):
 			var d = target_pos.distance_to((e as Node3D).global_position)
 			if d < min_dist:
 				min_dist = d
 				closest = e as Node3D
 	return closest
 
-func _is_actor_alive(player: Variant) -> bool:
-	if not is_instance_valid(player) or not (player is Node) or not player.is_inside_tree():
+func _is_actor_alive(actor: Variant) -> bool:
+	if not is_instance_valid(actor) or not (actor is Node) or not actor.is_inside_tree():
 		return false
-	if "current_health" in player and player.current_health <= 0.0:
+	if actor.is_queued_for_deletion():
+		return false
+	var hp = actor.get("current_health")
+	if hp != null and float(hp) <= 0.0:
+		return false
+	var dead = actor.get("is_dead")
+	if dead != null and bool(dead):
 		return false
 	return true
 
@@ -242,6 +270,8 @@ func toggle_remote_mine(player: CharacterBody3D) -> void:
 	if not _is_actor_alive(player):
 		return
 	if is_instance_valid(active_remote_mine):
+		if player.orientation:
+			player.orientation.cancel_pending_action()
 		if player.presentation:
 			player.presentation.play_utility_animation()
 		active_remote_mine.detonate(player)
@@ -251,6 +281,8 @@ func toggle_remote_mine(player: CharacterBody3D) -> void:
 		if player.parry_cooldown_timer > 0.0:
 			player.spawn_popup_text("MINE RECHARGING...", Color.GRAY)
 			return
+		if player.orientation:
+			player.orientation.cancel_pending_action()
 		if player.presentation:
 			player.presentation.play_utility_animation()
 		active_remote_mine = REMOTE_MINE_SCENE.instantiate()
@@ -263,6 +295,8 @@ func deploy_decoy(player: CharacterBody3D) -> void:
 		if _is_actor_alive(player):
 			player.spawn_popup_text("DECOY RECHARGING...", Color.GRAY)
 		return
+	if player.orientation:
+		player.orientation.cancel_pending_action()
 	player.parry_cooldown_timer = 12.0
 	if player.presentation:
 		player.presentation.play_utility_animation()

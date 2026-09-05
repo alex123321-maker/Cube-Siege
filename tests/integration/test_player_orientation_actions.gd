@@ -1,0 +1,479 @@
+extends GutTest
+
+## Integration tests for PlayerOrientation action buffering, movement scaling, death cancellation, and building decoupling (Issue #11).
+
+const PLAYER_SCENE = preload("res://scenes/player.tscn")
+const BuildingSystem = preload("res://scripts/building_system.gd")
+const ENEMY_DUMMY_SCENE = preload("res://scenes/enemy_dummy.tscn")
+
+func after_each() -> void:
+	Input.action_release("move_up")
+	Input.action_release("move_down")
+	Input.action_release("move_left")
+	Input.action_release("move_right")
+
+func test_wasd_immediate_movement_and_does_not_rotate_body() -> void:
+	var player = PLAYER_SCENE.instantiate()
+	add_child_autoqfree(player)
+
+	# Ensure default forward orientation (North, -Z)
+	player.orientation.setup(Vector3(0.0, 0.0, -1.0))
+	assert_almost_eq(player.body_facing_direction.z, -1.0, 0.01)
+
+	# Simulate WASD rightward movement (East, +X)
+	Input.action_press("move_right")
+	player.movement.process_movement(player, 0.016, null, 1.0)
+	Input.action_release("move_right")
+
+	# Movement velocity starts immediately
+	assert_gt(player.velocity.x, 0.0, "WASD movement starts immediately")
+	# Movement should not automatically rotate the body
+	assert_almost_eq(player.body_facing_direction.z, -1.0, 0.01, "WASD movement should not rotate body facing")
+
+func test_backward_and_strafe_speed_scaled_by_curve() -> void:
+	var player = PLAYER_SCENE.instantiate()
+	add_child_autoqfree(player)
+	player.orientation.setup(Vector3(0.0, 0.0, -1.0))
+
+	# 1. Moving forward: 0° -> multiplier 1.0
+	player.orientation.process_orientation(player, 0.016, Vector3(0, 0, -1), Vector3(0, 0, -1))
+	assert_almost_eq(player.directional_speed_multiplier, 1.0, 0.02)
+	Input.action_press("move_up")
+	player.movement.process_movement(player, 0.016, null, player.directional_speed_multiplier)
+	Input.action_release("move_up")
+	assert_almost_eq(absf(player.velocity.z), player.speed * 1.0, 0.1)
+
+	# 2. Moving backward: 180° -> multiplier 0.50
+	player.orientation.process_orientation(player, 0.016, Vector3(0, 0, -1), Vector3(0, 0, 1))
+	assert_almost_eq(player.directional_speed_multiplier, 0.50, 0.03)
+	Input.action_press("move_down")
+	player.movement.process_movement(player, 0.016, null, player.directional_speed_multiplier)
+	Input.action_release("move_down")
+	assert_almost_eq(absf(player.velocity.z), player.speed * 0.50, 0.1)
+
+func test_attack_within_tolerance_executes_immediately() -> void:
+	var player = PLAYER_SCENE.instantiate()
+	add_child_autoqfree(player)
+	player.orientation.setup(Vector3(0.0, 0.0, -1.0))
+	player.combat.attack_cooldown_timer = 0.0
+
+	var state: Array[bool] = [false]
+	var test_action = func(): state[0] = true
+
+	# Action within tolerance executes immediately
+	var immediate: bool = player.orientation.request_action("test_atk", test_action, true, deg_to_rad(20.0), Vector3(0, 0, -1))
+	assert_true(immediate, "Action in front should execute immediately")
+	assert_true(state[0], "Callback should have fired immediately")
+	assert_false(player.orientation.is_action_pending(), "No action should be pending in buffer")
+
+func test_buffered_action_turns_and_auto_executes() -> void:
+	var player = PLAYER_SCENE.instantiate()
+	add_child_autoqfree(player)
+	player.orientation.setup(Vector3(0.0, 0.0, -1.0))
+
+	var state: Array[bool] = [false]
+	var test_action = func(): state[0] = true
+
+	# Request action behind (180° away)
+	var target_behind = Vector3(0.0, 0.0, 1.0)
+	var immediate: bool = player.orientation.request_action("test_behind", test_action, true, deg_to_rad(15.0), target_behind)
+	assert_false(immediate, "Action behind should not execute immediately")
+	assert_false(state[0], "Callback should not fire immediately")
+	assert_true(player.orientation.is_action_pending(), "Action should be queued in pending buffer")
+
+	# Simulate physics process frames until rotation completes
+	var max_frames: int = 60
+	while player.orientation.is_action_pending() and max_frames > 0:
+		player.orientation.process_orientation(player, 0.016, target_behind, Vector3.ZERO)
+		max_frames -= 1
+
+	assert_false(player.orientation.is_action_pending(), "Pending action should be cleared after auto-execution")
+	assert_true(state[0], "Buffered action should automatically execute once facing tolerance is reached")
+
+func test_cancel_buffered_action_on_player_death() -> void:
+	var player = PLAYER_SCENE.instantiate()
+	add_child_autoqfree(player)
+	player.orientation.setup(Vector3(0.0, 0.0, -1.0))
+
+	var state: Array[bool] = [false]
+	var test_action = func(): state[0] = true
+
+	# Buffer action behind
+	player.orientation.request_action("test_death", test_action, true, deg_to_rad(15.0), Vector3(0, 0, 1))
+	assert_true(player.orientation.is_action_pending())
+
+	# Player takes lethal damage
+	player.take_damage(9999.0)
+	assert_false(player.orientation.is_action_pending(), "Pending action must be canceled upon player death")
+	assert_false(state[0], "Canceled action must never execute")
+
+func test_non_directional_actions_execute_without_facing_requirement() -> void:
+	var player = PLAYER_SCENE.instantiate()
+	add_child_autoqfree(player)
+	player.set_class(player.CharacterClass.WARRIOR, false)
+	player.orientation.setup(Vector3(0.0, 0.0, -1.0))
+	player.orientation.aim_direction = Vector3(0.0, 0.0, 1.0) # Aiming 180° behind
+
+	# Warrior Utility: Parry stance does not require facing
+	player.health.parry_cooldown_timer = 0.0
+	player.perform_utility()
+
+	assert_true(player.health.is_parrying, "Parry stance must activate immediately without waiting for turn")
+	assert_false(player.orientation.is_action_pending(), "Utility must not be placed in orientation pending buffer")
+
+func test_building_placement_without_facing_requirement() -> void:
+	var player = PLAYER_SCENE.instantiate()
+	add_child_autoqfree(player)
+	player.orientation.setup(Vector3(0.0, 0.0, -1.0))
+
+	var building_system = BuildingSystem.new()
+	add_child_autoqfree(building_system)
+
+	# Give plenty of resources for placement
+	building_system.wallet.add_resource(50, 50, 50)
+	building_system.select_prefab(building_system.PrefabType.WOOD_WALL)
+
+	var target_cell = Vector2i(4, 4)
+	var target_pos = Vector3(4.0, 0.0, 4.0)
+
+	# Even though player is facing North (-Z), building at (4, 4) succeeds immediately
+	building_system.place_building(target_pos, target_cell, building_system.PrefabType.WOOD_WALL)
+	assert_true(building_system.placed_buildings.has(target_cell), "Building should be placed immediately regardless of player body facing direction")
+	assert_false(player.orientation.is_action_pending(), "Building system must never queue into player orientation buffer")
+
+func test_buffered_attack_tracks_moving_aim_during_turn() -> void:
+	var player = PLAYER_SCENE.instantiate()
+	add_child_autoqfree(player)
+	player.orientation.setup(Vector3(0.0, 0.0, -1.0)) # Facing North (-Z)
+	player.set_class(player.CharacterClass.WARRIOR, false)
+	player.combat.attack_cooldown_timer = 0.0
+
+	# Initial aim is East (+X), outside 20° warrior attack tolerance
+	player.orientation.aim_direction = Vector3(1.0, 0.0, 0.0)
+	var fired: Array[bool] = [false]
+	var fire_facing: Array[Vector3] = [Vector3.ZERO]
+	var attack_cb = func():
+		fired[0] = true
+		fire_facing[0] = player.orientation.body_facing_direction
+
+	# Request attack without custom target dir (like perform_attack)
+	var immediate: bool = player.orientation.request_action("attack", attack_cb, true, deg_to_rad(20.0))
+	assert_false(immediate, "Attack should buffer because angle is 90° > 20°")
+	assert_true(player.orientation.is_action_pending())
+
+	# Rotate for a few frames towards East
+	for i in range(3):
+		player.orientation.process_orientation(player, 0.016, Vector3(1.0, 0.0, 0.0), Vector3.ZERO)
+
+	assert_false(fired[0], "Should not have fired yet")
+
+	# Now player swings mouse to South (+Z) before reaching East
+	var new_aim: Vector3 = Vector3(0.0, 0.0, 1.0)
+	var max_frames: int = 100
+	while player.orientation.is_action_pending() and max_frames > 0:
+		player.orientation.process_orientation(player, 0.016, new_aim, Vector3.ZERO)
+		max_frames -= 1
+
+	assert_true(fired[0], "Attack should fire once facing updated aim")
+	assert_false(player.orientation.is_action_pending())
+	# Facing should be within tolerance cone of updated aim (South), NOT stale initial aim (East)
+	assert_lt(fire_facing[0].angle_to(new_aim), deg_to_rad(20.0) + 0.01, "Attack must fire facing within tolerance of updated aim (South)")
+	assert_gt(fire_facing[0].angle_to(Vector3(1.0, 0.0, 0.0)), deg_to_rad(60.0), "Attack must not fire toward stale initial aim (East)")
+
+func test_non_directional_action_clears_buffered_attack() -> void:
+	var player = PLAYER_SCENE.instantiate()
+	add_child_autoqfree(player)
+	player.orientation.setup(Vector3(0.0, 0.0, -1.0))
+	player.set_class(player.CharacterClass.WARRIOR, false)
+
+	var attack_fired: Array[bool] = [false]
+	var attack_cb = func(): attack_fired[0] = true
+
+	# Buffer attack behind (South)
+	player.orientation.aim_direction = Vector3(0.0, 0.0, 1.0)
+	player.orientation.request_action("attack", attack_cb, true, deg_to_rad(20.0))
+	assert_true(player.orientation.is_action_pending(), "Attack should be pending")
+
+	# Trigger non-directional utility action (Parry)
+	player.health.parry_cooldown_timer = 0.0
+	player.perform_utility()
+
+	assert_true(player.health.is_parrying, "Parry should activate immediately")
+	assert_false(player.orientation.is_action_pending(), "Non-directional action must clear buffered pending attack")
+
+	# Simulate further rotation frames to South
+	for i in range(30):
+		player.orientation.process_orientation(player, 0.016, Vector3(0.0, 0.0, 1.0), Vector3.ZERO)
+
+	assert_false(attack_fired[0], "Buffered attack was cleared and must never auto-execute")
+
+func test_warrior_ultimate_locks_initial_target_when_mouse_moves() -> void:
+	var player = PLAYER_SCENE.instantiate()
+	add_child_autoqfree(player)
+	player.set_class(player.CharacterClass.WARRIOR, false)
+	player.orientation.setup(Vector3(0.0, 0.0, -1.0))
+	player.abilities.ultimate_cooldown_timer = 0.0
+
+	# Create two mock enemies
+	var enemy_a = Node3D.new()
+	enemy_a.name = "EnemyA"
+	enemy_a.add_to_group("enemies")
+	add_child_autoqfree(enemy_a)
+	enemy_a.global_position = player.global_position + Vector3(5.0, 0.0, 0.0) # East (+X)
+
+	var enemy_b = Node3D.new()
+	enemy_b.name = "EnemyB"
+	enemy_b.add_to_group("enemies")
+	add_child_autoqfree(enemy_b)
+	enemy_b.global_position = player.global_position + Vector3(-5.0, 0.0, 0.0) # West (-X)
+
+	# Direct ultimate request targeting enemy_a with dynamic provider
+	var target_id_a: int = enemy_a.get_instance_id()
+	var target_dir_provider = func() -> Vector3:
+		var t = instance_from_id(target_id_a) as Node3D
+		if not t or not is_instance_valid(t) or not t.is_inside_tree():
+			return Vector3.ZERO
+		var diff = t.global_position - player.global_position
+		diff.y = 0.0
+		return diff.normalized()
+	player.orientation.request_action(
+		"ultimate",
+		func():
+			var resolved = instance_from_id(target_id_a) as Node3D
+			player.abilities.perform_warrior_ultimate(player, resolved, true),
+		true,
+		-1.0,
+		Vector3.ZERO,
+		target_dir_provider
+	)
+	assert_true(player.orientation.is_action_pending(), "Ultimate should be pending because 90° > 15°")
+
+	# While turning towards Enemy A, simulate mouse moving to Enemy B
+	var max_frames: int = 60
+	while player.orientation.is_action_pending() and max_frames > 0:
+		# Mouse points to West (enemy_b), but ultimate was locked on enemy_a
+		player.orientation.process_orientation(player, 0.016, Vector3(-1.0, 0.0, 0.0), Vector3.ZERO)
+		max_frames -= 1
+
+	assert_false(player.orientation.is_action_pending(), "Ultimate should have executed")
+	assert_true(player.abilities.is_dueling, "Player should be dueling")
+	assert_eq(player.abilities.duel_target, enemy_a, "Duel target must be locked target Enemy A, not Enemy B")
+	player.end_duel()
+
+func test_warrior_ultimate_dynamically_tracks_moving_target_and_does_not_fire_at_old_position() -> void:
+	var player = PLAYER_SCENE.instantiate()
+	add_child_autoqfree(player)
+	player.set_class(player.CharacterClass.WARRIOR, false)
+	player.orientation.setup(Vector3(0.0, 0.0, -1.0)) # Facing North (-Z)
+	player.abilities.ultimate_cooldown_timer = 0.0
+
+	# Create Enemy A initially at East (+X)
+	var enemy_a = Node3D.new()
+	enemy_a.name = "EnemyA"
+	enemy_a.add_to_group("enemies")
+	add_child_autoqfree(enemy_a)
+	enemy_a.global_position = player.global_position + Vector3(5.0, 0.0, 0.0) # East (+X)
+
+	var target_id_a: int = enemy_a.get_instance_id()
+	var target_dir_provider: Callable = func() -> Vector3:
+		var t = instance_from_id(target_id_a) as Node3D
+		if not t or not is_instance_valid(t) or not t.is_inside_tree():
+			return Vector3.ZERO
+		if "current_health" in t and t.current_health <= 0.0:
+			return Vector3.ZERO
+		var diff: Vector3 = t.global_position - player.global_position
+		diff.y = 0.0
+		return diff.normalized()
+
+	var fired: Array[bool] = [false]
+	var fire_facing: Array[Vector3] = [Vector3.ZERO]
+	var ultimate_cb = func():
+		fired[0] = true
+		fire_facing[0] = player.orientation.body_facing_direction
+		var resolved = instance_from_id(target_id_a) as Node3D
+		player.abilities.perform_warrior_ultimate(player, resolved, true)
+
+	var immediate: bool = player.orientation.request_action(
+		"ultimate",
+		ultimate_cb,
+		true,
+		-1.0,
+		Vector3.ZERO,
+		target_dir_provider
+	)
+	assert_false(immediate, "Ultimate must buffer because angle to East is 90° > base tolerance (~15°)")
+	assert_true(player.orientation.is_action_pending())
+
+	# Rotate for 3 frames towards initial target direction (East)
+	for i in range(3):
+		player.orientation.process_orientation(player, 0.016, Vector3.ZERO, Vector3.ZERO)
+
+	assert_false(fired[0], "Should not fire yet")
+
+	# Move Enemy A to South (+Z), 90° away from East!
+	enemy_a.global_position = player.global_position + Vector3(0.0, 0.0, 5.0)
+
+	# Rotate until the player reaches or passes the OLD direction (East, +X)
+	# Because Enemy A is now at South, reaching East must NOT fire the ultimate!
+	for i in range(25):
+		if player.orientation.body_facing_direction.angle_to(Vector3(1.0, 0.0, 0.0)) <= deg_to_rad(15.0):
+			assert_false(fired[0], "Ultimate must NOT execute towards stale initial direction (East)")
+			assert_true(player.orientation.is_action_pending(), "Ultimate must still be pending because actual target is at South")
+		player.orientation.process_orientation(player, 0.016, Vector3.ZERO, Vector3.ZERO)
+
+	# Now rotate until player faces Enemy A's actual new position (South)
+	var max_frames: int = 80
+	while player.orientation.is_action_pending() and max_frames > 0:
+		player.orientation.process_orientation(player, 0.016, Vector3.ZERO, Vector3.ZERO)
+		max_frames -= 1
+
+	assert_true(fired[0], "Ultimate must fire once player reaches facing tolerance to Enemy A's current position (South)")
+	assert_false(player.orientation.is_action_pending())
+	assert_true(player.abilities.is_dueling)
+	assert_eq(player.abilities.duel_target, enemy_a)
+	# Facing when fired must be within tolerance of actual position (South), NOT stale initial position (East)
+	assert_lt(fire_facing[0].angle_to(Vector3(0.0, 0.0, 1.0)), deg_to_rad(15.0) + 0.01, "Facing must be within tolerance of current position (South)")
+	assert_gt(fire_facing[0].angle_to(Vector3(1.0, 0.0, 0.0)), deg_to_rad(60.0), "Facing must NOT be towards stale position (East)")
+	player.end_duel()
+
+func test_failed_parry_on_cooldown_preserves_buffered_attack() -> void:
+	var player = PLAYER_SCENE.instantiate()
+	add_child_autoqfree(player)
+	player.orientation.setup(Vector3(0.0, 0.0, -1.0))
+	player.set_class(player.CharacterClass.WARRIOR, false)
+
+	var attack_fired: Array[bool] = [false]
+	var attack_cb = func(): attack_fired[0] = true
+
+	# Buffer attack behind (South, 180° away)
+	player.orientation.aim_direction = Vector3(0.0, 0.0, 1.0)
+	player.orientation.request_action("attack", attack_cb, true, deg_to_rad(20.0))
+	assert_true(player.orientation.is_action_pending(), "Attack should be pending in buffer")
+
+	# Put Parry on cooldown and attempt perform_utility()
+	player.health.parry_cooldown_timer = 4.0
+	player.perform_utility()
+
+	assert_false(player.health.is_parrying, "Parry must not activate while on cooldown")
+	assert_true(player.orientation.is_action_pending(), "Failed parry must NOT clear buffered attack")
+	assert_false(attack_fired[0], "Attack has not yet reached facing tolerance")
+
+	# Turn towards South (+Z) until facing tolerance is reached
+	var max_frames: int = 60
+	while player.orientation.is_action_pending() and max_frames > 0:
+		player.orientation.process_orientation(player, 0.016, Vector3(0.0, 0.0, 1.0), Vector3.ZERO)
+		max_frames -= 1
+
+	assert_false(player.orientation.is_action_pending(), "Buffer should be cleared after auto-execution")
+	assert_true(attack_fired[0], "Buffered attack must successfully execute after turn completes")
+
+func test_warrior_ultimate_cancels_if_locked_target_destroyed_without_retargeting() -> void:
+	var player = PLAYER_SCENE.instantiate()
+	add_child_autoqfree(player)
+	player.set_class(player.CharacterClass.WARRIOR, false)
+	player.orientation.setup(Vector3(0.0, 0.0, -1.0))
+	player.abilities.ultimate_cooldown_timer = 0.0
+
+	# Create locked enemy A and bystander enemy B
+	var enemy_a = Node3D.new()
+	enemy_a.name = "EnemyA"
+	enemy_a.add_to_group("enemies")
+	add_child_autoqfree(enemy_a)
+	enemy_a.global_position = player.global_position + Vector3(5.0, 0.0, 0.0) # East (+X)
+
+	var enemy_b = Node3D.new()
+	enemy_b.name = "EnemyB"
+	enemy_b.add_to_group("enemies")
+	add_child_autoqfree(enemy_b)
+	enemy_b.global_position = player.global_position + Vector3(-5.0, 0.0, 0.0) # West (-X)
+
+	var target_id_dead: int = enemy_a.get_instance_id()
+	var target_dir_provider = func() -> Vector3:
+		var t = instance_from_id(target_id_dead) as Node3D
+		if not t or not is_instance_valid(t) or not t.is_inside_tree():
+			return Vector3.ZERO
+		var diff = t.global_position - player.global_position
+		diff.y = 0.0
+		return diff.normalized()
+
+	player.orientation.request_action(
+		"ultimate",
+		func():
+			var resolved = instance_from_id(target_id_dead) as Node3D
+			player.abilities.perform_warrior_ultimate(player, resolved, true),
+		true,
+		-1.0,
+		Vector3.ZERO,
+		target_dir_provider
+	)
+	assert_true(player.orientation.is_action_pending(), "Ultimate should be pending")
+
+	# Enemy A is destroyed mid-turn
+	enemy_a.free()
+
+	# Player runs orientation process frames
+	var max_frames: int = 60
+	while player.orientation.is_action_pending() and max_frames > 0:
+		player.orientation.process_orientation(player, 0.016, Vector3(1.0, 0.0, 0.0), Vector3.ZERO)
+		max_frames -= 1
+
+	assert_false(player.orientation.is_action_pending(), "Action should be cancelled when target is destroyed")
+	assert_false(player.abilities.is_dueling, "Duel must NOT start when locked target was destroyed")
+	assert_null(player.abilities.duel_target, "Duel target must remain null (no automatic retargeting to Enemy B)")
+
+func test_warrior_ultimate_cancels_if_locked_target_dies_in_tree_without_retargeting() -> void:
+	var player = PLAYER_SCENE.instantiate()
+	add_child_autoqfree(player)
+	player.set_class(player.CharacterClass.WARRIOR, false)
+	player.orientation.setup(Vector3(0.0, 0.0, -1.0))
+	player.abilities.ultimate_cooldown_timer = 0.0
+
+	# Create real EnemyDummy instances with authentic combat and death lifecycle
+	var enemy_a = ENEMY_DUMMY_SCENE.instantiate()
+	enemy_a.name = "EnemyA"
+	add_child_autoqfree(enemy_a)
+	enemy_a.global_position = player.global_position + Vector3(5.0, 0.0, 0.0) # East (+X)
+
+	var enemy_b = ENEMY_DUMMY_SCENE.instantiate()
+	enemy_b.name = "EnemyB"
+	add_child_autoqfree(enemy_b)
+	enemy_b.global_position = player.global_position + Vector3(-5.0, 0.0, 0.0) # West (-X)
+
+	var target_id_a: int = enemy_a.get_instance_id()
+	var target_dir_provider = func() -> Vector3:
+		var t = instance_from_id(target_id_a) as Node3D
+		if not t or not is_instance_valid(t) or not t.is_inside_tree():
+			return Vector3.ZERO
+		if "current_health" in t and t.current_health <= 0.0:
+			return Vector3.ZERO
+		var diff = t.global_position - player.global_position
+		diff.y = 0.0
+		return diff.normalized()
+
+	player.orientation.request_action(
+		"ultimate",
+		func():
+			var resolved = instance_from_id(target_id_a) as Node3D
+			player.abilities.perform_warrior_ultimate(player, resolved, true),
+		true,
+		-1.0,
+		Vector3.ZERO,
+		target_dir_provider
+	)
+	assert_true(player.orientation.is_action_pending(), "Ultimate should be pending")
+
+	# Enemy A receives lethal damage during turn: calls die(), starts 0.2s death tween
+	enemy_a._on_damaged(999.0, Vector3.ZERO, "physical", player)
+	assert_lte(enemy_a.current_health, 0.0, "Enemy A is dead (current_health <= 0)")
+	assert_true(is_instance_valid(enemy_a), "Enemy A is still a valid instance in memory during death tween")
+	assert_true(enemy_a.is_inside_tree(), "Enemy A is still inside SceneTree during death tween")
+
+	# Player runs orientation process frames
+	var max_frames: int = 60
+	while player.orientation.is_action_pending() and max_frames > 0:
+		player.orientation.process_orientation(player, 0.016, Vector3(1.0, 0.0, 0.0), Vector3.ZERO)
+		max_frames -= 1
+
+	assert_false(player.orientation.is_action_pending(), "Action should be cancelled when target dies")
+	assert_false(player.abilities.is_dueling, "Duel must NOT start with a dying enemy (current_health <= 0)")
+	assert_null(player.abilities.duel_target, "Duel target must remain null (no retargeting to enemy B)")
