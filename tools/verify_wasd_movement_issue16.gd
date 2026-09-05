@@ -215,67 +215,152 @@ func _run_verification() -> void:
 	print("[PASS] Scenario 6: Deadzone stability verified.")
 
 	# =========================================================================
-	# SCENARIO 7: Diagonals: W+D, W+A, S+D, S+A normalized & 45°
+	# SCENARIO 7: Diagonals: W+D, W+A, S+D, S+A across multiple Aim directions
 	# =========================================================================
-	_set_banner("[7/11] Diagonals (W+D, W+A, S+D, S+A)", "Strictly normalized vectors at 45° and 135° in local aim basis")
-	set_world_cursor.call(player.global_position + Vector3(0, 0, -8.0)) # Aim North
+	_set_banner("[7/11] Diagonals across Multiple Aims", "W+D, W+A, S+D, S+A normalized under North, East, South, West, and Diagonal Aim")
+
+	var test_aim_offsets = [
+		{"name": "Aim North", "offset": Vector3(0, 0, -8.0)},
+		{"name": "Aim East", "offset": Vector3(8.0, 0, 0)},
+		{"name": "Aim South", "offset": Vector3(0, 0, 8.0)},
+		{"name": "Aim West", "offset": Vector3(-8.0, 0, 0)},
+		{"name": "Aim North-East", "offset": Vector3(6.0, 0, -6.0)}
+	]
+
+	var diag_pairs = [
+		{"name": "W+D", "keys": ["move_up", "move_right"]},
+		{"name": "W+A", "keys": ["move_up", "move_left"]},
+		{"name": "S+D", "keys": ["move_down", "move_right"]},
+		{"name": "S+A", "keys": ["move_down", "move_left"]}
+	]
+
+	for aim_cfg in test_aim_offsets:
+		set_world_cursor.call(player.global_position + aim_cfg["offset"])
+		_set_banner("[7/11] Diagonals: " + aim_cfg["name"], "Normalized 45°/135° vectors relative to " + aim_cfg["name"])
+		for i in range(10):
+			await process_frame
+			_update_telemetry()
+			_maybe_record_frame()
+
+		for pair in diag_pairs:
+			Input.action_press(pair["keys"][0])
+			Input.action_press(pair["keys"][1])
+			for i in range(12):
+				await process_frame
+				_update_telemetry()
+				_maybe_record_frame()
+			Input.action_release(pair["keys"][0])
+			Input.action_release(pair["keys"][1])
+			for i in range(4):
+				await process_frame
+				_update_telemetry()
+				_maybe_record_frame()
+
+	_capture_screenshot("docs/screenshots/movement/07_diagonals_multidirectional.png")
+	print("[PASS] Scenario 7: Diagonals across multiple aims verified.")
+
+	# =========================================================================
+	# SCENARIO 8: Dash: W/S/A/D, 4 Diagonals, and Sharp Aim Snap Regression
+	# =========================================================================
+	_set_banner("[8/11] Aim-Relative Dash: All Directions & Snap", "W/S/A/D, 4 Diagonals, and Immediate Dash after Sharp Aim Snap")
+	set_world_cursor.call(player.global_position + Vector3(8.0, 0, 0)) # Aim East
 	for i in range(15):
 		await process_frame
 		_update_telemetry()
 		_maybe_record_frame()
 
-	var diag_pairs = [
-		["move_up", "move_right"],
-		["move_up", "move_left"],
-		["move_down", "move_right"],
-		["move_down", "move_left"]
+	var dash_tests = [
+		{"name": "Dash W (Forward)", "keys": ["move_up"]},
+		{"name": "Dash S (Backstep)", "keys": ["move_down"]},
+		{"name": "Dash A (Left Strafe)", "keys": ["move_left"]},
+		{"name": "Dash D (Right Strafe)", "keys": ["move_right"]},
+		{"name": "Dash W+D (Forward-Right)", "keys": ["move_up", "move_right"]},
+		{"name": "Dash W+A (Forward-Left)", "keys": ["move_up", "move_left"]},
+		{"name": "Dash S+D (Backward-Right)", "keys": ["move_down", "move_right"]},
+		{"name": "Dash S+A (Backward-Left)", "keys": ["move_down", "move_left"]}
 	]
-	for pair in diag_pairs:
-		Input.action_press(pair[0])
-		Input.action_press(pair[1])
-		for i in range(16):
-			await process_frame
-			_update_telemetry()
-			_maybe_record_frame()
-		Input.action_release(pair[0])
-		Input.action_release(pair[1])
-		for i in range(8):
+
+	for d_test in dash_tests:
+		_set_banner("[8/11] " + d_test["name"], "Aim East: dashing in relative direction")
+		for k in d_test["keys"]:
+			Input.action_press(k)
+		for i in range(4):
 			await process_frame
 			_update_telemetry()
 			_maybe_record_frame()
 
-	_capture_screenshot("docs/screenshots/movement/07_diagonals_multidirectional.png")
-	print("[PASS] Scenario 7: Diagonals verified.")
+		player.movement.dash_cooldown_timer = 0.0
+		Input.action_press("dash")
+		await process_frame
+		Input.action_release("dash")
 
-	# =========================================================================
-	# SCENARIO 8: Dash relative to AimDirection
-	# =========================================================================
-	_set_banner("[8/11] Aim-Relative Dash", "Dash follows relative MoveDirection in W/S/A/D and diagonals")
-	set_world_cursor.call(player.global_position + Vector3(8.0, 0, 0)) # Aim East
-	for i in range(20):
+		for i in range(12):
+			await process_frame
+			_update_telemetry()
+			_maybe_record_frame()
+
+		for k in d_test["keys"]:
+			Input.action_release(k)
+		for i in range(6):
+			await process_frame
+			_update_telemetry()
+			_maybe_record_frame()
+
+	# Sharp Aim Snap Regression: Moving North with W held -> Aim snaps 90° East -> Dash immediately East
+	_set_banner("[8/11] Dash Regression: Sharp 90° Snap", "W held moving North -> Aim snaps East -> Dash immediately fires East")
+	set_world_cursor.call(player.global_position + Vector3(0, 0, -8.0)) # Aim North
+	Input.action_press("move_up")
+	for i in range(10):
 		await process_frame
 		_update_telemetry()
 		_maybe_record_frame()
 
-	# Dash forward (East)
-	Input.action_press("move_up")
+	# Sharp snap to East and Dash in that frame
+	set_world_cursor.call(player.global_position + Vector3(8.0, 0, 0)) # Aim East
 	player.movement.dash_cooldown_timer = 0.0
 	Input.action_press("dash")
 	await process_frame
 	Input.action_release("dash")
-	for i in range(15):
+
+	for i in range(14):
 		await process_frame
 		_update_telemetry()
 		_maybe_record_frame()
 	Input.action_release("move_up")
 
-	for i in range(15):
+	for i in range(8):
+		await process_frame
+		_update_telemetry()
+		_maybe_record_frame()
+
+	# Sharp Aim Snap Regression 2: Pressing S -> Aim flips 180° West -> Dash retreat fires East
+	_set_banner("[8/11] Dash Regression: Sharp 180° Flip Retreat", "S held -> Aim flips West -> Dash retreat fires opposite to new aim (East)")
+	set_world_cursor.call(player.global_position + Vector3(8.0, 0, 0)) # Aim East
+	for i in range(8):
+		await process_frame
+		_update_telemetry()
+		_maybe_record_frame()
+
+	Input.action_press("move_down")
+	set_world_cursor.call(player.global_position + Vector3(-8.0, 0, 0)) # Sharp flip to West
+	player.movement.dash_cooldown_timer = 0.0
+	Input.action_press("dash")
+	await process_frame
+	Input.action_release("dash")
+
+	for i in range(14):
+		await process_frame
+		_update_telemetry()
+		_maybe_record_frame()
+	Input.action_release("move_down")
+
+	for i in range(10):
 		await process_frame
 		_update_telemetry()
 		_maybe_record_frame()
 
 	_capture_screenshot("docs/screenshots/movement/08_dash_relative.png")
-	print("[PASS] Scenario 8: Aim-relative dash verified.")
+	print("[PASS] Scenario 8: Aim-relative dash and snap regressions verified.")
 
 	# =========================================================================
 	# SCENARIO 9: forced_target: W to target, S away, A/D strafe around

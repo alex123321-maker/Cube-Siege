@@ -189,3 +189,109 @@ func test_peripheral_camera_pan_does_not_change_movement_basis() -> void:
 
 	assert_eq(basis_center["forward"], basis_panned["forward"], "Camera peripheral pan must not affect movement forward basis")
 	assert_eq(basis_center["right"], basis_panned["right"], "Camera peripheral pan must not affect movement right basis")
+
+func test_diagonals_normalized_across_multiple_aim_directions() -> void:
+	var player = PLAYER_SCENE.instantiate()
+	add_child_autoqfree(player)
+	player.global_position = Vector3.ZERO
+
+	var test_aims = [
+		Vector3(0.0, 0.0, -1.0), # North
+		Vector3(1.0, 0.0, 0.0),  # East
+		Vector3(0.0, 0.0, 1.0),  # South
+		Vector3(-1.0, 0.0, 0.0), # West
+		Vector3(1.0, 0.0, -1.0).normalized() # Northeast
+	]
+
+	var diag_inputs = [
+		{"name": "W+D", "vec": Vector2(1.0, -1.0)},
+		{"name": "W+A", "vec": Vector2(-1.0, -1.0)},
+		{"name": "S+D", "vec": Vector2(1.0, 1.0)},
+		{"name": "S+A", "vec": Vector2(-1.0, 1.0)}
+	]
+
+	for aim in test_aims:
+		player.orientation.aim_direction = aim
+		var basis = player.movement.get_movement_basis(player.global_position, aim)
+		var fwd: Vector3 = basis["forward"]
+		var right: Vector3 = basis["right"]
+
+		for diag in diag_inputs:
+			var move_dir = player.movement.compute_move_direction(player.global_position, aim, diag["vec"])
+			assert_almost_eq(move_dir.length(), 1.0, 0.001, "Diagonal %s under aim %s must have length 1.0" % [diag["name"], aim])
+
+			var norm_input = diag["vec"].normalized()
+			var expected = (right * norm_input.x - fwd * norm_input.y).normalized()
+			assert_almost_eq(move_dir.angle_to(expected), 0.0, 0.01, "Diagonal %s under aim %s must match expected relative vector" % [diag["name"], aim])
+
+func test_dash_all_cardinal_and_diagonal_directions() -> void:
+	var player = PLAYER_SCENE.instantiate()
+	add_child_autoqfree(player)
+	player.global_position = Vector3.ZERO
+
+	# Aim East: forward = (1, 0, 0), right = (0, 0, 1)
+	var aim = Vector3(1.0, 0.0, 0.0)
+	player.orientation.aim_direction = aim
+	var basis = player.movement.get_movement_basis(player.global_position, aim)
+	var fwd: Vector3 = basis["forward"]
+	var right: Vector3 = basis["right"]
+
+	var test_directions = [
+		{"name": "W", "vec": Vector2(0.0, -1.0), "expected": fwd},
+		{"name": "S", "vec": Vector2(0.0, 1.0), "expected": -fwd},
+		{"name": "A", "vec": Vector2(-1.0, 0.0), "expected": -right},
+		{"name": "D", "vec": Vector2(1.0, 0.0), "expected": right},
+		{"name": "W+D", "vec": Vector2(1.0, -1.0), "expected": (fwd + right).normalized()},
+		{"name": "W+A", "vec": Vector2(-1.0, -1.0), "expected": (fwd - right).normalized()},
+		{"name": "S+D", "vec": Vector2(1.0, 1.0), "expected": (-fwd + right).normalized()},
+		{"name": "S+A", "vec": Vector2(-1.0, 1.0), "expected": (-fwd - right).normalized()}
+	]
+
+	for entry in test_directions:
+		var move_dir = player.movement.compute_move_direction(player.global_position, aim, entry["vec"])
+		player.movement.dash_cooldown_timer = 0.0
+		player.movement.is_dashing = false
+		player.movement.perform_dash(player.body_facing_direction, move_dir)
+		assert_true(player.movement.is_dashing, "Dash must be triggered for %s" % entry["name"])
+		assert_almost_eq(
+			player.movement.dash_direction.angle_to(entry["expected"]),
+			0.0,
+			0.02,
+			"Dash direction for %s must match aim-relative expected direction" % entry["name"]
+		)
+
+func test_dash_regression_immediately_after_sharp_aim_change() -> void:
+	var player = PLAYER_SCENE.instantiate()
+	add_child_autoqfree(player)
+	player.global_position = Vector3.ZERO
+
+	# Player was initially aiming North with W held
+	player.orientation.aim_direction = Vector3(0.0, 0.0, -1.0)
+	var initial_move = player.movement.compute_move_direction(player.global_position, player.orientation.aim_direction, Vector2(0.0, -1.0))
+	assert_almost_eq(initial_move.z, -1.0, 0.01)
+
+	# In the very same frame, aim snaps sharply 90° to East (1, 0, 0)
+	var new_aim = Vector3(1.0, 0.0, 0.0)
+	player.orientation.aim_direction = new_aim
+
+	# Player immediately dashes holding W: must dash East along the NEW aim, not stale North
+	var new_move = player.movement.compute_move_direction(player.global_position, player.orientation.aim_direction, Vector2(0.0, -1.0))
+	player.movement.dash_cooldown_timer = 0.0
+	player.movement.is_dashing = false
+	player.movement.perform_dash(player.body_facing_direction, new_move)
+
+	assert_almost_eq(player.movement.dash_direction.x, 1.0, 0.01, "Dash immediately after sharp aim snap must follow new aim (East)")
+	assert_almost_eq(player.movement.dash_direction.z, 0.0, 0.01)
+
+	# Now sharp flip 180° to West (-1, 0, 0) while pressing S (retreat)
+	var snap_west = Vector3(-1.0, 0.0, 0.0)
+	player.orientation.aim_direction = snap_west
+	# S input is (0, 1) -> relative to West (-X), backward is East (+X)
+	var retreat_move = player.movement.compute_move_direction(player.global_position, player.orientation.aim_direction, Vector2(0.0, 1.0))
+	player.movement.dash_cooldown_timer = 0.0
+	player.movement.is_dashing = false
+	player.movement.perform_dash(player.body_facing_direction, retreat_move)
+
+	assert_almost_eq(player.movement.dash_direction.x, 1.0, 0.01, "Dash retreat immediately after 180° aim flip must dash opposite to new aim (East)")
+	assert_almost_eq(player.movement.dash_direction.z, 0.0, 0.01)
+
