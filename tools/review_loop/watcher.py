@@ -46,20 +46,6 @@ READY_VERDICT_MARKERS = [
     "READY WITH NON-BLOCKING NOTES",
 ]
 
-NOT_READY_VERDICT_MARKERS = [
-    "NOT READY",
-    "CHANGES REQUESTED",
-    "REQUEST CHANGES",
-]
-
-def is_not_ready_verdict(body: str) -> bool:
-    """Check if review or comment body contains an explicit NOT READY or changes requested verdict."""
-    verdict_line = extract_verdict_line(body)
-    if not verdict_line:
-        return False
-    v_upper = verdict_line.strip().upper()
-    return any(v_upper.startswith(marker) for marker in NOT_READY_VERDICT_MARKERS)
-
 def extract_verdict_line(body: str) -> Optional[str]:
     """
     Extract the explicit verdict line from the first non-empty line of a review or comment body.
@@ -193,7 +179,6 @@ def get_effective_review_state(
                 # Update to APPROVED if no review yet, or if comment is newer/equal to review
                 if not existing or not ts or not existing.get("ts") or ts >= existing.get("ts", ""):
                     author_states[author.lower()] = {"verdict": "APPROVED", "ts": ts}
-
 
     if not author_states:
         return "NEUTRAL"
@@ -749,19 +734,6 @@ class ReviewWatcher:
                     self.state.reset_retry_count(pr_number)
                     self.state.update_pr_fields(pr_number, status="watching")
                     pr_entry = self.state.get_pr(pr_number) or pr_entry
-                elif effective_state != "APPROVED":
-                    new_events = self.check_pr_events(pr_number, pr_info)
-                    unprocessed = [ev for ev in new_events if not self.state.is_event_processed(pr_number, ev.get("id"))]
-                    if unprocessed:
-                        logger.info(
-                            "Approved PR #%s received %d new event(s) and effective state is %s. Reactivating watch.",
-                            pr_number, len(unprocessed), effective_state
-                        )
-                        self.state.reset_retry_count(pr_number)
-                        self.state.update_pr_fields(pr_number, status="watching")
-                        pr_entry = self.state.get_pr(pr_number) or pr_entry
-                    else:
-                        return
                 else:
                     # Still approved: comments or neutral events on approved PR do NOT wake agent!
                     return
