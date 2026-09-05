@@ -68,10 +68,7 @@ func perform_warrior_ultimate(player: CharacterBody3D, locked_target: Node3D = n
 	var target: Node3D = locked_target
 	if is_locked:
 		# If a locked target was specified, it must remain valid and alive; automatic retarget is strictly forbidden
-		if not is_instance_valid(locked_target) or not (locked_target is Node) or not locked_target.is_inside_tree():
-			player.spawn_popup_text("ЦЕЛЬ ПОТЕРЯНА!", Color.ORANGE)
-			return
-		if "is_dead" in locked_target and locked_target.is_dead:
+		if not _is_actor_alive(locked_target):
 			player.spawn_popup_text("ЦЕЛЬ ПОТЕРЯНА!", Color.ORANGE)
 			return
 		target = locked_target
@@ -81,7 +78,7 @@ func perform_warrior_ultimate(player: CharacterBody3D, locked_target: Node3D = n
 			player.spawn_popup_text("НЕТ ЦЕЛИ ДЛЯ ДУЭЛИ!", Color.ORANGE)
 			return
 
-	if not (target and is_instance_valid(target) and target.is_inside_tree()):
+	if not _is_actor_alive(target):
 		player.spawn_popup_text("НЕТ ЦЕЛИ ДЛЯ ДУЭЛИ!", Color.ORANGE)
 		return
 
@@ -241,17 +238,23 @@ func find_target_near_mouse(player: CharacterBody3D) -> Node3D:
 	var closest: Node3D = null
 	var min_dist: float = 14.0
 	for e in enemies:
-		if e and is_instance_valid(e) and e is Node3D:
+		if e and is_instance_valid(e) and e is Node3D and _is_actor_alive(e):
 			var d = target_pos.distance_to((e as Node3D).global_position)
 			if d < min_dist:
 				min_dist = d
 				closest = e as Node3D
 	return closest
 
-func _is_actor_alive(player: Variant) -> bool:
-	if not is_instance_valid(player) or not (player is Node) or not player.is_inside_tree():
+func _is_actor_alive(actor: Variant) -> bool:
+	if not is_instance_valid(actor) or not (actor is Node) or not actor.is_inside_tree():
 		return false
-	if "current_health" in player and player.current_health <= 0.0:
+	if actor.is_queued_for_deletion():
+		return false
+	var hp = actor.get("current_health")
+	if hp != null and float(hp) <= 0.0:
+		return false
+	var dead = actor.get("is_dead")
+	if dead != null and bool(dead):
 		return false
 	return true
 

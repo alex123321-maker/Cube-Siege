@@ -4,6 +4,7 @@ extends GutTest
 
 const PLAYER_SCENE = preload("res://scenes/player.tscn")
 const BuildingSystem = preload("res://scripts/building_system.gd")
+const ENEMY_DUMMY_SCENE = preload("res://scenes/enemy_dummy.tscn")
 
 func after_each() -> void:
 	Input.action_release("move_up")
@@ -328,3 +329,50 @@ func test_warrior_ultimate_cancels_if_locked_target_destroyed_without_retargetin
 	assert_false(player.orientation.is_action_pending(), "Action should be evaluated")
 	assert_false(player.abilities.is_dueling, "Duel must NOT start when locked target was destroyed")
 	assert_null(player.abilities.duel_target, "Duel target must remain null (no automatic retargeting to Enemy B)")
+
+func test_warrior_ultimate_cancels_if_locked_target_dies_in_tree_without_retargeting() -> void:
+	var player = PLAYER_SCENE.instantiate()
+	add_child_autoqfree(player)
+	player.set_class(player.CharacterClass.WARRIOR, false)
+	player.orientation.setup(Vector3(0.0, 0.0, -1.0))
+	player.abilities.ultimate_cooldown_timer = 0.0
+
+	# Create real EnemyDummy instances with authentic combat and death lifecycle
+	var enemy_a = ENEMY_DUMMY_SCENE.instantiate()
+	enemy_a.name = "EnemyA"
+	add_child_autoqfree(enemy_a)
+	enemy_a.global_position = player.global_position + Vector3(5.0, 0.0, 0.0) # East (+X)
+
+	var enemy_b = ENEMY_DUMMY_SCENE.instantiate()
+	enemy_b.name = "EnemyB"
+	add_child_autoqfree(enemy_b)
+	enemy_b.global_position = player.global_position + Vector3(-5.0, 0.0, 0.0) # West (-X)
+
+	var target_id_a: int = enemy_a.get_instance_id()
+	var target_dir: Vector3 = (enemy_a.global_position - player.global_position).normalized()
+	player.orientation.request_action(
+		"ultimate",
+		func():
+			var resolved = instance_from_id(target_id_a) as Node3D
+			player.abilities.perform_warrior_ultimate(player, resolved, true),
+		true,
+		deg_to_rad(25.0),
+		target_dir
+	)
+	assert_true(player.orientation.is_action_pending(), "Ultimate should be pending")
+
+	# Enemy A receives lethal damage during turn: calls die(), starts 0.2s death tween
+	enemy_a._on_damaged(999.0, Vector3.ZERO, "physical", player)
+	assert_lte(enemy_a.current_health, 0.0, "Enemy A is dead (current_health <= 0)")
+	assert_true(is_instance_valid(enemy_a), "Enemy A is still a valid instance in memory during death tween")
+	assert_true(enemy_a.is_inside_tree(), "Enemy A is still inside SceneTree during death tween")
+
+	# Player finishes turning towards original target direction
+	var max_frames: int = 60
+	while player.orientation.is_action_pending() and max_frames > 0:
+		player.orientation.process_orientation(player, 0.016, target_dir, Vector3.ZERO)
+		max_frames -= 1
+
+	assert_false(player.orientation.is_action_pending(), "Action should be evaluated after turn")
+	assert_false(player.abilities.is_dueling, "Duel must NOT start with a dying enemy (current_health <= 0)")
+	assert_null(player.abilities.duel_target, "Duel target must remain null (no retargeting to enemy B)")

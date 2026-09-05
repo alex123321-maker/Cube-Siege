@@ -216,6 +216,8 @@ func _ready() -> void:
 		orientation.cancel_pending_action()
 		player_died.emit()
 	)
+	progression.xp_changed.connect(func(cur, mx, lvl): xp_changed.emit(cur, mx, lvl))
+	progression.level_up_reached.connect(func(lvl): level_up_reached.emit(lvl))
 	movement.dash_performed.connect(func():
 		orientation.cancel_pending_action()
 		dash_performed.emit()
