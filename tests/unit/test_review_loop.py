@@ -1771,6 +1771,55 @@ class TestReadyVerdictsAndAuthFailure(unittest.TestCase):
         self.assertEqual(pr["status"], "processing")
         self.assertTrue(mock_resumer.resume_conversation.called)
 
+    def test_approved_pr_reactivates_and_dispatches_when_not_ready_review_arrives(self):
+        """Verify an approved PR is reactivated and dispatches agent when a new NOT READY review arrives."""
+        mock_github = MagicMock()
+        mock_github.get_pr_details.return_value = {
+            "state": "OPEN",
+            "headRefOid": "sha_approved",
+            "reviewDecision": None
+        }
+        mock_github.get_pr_reviews.return_value = [
+            {
+                "id": "rev_old_ready",
+                "author": {"login": "alex123321-maker"},
+                "state": "COMMENTED",
+                "body": "Verdict: READY TO MERGE",
+                "submittedAt": "2026-09-05T10:00:00Z"
+            },
+            {
+                "id": "rev_new_not_ready",
+                "author": {"login": "alex123321-maker"},
+                "state": "COMMENTED",
+                "body": "## NOT READY\nBLOCKER 1: Found regressions.",
+                "submittedAt": "2026-09-05T10:30:00Z"
+            }
+        ]
+        mock_github.get_pr_comments.return_value = []
+        mock_github.get_pr_inline_comments.return_value = []
+        mock_github.get_pr_review_threads.return_value = []
+
+        mock_resumer = MagicMock()
+        mock_resumer.resume_conversation.return_value = (True, "launched", 4321)
+
+        watcher = ReviewWatcher(
+            github_client=mock_github,
+            state_manager=self.state_mgr,
+            agent_resumer=mock_resumer,
+            run_once=True
+        )
+
+        self.state_mgr.register_pr(pr_number=13, conversation_id="conv13", branch="feat/11")
+        self.state_mgr.mark_pr_status(13, "approved")
+        self.state_mgr.mark_event_processed(13, "rev_old_ready")
+        self.state_mgr.add_to_allowlist("alex123321-maker")
+
+        watcher.run_cycle()
+
+        pr = self.state_mgr.get_pr(13)
+        self.assertEqual(pr["status"], "processing")
+        self.assertTrue(mock_resumer.resume_conversation.called)
+
     def test_inline_mention_does_not_approve_and_dispatches_agent(self):
         """Regression test from review: 'Please fix pagination before READY TO MERGE' must dispatch agent, not approve."""
         mock_github = MagicMock()

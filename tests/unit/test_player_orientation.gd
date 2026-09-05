@@ -116,28 +116,43 @@ func test_directional_speed_multiplier_curve_sampling() -> void:
 
 func test_aim_deadzone_preserves_last_valid_aim() -> void:
 	var aim = PlayerAim.new()
-	var dummy_body = CharacterBody3D.new()
-	add_child_autoqfree(dummy_body)
-	dummy_body.global_position = Vector3(10.0, 0.0, 10.0)
+	var player_pos: Vector3 = Vector3(10.0, 0.0, 10.0)
 
+	# Initial valid aim direction: North (0, 0, -1)
 	aim.last_aim_dir = Vector3(0.0, 0.0, -1.0)
 
-	# Forced target outside deadzone
-	var target_outside = Node3D.new()
-	add_child_autoqfree(target_outside)
-	target_outside.global_position = dummy_body.global_position + Vector3(2.0, 0.0, 0.0)
+	# Test 1: With deadzone = 1.0
+	var deadzone_1: float = 1.0
 
-	var res_outside = aim.handle_aim(dummy_body, target_outside, 0.6)
-	assert_almost_eq(res_outside.x, 1.0, 0.01, "Should aim towards target outside deadzone")
+	# Cursor inside deadzone (distance 0.6 < 1.0 towards East)
+	var cursor_inside_1: Vector3 = player_pos + Vector3(0.6, 0.0, 0.0)
+	var res_inside_1: Vector3 = aim.resolve_cursor_aim(player_pos, cursor_inside_1, deadzone_1)
+	assert_almost_eq(res_inside_1.z, -1.0, 0.01, "Cursor inside deadzone (dist 0.6 < 1.0) must preserve previous aim (North)")
+	assert_almost_eq(res_inside_1.x, 0.0, 0.01, "Cursor inside deadzone must not update to East")
 
-	# Forced target inside deadzone (distance < 0.6)
-	var target_inside = Node3D.new()
-	add_child_autoqfree(target_inside)
-	target_inside.global_position = dummy_body.global_position + Vector3(0.01, 0.0, 0.01) # length ~0.014
+	# Cursor outside deadzone (distance 1.5 >= 1.0 towards East)
+	var cursor_outside_1: Vector3 = player_pos + Vector3(1.5, 0.0, 0.0)
+	var res_outside_1: Vector3 = aim.resolve_cursor_aim(player_pos, cursor_outside_1, deadzone_1)
+	assert_almost_eq(res_outside_1.x, 1.0, 0.01, "Cursor outside deadzone (dist 1.5 >= 1.0) must update aim to East")
+	assert_almost_eq(res_outside_1.z, 0.0, 0.01)
 
-	# If forced_target length is very small, handle_aim preserves last_aim_dir
-	var res_inside = aim.handle_aim(dummy_body, target_inside, 0.6)
-	assert_almost_eq(res_inside.x, 1.0, 0.01, "Should preserve previous valid aim inside deadzone")
+	# Test 2: Prove that changing aim_deadzone dynamically changes the behavior boundary
+	# Increase deadzone to 2.0. The previous cursor position (dist 1.5) is now INSIDE deadzone!
+	var deadzone_2: float = 2.0
+
+	# Aim is currently East (1, 0, 0).
+	# Move cursor towards South (+Z) at distance 1.5.
+	# At deadzone 1.0 this would update to South, but at deadzone 2.0 (1.5 < 2.0) it must preserve East!
+	var cursor_at_1_5_south: Vector3 = player_pos + Vector3(0.0, 0.0, 1.5)
+	var res_inside_2: Vector3 = aim.resolve_cursor_aim(player_pos, cursor_at_1_5_south, deadzone_2)
+	assert_almost_eq(res_inside_2.x, 1.0, 0.01, "At deadzone 2.0, dist 1.5 is inside deadzone and must preserve previous aim (East)")
+	assert_almost_eq(res_inside_2.z, 0.0, 0.01, "At deadzone 2.0, dist 1.5 must not update to South")
+
+	# Move cursor beyond deadzone 2.0 (distance 2.5 towards South)
+	var cursor_outside_2: Vector3 = player_pos + Vector3(0.0, 0.0, 2.5)
+	var res_outside_2: Vector3 = aim.resolve_cursor_aim(player_pos, cursor_outside_2, deadzone_2)
+	assert_almost_eq(res_outside_2.z, 1.0, 0.01, "At deadzone 2.0, dist 2.5 >= 2.0 must update aim to South")
+	assert_almost_eq(res_outside_2.x, 0.0, 0.01)
 
 func test_smooth_redirection_mid_turn() -> void:
 	var orientation = PlayerOrientation.new()

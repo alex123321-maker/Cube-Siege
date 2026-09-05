@@ -43,19 +43,21 @@ func handle_aim(body: CharacterBody3D, forced_target: Node3D = null, deadzone: f
 	var intersect: Variant = ground_plane.intersects_ray(ray_origin, ray_normal)
 
 	if intersect is Vector3:
-		var hit_pos: Vector3 = intersect as Vector3
-		var diff: Vector3 = hit_pos - body.global_position
-		diff.y = 0.0
-		var dist: float = diff.length()
-		# If cursor is outside deadzone, update last_aim_dir
-		if dist >= deadzone and dist > 0.001:
-			last_aim_dir = diff.normalized()
-			return last_aim_dir
-		else:
-			# Cursor is inside deadzone: preserve last valid aim direction!
-			return last_aim_dir
+		return resolve_cursor_aim(body.global_position, intersect as Vector3, deadzone)
 
 	return _safe_aim_fallback(body)
+
+func resolve_cursor_aim(body_position: Vector3, hit_pos: Vector3, deadzone: float = 0.6) -> Vector3:
+	var diff: Vector3 = hit_pos - body_position
+	diff.y = 0.0
+	var dist: float = diff.length()
+	# If cursor is outside deadzone, update last_aim_dir
+	if dist >= deadzone and dist > 0.001:
+		last_aim_dir = diff.normalized()
+		return last_aim_dir
+	else:
+		# Cursor is inside deadzone: preserve last valid aim direction!
+		return last_aim_dir
 
 func _safe_aim_fallback(body: CharacterBody3D) -> Vector3:
 	if last_aim_dir.length_squared() > 0.01 and last_aim_dir.is_finite():

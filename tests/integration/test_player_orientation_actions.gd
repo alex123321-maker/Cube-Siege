@@ -227,19 +227,26 @@ func test_warrior_ultimate_locks_initial_target_when_mouse_moves() -> void:
 	add_child_autoqfree(enemy_b)
 	enemy_b.global_position = player.global_position + Vector3(-5.0, 0.0, 0.0) # West (-X)
 
-	# Direct ultimate request targeting enemy_a
+	# Direct ultimate request targeting enemy_a with dynamic provider
 	var target_id_a: int = enemy_a.get_instance_id()
-	var target_dir: Vector3 = (enemy_a.global_position - player.global_position).normalized()
+	var target_dir_provider = func() -> Vector3:
+		var t = instance_from_id(target_id_a) as Node3D
+		if not t or not is_instance_valid(t) or not t.is_inside_tree():
+			return Vector3.ZERO
+		var diff = t.global_position - player.global_position
+		diff.y = 0.0
+		return diff.normalized()
 	player.orientation.request_action(
 		"ultimate",
 		func():
 			var resolved = instance_from_id(target_id_a) as Node3D
 			player.abilities.perform_warrior_ultimate(player, resolved, true),
 		true,
-		deg_to_rad(25.0),
-		target_dir
+		-1.0,
+		Vector3.ZERO,
+		target_dir_provider
 	)
-	assert_true(player.orientation.is_action_pending(), "Ultimate should be pending because 90° > 25°")
+	assert_true(player.orientation.is_action_pending(), "Ultimate should be pending because 90° > 15°")
 
 	# While turning towards Enemy A, simulate mouse moving to Enemy B
 	var max_frames: int = 60
@@ -251,6 +258,82 @@ func test_warrior_ultimate_locks_initial_target_when_mouse_moves() -> void:
 	assert_false(player.orientation.is_action_pending(), "Ultimate should have executed")
 	assert_true(player.abilities.is_dueling, "Player should be dueling")
 	assert_eq(player.abilities.duel_target, enemy_a, "Duel target must be locked target Enemy A, not Enemy B")
+	player.end_duel()
+
+func test_warrior_ultimate_dynamically_tracks_moving_target_and_does_not_fire_at_old_position() -> void:
+	var player = PLAYER_SCENE.instantiate()
+	add_child_autoqfree(player)
+	player.set_class(player.CharacterClass.WARRIOR, false)
+	player.orientation.setup(Vector3(0.0, 0.0, -1.0)) # Facing North (-Z)
+	player.abilities.ultimate_cooldown_timer = 0.0
+
+	# Create Enemy A initially at East (+X)
+	var enemy_a = Node3D.new()
+	enemy_a.name = "EnemyA"
+	enemy_a.add_to_group("enemies")
+	add_child_autoqfree(enemy_a)
+	enemy_a.global_position = player.global_position + Vector3(5.0, 0.0, 0.0) # East (+X)
+
+	var target_id_a: int = enemy_a.get_instance_id()
+	var target_dir_provider: Callable = func() -> Vector3:
+		var t = instance_from_id(target_id_a) as Node3D
+		if not t or not is_instance_valid(t) or not t.is_inside_tree():
+			return Vector3.ZERO
+		if "current_health" in t and t.current_health <= 0.0:
+			return Vector3.ZERO
+		var diff: Vector3 = t.global_position - player.global_position
+		diff.y = 0.0
+		return diff.normalized()
+
+	var fired: Array[bool] = [false]
+	var fire_facing: Array[Vector3] = [Vector3.ZERO]
+	var ultimate_cb = func():
+		fired[0] = true
+		fire_facing[0] = player.orientation.body_facing_direction
+		var resolved = instance_from_id(target_id_a) as Node3D
+		player.abilities.perform_warrior_ultimate(player, resolved, true)
+
+	var immediate: bool = player.orientation.request_action(
+		"ultimate",
+		ultimate_cb,
+		true,
+		-1.0,
+		Vector3.ZERO,
+		target_dir_provider
+	)
+	assert_false(immediate, "Ultimate must buffer because angle to East is 90° > base tolerance (~15°)")
+	assert_true(player.orientation.is_action_pending())
+
+	# Rotate for 3 frames towards initial target direction (East)
+	for i in range(3):
+		player.orientation.process_orientation(player, 0.016, Vector3.ZERO, Vector3.ZERO)
+
+	assert_false(fired[0], "Should not fire yet")
+
+	# Move Enemy A to South (+Z), 90° away from East!
+	enemy_a.global_position = player.global_position + Vector3(0.0, 0.0, 5.0)
+
+	# Rotate until the player reaches or passes the OLD direction (East, +X)
+	# Because Enemy A is now at South, reaching East must NOT fire the ultimate!
+	for i in range(25):
+		if player.orientation.body_facing_direction.angle_to(Vector3(1.0, 0.0, 0.0)) <= deg_to_rad(15.0):
+			assert_false(fired[0], "Ultimate must NOT execute towards stale initial direction (East)")
+			assert_true(player.orientation.is_action_pending(), "Ultimate must still be pending because actual target is at South")
+		player.orientation.process_orientation(player, 0.016, Vector3.ZERO, Vector3.ZERO)
+
+	# Now rotate until player faces Enemy A's actual new position (South)
+	var max_frames: int = 80
+	while player.orientation.is_action_pending() and max_frames > 0:
+		player.orientation.process_orientation(player, 0.016, Vector3.ZERO, Vector3.ZERO)
+		max_frames -= 1
+
+	assert_true(fired[0], "Ultimate must fire once player reaches facing tolerance to Enemy A's current position (South)")
+	assert_false(player.orientation.is_action_pending())
+	assert_true(player.abilities.is_dueling)
+	assert_eq(player.abilities.duel_target, enemy_a)
+	# Facing when fired must be within tolerance of actual position (South), NOT stale initial position (East)
+	assert_lt(fire_facing[0].angle_to(Vector3(0.0, 0.0, 1.0)), deg_to_rad(15.0) + 0.01, "Facing must be within tolerance of current position (South)")
+	assert_gt(fire_facing[0].angle_to(Vector3(1.0, 0.0, 0.0)), deg_to_rad(60.0), "Facing must NOT be towards stale position (East)")
 	player.end_duel()
 
 func test_failed_parry_on_cooldown_preserves_buffered_attack() -> void:
@@ -305,28 +388,36 @@ func test_warrior_ultimate_cancels_if_locked_target_destroyed_without_retargetin
 	enemy_b.global_position = player.global_position + Vector3(-5.0, 0.0, 0.0) # West (-X)
 
 	var target_id_dead: int = enemy_a.get_instance_id()
-	var target_dir: Vector3 = (enemy_a.global_position - player.global_position).normalized()
+	var target_dir_provider = func() -> Vector3:
+		var t = instance_from_id(target_id_dead) as Node3D
+		if not t or not is_instance_valid(t) or not t.is_inside_tree():
+			return Vector3.ZERO
+		var diff = t.global_position - player.global_position
+		diff.y = 0.0
+		return diff.normalized()
+
 	player.orientation.request_action(
 		"ultimate",
 		func():
 			var resolved = instance_from_id(target_id_dead) as Node3D
 			player.abilities.perform_warrior_ultimate(player, resolved, true),
 		true,
-		deg_to_rad(25.0),
-		target_dir
+		-1.0,
+		Vector3.ZERO,
+		target_dir_provider
 	)
 	assert_true(player.orientation.is_action_pending(), "Ultimate should be pending")
 
 	# Enemy A is destroyed mid-turn
 	enemy_a.free()
 
-	# Player finishes turning towards original target position
+	# Player runs orientation process frames
 	var max_frames: int = 60
 	while player.orientation.is_action_pending() and max_frames > 0:
-		player.orientation.process_orientation(player, 0.016, target_dir, Vector3.ZERO)
+		player.orientation.process_orientation(player, 0.016, Vector3(1.0, 0.0, 0.0), Vector3.ZERO)
 		max_frames -= 1
 
-	assert_false(player.orientation.is_action_pending(), "Action should be evaluated")
+	assert_false(player.orientation.is_action_pending(), "Action should be cancelled when target is destroyed")
 	assert_false(player.abilities.is_dueling, "Duel must NOT start when locked target was destroyed")
 	assert_null(player.abilities.duel_target, "Duel target must remain null (no automatic retargeting to Enemy B)")
 
@@ -349,15 +440,25 @@ func test_warrior_ultimate_cancels_if_locked_target_dies_in_tree_without_retarge
 	enemy_b.global_position = player.global_position + Vector3(-5.0, 0.0, 0.0) # West (-X)
 
 	var target_id_a: int = enemy_a.get_instance_id()
-	var target_dir: Vector3 = (enemy_a.global_position - player.global_position).normalized()
+	var target_dir_provider = func() -> Vector3:
+		var t = instance_from_id(target_id_a) as Node3D
+		if not t or not is_instance_valid(t) or not t.is_inside_tree():
+			return Vector3.ZERO
+		if "current_health" in t and t.current_health <= 0.0:
+			return Vector3.ZERO
+		var diff = t.global_position - player.global_position
+		diff.y = 0.0
+		return diff.normalized()
+
 	player.orientation.request_action(
 		"ultimate",
 		func():
 			var resolved = instance_from_id(target_id_a) as Node3D
 			player.abilities.perform_warrior_ultimate(player, resolved, true),
 		true,
-		deg_to_rad(25.0),
-		target_dir
+		-1.0,
+		Vector3.ZERO,
+		target_dir_provider
 	)
 	assert_true(player.orientation.is_action_pending(), "Ultimate should be pending")
 
@@ -367,12 +468,12 @@ func test_warrior_ultimate_cancels_if_locked_target_dies_in_tree_without_retarge
 	assert_true(is_instance_valid(enemy_a), "Enemy A is still a valid instance in memory during death tween")
 	assert_true(enemy_a.is_inside_tree(), "Enemy A is still inside SceneTree during death tween")
 
-	# Player finishes turning towards original target direction
+	# Player runs orientation process frames
 	var max_frames: int = 60
 	while player.orientation.is_action_pending() and max_frames > 0:
-		player.orientation.process_orientation(player, 0.016, target_dir, Vector3.ZERO)
+		player.orientation.process_orientation(player, 0.016, Vector3(1.0, 0.0, 0.0), Vector3.ZERO)
 		max_frames -= 1
 
-	assert_false(player.orientation.is_action_pending(), "Action should be evaluated after turn")
+	assert_false(player.orientation.is_action_pending(), "Action should be cancelled when target dies")
 	assert_false(player.abilities.is_dueling, "Duel must NOT start with a dying enemy (current_health <= 0)")
 	assert_null(player.abilities.duel_target, "Duel target must remain null (no retargeting to enemy B)")

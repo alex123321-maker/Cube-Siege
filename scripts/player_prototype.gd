@@ -374,37 +374,19 @@ func set_class(new_class: CharacterClass, show_popup: bool = true) -> void:
 func perform_attack() -> void:
 	if combat.attack_cooldown_timer > 0.0 or movement.is_dashing:
 		return
-	var tol: float = deg_to_rad(15.0)
-	match current_class:
-		CharacterClass.WARRIOR:
-			tol = deg_to_rad(20.0)
-		CharacterClass.ARCHER:
-			tol = deg_to_rad(15.0)
-		CharacterClass.ENGINEER:
-			tol = deg_to_rad(20.0)
 	orientation.request_action(
 		"attack",
 		func(): combat.perform_attack(self, int(current_class), movement.is_dashing, abilities.is_dueling),
-		true,
-		tol
+		true
 	)
 
 func perform_special_attack() -> void:
 	if combat.special_cooldown_timer > 0.0 or movement.is_dashing:
 		return
-	var tol: float = deg_to_rad(20.0)
-	match current_class:
-		CharacterClass.WARRIOR:
-			tol = deg_to_rad(30.0)
-		CharacterClass.ARCHER:
-			tol = deg_to_rad(15.0)
-		CharacterClass.ENGINEER:
-			tol = deg_to_rad(25.0)
 	orientation.request_action(
 		"special",
 		func(): combat.perform_special_attack(self, int(current_class), movement.is_dashing, abilities.is_dueling, abilities),
-		true,
-		tol
+		true
 	)
 
 func perform_utility() -> void:
@@ -431,15 +413,25 @@ func perform_ultimate() -> void:
 				spawn_popup_text("НЕТ ЦЕЛИ ДЛЯ ДУЭЛИ!", Color.ORANGE)
 				return
 			var target_id: int = target.get_instance_id()
-			var target_dir: Vector3 = (target.global_position - global_position).normalized()
+			var target_dir_provider: Callable = func() -> Vector3:
+				var t = instance_from_id(target_id) as Node3D
+				if not t or not is_instance_valid(t) or not t.is_inside_tree():
+					return Vector3.ZERO
+				if "current_health" in t and t.current_health <= 0.0:
+					return Vector3.ZERO
+				var diff: Vector3 = t.global_position - global_position
+				diff.y = 0.0
+				return diff.normalized()
+
 			orientation.request_action(
 				"ultimate",
 				func():
 					var resolved_target = instance_from_id(target_id) as Node3D
 					abilities.perform_warrior_ultimate(self, resolved_target, true),
 				true,
-				deg_to_rad(25.0),
-				target_dir
+				-1.0,
+				Vector3.ZERO,
+				target_dir_provider
 			)
 		CharacterClass.ARCHER:
 			# Eagle Eye is a self-buff, does not require facing

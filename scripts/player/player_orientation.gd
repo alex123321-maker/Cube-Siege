@@ -139,9 +139,18 @@ func process_orientation(body: CharacterBody3D, delta: float, target_aim_dir: Ve
 	# 3. Determine desired facing target
 	var desired_target: Vector3 = aim_direction
 	if not pending_action.is_empty():
-		var act_target: Vector3 = pending_action.get("target_direction", Vector3.ZERO)
-		if act_target.length_squared() > 0.001:
-			desired_target = act_target.normalized()
+		var provider: Callable = pending_action.get("direction_provider", Callable())
+		if provider.is_valid():
+			var dir: Vector3 = provider.call()
+			if dir.length_squared() > 0.001:
+				desired_target = dir.normalized()
+			else:
+				# Target lost / destroyed / dead: cancel pending action
+				pending_action = {}
+		else:
+			var act_target: Vector3 = pending_action.get("target_direction", Vector3.ZERO)
+			if act_target.length_squared() > 0.001:
+				desired_target = act_target.normalized()
 
 	# 4. Step rotation kinematics
 	step_rotation(delta, desired_target)
@@ -174,11 +183,20 @@ func _evaluate_pending_action() -> void:
 	if pending_action.is_empty():
 		return
 
-	var target: Vector3 = pending_action.get("target_direction", Vector3.ZERO)
-	if target.length_squared() < 0.001:
-		target = aim_direction
+	var target: Vector3 = Vector3.ZERO
+	var provider: Callable = pending_action.get("direction_provider", Callable())
+	if provider.is_valid():
+		target = provider.call()
+		if target.length_squared() < 0.001:
+			pending_action = {}
+			return
+	else:
+		target = pending_action.get("target_direction", Vector3.ZERO)
+		if target.length_squared() < 0.001:
+			target = aim_direction
 
-	var angle: float = body_facing_direction.angle_to(target.normalized())
+	var h_target: Vector3 = Vector3(target.x, 0.0, target.z).normalized()
+	var angle: float = body_facing_direction.angle_to(h_target)
 	var tol: float = pending_action.get("tolerance", settings.base_facing_tolerance if settings else 0.2618)
 	if tol <= 0.0:
 		tol = settings.base_facing_tolerance if settings else 0.2618
@@ -195,7 +213,8 @@ func request_action(
 	action_callable: Callable,
 	requires_facing: bool = true,
 	tolerance: float = -1.0,
-	custom_target_dir: Vector3 = Vector3.ZERO
+	custom_target_dir: Vector3 = Vector3.ZERO,
+	direction_provider: Callable = Callable()
 ) -> bool:
 	if not requires_facing:
 		if action_callable.is_valid():
@@ -203,8 +222,19 @@ func request_action(
 		return true
 
 	var tol: float = tolerance if tolerance > 0.0 else (settings.base_facing_tolerance if settings else 0.2618)
+	var has_provider: bool = direction_provider.is_valid()
 	var has_custom_target: bool = custom_target_dir.length_squared() > 0.001
-	var target: Vector3 = custom_target_dir if has_custom_target else aim_direction
+
+	var target: Vector3 = Vector3.ZERO
+	if has_provider:
+		target = direction_provider.call()
+		if target.length_squared() < 0.001:
+			return false
+	elif has_custom_target:
+		target = custom_target_dir
+	else:
+		target = aim_direction
+
 	target = Vector3(target.x, 0.0, target.z).normalized()
 
 	var angle: float = body_facing_direction.angle_to(target)
@@ -221,7 +251,8 @@ func request_action(
 		"callable": action_callable,
 		"requires_facing": true,
 		"tolerance": tol,
-		"target_direction": target if has_custom_target else Vector3.ZERO
+		"target_direction": target if (has_custom_target and not has_provider) else Vector3.ZERO,
+		"direction_provider": direction_provider
 	}
 	return false
 
