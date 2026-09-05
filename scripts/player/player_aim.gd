@@ -6,6 +6,7 @@ class_name PlayerAim
 
 var last_mouse_pos: Vector2 = Vector2(-9999, -9999)
 var last_aim_dir: Vector3 = Vector3(0.0, 0.0, -1.0)
+var mouse_override: Vector2 = Vector2(-1, -1)
 
 func handle_aim(body: CharacterBody3D, forced_target: Node3D = null, deadzone: float = 0.6) -> Vector3:
 	# 0. Forced target (e.g. warrior duel)
@@ -34,7 +35,13 @@ func handle_aim(body: CharacterBody3D, forced_target: Node3D = null, deadzone: f
 	if not cam:
 		return _safe_aim_fallback(body)
 
-	var current_mouse_pos: Vector2 = vp.get_mouse_position()
+	var current_mouse_pos: Vector2
+	if mouse_override != Vector2(-1, -1):
+		current_mouse_pos = mouse_override
+	elif cam and "mouse_override" in cam and cam.mouse_override != Vector2(-1, -1):
+		current_mouse_pos = cam.mouse_override
+	else:
+		current_mouse_pos = vp.get_mouse_position()
 	last_mouse_pos = current_mouse_pos
 
 	var ray_origin: Vector3 = cam.project_ray_origin(current_mouse_pos)
