@@ -84,6 +84,10 @@ var parry_cooldown_timer: float:
 	get: return health.parry_cooldown_timer
 	set(val): health.parry_cooldown_timer = val
 
+var forced_target: Node3D:
+	get: return movement.forced_target
+	set(val): movement.forced_target = val
+
 var focused_interactable: Node:
 	get: return interaction.focused_interactable
 	set(val): interaction.focused_interactable = val
@@ -274,22 +278,31 @@ func _physics_process(delta: float) -> void:
 	combat.update_timers(delta)
 	abilities.update_timers(delta, self)
 
-	# Locomotion and aim directions computed before action inputs
-	var input_dir: Vector2 = Input.get_vector("move_left", "move_right", "move_up", "move_down")
-	var raw_move_dir: Vector3 = Vector3(input_dir.x, 0.0, input_dir.y)
-	if raw_move_dir.length_squared() > 0.001:
-		raw_move_dir = raw_move_dir.normalized()
-	else:
-		raw_move_dir = Vector3.ZERO
-
+	# Aim computed before movement basis
 	var deadzone: float = orientation.settings.aim_deadzone if orientation.settings else 0.6
 	var target_aim: Vector3 = aim.handle_aim(self, duel_target if is_dueling else null, deadzone)
 	if target_aim.length_squared() > 0.001:
 		orientation.aim_direction = Vector3(target_aim.x, 0.0, target_aim.z).normalized()
 
+	# Locomotion direction computed relative to aim or forced target
+	var input_dir: Vector2 = Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	var calculated_move_dir: Vector3 = Vector3.ZERO
+	if is_dueling and duel_target and is_instance_valid(duel_target):
+		var to_duel: Vector3 = duel_target.global_position - global_position
+		to_duel.y = 0.0
+		if to_duel.length_squared() > 0.01:
+			calculated_move_dir = to_duel.normalized()
+	elif input_dir.length_squared() > 0.001:
+		calculated_move_dir = movement.compute_move_direction(
+			global_position,
+			orientation.aim_direction,
+			input_dir,
+			forced_target
+		)
+
 	# Action inputs
 	if Input.is_action_just_pressed("dash"):
-		movement.perform_dash(-global_transform.basis.z)
+		movement.perform_dash(orientation.body_facing_direction, calculated_move_dir)
 
 	if Input.is_action_just_pressed("class_utility"):
 		perform_utility()
@@ -306,8 +319,12 @@ func _physics_process(delta: float) -> void:
 	# Subsystem processing
 	interaction.process_interaction(self, delta)
 
-	orientation.process_orientation(self, delta, target_aim, raw_move_dir)
-	movement.process_movement(self, delta, duel_target if is_dueling else null, orientation.directional_speed_multiplier)
+	var orient_move_dir: Vector3 = movement.dash_direction if movement.is_dashing else calculated_move_dir
+	orientation.process_orientation(self, delta, target_aim, orient_move_dir)
+	if is_dueling and duel_target and is_instance_valid(duel_target):
+		movement.process_duel_movement(self, delta, duel_target)
+	else:
+		movement.process_movement(self, delta, forced_target, orientation.directional_speed_multiplier, orientation.aim_direction)
 	presentation.update_animations(self, health.is_parrying, movement.is_dashing)
 
 func _unhandled_input(event: InputEvent) -> void:
