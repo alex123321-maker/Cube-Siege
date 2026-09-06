@@ -235,6 +235,27 @@ func _check_vertical_combat_rules_and_fractional_cell_mapping() -> void:
 		"Projectile preserves horizontal altitude over chasm (Y=%.2f)" % flight_res["new_y"]
 	)
 
+	# WaveDirector fractional surface height lookup check (x=0.75 vs x=1.05)
+	var mock_wave_map = Node.new()
+	mock_wave_map.add_to_group("map_generator")
+	root.add_child(mock_wave_map)
+	var wave_lookup_script = GDScript.new()
+	wave_lookup_script.source_code = "extends Node\nfunc get_voxel_height(x: int, _z: int) -> int:\n\treturn 3 if x >= 1 else 0\n"
+	wave_lookup_script.reload()
+	mock_wave_map.set_script(wave_lookup_script)
+
+	var wave_dir = WaveDirector.new()
+	root.add_child(wave_dir)
+	var y_075 = wave_dir.get_terrain_surface_y(Vector3(0.75, 0.0, 0.0))
+	var y_105 = wave_dir.get_terrain_surface_y(Vector3(1.05, 0.0, 0.0))
+	_assert_check(
+		absf(y_075 - 0.0) < 0.01 and absf(y_105 - 3.0) < 0.01,
+		"WaveDirector Fractional Spawn Height Alignment",
+		"x=0.75 maps to cell 0 (height 0.0), x=1.05 maps to cell 1 (height 3.0)"
+	)
+	wave_dir.queue_free()
+	mock_wave_map.queue_free()
+
 ## 5. High Mountain Warrior Duel Aiming
 func _check_high_mountain_duel_aiming() -> void:
 	print("\n--- 5. Testing Warrior Duel Aiming on High Mountain Terrain ---")
@@ -317,6 +338,41 @@ func _check_multi_hit_foliage_occlusion() -> void:
 	camera.check_occlusion()
 	_assert_check(camera.occluding_buildings.is_empty(), "Occlusion Restoration", "All occluders restored to opaque when out of line-of-sight")
 
+	# Test foliage occlusion with >3 combat enemies (bounded spatial selection)
+	var reg = root.get_node_or_null("/root/EntityRegistry")
+	var enemies: Array[Node3D] = []
+	for i in range(5):
+		var e: Node3D = Node3D.new()
+		e.name = "Enemy_%d" % i
+		e.add_to_group("enemies")
+		root.add_child(e)
+		e.global_position = Vector3(float(i + 1) * 2.0, 0.0, 0.0)
+		if reg:
+			reg.register_enemy(e)
+		enemies.append(e)
+
+	# Place tree specifically in front of enemy #4 (5th combat candidate)
+	var tree4: Node3D = tree_scene.instantiate() as Node3D
+	root.add_child(tree4)
+	tree4.global_position = enemies[4].global_position.lerp(camera.global_position, 0.3)
+
+	for frame in range(4):
+		await process_frame
+
+	camera.check_occlusion()
+	_assert_check(
+		camera.occluding_buildings.has(tree4),
+		"Foliage Occlusion Bounded Spatial Selection (>3 enemies)",
+		"Occluder for 5th combat enemy (>3) correctly pierced and set semi-transparent"
+	)
+
+	tree4.queue_free()
+	if reg:
+		for e in enemies:
+			reg.unregister_enemy(e)
+	for e in enemies:
+		e.queue_free()
+
 	camera.queue_free()
 	player_node.queue_free()
 	for t in trees:
@@ -358,46 +414,121 @@ func _check_starting_enemies_alignment() -> void:
 
 ## 8. Chunk Streaming & O(1) Memory Profile
 func _check_chunk_streaming_and_o1_memory_profile() -> void:
-	print("\n--- 8. Testing Chunk Streaming & O(1) Bounded Memory Profile ---")
+	print("\n--- 8. Testing Chunk Streaming & O(1) Bounded Working Set ---")
 	var map_gen: MapGenerator = MapGenerator.new()
-	map_gen.load_radius_chunks = 2 # 5x5 = 25 active chunks
-	map_gen.unload_radius_chunks = 2
+	# DO NOT override radius: use authoritative runtime defaults
+	# load_radius_chunks = 3 (7x7 = 49 initial chunks)
+	# unload_radius_chunks = 5 (hysteresis window bounded <= 11x11 = 121 chunks)
 	map_gen.random_seed = false
 	map_gen.custom_seed = 999
 	root.add_child(map_gen)
 
-	for frame in range(3):
+	for frame in range(4):
 		await process_frame
 
 	var base_chunk_count: int = map_gen.active_chunks.size()
-	_assert_check(base_chunk_count == 25, "Initial Chunk Window Size", "Active chunks matches 5x5 window (25 chunks)")
+	_assert_check(
+		base_chunk_count == 49,
+		"Initial Chunk Window Size (7x7)",
+		"Active chunks matches 7x7 window (49 chunks, load_radius=3)"
+	)
 
-	# Simulate 20 chunk steps moving East
+	# Count child nodes and StaticBody3D physics bodies
+	var static_body_count: int = 0
+	for chunk_node in map_gen.active_chunks.values():
+		if chunk_node is StaticBody3D:
+			static_body_count += 1
+
+	_assert_check(
+		static_body_count == 49,
+		"Initial StaticBody3D Physics Count",
+		"Exactly %d StaticBody3D collision bodies in active initial working set" % static_body_count
+	)
+
+	var mem_before_bytes: int = OS.get_static_memory_usage()
+
+	# Simulate 20 chunk steps moving East (from X=1 to X=20, covering 320m)
 	var gen_times: Array[float] = []
+	var chunk_counts_during_movement: Array[int] = []
+	var near_times: Array[float] = []
+	var far_times: Array[float] = []
+
 	for step in range(1, 21):
 		var t0: int = Time.get_ticks_usec()
 		map_gen.update_player_chunks(Vector2i(step, 0))
 		var dt_ms: float = float(Time.get_ticks_usec() - t0) / 1000.0
 		gen_times.append(dt_ms)
+		var c_size: int = map_gen.active_chunks.size()
+		chunk_counts_during_movement.append(c_size)
 
-	for frame in range(3):
+		if step <= 5:
+			near_times.append(dt_ms)
+		elif step >= 16:
+			far_times.append(dt_ms)
+
+	for frame in range(4):
 		await process_frame
 
 	var final_chunk_count: int = map_gen.active_chunks.size()
+	var max_chunks_observed: int = 0
+	for c in chunk_counts_during_movement:
+		if c > max_chunks_observed:
+			max_chunks_observed = c
+
+	# With load=3, unload=5: when moving horizontally in 1 direction along X,
+	# active chunks set spans [-5, +3] in X (9 chunks) by 7 chunks in Z = exactly 63 chunks.
+	# It must never exceed 121 chunks ((2*5+1)^2).
 	_assert_check(
-		final_chunk_count == 25,
-		"Bounded Active Chunk Count",
-		"Active chunks remains strictly bounded to 25 after 20 chunk movements (O(1) memory)"
+		max_chunks_observed <= 121 and final_chunk_count == 63,
+		"Hysteresis Bounded Working Set",
+		"Working set bounded by unload_radius=5: max observed %d, final %d (exactly 9x7 = 63, <= 121)" % [max_chunks_observed, final_chunk_count]
 	)
 
-	var avg_ms: float = 0.0
-	for t in gen_times:
-		avg_ms += t
-	avg_ms /= float(gen_times.size())
+	# Memory usage before vs after movement
+	var mem_after_bytes: int = OS.get_static_memory_usage()
+	var mem_diff_mb: float = float(mem_after_bytes - mem_before_bytes) / (1024.0 * 1024.0)
 	_assert_check(
-		avg_ms < 150.0,
-		"O(1) Chunk Update Execution Time",
-		"Average chunk transition processing time: %.2f ms (zero-allocation noise, O(1))" % avg_ms
+		mem_diff_mb < 100.0,
+		"Bounded Static Memory Growth",
+		"Static memory growth after 20 chunks of movement: %.2f MB (bounded heap allocation)" % mem_diff_mb
 	)
+
+	# Local generation cost comparison: Near Portal vs Far from Portal
+	var avg_near_ms: float = 0.0
+	for t in near_times: avg_near_ms += t
+	avg_near_ms /= float(near_times.size())
+
+	var avg_far_ms: float = 0.0
+	for t in far_times: avg_far_ms += t
+	avg_far_ms /= float(far_times.size())
+
+	var total_avg_ms: float = 0.0
+	for t in gen_times: total_avg_ms += t
+	total_avg_ms /= float(gen_times.size())
+
+	_assert_check(
+		avg_far_ms < (avg_near_ms * 2.5 + 50.0) and total_avg_ms < 250.0,
+		"O(1) Generation Cost Across World Distance",
+		"Near Portal: %.2f ms, Far (X=320m): %.2f ms, Total Avg: %.2f ms (ratio: %.2f, O(1) invariant)" % [avg_near_ms, avg_far_ms, total_avg_ms, avg_far_ms / maxf(avg_near_ms, 1.0)]
+	)
+
+	# Count final StaticBody3D nodes
+	var final_static_bodies: int = 0
+	for chunk_node in map_gen.active_chunks.values():
+		if chunk_node is StaticBody3D:
+			final_static_bodies += 1
+
+	print("\n  ================ RUNTIME & PERFORMANCE EVIDENCE ================")
+	print("  Active Chunks (Initial):       %d (7x7 window, load_radius=3)" % base_chunk_count)
+	print("  StaticBody3D Chunks (Initial): %d" % static_body_count)
+	print("  Max Active Chunks (Movement):  %d (bounded <= 121 by unload_radius=5)" % max_chunks_observed)
+	print("  Final Active Chunks (Step 20): %d" % final_chunk_count)
+	print("  Final StaticBody3D Chunks:     %d" % final_static_bodies)
+	print("  Average Transition Step Time:  %.2f ms" % total_avg_ms)
+	print("  Near-Portal Avg Gen Time:      %.2f ms" % avg_near_ms)
+	print("  Far-Portal (320m) Avg Gen Time:%.2f ms" % avg_far_ms)
+	print("  Static Memory Before Movement: %.2f MB" % (float(mem_before_bytes) / (1024.0 * 1024.0)))
+	print("  Static Memory After Movement:  %.2f MB (delta: %.2f MB)" % [float(mem_after_bytes) / (1024.0 * 1024.0), mem_diff_mb])
+	print("  ================================================================")
 
 	map_gen.queue_free()

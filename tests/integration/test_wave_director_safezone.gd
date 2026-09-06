@@ -78,3 +78,39 @@ func test_wave_director_morning_sun_destroys_preexisting_and_spawned_enemies() -
 
 	assert_true(pre_existing.died, "Morning sun must destroy pre-existing enemies")
 	assert_true(spawned.died, "Morning sun must destroy spawned wave enemies")
+
+class MockMapGenerator extends Node:
+	func get_voxel_height(x: int, _z: int) -> int:
+		# Cliff at voxel edge x=1: cell 0 (x < 1) has height 0, cell 1 (x >= 1) has height 4
+		return 4 if x >= 1 else 0
+
+func test_wave_director_spawn_height_on_fractional_voxel_boundaries() -> void:
+	var mock_map = MockMapGenerator.new()
+	mock_map.add_to_group("map_generator")
+	add_child_autoqfree(mock_map)
+
+	var director = WaveDirectorClass.new()
+	add_child_autoqfree(director)
+
+	# Fractional position x=0.75 is physically within cell 0 [0.0, 1.0)
+	# floorf(0.75) -> 0. Height must be 0.0 (old roundf(0.75) returned 1 -> height 4.0!)
+	var surface_y_in_cell_0: float = director.get_terrain_surface_y(Vector3(0.75, 0.0, 0.0))
+	assert_eq(surface_y_in_cell_0, 0.0, "x=0.75 must map to voxel cell 0 with surface height 0.0")
+
+	# Fractional position x=1.05 is physically within cell 1 [1.0, 2.0)
+	# floorf(1.05) -> 1. Height must be 4.0
+	var surface_y_in_cell_1: float = director.get_terrain_surface_y(Vector3(1.05, 0.0, 0.0))
+	assert_eq(surface_y_in_cell_1, 4.0, "x=1.05 must map to voxel cell 1 with surface height 4.0")
+
+	# Negative fractional coordinate boundary: -0.25 is in cell -1 [-1.0, 0.0)
+	var surface_y_neg: float = director.get_terrain_surface_y(Vector3(-0.25, 0.0, 0.0))
+	assert_eq(surface_y_neg, 0.0, "x=-0.25 must map to voxel cell -1 with surface height 0.0")
+
+	# Safe zone boundary with fractional coordinates:
+	# safe zone cell (0, 0) must reject x=0.75 (cell 0), but not x=1.05 (cell 1)
+	director.set_safe_zone_cells([Vector2i(0, 0)])
+	var cell_075: Vector2i = TerrainCombatRules.world_pos_to_voxel(Vector3(0.75, 0.0, 0.0))
+	var cell_105: Vector2i = TerrainCombatRules.world_pos_to_voxel(Vector3(1.05, 0.0, 0.0))
+	assert_true(director.safe_zone_cells.has(cell_075), "x=0.75 maps to cell (0, 0) and is inside safe zone")
+	assert_false(director.safe_zone_cells.has(cell_105), "x=1.05 maps to cell (1, 0) and is outside safe zone")
+

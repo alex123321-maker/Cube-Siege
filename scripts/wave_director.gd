@@ -81,14 +81,11 @@ func try_spawn_wave_enemy() -> void:
 	var spawn_pos: Vector3 = player.global_position + Vector3(cos(angle) * radius, 0.0, sin(angle) * radius)
 
 	# Resolve surface height at spawn point without fixed arena clamp
-	var terrain_y: float = 0.0
-	var map_gen = get_tree().get_first_node_in_group("map_generator") if is_inside_tree() else null
-	if map_gen and map_gen.has_method("get_voxel_height"):
-		terrain_y = float(map_gen.get_voxel_height(int(roundf(spawn_pos.x)), int(roundf(spawn_pos.z))))
+	var terrain_y: float = get_terrain_surface_y(spawn_pos)
 	spawn_pos.y = terrain_y + 0.9
 
 	# If inside SafeZone, reject spawn!
-	var cell: Vector2i = Vector2i(int(roundf(spawn_pos.x)), int(roundf(spawn_pos.z)))
+	var cell: Vector2i = TerrainCombatRules.world_pos_to_voxel(spawn_pos)
 	if safe_zone_cells.has(cell):
 		return
 
@@ -114,3 +111,9 @@ func try_spawn_wave_enemy() -> void:
 	enemy_instance.global_position = spawn_pos
 	if reg:
 		reg.register_enemy(enemy_instance)
+
+func get_terrain_surface_y(pos: Vector3) -> float:
+	var map_gen = get_tree().get_first_node_in_group("map_generator") if is_inside_tree() else null
+	if map_gen and map_gen.has_method("get_voxel_height"):
+		return float(map_gen.get_voxel_height(TerrainCombatRules.world_to_voxel(pos.x), TerrainCombatRules.world_to_voxel(pos.z)))
+	return 0.0

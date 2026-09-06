@@ -198,19 +198,25 @@ func check_occlusion() -> void:
 		# Fallback only when EntityRegistry autoload is not present (isolated unit tests)
 		candidate_enemies = get_tree().get_nodes_in_group("enemies")
 
-	var max_combat_enemies: int = 3
-	var nearby_count: int = 0
 	var target_pos: Vector3 = target.global_position
 	const COMBAT_RADIUS_SQ: float = 196.0 # 14.0 * 14.0
+	const MAX_COMBAT_ENEMIES: int = 24
 
+	var combat_candidates: Array[Node3D] = []
 	for enemy in candidate_enemies:
 		if enemy and is_instance_valid(enemy) and enemy is Node3D and enemy.is_inside_tree():
 			var e3d: Node3D = enemy as Node3D
 			if target_pos.distance_squared_to(e3d.global_position) <= COMBAT_RADIUS_SQ:
-				check_points.append(e3d.global_position + Vector3(0.0, 0.9, 0.0))
-				nearby_count += 1
-				if nearby_count >= max_combat_enemies:
-					break
+				combat_candidates.append(e3d)
+
+	# Spatial selection: prioritize enemies closest to the player
+	combat_candidates.sort_custom(func(a: Node3D, b: Node3D) -> bool:
+		return target_pos.distance_squared_to(a.global_position) < target_pos.distance_squared_to(b.global_position)
+	)
+
+	var limit: int = mini(combat_candidates.size(), MAX_COMBAT_ENEMIES)
+	for i in range(limit):
+		check_points.append(combat_candidates[i].global_position + Vector3(0.0, 0.9, 0.0))
 
 	var new_occluders: Array[Node] = []
 	var max_stacked_hits: int = 6

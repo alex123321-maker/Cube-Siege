@@ -161,7 +161,7 @@ func get_nuke_target_position(player: CharacterBody3D) -> Vector3:
 		if player.is_inside_tree():
 			var map_gen: Node = player.get_tree().get_first_node_in_group("map_generator")
 			if map_gen and map_gen.has_method("get_voxel_height"):
-				inter_pos.y = float(map_gen.get_voxel_height(int(roundf(inter_pos.x)), int(roundf(inter_pos.z))))
+				inter_pos.y = float(map_gen.get_voxel_height(TerrainCombatRules.world_to_voxel(inter_pos.x), TerrainCombatRules.world_to_voxel(inter_pos.z)))
 		return inter_pos
 	return player.global_position
 

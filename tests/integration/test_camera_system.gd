@@ -304,6 +304,66 @@ func test_building_occlusion_and_restoration() -> void:
 	# Assert transparency is restored to 0.0
 	assert_almost_eq(wall.current_transparency, 0.0, 0.05, "Non-occluding building transparency must be restored to 0.0")
 
+func test_foliage_occlusion_with_multiple_enemies_beyond_first_three() -> void:
+	var player = CharacterBody3D.new()
+	add_child_autoqfree(player)
+	player.position = Vector3(0.0, 0.0, 0.0)
+
+	var camera = CameraFollow.new()
+	add_child_autoqfree(camera)
+	camera.target = player
+	camera._init_camera_transform()
+
+	# Create 5 nearby combat enemies (>3 candidates in combat zone)
+	var reg = get_node_or_null("/root/EntityRegistry")
+	var enemies: Array[CharacterBody3D] = []
+	var enemy_offsets: Array[Vector3] = [
+		Vector3(2.0, 0.0, 1.0),
+		Vector3(-2.0, 0.0, 1.0),
+		Vector3(1.0, 0.0, -2.0),
+		Vector3(-1.0, 0.0, -2.0),
+		Vector3(4.0, 0.0, 3.0)  # Enemy #4 (5th candidate)
+	]
+
+	for i in range(enemy_offsets.size()):
+		var enemy = CharacterBody3D.new()
+		enemy.name = "Enemy_%d" % i
+		enemy.add_to_group("enemies")
+		add_child_autoqfree(enemy)
+		enemy.global_position = enemy_offsets[i]
+		if reg:
+			reg.register_enemy(enemy)
+		enemies.append(enemy)
+
+	# Place wall occluding specifically enemy #4 (not player, not enemies 0..2)
+	var target_enemy = enemies[4]
+	var wall = WoodWallScene.instantiate()
+	add_child_autoqfree(wall)
+	var ray_start = camera.global_position
+	var ray_end = target_enemy.global_position + Vector3(0.0, 0.9, 0.0)
+	var occlude_pt = ray_end + (ray_start - ray_end) * 0.1
+	wall.global_position = occlude_pt - Vector3(0.0, 1.0, 0.0)
+
+	# Wait for physics update
+	for i in range(5):
+		await get_tree().physics_frame
+		camera.check_occlusion()
+
+	# Enemy 4 must be covered by bounded spatial selection; occluder must be semi-transparent
+	assert_almost_eq(wall.current_transparency, 0.6, 0.05, "Occluder for 5th enemy (>3) must be set to semi-transparent (0.6)")
+
+	# Move wall away
+	wall.global_position = Vector3(100.0, 0.0, 100.0)
+	for i in range(5):
+		await get_tree().physics_frame
+		camera.check_occlusion()
+
+	assert_almost_eq(wall.current_transparency, 0.0, 0.05, "Transparency must be restored to 0.0 when wall moves away")
+
+	if reg:
+		for e in enemies:
+			reg.unregister_enemy(e)
+
 func test_narrow_viewport_screen_space_safety() -> void:
 	var sub_vp = SubViewport.new()
 	sub_vp.size = Vector2i(360, 800)
