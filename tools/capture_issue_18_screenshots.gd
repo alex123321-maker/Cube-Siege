@@ -3,20 +3,21 @@ extends SceneTree
 ## Comprehensive Visual Verification Runner for Issue #18:
 ## Captures high-resolution visual evidence for:
 ## 1. Biome transitions and world expansion.
-## 2. All 4 continuous movement videos using actual production runtime streaming.
+## 2. All 4 continuous movement videos using actual production runtime streaming with physical waypoint steering.
 ## 3. Resource degradation stages (100%, 66%, 33%, rubble).
-## 4. Free pickups [E] collection for all 4 types (Wood, Stone, Iron, Magic Stone).
-## 5. Melee cleave attack across vertical staircases.
-## 6. Projectiles: all 4 vertical trajectory cases (+1 climb, -1 descent, +2 wall, -2 cliff drop).
-## 7. Piercing arrow multi-target flight on terrain.
-## 8. Tactical nuke multi-level elevation impact.
+## 4. Free pickups [E] collection for all 4 types (Wood, Stone, Iron, Magic Stone) with genuine interaction and wallet increment.
+## 5. Melee cleave attack across consecutive vertical staircases.
+## 6. Projectiles: all 4 vertical trajectory cases (+1 climb, -1 descent, +2 wall, -2 cliff drop) on real terrain pairs.
+## 7. Piercing arrow multi-target flight on distinct authoritative terrain step heights.
+## 8. Tactical nuke multi-level elevation impact on real lower/upper cliff terrain.
+## 9. Stone and Iron deposit distinct silhouettes (tiers and procedural variations).
 
 const OUTPUT_DIR = "docs/screenshots/issue_18"
 const VIDEO_FRAMES_DIR = "temp_video_frames"
 const MAIN_SCENE_PATH = "res://scenes/main.tscn"
 
 var watchdog_elapsed: float = 0.0
-const MAX_WATCHDOG_TIME: float = 240.0
+const MAX_WATCHDOG_TIME: float = 300.0
 
 func _init() -> void:
 	print("[VERIFICATION-CAPPER] Initializing authentic verification artifact runner...")
@@ -45,62 +46,81 @@ func _capture_viewport(file_name: String) -> void:
 		img.save_png(full_path)
 		print("  [CAPTURE] Saved: %s" % full_path)
 
-func _record_runtime_movement_clip(subfolder: String, waypoints: Array[Vector3], total_frames: int, player: CharacterBody3D, camera: CameraFollow, map_gen: MapGenerator) -> void:
+func _record_runtime_movement_clip(
+	subfolder: String,
+	waypoints: Array[Vector3],
+	player: CharacterBody3D,
+	camera: CameraFollow,
+	map_gen: MapGenerator,
+	speed: float = 9.0,
+	max_frames: int = 600
+) -> Dictionary:
 	var out_dir: String = "%s/%s" % [VIDEO_FRAMES_DIR, subfolder]
 	DirAccess.make_dir_recursive_absolute(out_dir)
-	var d_check = DirAccess.open(out_dir)
-	if d_check:
-		var existing_count: int = 0
-		d_check.list_dir_begin()
-		var fn = d_check.get_next()
-		while fn != "":
-			if not d_check.current_is_dir() and fn.ends_with(".png"):
-				existing_count += 1
-			fn = d_check.get_next()
-		d_check.list_dir_end()
-		if existing_count >= total_frames:
-			print("  [VIDEO-FRAMES] Found %d frames for %s, skipping re-record." % [existing_count, subfolder])
-			return
 
-	var segment_count: int = waypoints.size() - 1
-	var frames_per_seg: float = float(total_frames) / float(segment_count)
+	var dt: float = 0.033
 
+	# Start at first waypoint
 	var start_pos: Vector3 = waypoints[0]
 	var sy: float = float(map_gen.get_voxel_height(int(floorf(start_pos.x)), int(floorf(start_pos.z))))
 	player.global_position = Vector3(start_pos.x, sy + 0.9, start_pos.z)
+	player.velocity = Vector3.ZERO
 	camera.target = player
 	camera._init_camera_transform()
 
-	for f in range(total_frames):
-		var seg_idx: int = mini(int(float(f) / frames_per_seg), segment_count - 1)
-		var seg_t: float = (float(f) - float(seg_idx) * frames_per_seg) / frames_per_seg
-		var p0: Vector3 = waypoints[seg_idx]
-		var p1: Vector3 = waypoints[seg_idx + 1]
-		var target_pos: Vector3 = p0.lerp(p1, seg_t)
+	var visited_biomes: Dictionary = {
+		BiomeSystem.BiomeType.FOREST: false,
+		BiomeSystem.BiomeType.PLAINS: false,
+		BiomeSystem.BiomeType.MOUNTAINS: false
+	}
 
-		var to_tgt: Vector3 = target_pos - player.global_position
+	var current_wp_idx: int = 1
+	var recorded_frames: int = 0
+
+	while current_wp_idx < waypoints.size() and recorded_frames < max_frames:
+		var target_wp: Vector3 = waypoints[current_wp_idx]
+		var to_tgt: Vector3 = target_wp - player.global_position
 		to_tgt.y = 0.0
 		var dist: float = to_tgt.length()
-		var move_speed: float = clampf(dist * 25.0, 5.0, 10.0)
+
+		if dist < 2.0:
+			current_wp_idx += 1
+			if current_wp_idx >= waypoints.size():
+				break
+			target_wp = waypoints[current_wp_idx]
+			to_tgt = target_wp - player.global_position
+			to_tgt.y = 0.0
+			dist = to_tgt.length()
+
 		var move_dir: Vector3 = to_tgt.normalized() if dist > 0.05 else Vector3.ZERO
+		player.global_position.x += move_dir.x * speed * dt
+		player.global_position.z += move_dir.z * speed * dt
 
-		player.velocity.x = move_dir.x * move_speed
-		player.velocity.z = move_dir.z * move_speed
+		var cur_x = int(floorf(player.global_position.x))
+		var cur_z = int(floorf(player.global_position.z))
+		var hy = float(map_gen.get_voxel_height(cur_x, cur_z))
+		player.global_position.y = hy + 0.9
 
-		var dt: float = 0.033
-		var hy: float = float(map_gen.get_voxel_height(int(floorf(player.global_position.x)), int(floorf(player.global_position.z))))
-		if player.global_position.y < hy + 0.8:
-			player.global_position.y = hy + 0.9
-			player.velocity.y = 0.0
-		else:
-			player.velocity.y -= 25.0 * dt
-
-		player.move_and_slide()
+		player.velocity = Vector3(move_dir.x * speed, 0.0, move_dir.z * speed)
 
 		# Production runtime streaming path: _process triggers update_player_chunks(..., false)
 		# and amortizes pending chunk generation frame-by-frame!
 		map_gen._process(dt)
 		camera._process(dt)
+
+		# Record visited biome
+		var b_info = BiomeSystem.sample_biome_weights(player.global_position.x, player.global_position.z, map_gen.actual_seed)
+		if not b_info["is_sanctuary"]:
+			var p_biome = b_info["primary"]
+			visited_biomes[p_biome] = true
+
+		if recorded_frames % 30 == 0:
+			print("  [DEBUG-MOVE] f=%d, wp=%d/%d, pos=(%.1f, %.1f, %.1f), dist=%.1f, vel=(%.1f, %.1f), sanctuary=%s, primary=%s" % [
+				recorded_frames, current_wp_idx, waypoints.size(),
+				player.global_position.x, player.global_position.y, player.global_position.z,
+				dist, player.velocity.x, player.velocity.z,
+				b_info["is_sanctuary"], b_info["primary"]
+			])
 
 		await RenderingServer.frame_post_draw
 		var vp: Viewport = root.get_viewport()
@@ -109,10 +129,22 @@ func _record_runtime_movement_clip(subfolder: String, waypoints: Array[Vector3],
 			if tex:
 				var img: Image = tex.get_image()
 				if img and not img.is_empty():
-					img.save_png("%s/frame_%04d.png" % [out_dir, f])
+					img.save_png("%s/frame_%04d.png" % [out_dir, recorded_frames])
+		recorded_frames += 1
 		await process_frame
 
-	print("  [VIDEO-FRAMES] Recorded %d frames for %s (production runtime streaming path)" % [total_frames, subfolder])
+	print("  [VIDEO-FRAMES] Recorded %d frames for %s. Reached end=%s, Visited biomes: Forest=%s, Plains=%s, Mountains=%s" % [
+		recorded_frames, subfolder, current_wp_idx >= waypoints.size(),
+		visited_biomes[BiomeSystem.BiomeType.FOREST],
+		visited_biomes[BiomeSystem.BiomeType.PLAINS],
+		visited_biomes[BiomeSystem.BiomeType.MOUNTAINS]
+	])
+
+	return {
+		"frames": recorded_frames,
+		"reached_end": current_wp_idx >= waypoints.size(),
+		"visited_biomes": visited_biomes
+	}
 
 func _run_all() -> void:
 	DirAccess.make_dir_recursive_absolute(OUTPUT_DIR)
@@ -132,6 +164,7 @@ func _run_all() -> void:
 	var map_gen: MapGenerator = main.get_node_or_null("MapGenerator") as MapGenerator
 	var day_night: DayNightCycle = main.get_node_or_null("DayNightCycle") as DayNightCycle
 	var wave_dir: WaveDirector = main.get_node_or_null("WaveDirector") as WaveDirector
+	var b_sys: BuildingSystem = main.get_node_or_null("BuildingSystem") as BuildingSystem
 
 	if not camera or not player or not map_gen:
 		printerr("Required nodes missing in main.tscn")
@@ -139,51 +172,61 @@ func _run_all() -> void:
 		return
 
 	root.size = Vector2i(1280, 720)
+	player.set_physics_process(false)
 	camera.target = player
 	camera._init_camera_transform()
 	await _wait_frames(10)
 
 	print("\n--- Phase 1: Recording Movement & Transition Videos (Runtime Streaming Path) ---")
 
-	# 1. Video 1: Start at Portal (0,0) and move into Forest (0 deg), Plains (+120 deg), and Mountains (-120 deg)
+	# 1. Video 1: Start at Portal (0,2) and move through Forest (0 deg), Plains (+120 deg), and Mountains (-120 deg)
 	var vid1_waypoints: Array[Vector3] = [
-		Vector3(0.0, 0.0, 0.0),       # Portal Sanctuary
-		Vector3(35.0, 0.0, 0.0),      # Into Forest (0 deg)
-		Vector3(45.0, 0.0, 15.0),     # Forest edge
-		Vector3(15.0, 0.0, 45.0),     # Heading towards Plains
-		Vector3(-30.0, 0.0, 52.0),    # Into Plains (+120 deg)
-		Vector3(-25.0, 0.0, 15.0),    # Heading towards Mountains
-		Vector3(-35.0, 0.0, -52.0),   # Into Mountains (-120 deg)
-		Vector3(-10.0, 0.0, -15.0)    # Returning to Portal base
+		Vector3(0.0, 0.0, 2.0),       # Portal Sanctuary (clearing workbench)
+		Vector3(18.0, 0.0, 0.0),      # Into Forest (0 deg)
+		Vector3(10.0, 0.0, 16.0),     # Heading towards Plains
+		Vector3(-14.0, 0.0, 22.0),    # Into Plains (+120 deg)
+		Vector3(-18.0, 0.0, 0.0),     # Heading towards Mountains
+		Vector3(-14.0, 0.0, -22.0),   # Into Mountains (-120 deg)
+		Vector3(0.0, 0.0, 2.0)        # Returning to Portal base
 	]
-	await _record_runtime_movement_clip("vid1_movement_to_biomes", vid1_waypoints, 150, player, camera, map_gen)
+	var res1 = await _record_runtime_movement_clip("vid1_movement_to_biomes", vid1_waypoints, player, camera, map_gen, 9.0, 550)
+	assert(res1["reached_end"], "Video 1 must reach all waypoints")
+	assert(res1["visited_biomes"][BiomeSystem.BiomeType.FOREST], "Video 1 must actually visit Forest")
+	assert(res1["visited_biomes"][BiomeSystem.BiomeType.PLAINS], "Video 1 must actually visit Plains")
+	assert(res1["visited_biomes"][BiomeSystem.BiomeType.MOUNTAINS], "Video 1 must actually visit Mountains")
 
 	# 2. Video 2: Smooth continuous transition Forest <-> Plains (+60 deg)
 	var vid2_waypoints: Array[Vector3] = [
-		Vector3(35.0, 0.0, 20.0),
-		Vector3(30.0, 0.0, 40.0),
-		Vector3(20.0, 0.0, 60.0),
-		Vector3(10.0, 0.0, 80.0)
+		Vector3(18.0, 0.0, 4.0),      # Forest side
+		Vector3(12.0, 0.0, 14.0),     # +60 deg boundary
+		Vector3(4.0, 0.0, 20.0)       # Plains side
 	]
-	await _record_runtime_movement_clip("vid2_transition_forest_plains", vid2_waypoints, 75, player, camera, map_gen)
+	var res2 = await _record_runtime_movement_clip("vid2_transition_forest_plains", vid2_waypoints, player, camera, map_gen, 7.5, 120)
+	assert(res2["reached_end"], "Video 2 must reach all waypoints")
+	assert(res2["visited_biomes"][BiomeSystem.BiomeType.FOREST], "Video 2 must visit Forest")
+	assert(res2["visited_biomes"][BiomeSystem.BiomeType.PLAINS], "Video 2 must visit Plains")
 
 	# 3. Video 3: Smooth continuous transition Plains <-> Mountains (180 deg / -X)
 	var vid3_waypoints: Array[Vector3] = [
-		Vector3(-60.0, 0.0, 40.0),
-		Vector3(-75.0, 0.0, 15.0),
-		Vector3(-80.0, 0.0, -15.0),
-		Vector3(-65.0, 0.0, -40.0)
+		Vector3(-14.0, 0.0, 18.0),    # Plains side
+		Vector3(-20.0, 0.0, 0.0),     # 180 deg boundary
+		Vector3(-14.0, 0.0, -18.0)    # Mountains side
 	]
-	await _record_runtime_movement_clip("vid3_transition_plains_mountains", vid3_waypoints, 75, player, camera, map_gen)
+	var res3 = await _record_runtime_movement_clip("vid3_transition_plains_mountains", vid3_waypoints, player, camera, map_gen, 9.0, 200)
+	assert(res3["reached_end"], "Video 3 must reach all waypoints")
+	assert(res3["visited_biomes"][BiomeSystem.BiomeType.PLAINS], "Video 3 must visit Plains")
+	assert(res3["visited_biomes"][BiomeSystem.BiomeType.MOUNTAINS], "Video 3 must visit Mountains")
 
 	# 4. Video 4: Smooth continuous transition Forest <-> Mountains (-60 deg)
 	var vid4_waypoints: Array[Vector3] = [
-		Vector3(35.0, 0.0, -20.0),
-		Vector3(30.0, 0.0, -40.0),
-		Vector3(20.0, 0.0, -60.0),
-		Vector3(10.0, 0.0, -80.0)
+		Vector3(18.0, 0.0, -4.0),     # Forest side
+		Vector3(12.0, 0.0, -14.0),    # -60 deg boundary
+		Vector3(4.0, 0.0, -20.0)      # Mountains side
 	]
-	await _record_runtime_movement_clip("vid4_transition_forest_mountains", vid4_waypoints, 75, player, camera, map_gen)
+	var res4 = await _record_runtime_movement_clip("vid4_transition_forest_mountains", vid4_waypoints, player, camera, map_gen, 7.5, 120)
+	assert(res4["reached_end"], "Video 4 must reach all waypoints")
+	assert(res4["visited_biomes"][BiomeSystem.BiomeType.FOREST], "Video 4 must visit Forest")
+	assert(res4["visited_biomes"][BiomeSystem.BiomeType.MOUNTAINS], "Video 4 must visit Mountains")
 
 	print("\n--- Phase 2: Capturing Authentic Demonstrations for All Issue #18 Points ---")
 
@@ -191,10 +234,10 @@ func _run_all() -> void:
 	player.global_position = Vector3(0.0, 0.9, 0.0)
 	map_gen.update_player_chunks(Vector2i(0, 0), true)
 	camera._init_camera_transform()
-	await _wait_frames(5)
+	await _wait_frames(8)
 	await _capture_viewport("01_portal_forest_start.png")
 
-	# 2. 02_plains_biome.png (+120 deg: X=-55, Z=95)
+	# 2. 02_plains_biome.png
 	var plains_pos: Vector3 = Vector3(-55.0, 0.0, 95.0)
 	var py: float = float(map_gen.get_voxel_height(int(floorf(plains_pos.x)), int(floorf(plains_pos.z))))
 	player.global_position = Vector3(plains_pos.x, py + 0.9, plains_pos.z)
@@ -204,13 +247,12 @@ func _run_all() -> void:
 	await _capture_viewport("02_plains_biome.png")
 
 	# 3. 03_mountain_biome_altitude_50.png
-	var high_mtn_pos: Vector3 = Vector3(-70.0, 52.0, -120.0)
-	for test_r in range(120, 220, 10):
-		var ang: float = BiomeSystem.get_trail_angle(float(test_r), map_gen.actual_seed)
-		var test_x: int = int(round(float(test_r) * cos(ang)))
-		var test_z: int = int(round(float(test_r) * sin(ang)))
+	var high_mtn_pos: Vector3 = Vector3(-50.0, 52.0, -80.0)
+	for r in range(40, 160):
+		var test_x: int = int(float(r) * cos(BiomeSystem.ANGLE_MOUNTAINS))
+		var test_z: int = int(float(r) * sin(BiomeSystem.ANGLE_MOUNTAINS))
 		var th: int = map_gen.get_voxel_height(test_x, test_z)
-		if th >= 52:
+		if th >= 50:
 			high_mtn_pos = Vector3(float(test_x), float(th), float(test_z))
 			break
 
@@ -245,23 +287,26 @@ func _run_all() -> void:
 
 	var enemy_scene = load("res://scenes/enemy_dummy.tscn")
 	var enemies: Array[Node] = []
-	for i in range(4):
-		var en = enemy_scene.instantiate()
-		main.add_child(en)
-		en.global_position = player.global_position + Vector3(float(i - 1.5) * 2.5, 0.0, float(i % 2) * 2.0)
-		enemies.append(en)
+	if enemy_scene:
+		for i in range(4):
+			var en = enemy_scene.instantiate()
+			main.add_child(en)
+			en.global_position = player.global_position + Vector3(float(i - 1.5) * 2.5, 0.0, float(i % 2) * 2.0)
+			enemies.append(en)
 
 	var tree_scene = load("res://scenes/resource_tree.tscn")
-	var t = tree_scene.instantiate()
-	main.add_child(t)
-	t.global_position = (enemies[3] as Node3D).global_position.lerp(camera.global_position, 0.25)
-	await _wait_frames(5)
-	camera.check_occlusion()
-	await _wait_frames(5)
-	await _capture_viewport("06_foliage_readability_multi_enemy.png")
-	t.queue_free()
+	var t = tree_scene.instantiate() if tree_scene else null
+	if t and enemies.size() > 3:
+		main.add_child(t)
+		t.global_position = (enemies[3] as Node3D).global_position.lerp(camera.global_position, 0.25)
+		await _wait_frames(5)
+		camera.check_occlusion()
+		await _wait_frames(5)
+		await _capture_viewport("06_foliage_readability_multi_enemy.png")
+		t.queue_free()
 	for en in enemies:
-		en.queue_free()
+		if is_instance_valid(en):
+			en.queue_free()
 
 	# 7. 07_loose_vs_deposit_resources.png
 	var iron_scene = load("res://scenes/resource_iron.tscn")
@@ -323,7 +368,8 @@ func _run_all() -> void:
 		camera._init_camera_transform()
 		await _wait_frames(4)
 		await _capture_viewport("09_projectile_vertical_trajectory.png")
-		arrow.queue_free()
+		if is_instance_valid(arrow):
+			arrow.queue_free()
 
 	# 10. 10_high_mountain_duel_aiming.png
 	player.global_position = Vector3(high_mtn_pos.x, high_mtn_pos.y + 0.9, high_mtn_pos.z)
@@ -334,9 +380,7 @@ func _run_all() -> void:
 		var h_en = float(map_gen.get_voxel_height(int(floorf(high_mtn_pos.x + 3.0)), int(floorf(high_mtn_pos.z + 1.0))))
 		high_en.global_position = Vector3(high_mtn_pos.x + 3.0, h_en + 0.9, high_mtn_pos.z + 1.0)
 		camera._init_camera_transform()
-		var screen_pos = camera.unproject_position(high_en.global_position)
-		camera.mouse_override = screen_pos
-		await _wait_frames(5)
+		await _wait_frames(6)
 		await _capture_viewport("10_high_mountain_duel_aiming.png")
 		high_en.queue_free()
 
@@ -367,11 +411,11 @@ func _run_all() -> void:
 			r.global_position = player.global_position + Vector3(float(s - 1.5) * 2.2, 0.0, 2.0)
 			r.configure_rock(ResourceRock.RockType.STONE, 6, 2, s)
 			if s == 1:
-				r._on_damaged(r.max_health * 0.40, Vector3.ZERO, "pickaxe", player) # 60% HP -> Stage 1 (cracked)
+				r._on_damaged(r.max_health * 0.40, Vector3.ZERO, "pickaxe", player)
 			elif s == 2:
-				r._on_damaged(r.max_health * 0.75, Vector3.ZERO, "pickaxe", player) # 25% HP -> Stage 0 (chipped)
+				r._on_damaged(r.max_health * 0.75, Vector3.ZERO, "pickaxe", player)
 			elif s == 3:
-				r._on_damaged(r.max_health * 1.05, Vector3.ZERO, "pickaxe", player) # 0% HP -> rubble
+				r._on_damaged(r.max_health * 1.05, Vector3.ZERO, "pickaxe", player)
 			created_deposits.append(r)
 
 		# Row of iron deposits
@@ -392,10 +436,11 @@ func _run_all() -> void:
 		await _wait_frames(6)
 		await _capture_viewport("12_resource_deposit_degradation_stages.png")
 		for d in created_deposits:
-			d.queue_free()
+			if is_instance_valid(d):
+				d.queue_free()
 
 	# 13. 13_free_pickups_interaction_e.png (Item 12 in Verification)
-	# All 4 loose resource pickups: Wood, Stone, Iron, Magic Stone + [E] interaction + floating text
+	# All 4 loose resource pickups: Wood, Stone, Iron, Magic Stone + genuine [E] interaction + wallet increment + floating text
 	var pickups: Array[Node] = []
 	var r_types: Array = [
 		ResourceDistribution.ResourceType.WOOD,
@@ -403,6 +448,7 @@ func _run_all() -> void:
 		ResourceDistribution.ResourceType.IRON,
 		ResourceDistribution.ResourceType.MAGIC_STONE
 	]
+	player.global_position = Vector3(0.0, 0.9, 0.0)
 	for idx in range(r_types.size()):
 		var p = FreeResourcePickup.new()
 		p.resource_type = r_types[idx]
@@ -410,70 +456,166 @@ func _run_all() -> void:
 		main.add_child(p)
 		p.global_position = player.global_position + Vector3(float(idx - 1.5) * 1.8, 0.1, 2.5)
 		pickups.append(p)
+		player.interaction.add_candidate(p)
 
-	# Position player right next to the Magic Stone pickup
 	var target_pickup: FreeResourcePickup = pickups[3] as FreeResourcePickup
-	target_pickup.prompt_label.visible = true
-	target_pickup.prompt_label.text = "[E] Подобрать Магический камень"
-	target_pickup._spawn_popup(2)
+	target_pickup.set_focused(true)
+
+	var initial_magic: int = b_sys.wallet.get_magic_stone() if b_sys and b_sys.wallet else 0
+
+	# Execute production interaction pipeline
+	player.interaction._execute_interaction(target_pickup, player, false)
+	(pickups[2] as FreeResourcePickup).set_focused(true)
+	await _wait_frames(5)
+
+	var after_magic: int = b_sys.wallet.get_magic_stone() if b_sys and b_sys.wallet else 0
+	print("  [INTERACTION-VERIFY] Magic Stone collected via [E]: initial=%d, after=%d" % [initial_magic, after_magic])
+	assert(after_magic == initial_magic + 2, "BuildingSystem wallet must increment upon [E] pickup interaction")
 
 	camera._init_camera_transform()
-	await _wait_frames(6)
 	await _capture_viewport("13_free_pickups_interaction_e.png")
 	for p in pickups:
-		p.queue_free()
+		if is_instance_valid(p):
+			p.queue_free()
+
+	# 14. Dynamic Terrain Feature Discovery for authentic physical demonstrations
+	var stair_x: int = 0
+	var stair_z: int = 0
+	var found_stair: bool = false
+
+	var wall_x: int = 0
+	var wall_z: int = 0
+	var found_wall: bool = false
+
+	var drop_x: int = 0
+	var drop_z: int = 0
+	var found_cliff: bool = false
+
+	for x in range(-80, 80):
+		for z in range(-80, 80):
+			var h0 = map_gen.get_voxel_height(x, z)
+			var h1 = map_gen.get_voxel_height(x + 1, z)
+			var h2 = map_gen.get_voxel_height(x + 2, z)
+			var h3 = map_gen.get_voxel_height(x + 3, z)
+
+			if not found_stair and h1 == h0 + 1 and h2 == h0 + 2:
+				stair_x = x
+				stair_z = z
+				found_stair = true
+
+			if not found_wall and h1 >= h0 + 2:
+				wall_x = x
+				wall_z = z
+				found_wall = true
+
+			if not found_cliff and h1 <= h0 - 2 and h2 <= h0 - 2 and h3 <= h0 - 2:
+				drop_x = x
+				drop_z = z
+				found_cliff = true
+
+			if found_stair and found_wall and found_cliff:
+				break
+		if found_stair and found_wall and found_cliff:
+			break
+
+	assert(found_stair and found_wall and found_cliff, "Must find staircase, wall, and cliff on runtime seed")
+
+	var h_stair0 = float(map_gen.get_voxel_height(stair_x, stair_z))
+	var h_stair1 = float(map_gen.get_voxel_height(stair_x + 1, stair_z))
+	var h_stair2 = float(map_gen.get_voxel_height(stair_x + 2, stair_z))
+
+	var h_wall_src = float(map_gen.get_voxel_height(wall_x, wall_z))
+	var h_wall_tgt = float(map_gen.get_voxel_height(wall_x + 1, wall_z))
+
+	var h_drop_src = float(map_gen.get_voxel_height(drop_x, drop_z))
+	var h_drop_tgt = float(map_gen.get_voxel_height(drop_x + 1, drop_z))
+
+	# Stream chunks around these locations
+	map_gen.update_player_chunks(Vector2i(int(floorf(float(stair_x) / 16.0)), int(floorf(float(stair_z) / 16.0))), true)
+	map_gen.update_player_chunks(Vector2i(int(floorf(float(wall_x) / 16.0)), int(floorf(float(wall_z) / 16.0))), true)
+	map_gen.update_player_chunks(Vector2i(int(floorf(float(drop_x) / 16.0)), int(floorf(float(drop_z) / 16.0))), true)
+	await _wait_frames(5)
 
 	# 14. 14_melee_cleave_staircase.png (Item 15 in Verification)
-	# Warrior Cleave sweeping across +1 and +2 staircase enemies
-	player.global_position = Vector3(float(step_cell.x) + 0.5, h_base + 0.9, float(step_cell.y) + 0.5)
+	# Melee Cleave attack on verified consecutive physical steps (H0, H1, H2)
+	player.global_position = Vector3(float(stair_x) + 0.5, h_stair0 + 0.9, float(stair_z) + 0.5)
+	player.look_at(player.global_position + Vector3.RIGHT, Vector3.UP)
 	player.set_class(player.CharacterClass.WARRIOR, false)
+
 	var stair_enemies: Array[Node] = []
 	if enemy_scene:
-		var e1 = enemy_scene.instantiate()
-		main.add_child(e1)
-		var h1 = float(map_gen.get_voxel_height(step_cell.x + 1, step_cell.y))
-		e1.global_position = Vector3(float(step_cell.x + 1) + 0.5, h1 + 0.9, float(step_cell.y) + 0.5)
-		stair_enemies.append(e1)
+		var se1 = enemy_scene.instantiate()
+		main.add_child(se1)
+		se1.global_position = Vector3(float(stair_x + 1) + 0.5, h_stair1 + 0.9, float(stair_z) + 0.5)
+		stair_enemies.append(se1)
 
-		# Trigger cleave slash with 180 deg arc VFX
+		var se2 = enemy_scene.instantiate()
+		main.add_child(se2)
+		se2.global_position = Vector3(float(stair_x + 2) + 0.5, h_stair2 + 0.9, float(stair_z) + 0.5)
+		stair_enemies.append(se2)
+
+		var hp1_start = se1.current_health
+		var hp2_start = se2.current_health
+
+		# Warrior cleave slash 180 deg arc towards +X
 		player.combat.trigger_slash(player, 60.0, 10.0, 180.0, false)
 		camera._init_camera_transform()
 		await _wait_frames(3)
+
+		assert(se1.current_health < hp1_start, "Stair enemy 1 on step +1 must be damaged by cleave")
+		assert(se2.current_health < hp2_start, "Stair enemy 2 on step +2 must be damaged by cleave")
+		print("  [CLEAVE-STAIRCASE-VERIFY] Enemies on steps +1 and +2 damaged: hp1=%s->%s, hp2=%s->%s" % [
+			hp1_start, se1.current_health, hp2_start, se2.current_health
+		])
+
 		await _capture_viewport("14_melee_cleave_staircase.png")
 		for se in stair_enemies:
-			se.queue_free()
+			if is_instance_valid(se):
+				se.queue_free()
+		await _wait_frames(3)
 
 	# 15. 15_arrow_vertical_trajectories_all_cases.png (Item 16 in Verification)
-	# All 4 arrow trajectory cases: +1 ascent, -1 descent, +2 wall impact spark, -2 cliff drop
+	# All 4 arrow trajectory cases (+1 ascent, -1 descent, +2 wall, -2 cliff drop) on verified terrain cells
 	var demo_arrows: Array[Node] = []
 	if arrow_scene:
-		# Arrow 1: climbing slope +1
+		# Case 1: Ascent +1 step (starts in cell stair_x, moves RIGHT into stair_x + 1)
 		var a1 = arrow_scene.instantiate()
 		main.add_child(a1)
-		a1.global_position = player.global_position + Vector3(0.0, 0.5, -2.0)
-		a1.setup(Vector3.FORWARD, 20.0, player)
+		var y1_start = h_stair0 + 0.8
+		a1.global_position = Vector3(float(stair_x) + 0.5, y1_start, float(stair_z) + 0.5)
+		a1.setup(Vector3.RIGHT, 15.0, player, 99)
 		demo_arrows.append(a1)
+		await _wait_frames(3)
+		assert(is_instance_valid(a1) and a1.global_position.y >= y1_start, "Arrow 1 must climb upward on +1 step")
 
-		# Arrow 2: descending slope -1
+		# Case 2: Descent -1 step (starts in cell stair_x + 1, moves LEFT into stair_x)
 		var a2 = arrow_scene.instantiate()
 		main.add_child(a2)
-		a2.global_position = player.global_position + Vector3(2.0, 1.5, -2.0)
-		a2.setup(Vector3.FORWARD, 20.0, player)
+		var y2_start = h_stair1 + 0.8
+		a2.global_position = Vector3(float(stair_x + 1) + 0.5, y2_start, float(stair_z) + 0.5)
+		a2.setup(Vector3.LEFT, 15.0, player, 99)
 		demo_arrows.append(a2)
+		await _wait_frames(3)
+		assert(is_instance_valid(a2) and a2.global_position.y <= y2_start, "Arrow 2 must descend downward on -1 step")
 
-		# Arrow 3: colliding with wall +2
+		# Case 3: Wall impact >= 2 blocks
 		var a3 = arrow_scene.instantiate()
 		main.add_child(a3)
-		a3.global_position = player.global_position + Vector3(-2.0, 0.5, -1.0)
-		a3.setup(Vector3.FORWARD, 20.0, player)
+		a3.global_position = Vector3(float(wall_x) + 0.5, h_wall_src + 0.8, float(wall_z) + 0.5)
+		a3.setup(Vector3.RIGHT, 20.0, player)
 		demo_arrows.append(a3)
+		await _wait_frames(4)
+		assert(not is_instance_valid(a3) or a3.is_queued_for_deletion(), "Arrow 3 must impact wall and despawn")
 
-		# Arrow 4: flying over cliff drop -2
+		# Case 4: Straight flight over cliff drop <= -2 blocks
 		var a4 = arrow_scene.instantiate()
 		main.add_child(a4)
-		a4.global_position = player.global_position + Vector3(1.5, 0.8, 1.0)
-		a4.setup(Vector3.RIGHT, 20.0, player)
+		var y4_start = h_drop_src + 0.8
+		a4.global_position = Vector3(float(drop_x) + 0.5, y4_start, float(drop_z) + 0.5)
+		a4.setup(Vector3.RIGHT, 15.0, player)
 		demo_arrows.append(a4)
+		await _wait_frames(2)
+		assert(is_instance_valid(a4) and absf(a4.global_position.y - y4_start) < 0.2, "Arrow 4 must fly horizontally without diving over cliff")
 
 		camera._init_camera_transform()
 		await _wait_frames(4)
@@ -481,62 +623,126 @@ func _run_all() -> void:
 		for da in demo_arrows:
 			if is_instance_valid(da):
 				da.queue_free()
+		await _wait_frames(3)
 
 	# 16. 16_pierce_arrow_vertical_flight.png (Item 17 in Verification)
-	# Archer Pierce Arrow (pierce=6) flying through enemies on steps
+	# Archer Pierce Arrow hitting enemies on actual consecutive terrain elevation steps
+	player.global_position = Vector3(float(stair_x) + 0.2, h_stair0 + 0.9, float(stair_z) + 0.5)
+	player.look_at(player.global_position + Vector3.RIGHT, Vector3.UP)
 	player.set_class(player.CharacterClass.ARCHER, false)
 	var pierce_enemies: Array[Node] = []
 	if enemy_scene and arrow_scene:
-		for pi in range(3):
-			var pe = enemy_scene.instantiate()
-			main.add_child(pe)
-			pe.global_position = player.global_position + Vector3(float(pi + 1) * 2.2, 0.0, 0.0)
-			pierce_enemies.append(pe)
+		var pe1 = enemy_scene.instantiate()
+		main.add_child(pe1)
+		pe1.global_position = Vector3(float(stair_x + 1) + 0.5, h_stair1 + 0.9, float(stair_z) + 0.5)
+		pierce_enemies.append(pe1)
+
+		var pe2 = enemy_scene.instantiate()
+		main.add_child(pe2)
+		pe2.global_position = Vector3(float(stair_x + 2) + 0.5, h_stair2 + 0.9, float(stair_z) + 0.5)
+		pierce_enemies.append(pe2)
+
+		var hp_pe1_start = pe1.current_health
+		var hp_pe2_start = pe2.current_health
 
 		var parrow = arrow_scene.instantiate()
 		main.add_child(parrow)
-		parrow.global_position = player.global_position + Vector3(1.0, 0.8, 0.0)
-		parrow.scale = Vector3(1.5, 1.5, 2.2)
+		parrow.global_position = player.global_position + Vector3(0.5, 0.8, 0.0)
 		parrow.speed = 36.0
-		parrow.setup(Vector3.RIGHT, 60.0, player, 6)
+		parrow.setup(Vector3.RIGHT, 25.0, player, 6)
 
 		camera._init_camera_transform()
-		await _wait_frames(4)
+		await _wait_frames(6)
+
+		assert(is_instance_valid(pe1) and pe1.current_health < hp_pe1_start, "Pierce arrow must damage enemy 1 on step +1")
+		assert(is_instance_valid(pe2) and pe2.current_health < hp_pe2_start, "Pierce arrow must damage enemy 2 on step +2")
+		print("  [PIERCE-ARROW-VERIFY] Enemies on steps damaged: pe1=%s->%s, pe2=%s->%s" % [
+			hp_pe1_start, pe1.current_health, hp_pe2_start, pe2.current_health
+		])
+
 		await _capture_viewport("16_pierce_arrow_vertical_flight.png")
 		if is_instance_valid(parrow):
 			parrow.queue_free()
 		for pe in pierce_enemies:
 			if is_instance_valid(pe):
 				pe.queue_free()
+		await _wait_frames(3)
 
 	# 17. 17_tactical_nuke_multilevel_impact.png (Item 18 in Verification)
-	# Engineer Tactical Nuke hitting targets on multiple physical elevations (Y=0 and Y>=2)
+	# Engineer Tactical Nuke hitting targets placed on actual physical cliff elevation levels (diff >= 2)
+	assert(h_wall_tgt - h_wall_src >= 2.0, "Must test across real physical cliff of >= 2 blocks")
+
 	player.set_class(player.CharacterClass.ENGINEER, false)
+	player.global_position = Vector3(float(wall_x) - 1.0, h_wall_src + 0.9, float(wall_z))
+
 	var nuke_enemies: Array[Node] = []
 	if enemy_scene:
-		# 2 enemies on lower step
-		for ni in range(2):
-			var ne = enemy_scene.instantiate()
-			main.add_child(ne)
-			ne.global_position = player.global_position + Vector3(float(ni) * 2.0 + 2.0, 0.0, 1.0)
-			nuke_enemies.append(ne)
-		# 2 enemies on upper step +2
-		for ni in range(2):
-			var ne_high = enemy_scene.instantiate()
-			main.add_child(ne_high)
-			ne_high.global_position = player.global_position + Vector3(float(ni) * 2.0 + 2.0, 2.5, -1.0)
-			nuke_enemies.append(ne_high)
+		# Lower enemies placed on authoritative lower terrain surface
+		var ne_low = enemy_scene.instantiate()
+		main.add_child(ne_low)
+		ne_low.global_position = Vector3(float(wall_x) + 0.5, h_wall_src + 0.9, float(wall_z) + 0.5)
+		nuke_enemies.append(ne_low)
 
-		var nuke_target = player.global_position + Vector3(3.0, 0.0, 0.0)
-		player.abilities._execute_tactical_nuke(player, nuke_target)
+		# Upper enemies placed on authoritative upper cliff surface
+		var ne_high = enemy_scene.instantiate()
+		main.add_child(ne_high)
+		ne_high.global_position = Vector3(float(wall_x + 1) + 0.5, h_wall_tgt + 0.9, float(wall_z) + 0.5)
+		nuke_enemies.append(ne_high)
+
+		var hp_low_start = ne_low.current_health
+		var hp_high_start = ne_high.current_health
+
+		var nuke_target = Vector3(float(wall_x) + 1.0, 0.0, float(wall_z) + 0.5)
+		var vfx = player.get_node_or_null("/root/VFXManager")
+		if vfx:
+			vfx.spawn_tactical_nuke_impact(nuke_target)
+		player.abilities._apply_nuke_impact_damage(player, nuke_target, 50.0, 10.0)
 
 		camera._init_camera_transform()
-		await _wait_frames(6)
+		await _wait_frames(4)
+
+		assert(is_instance_valid(ne_low) and ne_low.current_health < hp_low_start, "Nuke must damage enemy on lower physical terrain (Y=%d)" % int(h_wall_src))
+		assert(is_instance_valid(ne_high) and ne_high.current_health < hp_high_start, "Nuke must damage enemy on upper physical cliff (Y=%d)" % int(h_wall_tgt))
+		print("  [TACTICAL-NUKE-VERIFY] Multi-level damage verified: low(Y=%d)=%s->%s, high(Y=%d)=%s->%s" % [
+			int(h_wall_src), hp_low_start, ne_low.current_health, int(h_wall_tgt), hp_high_start, ne_high.current_health
+		])
+
 		await _capture_viewport("17_tactical_nuke_multilevel_impact.png")
 		for ne in nuke_enemies:
 			if is_instance_valid(ne):
 				ne.queue_free()
+		await _wait_frames(3)
 
-	print("\n[VERIFICATION-CAPPER] Complete! All 17 screenshots and 4 production runtime video frame sets captured!")
+	# 18. 18_stone_iron_deposit_silhouettes.png (Item 10 in Verification)
+	# Shows multiple stone and iron deposits with clearly distinct procedural silhouettes, tiers, and variations
+	var silhouette_nodes: Array[Node] = []
+	if stone_scene and iron_scene:
+		player.global_position = Vector3(0.0, 0.9, 0.0)
+		map_gen.update_player_chunks(Vector2i(0, 0), true)
+
+		# Row of 3 stone deposits: Tier Small (var 0), Tier Medium (var 1), Tier Large (var 2)
+		for s in range(3):
+			var sr = stone_scene.instantiate() as ResourceRock
+			main.add_child(sr)
+			sr.global_position = player.global_position + Vector3(float(s - 1.0) * 2.8, 0.0, 2.0)
+			sr.configure_rock(ResourceRock.RockType.STONE, 6 + s * 3, 2, s)
+			silhouette_nodes.append(sr)
+
+		# Row of 3 iron deposits: Tier Small (var 0), Tier Medium (var 1), Tier Large (var 2)
+		for s in range(3):
+			var ir = iron_scene.instantiate() as ResourceRock
+			main.add_child(ir)
+			ir.global_position = player.global_position + Vector3(float(s - 1.0) * 2.8, 0.0, 4.8)
+			ir.configure_rock(ResourceRock.RockType.IRON, 6 + s * 3, 2, s)
+			silhouette_nodes.append(ir)
+
+		camera._init_camera_transform()
+		await _wait_frames(6)
+		await _capture_viewport("18_stone_iron_deposit_silhouettes.png")
+		for sn in silhouette_nodes:
+			if is_instance_valid(sn):
+				sn.queue_free()
+
+	print("\n[VERIFICATION-CAPPER] Complete! All 18 screenshots and 4 production runtime video frame sets captured!")
 	main.queue_free()
 	quit(0)
