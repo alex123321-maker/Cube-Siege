@@ -1,4 +1,4 @@
-﻿extends GutTest
+extends GutTest
 
 const MapGen = preload("res://scripts/map_generator.gd")
 const FreePickup = preload("res://scripts/world/free_resource_pickup.gd")
@@ -55,8 +55,82 @@ func test_free_resource_pickup_contract() -> void:
 	pickup.yield_amount = 2
 	add_child_autoqfree(pickup)
 
-	# Layer 4 (Interactable sensor), mask 0 (no solid physics block)
-	assert_eq(pickup.collision_layer, 4, "Pickup must be on layer 4 (interactable sensor)")
+	# Layer 4 in Inspector is bit 3 (value 8: 1 << 3), matches InteractionSensor mask 9 (1 | 8)
+	assert_eq(pickup.collision_layer, 8, "Pickup must have collision_layer = 8 (bit 3 / layer 4)")
 	assert_eq(pickup.collision_mask, 0, "Pickup must have collision_mask = 0 (non-solid)")
 	assert_true(pickup.is_interactable(), "Pickup must be interactable initially")
 	assert_true(pickup.is_ready_for_pickup(), "Pickup must be ready for pickup initially")
+
+	# Pickup can be harvested without runtime error
+	var mock_wallet = Node3D.new()
+	mock_wallet.name = "BuildingSystem"
+	mock_wallet.set_script(load("res://scripts/building_system.gd"))
+	add_child_autoqfree(mock_wallet)
+
+
+	var mock_player = Node.new()
+	mock_player.name = "Player"
+	mock_player.set("building_system", mock_wallet)
+	add_child_autoqfree(mock_player)
+
+	pickup.harvest(mock_player)
+	assert_true(pickup.is_harvested, "Must be marked harvested")
+
+func test_mountain_trail_guarantees_climb_above_50_and_100() -> void:
+	var test_seed: int = 4242
+	# BFS search from portal (0, 0) up the mountain trail corridor
+	var queue: Array[Vector2i] = [Vector2i(0, 0)]
+	var visited: Dictionary = { Vector2i(0, 0): true }
+	var max_h: int = 0
+
+	var directions: Array[Vector2i] = [
+		Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)
+	]
+
+	while not queue.is_empty():
+		var cur = queue.pop_front()
+		var cur_h = BiomeSystem.get_voxel_height(cur.x, cur.y, test_seed)
+		if cur_h > max_h:
+			max_h = cur_h
+
+		if max_h >= 100:
+			break # Successfully reached target height 100+
+
+		for d in directions:
+			var n: Vector2i = cur + d
+			if visited.has(n):
+				continue
+
+			var dist: float = Vector2(float(n.x), float(n.y)).length()
+			# Allow portal sanctuary or mountain trail
+			var is_corridor = (dist <= BiomeSystem.PORTAL_CLEAR_RADIUS) or BiomeSystem.is_mountain_trail(n.x, n.y, test_seed)
+			if not is_corridor:
+				continue
+
+			var nh = BiomeSystem.get_voxel_height(n.x, n.y, test_seed)
+			# Walkable condition: step <= 1
+			if absi(nh - cur_h) <= 1:
+				visited[n] = true
+				queue.append(n)
+
+	assert_true(max_h >= 50, "Mountain trail must allow continuous walking to height >= 50 (reached %d)" % max_h)
+	assert_true(max_h >= 100, "Mountain trail must allow continuous walking to height >= 100 (reached %d)" % max_h)
+
+func test_blended_biome_resource_probabilities() -> void:
+	# Test blended probability roll at Forest-Plains border (50% Forest, 50% Plains)
+	var weights: Dictionary = {
+		BiomeSystem.BiomeType.FOREST: 0.5,
+		BiomeSystem.BiomeType.PLAINS: 0.5,
+		BiomeSystem.BiomeType.MOUNTAINS: 0.0
+	}
+
+	# In pure Forest: Wood = 0.85. In pure Plains: Wood = 0.20.
+	# Blended Wood = 0.5 * 0.85 + 0.5 * 0.20 = 0.525.
+	# At roll 0.10 (< 0.525), blended result must be WOOD
+	var res1 = ResourceDist.roll_blended_resource_type(weights, 0.0, 0.10)
+	assert_eq(res1, ResourceDist.ResourceType.WOOD, "Blended roll at 0.10 should yield Wood")
+
+	# At roll 0.60 (> 0.525, Wood + Stone = 0.525 + 0.12 = 0.645), result must be STONE
+	var res2 = ResourceDist.roll_blended_resource_type(weights, 0.0, 0.60)
+	assert_eq(res2, ResourceDist.ResourceType.STONE, "Blended roll at 0.60 should yield Stone")
+

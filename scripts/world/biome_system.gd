@@ -22,6 +22,24 @@ const ANGLE_MOUNTAINS: float = -2.0943951023931953 # ~-120 deg (South-West)
 const SECTOR_SPAN: float = 2.0943951023931953  # 120 degrees
 const HALF_SECTOR: float = 1.0471975511965976  # 60 degrees
 const BLEND_BAND: float = 0.40                 # ~23 degrees transition band
+const TRAIL_WIDTH: float = 2.4
+const TRAIL_SLOPE: float = 0.62
+
+
+static func get_trail_angle(r: float, seed_val: int) -> float:
+	var phase: float = float(seed_val % 97) * 0.04
+	return normalize_angle(ANGLE_MOUNTAINS + sin(r * 0.035 + phase) * 0.22)
+
+## Returns true if integer coordinate falls within the authoritative mountain trail corridor.
+static func is_mountain_trail(x: int, z: int, seed_val: int) -> bool:
+	var r: float = Vector2(float(x), float(z)).length()
+	if r <= PORTAL_CLEAR_RADIUS:
+		return false
+	var trail_ang: float = get_trail_angle(r, seed_val)
+	var trail_x: float = r * cos(trail_ang)
+	var trail_z: float = r * sin(trail_ang)
+	var dist_to_trail: float = Vector2(float(x) - trail_x, float(z) - trail_z).length()
+	return dist_to_trail <= TRAIL_WIDTH
 
 static func normalize_angle(a: float) -> float:
 	var res: float = fposmod(a + PI, TAU) - PI
@@ -146,6 +164,20 @@ static func sample_height(x: float, z: float, seed_val: int) -> float:
 	if dist < PORTAL_CLEAR_RADIUS + 3.0:
 		var ramp: float = (dist - PORTAL_CLEAR_RADIUS) / 3.0
 		final_h *= clampf(ramp, 0.0, 1.0)
+
+	# Mountain climbing trail corridor: guarantees continuous path of |delta_h| <= 1 steps
+	if dist > PORTAL_CLEAR_RADIUS:
+		var trail_ang: float = get_trail_angle(dist, seed_val)
+		var trail_x: float = dist * cos(trail_ang)
+		var trail_z: float = dist * sin(trail_ang)
+		var dist_to_trail: float = Vector2(x - trail_x, z - trail_z).length()
+		if dist_to_trail <= TRAIL_WIDTH + 2.0:
+			var trail_h: float = (dist - PORTAL_CLEAR_RADIUS) * TRAIL_SLOPE
+			if dist_to_trail <= TRAIL_WIDTH:
+				final_h = trail_h
+			else:
+				var t: float = (dist_to_trail - TRAIL_WIDTH) / 2.0
+				final_h = lerpf(trail_h, final_h, t)
 
 	return final_h
 

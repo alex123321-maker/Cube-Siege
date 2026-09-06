@@ -19,8 +19,8 @@ func _ready() -> void:
 	add_to_group("interactables")
 	add_to_group("free_resources")
 
-	# Collision layer 4 (Interactable sensor), NOT layer 1 (Physics obstacle)
-	collision_layer = 4
+	# Collision layer 4 (bit 3: value 8) matches InteractionSensor mask (mask 9 = 1 | 8)
+	collision_layer = 8
 	collision_mask = 0
 	monitoring = false
 	monitorable = true
@@ -220,8 +220,13 @@ func harvest(player: Node) -> void:
 	queue_free()
 
 func _spawn_popup(amount: int) -> void:
+	if not is_inside_tree():
+		return
 	var ft = FLOATING_TEXT_SCENE.instantiate()
-	get_parent().add_child(ft)
+	var parent_node = get_parent()
+	if not parent_node:
+		return
+	parent_node.add_child(ft)
 	ft.global_position = global_position + Vector3(0, 0.6, 0)
 	var col: Color = Color(0.3, 1.0, 0.4)
 	if resource_type == ResourceDistribution.ResourceType.MAGIC_STONE:
@@ -230,7 +235,16 @@ func _spawn_popup(amount: int) -> void:
 		col = Color(1.0, 0.7, 0.2)
 	elif resource_type == ResourceDistribution.ResourceType.STONE:
 		col = Color(0.7, 0.75, 0.8)
-	ft.setup("+%d %s" % [amount, _get_resource_name()], col)
+	var text_val: String = "+%d %s" % [amount, _get_resource_name()]
+	if ft.has_method("setup_text"):
+		ft.setup_text(text_val, col)
+	else:
+		ft.setup(float(amount), false, col)
+		var lbl = ft.get_node_or_null("Label3D")
+		if lbl:
+			lbl.text = text_val
+			lbl.modulate = col
+
 
 func _get_resource_name() -> String:
 	match resource_type:

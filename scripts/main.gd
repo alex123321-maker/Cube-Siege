@@ -17,9 +17,20 @@ func _ready() -> void:
 
 	var eb = get_node_or_null("/root/EventBus")
 	if eb:
-		eb.portal_evacuated.connect(func(_day: int, _xp: int): show_victory())
+		eb.portal_evacuated.connect(_on_portal_evacuated)
+
+func _exit_tree() -> void:
+	var eb = get_node_or_null("/root/EventBus")
+	if eb and eb.portal_evacuated.is_connected(_on_portal_evacuated):
+		eb.portal_evacuated.disconnect(_on_portal_evacuated)
+
+func _on_portal_evacuated(_day: int, _xp: int) -> void:
+	if is_queued_for_deletion() or not is_inside_tree():
+		return
+	show_victory()
 
 func _input(event: InputEvent) -> void:
+
 	if event is InputEventKey and event.is_pressed() and not event.is_echo():
 		if event.keycode == KEY_B and OS.is_debug_build():
 			spawn_boss_gorgon()

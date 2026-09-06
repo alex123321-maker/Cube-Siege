@@ -9,6 +9,7 @@ var current_health: float = 60.0
 var is_harvested: bool = false
 var is_destroyed: bool = false
 var foliage_material: StandardMaterial3D = null
+var canopy_occlusion_area: Area3D = null
 
 @onready var hurtbox: Area3D = $Hurtbox
 @onready var foliage: MeshInstance3D = $Visuals/Foliage
@@ -24,7 +25,32 @@ func _ready() -> void:
 	if hurtbox:
 		hurtbox.damaged.connect(_on_damaged)
 	_setup_foliage_material()
+	_setup_canopy_occlusion()
 	_apply_variation()
+
+func _setup_canopy_occlusion() -> void:
+	canopy_occlusion_area = Area3D.new()
+	canopy_occlusion_area.name = "CanopyOcclusion"
+	canopy_occlusion_area.collision_layer = 16
+	canopy_occlusion_area.collision_mask = 0
+	canopy_occlusion_area.monitoring = false
+	canopy_occlusion_area.monitorable = true
+	canopy_occlusion_area.add_to_group("resource_nodes")
+
+	var col_shape: CollisionShape3D = CollisionShape3D.new()
+	var box: BoxShape3D = BoxShape3D.new()
+	box.size = Vector3(2.4, 2.4, 2.4)
+	col_shape.shape = box
+	canopy_occlusion_area.add_child(col_shape)
+	add_child(canopy_occlusion_area)
+	_update_canopy_occlusion()
+
+func _update_canopy_occlusion() -> void:
+	if not canopy_occlusion_area or not foliage:
+		return
+	canopy_occlusion_area.position = foliage.position
+	canopy_occlusion_area.scale = foliage.scale
+
 
 func configure_tree(p_variation: int, p_yield: int = 4) -> void:
 	tree_variation = p_variation
@@ -68,6 +94,8 @@ func _apply_variation() -> void:
 			foliage.scale = Vector3(0.8, 0.6, 0.8)
 			foliage.position = Vector3(0, 1.1, 0)
 
+	_update_canopy_occlusion()
+
 func set_transparency(alpha: float) -> void:
 	if not foliage_material:
 		_setup_foliage_material()
@@ -102,11 +130,15 @@ func fell_tree() -> void:
 	if hurtbox:
 		hurtbox.set_deferred("monitoring", false)
 		hurtbox.set_deferred("monitorable", false)
+	if canopy_occlusion_area:
+		canopy_occlusion_area.set_deferred("monitoring", false)
+		canopy_occlusion_area.set_deferred("monitorable", false)
 
 	# Hide top foliage, keep small stump + pickup prompt
 	var tween: Tween = create_tween()
 	tween.tween_property(foliage, "scale", Vector3.ZERO, 0.2)
 	tween.chain().tween_callback(func(): foliage.visible = false)
+
 
 	if pickup_prompt:
 		pickup_prompt.visible = false

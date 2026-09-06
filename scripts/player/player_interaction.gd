@@ -72,8 +72,11 @@ func process_interaction(player: CharacterBody3D, delta: float) -> void:
 	if Input.is_action_pressed("interact") and focused_interactable:
 		interact_hold_timer += delta
 		var hold_required: float = 1.0
-		if InteractableTarget.get_action_type(focused_interactable, player) == InteractableTarget.ActionType.PORTAL_EVACUATE:
+		var act_type = InteractableTarget.get_action_type(focused_interactable, player)
+		if act_type == InteractableTarget.ActionType.PORTAL_EVACUATE:
 			hold_required = 2.0
+		elif act_type == InteractableTarget.ActionType.PICKUP:
+			hold_required = 0.2
 
 		var progress: float = clampf(interact_hold_timer / hold_required, 0.0, 1.0)
 		if focused_interactable.has_method("set_interaction_progress"):

@@ -39,13 +39,13 @@ func _ready() -> void:
 	# EventBus listeners for decoupled architecture (single source of truth)
 	var eb = get_node_or_null("/root/EventBus")
 	if eb:
-		eb.player_health_changed.connect(func(cur, mx): _on_health_changed(cur, mx))
-		eb.player_xp_changed.connect(func(cur, mx, lvl): _on_xp_changed(cur, mx, lvl))
-		eb.player_level_up.connect(func(lvl): _on_level_up_reached(lvl))
-		eb.resources_changed.connect(func(w, s, i, m): _on_resources_changed(w, s, i, m))
-		eb.cycle_time_updated.connect(func(tl, _tot, night, day_num): _update_day_night_label(tl, night, day_num))
-		eb.boss_spawned.connect(func(boss): show_boss_bar(boss))
-		eb.boss_defeated.connect(func(_b): _on_boss_defeated())
+		eb.player_health_changed.connect(_on_health_changed)
+		eb.player_xp_changed.connect(_on_xp_changed)
+		eb.player_level_up.connect(_on_level_up_reached)
+		eb.resources_changed.connect(_on_resources_changed)
+		eb.cycle_time_updated.connect(_on_cycle_time_updated)
+		eb.boss_spawned.connect(show_boss_bar)
+		eb.boss_defeated.connect(_on_boss_defeated_event)
 	else:
 		# Fallback direct wiring for standalone testing without EventBus autoload
 		if player:
@@ -149,3 +149,27 @@ func _on_boss_defeated() -> void:
 	var boss_container: Control = get_node_or_null("Margin/BossBarContainer") as Control
 	if boss_container:
 		boss_container.visible = false
+
+func _on_cycle_time_updated(tl: float, _tot: float, night: bool, day_num: int) -> void:
+	_update_day_night_label(tl, night, day_num)
+
+func _on_boss_defeated_event(_b: Node = null) -> void:
+	_on_boss_defeated()
+
+func _exit_tree() -> void:
+	var eb = get_node_or_null("/root/EventBus")
+	if eb:
+		if eb.player_health_changed.is_connected(_on_health_changed):
+			eb.player_health_changed.disconnect(_on_health_changed)
+		if eb.player_xp_changed.is_connected(_on_xp_changed):
+			eb.player_xp_changed.disconnect(_on_xp_changed)
+		if eb.player_level_up.is_connected(_on_level_up_reached):
+			eb.player_level_up.disconnect(_on_level_up_reached)
+		if eb.resources_changed.is_connected(_on_resources_changed):
+			eb.resources_changed.disconnect(_on_resources_changed)
+		if eb.cycle_time_updated.is_connected(_on_cycle_time_updated):
+			eb.cycle_time_updated.disconnect(_on_cycle_time_updated)
+		if eb.boss_spawned.is_connected(show_boss_bar):
+			eb.boss_spawned.disconnect(show_boss_bar)
+		if eb.boss_defeated.is_connected(_on_boss_defeated_event):
+			eb.boss_defeated.disconnect(_on_boss_defeated_event)

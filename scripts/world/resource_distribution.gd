@@ -87,6 +87,34 @@ static func roll_resource_type(biome: BiomeSystem.BiomeType, height: float, roll
 
 	return ResourceType.NONE
 
+## Blended roll across biome weights: P(res) = sum(w_b * P_b(res))
+static func roll_blended_resource_type(biome_weights: Dictionary, height: float, roll: float) -> ResourceType:
+	var accumulated: float = 0.0
+	var clamped_roll: float = clampf(roll, 0.0, 0.999999)
+
+	var res_order: Array[ResourceType] = [
+		ResourceType.WOOD,
+		ResourceType.STONE,
+		ResourceType.IRON,
+		ResourceType.MAGIC_STONE,
+		ResourceType.NONE
+	]
+
+	for res_type: ResourceType in res_order:
+		var p_res: float = 0.0
+		for b: BiomeSystem.BiomeType in biome_weights.keys():
+			var w_biome: float = biome_weights[b]
+			if w_biome > 0.0:
+				var table: Dictionary = get_weights(b, height)
+				p_res += w_biome * table.get(res_type, 0.0)
+
+		accumulated += p_res
+		if clamped_roll < accumulated and p_res > 0.0:
+			return res_type
+
+	return ResourceType.NONE
+
+
 ## Resolves whether a rolled resource spawns as a free pickup or full deposit,
 ## its yield amount, and visual sub-type.
 static func resolve_spawn_details(

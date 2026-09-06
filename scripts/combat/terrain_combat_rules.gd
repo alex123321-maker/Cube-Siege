@@ -70,55 +70,81 @@ static func can_ability_hit_target(
 ## {
 ##   "collided": bool (true if wall >= 2 blocks in front),
 ##   "new_y": float (adjusted height),
-##   "is_diving": bool (false: continues straight if drop >= 2)
+##   "is_diving": bool (false: continues straight if drop >= 2),
+##   "is_over_drop": bool (true if flying above a drop/canyon)
 ## }
 static func update_projectile_height(
 	current_pos: Vector3,
 	next_pos: Vector3,
 	current_terrain_y: float,
 	next_terrain_y: float,
-	projectile_base_offset: float = 0.8
+	projectile_base_offset: float = 0.8,
+	is_over_drop: bool = false
 ) -> Dictionary:
 	var step_diff: float = next_terrain_y - current_terrain_y
 	var int_step: int = int(roundf(step_diff))
+	var clearance: float = current_pos.y - next_terrain_y
+
+	# Detect if entering or currently inside drop state
+	var currently_over_drop: bool = is_over_drop or int_step <= -2 or (clearance >= projectile_base_offset + 1.2)
 
 	# 1. Rising wall >= 2 blocks: collision!
 	if int_step >= 2:
 		return {
 			"collided": true,
 			"new_y": current_pos.y,
-			"is_diving": false
+			"is_diving": false,
+			"is_over_drop": false
 		}
 
 	# 2. Rising step of +1 block: smoothly climb
-	if int_step == 1:
+	if int_step == 1 and not currently_over_drop:
 		var target_y: float = next_terrain_y + projectile_base_offset
 		return {
 			"collided": false,
 			"new_y": maxf(current_pos.y, target_y),
-			"is_diving": false
+			"is_diving": false,
+			"is_over_drop": false
 		}
 
-	# 3. Descending step of -1 block: smoothly follow down
+	# 3. If projectile height is at or below the ground in front: collision!
+	if current_pos.y <= next_terrain_y:
+		return {
+			"collided": true,
+			"new_y": current_pos.y,
+			"is_diving": false,
+			"is_over_drop": false
+		}
+
+	# 4. Over drop: do NOT plunge down! Maintain straight horizontal altitude
+	if currently_over_drop:
+		if clearance > projectile_base_offset:
+			return {
+				"collided": false,
+				"new_y": current_pos.y,
+				"is_diving": false,
+				"is_over_drop": true
+			}
+		else:
+			# Ground has risen back to meet arrow trajectory: re-attach
+			currently_over_drop = false
+
+	# 5. Descending gentle step (-1 block) when attached to ground
 	if int_step == -1:
 		var target_y: float = next_terrain_y + projectile_base_offset
 		return {
 			"collided": false,
 			"new_y": minf(current_pos.y, target_y),
-			"is_diving": false
+			"is_diving": false,
+			"is_over_drop": false
 		}
 
-	# 4. Sudden drop/cliff <= -2 blocks: do NOT dive down to ground, continue on current trajectory
-	if int_step <= -2:
-		return {
-			"collided": false,
-			"new_y": current_pos.y, # maintain current height without snapping downward
-			"is_diving": false
-		}
-
-	# Same level (0 step): maintain height
+	# 6. Same level (0 step): maintain normal ground following height
 	return {
 		"collided": false,
 		"new_y": next_terrain_y + projectile_base_offset,
-		"is_diving": false
+		"is_diving": false,
+		"is_over_drop": false
 	}
+
+

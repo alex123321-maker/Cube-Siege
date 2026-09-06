@@ -29,8 +29,16 @@ func _ready() -> void:
 	add_to_group("portal")
 	var eb = get_node_or_null("/root/EventBus")
 	if eb:
-		eb.day_started.connect(func(d: int): current_day = d)
+		eb.day_started.connect(_on_day_started)
 	update_visuals()
+
+func _exit_tree() -> void:
+	var eb = get_node_or_null("/root/EventBus")
+	if eb and eb.day_started.is_connected(_on_day_started):
+		eb.day_started.disconnect(_on_day_started)
+
+func _on_day_started(d: int) -> void:
+	current_day = d
 
 func _process(delta: float) -> void:
 	if current_state == State.CHARGING:
@@ -151,8 +159,11 @@ func evacuate_player(player: Node) -> void:
 		eb.portal_evacuated.emit(current_day, earned_xp)
 
 func spawn_floating_text(msg: String, col: Color) -> void:
+	var parent_node = get_parent()
+	if not parent_node:
+		return
 	var popup: Node3D = FLOATING_TEXT_SCENE.instantiate()
-	get_parent().add_child(popup)
+	parent_node.add_child(popup)
 	popup.global_position = global_position + Vector3(0, 3.0, 0)
 	if popup.has_node("Label3D"):
 		popup.get_node("Label3D").text = msg

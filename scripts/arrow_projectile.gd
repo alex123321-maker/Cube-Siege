@@ -8,6 +8,7 @@ var direction: Vector3 = Vector3.FORWARD
 var lifetime: float = 2.5
 var shooter_entity: Node = null
 var hit_targets: Array[Node] = []
+var is_flying_over_drop: bool = false
 
 @onready var hitbox: Area3D = $Hitbox
 
@@ -47,8 +48,11 @@ func _physics_process(delta: float) -> void:
 		next_pos,
 		h_curr,
 		h_next,
-		0.8
+		0.8,
+		is_flying_over_drop
 	)
+
+	is_flying_over_drop = step_info.get("is_over_drop", false)
 
 	if step_info.get("collided", false):
 		_on_terrain_collision(next_pos)
@@ -56,6 +60,7 @@ func _physics_process(delta: float) -> void:
 
 	next_pos.y = step_info.get("new_y", next_pos.y)
 	global_position = next_pos
+
 
 	lifetime -= delta
 	if lifetime <= 0.0:

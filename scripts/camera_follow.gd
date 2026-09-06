@@ -177,15 +177,27 @@ func check_occlusion() -> void:
 	var query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(
 		global_position,
 		target.global_position + Vector3(0.0, 0.9, 0.0),
-		1
+		1 | 16
 	)
+	query.collide_with_areas = true
+	query.collide_with_bodies = true
 
 	var hit: Dictionary = space_state.intersect_ray(query)
 	var new_occluders: Array[Node] = []
 	if not hit.is_empty():
 		var col: Object = hit.get("collider")
-		if col and col is Node and ((col as Node).is_in_group("buildings") or (col as Node).is_in_group("resource_nodes")):
-			new_occluders.append(col as Node)
+		if col and col is Node:
+			var node: Node = col as Node
+			var occluder: Node = node
+			if node.name == "CanopyOcclusion" and node.get_parent():
+				occluder = node.get_parent()
+			elif not (node.is_in_group("buildings") or node.is_in_group("resource_nodes")):
+				if node.get_parent() and (node.get_parent().is_in_group("buildings") or node.get_parent().is_in_group("resource_nodes")):
+					occluder = node.get_parent()
+
+			if occluder.is_in_group("buildings") or occluder.is_in_group("resource_nodes"):
+				new_occluders.append(occluder)
+
 
 	# Restore buildings that are no longer occluding
 	for b in occluding_buildings:
