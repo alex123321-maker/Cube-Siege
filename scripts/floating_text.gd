@@ -18,3 +18,17 @@ func setup(amount: float, is_crit: bool = false, custom_color: Color = Color.WHI
 	tween.tween_property(self, "position:y", position.y + 1.6, 0.6).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	tween.tween_property(label, "modulate:a", 0.0, 0.6).set_delay(0.2)
 	tween.chain().tween_callback(queue_free)
+
+func setup_text(text_val: String, custom_color: Color = Color.WHITE) -> void:
+	if not label:
+		label = $Label3D
+	label.text = text_val
+	label.modulate = custom_color
+	label.font_size = 36
+
+	var tween: Tween = create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(self, "position:y", position.y + 1.6, 0.6).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tween.tween_property(label, "modulate:a", 0.0, 0.6).set_delay(0.2)
+	tween.chain().tween_callback(queue_free)
+

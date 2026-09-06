@@ -146,10 +146,23 @@ func get_nuke_target_position(player: CharacterBody3D) -> Vector3:
 	var mouse_pos: Vector2 = vp.get_mouse_position()
 	var ray_origin: Vector3 = cam.project_ray_origin(mouse_pos)
 	var ray_normal: Vector3 = cam.project_ray_normal(mouse_pos)
-	var ground_plane: Plane = Plane(Vector3.UP, 0.0)
+
+	if player.is_inside_tree():
+		var space_state: PhysicsDirectSpaceState3D = player.get_world_3d().direct_space_state
+		var query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(ray_origin, ray_origin + ray_normal * 1000.0, 1)
+		var hit: Dictionary = space_state.intersect_ray(query)
+		if not hit.is_empty():
+			return hit.position
+
+	var ground_plane: Plane = Plane(Vector3.UP, player.global_position.y)
 	var intersect: Variant = ground_plane.intersects_ray(ray_origin, ray_normal)
 	if intersect is Vector3:
-		return intersect as Vector3
+		var inter_pos: Vector3 = intersect as Vector3
+		if player.is_inside_tree():
+			var map_gen: Node = player.get_tree().get_first_node_in_group("map_generator")
+			if map_gen and map_gen.has_method("get_voxel_height"):
+				inter_pos.y = float(map_gen.get_voxel_height(TerrainCombatRules.world_to_voxel(inter_pos.x), TerrainCombatRules.world_to_voxel(inter_pos.z)))
+		return inter_pos
 	return player.global_position
 
 func _execute_tactical_nuke(player: CharacterBody3D, target_pos: Vector3) -> void:
@@ -187,8 +200,13 @@ func _apply_nuke_impact_damage(player: CharacterBody3D, target_pos: Vector3, dam
 	var enemies: Array[Node] = player.get_tree().get_nodes_in_group("enemies")
 	for e in enemies:
 		if e and is_instance_valid(e) and e is Node3D:
-			var dist: float = target_pos.distance_to((e as Node3D).global_position)
-			if dist <= radius:
+			var can_hit: bool = TerrainCombatRules.can_ability_hit_target(
+				target_pos,
+				(e as Node3D).global_position,
+				TerrainCombatRules.TerrainMode.TERRAIN_INDEPENDENT,
+				radius
+			)
+			if can_hit:
 				var kb_dir: Vector3 = ((e as Node3D).global_position - target_pos).normalized()
 				if e.has_method("_on_damaged"):
 					e._on_damaged(damage, kb_dir * 15.0, "nuke", player)
@@ -199,7 +217,13 @@ func _apply_nuke_burn_damage(player: CharacterBody3D, target_pos: Vector3, damag
 	var burn_enemies: Array[Node] = player.get_tree().get_nodes_in_group("enemies")
 	for e in burn_enemies:
 		if e and is_instance_valid(e) and e is Node3D:
-			if target_pos.distance_to((e as Node3D).global_position) <= radius:
+			var can_hit: bool = TerrainCombatRules.can_ability_hit_target(
+				target_pos,
+				(e as Node3D).global_position,
+				TerrainCombatRules.TerrainMode.TERRAIN_INDEPENDENT,
+				radius
+			)
+			if can_hit:
 				if e.has_method("_on_damaged"):
 					e._on_damaged(damage, Vector3.ZERO, "burn", player)
 
@@ -226,23 +250,73 @@ func find_target_near_mouse(player: CharacterBody3D) -> Node3D:
 	if not cam: return null
 
 	var mouse_pos: Vector2 = vp.get_mouse_position()
+	if "mouse_override" in cam and cam.mouse_override.x >= 0.0:
+		mouse_pos = cam.mouse_override
+
 	var ray_origin: Vector3 = cam.project_ray_origin(mouse_pos)
 	var ray_normal: Vector3 = cam.project_ray_normal(mouse_pos)
-	var ground_plane: Plane = Plane(Vector3.UP, 0.0)
-	var intersect: Variant = ground_plane.intersects_ray(ray_origin, ray_normal)
-	if not (intersect is Vector3):
-		return null
 
-	var target_pos: Vector3 = intersect as Vector3
-	var enemies: Array[Node] = player.get_tree().get_nodes_in_group("enemies")
+	# 1. First, attempt direct physics raycast (terrain & enemies)
+	var direct_target: Node3D = null
+	var terrain_hit_pos: Variant = null
+	if player.is_inside_tree() and player.get_world_3d():
+		var space_state: PhysicsDirectSpaceState3D = player.get_world_3d().direct_space_state
+		if space_state:
+			var query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(
+				ray_origin,
+				ray_origin + ray_normal * 1000.0,
+				1 | 4 | 8 # terrain (1), enemy body (4), hurtbox (8)
+			)
+			query.collide_with_areas = true
+			query.collide_with_bodies = true
+			var hit: Dictionary = space_state.intersect_ray(query)
+			if not hit.is_empty():
+				var col: Object = hit.get("collider")
+				if col and col is Node:
+					var node: Node = col as Node
+					var enemy_candidate: Node = node
+					if not enemy_candidate.is_in_group("enemies") and enemy_candidate.get_parent() and enemy_candidate.get_parent().is_in_group("enemies"):
+						enemy_candidate = enemy_candidate.get_parent()
+					if enemy_candidate.is_in_group("enemies") and _is_actor_alive(enemy_candidate):
+						direct_target = enemy_candidate as Node3D
+				terrain_hit_pos = hit.get("position")
+
+	if direct_target:
+		return direct_target
+
+	# 2. Query enemies list (via EntityRegistry if available, fallback to group)
+	var enemies: Array = []
+	var reg = player.get_node_or_null("/root/EntityRegistry")
+	if reg and reg.has_method("get_enemies") and not reg.get_enemies().is_empty():
+		enemies = reg.get_enemies()
+	elif player.is_inside_tree():
+		enemies = player.get_tree().get_nodes_in_group("enemies")
+
 	var closest: Node3D = null
 	var min_dist: float = 14.0
+
 	for e in enemies:
 		if e and is_instance_valid(e) and e is Node3D and _is_actor_alive(e):
-			var d = target_pos.distance_to((e as Node3D).global_position)
-			if d < min_dist:
-				min_dist = d
+			var enemy_pos: Vector3 = (e as Node3D).global_position
+			var candidate_dist: float = INF
+
+			# A. If we had a direct terrain hit under cursor, measure distance to terrain hit point
+			if terrain_hit_pos is Vector3:
+				candidate_dist = (terrain_hit_pos as Vector3).distance_to(enemy_pos)
+
+			# B. Also project cursor ray onto the horizontal plane at this enemy's altitude!
+			# This works on high mountains (Y=50+ or 100+) and in unit tests without physics world
+			var enemy_plane: Plane = Plane(Vector3.UP, enemy_pos.y)
+			var plane_hit: Variant = enemy_plane.intersects_ray(ray_origin, ray_normal)
+			if plane_hit is Vector3:
+				var plane_dist: float = (plane_hit as Vector3).distance_to(enemy_pos)
+				if plane_dist < candidate_dist:
+					candidate_dist = plane_dist
+
+			if candidate_dist < min_dist:
+				min_dist = candidate_dist
 				closest = e as Node3D
+
 	return closest
 
 func _is_actor_alive(actor: Variant) -> bool:

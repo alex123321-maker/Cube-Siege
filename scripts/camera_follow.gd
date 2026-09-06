@@ -17,6 +17,8 @@ const CameraMath = preload("res://scripts/camera/camera_math.gd")
 
 var target: Node3D = null
 var occluding_buildings: Array[Node] = []
+var occlusion_timer: float = 0.0
+const OCCLUSION_CHECK_INTERVAL: float = 0.10
 
 var fixed_basis: Basis
 var fixed_rotation_degrees: Vector3
@@ -168,24 +170,95 @@ func _process(delta: float) -> void:
 	# Ensure orientation remains strictly fixed after translation
 	transform.basis = fixed_basis
 
-	check_occlusion()
+	occlusion_timer += delta
+	if occlusion_timer >= OCCLUSION_CHECK_INTERVAL:
+		occlusion_timer = 0.0
+		check_occlusion()
 
 func check_occlusion() -> void:
 	if not target or not is_inside_tree():
 		return
 	var space_state: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
-	var query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(
-		global_position,
-		target.global_position + Vector3(0.0, 0.9, 0.0),
-		1
+	if not space_state:
+		return
+
+	var player_pos: Vector3 = target.global_position + Vector3(0.0, 0.9, 0.0)
+	var check_points: Array[Vector3] = [player_pos]
+
+	# Attack / combat direction point forward from player
+	var forward: Vector3 = -target.global_transform.basis.z
+	check_points.append(player_pos + forward * 1.8)
+
+	# Bounded nearby enemy candidates (query EntityRegistry without full SceneTree group scan)
+	var candidate_enemies: Array = []
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if reg and reg.has_method("get_enemies"):
+		candidate_enemies = reg.get_enemies()
+	elif is_inside_tree():
+		# Fallback only when EntityRegistry autoload is not present (isolated unit tests)
+		candidate_enemies = get_tree().get_nodes_in_group("enemies")
+
+	var target_pos: Vector3 = target.global_position
+	const COMBAT_RADIUS_SQ: float = 196.0 # 14.0 * 14.0
+	const MAX_COMBAT_ENEMIES: int = 24
+
+	var combat_candidates: Array[Node3D] = []
+	for enemy in candidate_enemies:
+		if enemy and is_instance_valid(enemy) and enemy is Node3D and enemy.is_inside_tree():
+			var e3d: Node3D = enemy as Node3D
+			if target_pos.distance_squared_to(e3d.global_position) <= COMBAT_RADIUS_SQ:
+				combat_candidates.append(e3d)
+
+	# Spatial selection: prioritize enemies closest to the player
+	combat_candidates.sort_custom(func(a: Node3D, b: Node3D) -> bool:
+		return target_pos.distance_squared_to(a.global_position) < target_pos.distance_squared_to(b.global_position)
 	)
 
-	var hit: Dictionary = space_state.intersect_ray(query)
+	var limit: int = mini(combat_candidates.size(), MAX_COMBAT_ENEMIES)
+	for i in range(limit):
+		check_points.append(combat_candidates[i].global_position + Vector3(0.0, 0.9, 0.0))
+
 	var new_occluders: Array[Node] = []
-	if not hit.is_empty():
-		var col: Object = hit.get("collider")
-		if col and col is Node and (col as Node).is_in_group("buildings"):
-			new_occluders.append(col as Node)
+	var max_stacked_hits: int = 6
+
+	for pt in check_points:
+		var excluded_rids: Array[RID] = []
+		for _step in range(max_stacked_hits):
+			var query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(
+				global_position,
+				pt,
+				1 | 16
+			)
+			query.collide_with_areas = true
+			query.collide_with_bodies = true
+			query.exclude = excluded_rids
+
+			var hit: Dictionary = space_state.intersect_ray(query)
+			if hit.is_empty():
+				break
+
+			var rid: RID = hit.get("rid", RID())
+			if rid.is_valid():
+				excluded_rids.append(rid)
+
+			var col: Object = hit.get("collider")
+			if col and col is Node:
+				var node: Node = col as Node
+				var occluder: Node = node
+				if node.name == "CanopyOcclusion" and node.get_parent():
+					occluder = node.get_parent()
+				elif not (node.is_in_group("buildings") or node.is_in_group("resource_nodes")):
+					if node.get_parent() and (node.get_parent().is_in_group("buildings") or node.get_parent().is_in_group("resource_nodes")):
+						occluder = node.get_parent()
+
+				if occluder.is_in_group("buildings") or occluder.is_in_group("resource_nodes"):
+					if not new_occluders.has(occluder):
+						new_occluders.append(occluder)
+
+				if col is CollisionObject3D:
+					var col_rid: RID = (col as CollisionObject3D).get_rid()
+					if not excluded_rids.has(col_rid):
+						excluded_rids.append(col_rid)
 
 	# Restore buildings that are no longer occluding
 	for b in occluding_buildings:

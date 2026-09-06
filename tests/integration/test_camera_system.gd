@@ -208,16 +208,17 @@ func test_building_system_placement_under_panned_camera() -> void:
 	var building_system = BuildingSystem.new()
 	add_child_autoqfree(building_system)
 
-	# Control screen-space cursor input targeting an exact known grid cell (Vector3(6, 0, 4))
-	var target_grid = Vector3(6.0, 0.0, 4.0)
+	# Control screen-space cursor input targeting an exact known grid cell (cell (6, 4) centered at Vector3(6.5, 0, 4.5))
+	var target_grid = Vector3(6.5, 0.0, 4.5)
 	var screen_pos = camera.unproject_position(target_grid)
 	building_system.mouse_override = screen_pos
 
 	# Verify grid positioning calculates the exact target cell from camera ray
 	var aimed_pos = building_system.get_aimed_grid_position()
 	assert_eq(aimed_pos, target_grid, "BuildingSystem must aim at the exact target cell under panned camera")
-	assert_eq(int(aimed_pos.x), 6, "Aimed cell X must match 6")
-	assert_eq(int(aimed_pos.z), 4, "Aimed cell Z must match 4")
+	var cell: Vector2i = TerrainCombatRules.world_pos_to_voxel(aimed_pos)
+	assert_eq(cell.x, 6, "Aimed cell X must match 6")
+	assert_eq(cell.y, 4, "Aimed cell Z must match 4")
 
 	# Select prefab and verify preview position tracks correctly under cursor
 	building_system.select_prefab(BuildingSystem.PrefabType.WOOD_WALL)
@@ -226,7 +227,6 @@ func test_building_system_placement_under_panned_camera() -> void:
 	assert_eq(building_system.preview_node.global_position, target_grid, "Hologram preview must snap to aimed grid under cursor")
 
 	# Execute real building placement under panned camera
-	var cell = Vector2i(int(aimed_pos.x), int(aimed_pos.z))
 	building_system.place_building(aimed_pos, cell, BuildingSystem.PrefabType.WOOD_WALL)
 	assert_true(building_system.placed_buildings.has(cell), "Building must be registered in placed_buildings")
 	var placed_node = building_system.placed_buildings[cell]
@@ -303,6 +303,66 @@ func test_building_occlusion_and_restoration() -> void:
 
 	# Assert transparency is restored to 0.0
 	assert_almost_eq(wall.current_transparency, 0.0, 0.05, "Non-occluding building transparency must be restored to 0.0")
+
+func test_foliage_occlusion_with_multiple_enemies_beyond_first_three() -> void:
+	var player = CharacterBody3D.new()
+	add_child_autoqfree(player)
+	player.position = Vector3(0.0, 0.0, 0.0)
+
+	var camera = CameraFollow.new()
+	add_child_autoqfree(camera)
+	camera.target = player
+	camera._init_camera_transform()
+
+	# Create 5 nearby combat enemies (>3 candidates in combat zone)
+	var reg = get_node_or_null("/root/EntityRegistry")
+	var enemies: Array[CharacterBody3D] = []
+	var enemy_offsets: Array[Vector3] = [
+		Vector3(2.0, 0.0, 1.0),
+		Vector3(-2.0, 0.0, 1.0),
+		Vector3(1.0, 0.0, -2.0),
+		Vector3(-1.0, 0.0, -2.0),
+		Vector3(4.0, 0.0, 3.0)  # Enemy #4 (5th candidate)
+	]
+
+	for i in range(enemy_offsets.size()):
+		var enemy = CharacterBody3D.new()
+		enemy.name = "Enemy_%d" % i
+		enemy.add_to_group("enemies")
+		add_child_autoqfree(enemy)
+		enemy.global_position = enemy_offsets[i]
+		if reg:
+			reg.register_enemy(enemy)
+		enemies.append(enemy)
+
+	# Place wall occluding specifically enemy #4 (not player, not enemies 0..2)
+	var target_enemy = enemies[4]
+	var wall = WoodWallScene.instantiate()
+	add_child_autoqfree(wall)
+	var ray_start = camera.global_position
+	var ray_end = target_enemy.global_position + Vector3(0.0, 0.9, 0.0)
+	var occlude_pt = ray_end + (ray_start - ray_end) * 0.1
+	wall.global_position = occlude_pt - Vector3(0.0, 1.0, 0.0)
+
+	# Wait for physics update
+	for i in range(5):
+		await get_tree().physics_frame
+		camera.check_occlusion()
+
+	# Enemy 4 must be covered by bounded spatial selection; occluder must be semi-transparent
+	assert_almost_eq(wall.current_transparency, 0.6, 0.05, "Occluder for 5th enemy (>3) must be set to semi-transparent (0.6)")
+
+	# Move wall away
+	wall.global_position = Vector3(100.0, 0.0, 100.0)
+	for i in range(5):
+		await get_tree().physics_frame
+		camera.check_occlusion()
+
+	assert_almost_eq(wall.current_transparency, 0.0, 0.05, "Transparency must be restored to 0.0 when wall moves away")
+
+	if reg:
+		for e in enemies:
+			reg.unregister_enemy(e)
 
 func test_narrow_viewport_screen_space_safety() -> void:
 	var sub_vp = SubViewport.new()

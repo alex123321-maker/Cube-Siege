@@ -10,7 +10,8 @@ enum ActionType {
 	DEMOLISH,
 	PORTAL_REPAIR,
 	PORTAL_EVACUATE,
-	WORKBENCH
+	WORKBENCH,
+	PICKUP
 }
 
 static func can_interact(node: Node, _player: Node = null, _is_shift: bool = false) -> bool:
@@ -29,6 +30,8 @@ static func can_interact(node: Node, _player: Node = null, _is_shift: bool = fal
 		return (node as ResourceRock).is_interactable()
 	elif node is RelicPedestal:
 		return (node as RelicPedestal).is_interactable()
+	elif node is FreeResourcePickup:
+		return (node as FreeResourcePickup).is_interactable()
 
 	# Polymorphic contract fallback
 	if node.has_method("is_interactable"):
@@ -48,6 +51,9 @@ static func get_action_type(node: Node, _player: Node = null, is_shift: bool = f
 		return ActionType.NONE
 
 	# Typed classification (Workbench checked ahead of BuildingBase)
+	if node is FreeResourcePickup:
+		return ActionType.PICKUP
+
 	if node is Workbench:
 		return ActionType.WORKBENCH
 
@@ -92,7 +98,10 @@ static func execute_interaction(node: Node, player: Node, is_shift: bool = false
 		return
 
 	# Typed dispatch
-	if node is Workbench:
+	if node is FreeResourcePickup:
+		(node as FreeResourcePickup).interact(player, is_shift)
+		return
+	elif node is Workbench:
 		(node as Workbench).interact(player, is_shift)
 		return
 	elif node is PortalController:
@@ -110,6 +119,7 @@ static func execute_interaction(node: Node, player: Node, is_shift: bool = false
 	elif node is RelicPedestal:
 		(node as RelicPedestal).interact(player, is_shift)
 		return
+
 
 	# Polymorphic fallback
 	if node.has_method("interact"):

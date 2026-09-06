@@ -5,6 +5,7 @@ class_name HitboxArea
 @export var knockback_force: float = 6.0
 @export var damage_type: String = "physical"
 @export var can_hit_multiple: bool = true
+@export var terrain_mode: TerrainCombatRules.TerrainMode = TerrainCombatRules.TerrainMode.TERRAIN_DEPENDENT
 
 var hit_entities: Array[Node] = []
 var owner_entity: Node = null
@@ -24,6 +25,17 @@ func _on_area_entered(area: Area3D) -> void:
 		# Player attacks must NEVER damage friendly buildings!
 		if owner_entity and (owner_entity.is_in_group("player") or owner_entity.name == "Player"):
 			if target and (target.is_in_group("buildings") or target.is_in_group("walls")):
+				return
+
+		# Height connectivity check for terrain-dependent melee attacks
+		if terrain_mode == TerrainCombatRules.TerrainMode.TERRAIN_DEPENDENT:
+			var source_pos: Vector3 = owner_entity.global_position if (owner_entity and owner_entity is Node3D) else global_position
+			var target_pos: Vector3 = target.global_position if (target and target is Node3D) else area.global_position
+			var height_lookup: Callable = Callable()
+			var map_gen: Node = get_tree().get_first_node_in_group("map_generator") if is_inside_tree() else null
+			if map_gen and map_gen.has_method("get_voxel_height"):
+				height_lookup = Callable(map_gen, "get_voxel_height")
+			if not TerrainCombatRules.is_melee_connected(source_pos, target_pos, height_lookup):
 				return
 
 		hit_entities.append(target)
