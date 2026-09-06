@@ -116,6 +116,24 @@ func test_mountain_trail_guarantees_climb_above_50_and_100() -> void:
 	assert_true(max_h >= 50, "Mountain trail must allow continuous walking to height >= 50 (reached %d)" % max_h)
 	assert_true(max_h >= 100, "Mountain trail must allow continuous walking to height >= 100 (reached %d)" % max_h)
 
+	# Verify lateral height smoothness across the corridor borders (no artificial canyons / walls)
+	for test_r in [30.0, 60.0, 90.0, 120.0, 150.0]:
+		var trail_ang = BiomeSystem.get_trail_angle(test_r, test_seed)
+		var center_x = test_r * cos(trail_ang)
+		var center_z = test_r * sin(trail_ang)
+		var normal_x = -sin(trail_ang)
+		var normal_z = cos(trail_ang)
+
+		var prev_lateral_h: int = -999999
+		for offset in range(-15, 16):
+			var px = int(roundf(center_x + normal_x * float(offset)))
+			var pz = int(roundf(center_z + normal_z * float(offset)))
+			var lateral_h = BiomeSystem.get_voxel_height(px, pz, test_seed)
+			if prev_lateral_h != -999999:
+				var lateral_step = absi(lateral_h - prev_lateral_h)
+				assert_true(lateral_step <= 1, "Lateral slope across mountain corridor at r=%.1f offset=%d must be <= 1 (was %d)" % [test_r, offset, lateral_step])
+			prev_lateral_h = lateral_h
+
 func test_blended_biome_resource_probabilities() -> void:
 	# Test blended probability roll at Forest-Plains border (50% Forest, 50% Plains)
 	var weights: Dictionary = {

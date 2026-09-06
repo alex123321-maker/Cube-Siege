@@ -119,7 +119,7 @@ static func roll_blended_resource_type(biome_weights: Dictionary, height: float,
 ## its yield amount, and visual sub-type.
 static func resolve_spawn_details(
 	res_type: ResourceType,
-	biome: BiomeSystem.BiomeType,
+	biome_or_weights,
 	height: float,
 	form_roll: float,
 	variation_roll: float
@@ -132,6 +132,12 @@ static func resolve_spawn_details(
 			"variation_index": 0,
 			"solid": false
 		}
+
+	var w_mountain: float = 0.0
+	if biome_or_weights is Dictionary:
+		w_mountain = biome_or_weights.get(BiomeSystem.BiomeType.MOUNTAINS, 0.0)
+	elif biome_or_weights == BiomeSystem.BiomeType.MOUNTAINS:
+		w_mountain = 1.0
 
 	# Magic stones only exist as free pickups (1-3 units)
 	if res_type == ResourceType.MAGIC_STONE:
@@ -166,8 +172,10 @@ static func resolve_spawn_details(
 
 	if res_type == ResourceType.WOOD:
 		# In mountains: NO big trees allowed, only small/shrub variations!
-		if biome == BiomeSystem.BiomeType.MOUNTAINS:
-			var_idx = 3 + (int(variation_roll * 2.0) % 2) # 3: young oak, 4: shrub
+		# In transition zone, chance of mountain shrub smoothly increases with w_mountain.
+		var is_mountain_tree: bool = (variation_roll < w_mountain)
+		if is_mountain_tree:
+			var_idx = 3 + (int(variation_roll * 100.0) % 2) # 3: young oak, 4: shrub
 			deposit_yield = 3
 		else:
 			var_idx = int(variation_roll * 5.0) % 5 # 0..4 oak variants

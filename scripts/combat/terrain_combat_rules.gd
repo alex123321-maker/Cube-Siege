@@ -17,18 +17,25 @@ static func is_melee_connected(
 	target_pos: Vector3,
 	height_lookup: Callable = Callable()
 ) -> bool:
-	var delta_y: float = target_pos.y - source_pos.y
-	var rounded_delta_y: int = int(roundf(delta_y))
-
-	# Immediate 1-step direct range
 	var horizontal_dist: float = Vector2(target_pos.x - source_pos.x, target_pos.z - source_pos.z).length()
-	if horizontal_dist <= 1.5:
-		return absi(rounded_delta_y) <= 1
 
-	# Extended range: if height_lookup is provided, trace intermediate discrete steps
+	# If authoritative height lookup is available, evaluate using terrain surface heights
 	if height_lookup.is_valid():
+		var src_x: int = int(roundf(source_pos.x))
+		var src_z: int = int(roundf(source_pos.z))
+		var tgt_x: int = int(roundf(target_pos.x))
+		var tgt_z: int = int(roundf(target_pos.z))
+
+		var src_y: int = int(height_lookup.call(src_x, src_z))
+		var tgt_y: int = int(height_lookup.call(tgt_x, tgt_z))
+
+		# Immediate 1-step direct range
+		if horizontal_dist <= 1.5:
+			return absi(tgt_y - src_y) <= 1
+
+		# Extended range: trace intermediate discrete steps along line
 		var steps: int = maxi(1, int(ceilf(horizontal_dist)))
-		var prev_y: int = int(roundf(source_pos.y))
+		var prev_y: int = src_y
 
 		for i in range(1, steps + 1):
 			var t: float = float(i) / float(steps)
@@ -42,7 +49,9 @@ static func is_melee_connected(
 
 		return true
 
-	# Fallback if no map lookup: simple delta check between endpoints
+	# Fallback if no map lookup provided (isolated unit tests)
+	var delta_y: float = target_pos.y - source_pos.y
+	var rounded_delta_y: int = int(roundf(delta_y))
 	return absi(rounded_delta_y) <= 1
 
 ## Checks whether an attack or ability can hit the target under the specified terrain mode.
@@ -68,7 +77,7 @@ static func can_ability_hit_target(
 ## Evaluates projectile movement step over terrain.
 ## Returns Dictionary:
 ## {
-##   "collided": bool (true if wall >= 2 blocks in front),
+##   "collided": bool (true if projectile collides with wall/ground face),
 ##   "new_y": float (adjusted height),
 ##   "is_diving": bool (false: continues straight if drop >= 2),
 ##   "is_over_drop": bool (true if flying above a drop/canyon)
@@ -85,11 +94,11 @@ static func update_projectile_height(
 	var int_step: int = int(roundf(step_diff))
 	var clearance: float = current_pos.y - next_terrain_y
 
-	# Detect if entering or currently inside drop state
+	# Detect if entering or currently inside over-drop state
 	var currently_over_drop: bool = is_over_drop or int_step <= -2 or (clearance >= projectile_base_offset + 1.2)
 
-	# 1. Rising wall >= 2 blocks: collision!
-	if int_step >= 2:
+	# 1. Rising wall >= 2 blocks when ground-following (near ground):
+	if int_step >= 2 and not currently_over_drop:
 		return {
 			"collided": true,
 			"new_y": current_pos.y,
@@ -97,18 +106,8 @@ static func update_projectile_height(
 			"is_over_drop": false
 		}
 
-	# 2. Rising step of +1 block: smoothly climb
-	if int_step == 1 and not currently_over_drop:
-		var target_y: float = next_terrain_y + projectile_base_offset
-		return {
-			"collided": false,
-			"new_y": maxf(current_pos.y, target_y),
-			"is_diving": false,
-			"is_over_drop": false
-		}
-
-	# 3. If projectile height is at or below the ground in front: collision!
-	if current_pos.y <= next_terrain_y:
+	# 2. Collision with terrain face when over drop or penetrating below ground:
+	if currently_over_drop and (current_pos.y <= next_terrain_y or next_pos.y <= next_terrain_y):
 		return {
 			"collided": true,
 			"new_y": current_pos.y,
@@ -116,7 +115,7 @@ static func update_projectile_height(
 			"is_over_drop": false
 		}
 
-	# 4. Over drop: do NOT plunge down! Maintain straight horizontal altitude
+	# 2. Over drop: maintain straight horizontal altitude across multiple frames
 	if currently_over_drop:
 		if clearance > projectile_base_offset:
 			return {
@@ -126,23 +125,51 @@ static func update_projectile_height(
 				"is_over_drop": true
 			}
 		else:
-			# Ground has risen back to meet arrow trajectory: re-attach
+			# Ground has risen back to meet arrow trajectory: transition back to ground-following
 			currently_over_drop = false
 
-	# 5. Descending gentle step (-1 block) when attached to ground
-	if int_step == -1:
-		var target_y: float = next_terrain_y + projectile_base_offset
+	# 3. Ground-following: check for wall in front (+2 or more blocks)
+	# When near ground (not over drop), rising wall of >= 2 blocks stops projectile
+	if int_step >= 2 and clearance < projectile_base_offset + 0.4:
 		return {
-			"collided": false,
-			"new_y": minf(current_pos.y, target_y),
+			"collided": true,
+			"new_y": current_pos.y,
 			"is_diving": false,
 			"is_over_drop": false
 		}
 
-	# 6. Same level (0 step): maintain normal ground following height
+	# 4. Climbing gentle step (+1 block): smoothly adjust upward without harsh jump
+	if int_step == 1:
+		var target_y: float = next_terrain_y + projectile_base_offset
+		var smooth_y: float = current_pos.y + clampf(target_y - current_pos.y, 0.0, 0.5)
+		return {
+			"collided": false,
+			"new_y": maxf(smooth_y, target_y * 0.5 + current_pos.y * 0.5),
+			"is_diving": false,
+			"is_over_drop": false
+		}
+
+	# 5. Descending gentle step (-1 block): smoothly adjust downward
+	if int_step == -1:
+		var target_y: float = next_terrain_y + projectile_base_offset
+		var smooth_y: float = current_pos.y + clampf(target_y - current_pos.y, -0.5, 0.0)
+		return {
+			"collided": false,
+			"new_y": minf(smooth_y, target_y * 0.5 + current_pos.y * 0.5),
+			"is_diving": false,
+			"is_over_drop": false
+		}
+
+	# 6. Flat terrain (0 step): maintain natural projectile flight altitude without snapping
+	var target_flat_y: float = next_terrain_y + projectile_base_offset
+	var adjusted_y: float = current_pos.y
+	if absf(current_pos.y - target_flat_y) > 0.3:
+		# Gently drift toward base offset over several frames instead of instant teleport
+		adjusted_y = move_toward(current_pos.y, target_flat_y, 0.1)
+
 	return {
 		"collided": false,
-		"new_y": next_terrain_y + projectile_base_offset,
+		"new_y": adjusted_y,
 		"is_diving": false,
 		"is_over_drop": false
 	}

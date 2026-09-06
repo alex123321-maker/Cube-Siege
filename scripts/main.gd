@@ -7,6 +7,8 @@ extends Node3D
 @onready var save_manager: Node = get_node_or_null("/root/SaveManager")
 @onready var day_night: Node = $DayNightCycle
 @onready var hud: CanvasLayer = $HUD
+@onready var map_generator: Node = get_node_or_null("MapGenerator")
+@onready var enemies_container: Node = get_node_or_null("Enemies")
 
 func _ready() -> void:
 	if radial_menu and building_system:
@@ -18,6 +20,28 @@ func _ready() -> void:
 	var eb = get_node_or_null("/root/EventBus")
 	if eb:
 		eb.portal_evacuated.connect(_on_portal_evacuated)
+
+	if map_generator and map_generator.has_signal("map_generated"):
+		map_generator.map_generated.connect(_on_map_generated)
+
+	_align_starting_entities()
+
+func _on_map_generated(_seed: int) -> void:
+	_align_starting_entities()
+
+func _align_starting_entities() -> void:
+	if not map_generator or not enemies_container:
+		return
+	for enemy in enemies_container.get_children():
+		if enemy is Node3D:
+			var ex: int = int(floorf(enemy.global_position.x))
+			var ez: int = int(floorf(enemy.global_position.z))
+			var y_floor: int = 0
+			if map_generator.has_method("get_voxel_height"):
+				y_floor = map_generator.get_voxel_height(ex, ez)
+			elif "actual_seed" in map_generator:
+				y_floor = BiomeSystem.get_voxel_height(ex, ez, map_generator.actual_seed)
+			enemy.global_position.y = float(y_floor) + 0.9
 
 func _exit_tree() -> void:
 	var eb = get_node_or_null("/root/EventBus")

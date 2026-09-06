@@ -22,9 +22,9 @@ const ANGLE_MOUNTAINS: float = -2.0943951023931953 # ~-120 deg (South-West)
 const SECTOR_SPAN: float = 2.0943951023931953  # 120 degrees
 const HALF_SECTOR: float = 1.0471975511965976  # 60 degrees
 const BLEND_BAND: float = 0.40                 # ~23 degrees transition band
-const TRAIL_WIDTH: float = 2.4
-const TRAIL_SLOPE: float = 0.62
-
+const TRAIL_WIDTH: float = 3.2
+const TRAIL_VALLEY_WIDTH: float = 14.0
+const MOUNTAIN_BASE_SLOPE: float = 0.68
 
 static func get_trail_angle(r: float, seed_val: int) -> float:
 	var phase: float = float(seed_val % 97) * 0.04
@@ -136,25 +136,37 @@ static func sample_height(x: float, z: float, seed_val: int) -> float:
 	var h_plains: float = clampf(hills_val * 3.8, 0.0, 3.8)
 
 	# 3. Mountains height:
-	# Base potential height increases with distance into mountain sector.
-	# Mountain cross-section smoothly attenuates to 0 at borders with neighboring biomes.
+	# Core mountain sector (central 60 deg) has edge_attenuation = 1.0 with zero lateral derivative.
+	# Outer border bands smoothly attenuate to 0 at borders with neighboring biomes.
 	var d_mountains: float = angular_distance(warped_angle, ANGLE_MOUNTAINS)
-	var edge_attenuation: float = clampf(1.0 - (d_mountains / HALF_SECTOR), 0.0, 1.0)
-	# Smooth cubic hermite curve to ensure 0 derivative at the border
-	edge_attenuation = edge_attenuation * edge_attenuation * (3.0 - 2.0 * edge_attenuation)
+	var edge_t: float = clampf((HALF_SECTOR - d_mountains) / (HALF_SECTOR * 0.45), 0.0, 1.0)
+	var edge_attenuation: float = edge_t * edge_t * (3.0 - 2.0 * edge_t)
 
 	var dist_from_sanctuary: float = maxf(0.0, dist - PORTAL_CLEAR_RADIUS)
-	# Climbs at ~0.72 blocks per meter away from portal, scaling smoothly with edge attenuation
-	var mountain_growth: float = dist_from_sanctuary * 0.72 * edge_attenuation
+	# Base climb at ~0.70 blocks per meter, sharing exact base slope across trail and mountain core
+	const MOUNTAIN_CLIMB_SLOPE: float = 0.70
+	var mountain_growth: float = dist_from_sanctuary * MOUNTAIN_CLIMB_SLOPE * edge_attenuation
 
 	# Natural ridge variations
-	var ridge_noise: FastNoiseLite = FastNoiseLite.new()
-	ridge_noise.seed = seed_val + 303
-	ridge_noise.noise_type = FastNoiseLite.TYPE_PERLIN
-	ridge_noise.frequency = 0.025
-	var ridge_val: float = absf(ridge_noise.get_noise_2d(x, z)) * 2.0  # 0..2
-	var mountain_local_variation: float = (broad_val * 0.5 + hills_val * 0.3 + ridge_val * 0.2) * (8.0 + dist_from_sanctuary * 0.15) * edge_attenuation
+	var raw_variation: float = (broad_val * 0.6 + hills_val * 0.4) * 3.5 * edge_attenuation
 
+	# Mountain climbing trail pass:
+	# The trail corridor smoothly attenuates local roughness towards the pass floor
+	# across a wide 12m pass, sharing the exact same base elevation so lateral slope is <= 1 everywhere.
+	var trail_factor: float = 1.0
+	if dist > PORTAL_CLEAR_RADIUS:
+		var trail_ang: float = get_trail_angle(dist, seed_val)
+		var trail_x: float = dist * cos(trail_ang)
+		var trail_z: float = dist * sin(trail_ang)
+		var dist_to_trail: float = Vector2(x - trail_x, z - trail_z).length()
+
+		if dist_to_trail <= TRAIL_WIDTH:
+			trail_factor = 0.0
+		elif dist_to_trail < TRAIL_VALLEY_WIDTH:
+			var t: float = (dist_to_trail - TRAIL_WIDTH) / (TRAIL_VALLEY_WIDTH - TRAIL_WIDTH)
+			trail_factor = t * t * (3.0 - 2.0 * t)
+
+	var mountain_local_variation: float = raw_variation * trail_factor
 	var h_mountains: float = mountain_growth + mountain_local_variation
 
 	# Weighted blend across all 3 biomes
@@ -164,20 +176,6 @@ static func sample_height(x: float, z: float, seed_val: int) -> float:
 	if dist < PORTAL_CLEAR_RADIUS + 3.0:
 		var ramp: float = (dist - PORTAL_CLEAR_RADIUS) / 3.0
 		final_h *= clampf(ramp, 0.0, 1.0)
-
-	# Mountain climbing trail corridor: guarantees continuous path of |delta_h| <= 1 steps
-	if dist > PORTAL_CLEAR_RADIUS:
-		var trail_ang: float = get_trail_angle(dist, seed_val)
-		var trail_x: float = dist * cos(trail_ang)
-		var trail_z: float = dist * sin(trail_ang)
-		var dist_to_trail: float = Vector2(x - trail_x, z - trail_z).length()
-		if dist_to_trail <= TRAIL_WIDTH + 2.0:
-			var trail_h: float = (dist - PORTAL_CLEAR_RADIUS) * TRAIL_SLOPE
-			if dist_to_trail <= TRAIL_WIDTH:
-				final_h = trail_h
-			else:
-				var t: float = (dist_to_trail - TRAIL_WIDTH) / 2.0
-				final_h = lerpf(trail_h, final_h, t)
 
 	return final_h
 

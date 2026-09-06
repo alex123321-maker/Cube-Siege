@@ -121,7 +121,33 @@ func test_projectile_multi_frame_flight_over_chasm() -> void:
 	arrow_pos.x = 3.0
 	arrow_pos.y = res3["new_y"]
 
-	# Frame 4: Terrain rises up to wall (ground 2.0 -> 12.0)
-	var res4: Dictionary = TerrainCombatRules.update_projectile_height(arrow_pos, Vector3(4, 10.8, 0), 2.0, 12.0, 0.8, is_over_drop)
+	# Frame 3.5: Canyon floor rises below arrow (ground 2.0 -> 4.0, delta=+2)
+	# But arrow is at y=10.8, well above 4.0! Must NOT collide with floor elevation below.
+	var res_floor_step: Dictionary = TerrainCombatRules.update_projectile_height(arrow_pos, Vector3(3.5, 10.8, 0), 2.0, 4.0, 0.8, is_over_drop)
+	assert_false(res_floor_step["collided"], "Arrow at y=10.8 must NOT collide when canyon floor rises from 2 to 4 below it")
+	assert_almost_eq(res_floor_step["new_y"], 10.8, 0.01, "Arrow maintains flight altitude")
+
+	# Frame 4: Terrain rises up to wall (ground 4.0 -> 12.0)
+	var res4: Dictionary = TerrainCombatRules.update_projectile_height(arrow_pos, Vector3(4, 10.8, 0), 4.0, 12.0, 0.8, is_over_drop)
 	assert_true(res4["collided"], "Arrow must collide when rock wall rises above flight altitude")
+
+func test_melee_connectivity_with_character_body_offset() -> void:
+	# In runtime, player and enemy CharacterBody3D are at terrain_y + 0.9.
+	# Ground at (0, 0) is y=0. Ground at (2, 0) is y=2 (wall of +2 blocks).
+	var height_lookup: Callable = func(x: int, _z: int) -> int:
+		return 2 if x >= 1 else 0
+
+	var player_pos: Vector3 = Vector3(0.0, 0.9, 0.0) # Ground 0 + 0.9
+	var enemy_pos: Vector3 = Vector3(2.0, 2.9, 0.0)   # Ground 2 + 0.9
+
+	# A 2-block ledge must BLOCK melee attack even when CharacterBody root has +0.9 offset
+	var connected_wall: bool = TerrainCombatRules.is_melee_connected(player_pos, enemy_pos, height_lookup)
+	assert_false(connected_wall, "Melee attack must NOT hit across 2-block cliff face regardless of CharacterBody +0.9 y offset")
+
+	# If ground is only 0 to 1 (+1 step):
+	var height_lookup_step: Callable = func(x: int, _z: int) -> int:
+		return 1 if x >= 1 else 0
+	var enemy_step_pos: Vector3 = Vector3(1.4, 1.9, 0.0)
+	var connected_step: bool = TerrainCombatRules.is_melee_connected(player_pos, enemy_step_pos, height_lookup_step)
+	assert_true(connected_step, "Melee attack must connect across reachable +1 step with CharacterBody +0.9 y offset")
 

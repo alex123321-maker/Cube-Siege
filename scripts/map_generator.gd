@@ -284,9 +284,12 @@ func _spawn_chunk_resources(cx: int, cz: int, out_nodes: Array[Node]) -> void:
 			var res_type: ResourceDistribution.ResourceType = ResourceDistribution.roll_blended_resource_type(biome_info["weights"], continuous_h, res_roll)
 
 			if res_type == ResourceDistribution.ResourceType.NONE:
-				# Spawn non-colliding decorative details for Plains
-				if biome == BiomeSystem.BiomeType.PLAINS and rng.randf() < 0.45:
-					var grass: Node3D = _create_decorative_grass(h_pos, rng)
+				# Smoothly blend decorative vegetation details across biomes
+				var w_plains: float = biome_info["weights"].get(BiomeSystem.BiomeType.PLAINS, 0.0)
+				var w_forest: float = biome_info["weights"].get(BiomeSystem.BiomeType.FOREST, 0.0)
+				var grass_chance: float = 0.45 * w_plains + 0.15 * w_forest
+				if rng.randf() < grass_chance:
+					var grass: Node3D = _create_decorative_grass(h_pos, rng, w_forest, w_plains)
 					if resources_container:
 						resources_container.add_child(grass)
 					else:
@@ -296,7 +299,7 @@ func _spawn_chunk_resources(cx: int, cz: int, out_nodes: Array[Node]) -> void:
 
 			var form_roll: float = rng.randf()
 			var var_roll: float = rng.randf()
-			var details: Dictionary = ResourceDistribution.resolve_spawn_details(res_type, biome, continuous_h, form_roll, var_roll)
+			var details: Dictionary = ResourceDistribution.resolve_spawn_details(res_type, biome_info["weights"], continuous_h, form_roll, var_roll)
 
 			# Ensure mountain trail corridor is NEVER blocked by solid FULL_DEPOSIT obstacles
 			if BiomeSystem.is_mountain_trail(wx, wz, actual_seed):
@@ -340,15 +343,18 @@ func _spawn_chunk_resources(cx: int, cz: int, out_nodes: Array[Node]) -> void:
 						add_child(node)
 					out_nodes.append(node)
 
-func _create_decorative_grass(pos: Vector3, rng: RandomNumberGenerator) -> Node3D:
+func _create_decorative_grass(pos: Vector3, rng: RandomNumberGenerator, w_forest: float = 0.0, w_plains: float = 1.0) -> Node3D:
 	var grass_node: Node3D = Node3D.new()
 	grass_node.position = pos
 	var mesh_inst: MeshInstance3D = MeshInstance3D.new()
 	var box: BoxMesh = BoxMesh.new()
-	var h: float = 0.3 + rng.randf() * 0.35
-	box.size = Vector3(0.3, h, 0.3)
+	var h: float = 0.25 + rng.randf() * 0.35
+	box.size = Vector3(0.25, h, 0.25)
 	var mat: StandardMaterial3D = StandardMaterial3D.new()
-	mat.albedo_color = Color(0.36 + rng.randf() * 0.1, 0.65 + rng.randf() * 0.1, 0.20, 1.0)
+	var plains_col: Color = Color(0.38 + rng.randf() * 0.08, 0.65 + rng.randf() * 0.08, 0.20, 1.0)
+	var forest_col: Color = Color(0.18 + rng.randf() * 0.05, 0.42 + rng.randf() * 0.08, 0.16, 1.0)
+	var total_w: float = maxf(0.001, w_forest + w_plains)
+	mat.albedo_color = forest_col * (w_forest / total_w) + plains_col * (w_plains / total_w)
 	mat.roughness = 0.9
 	box.material = mat
 	mesh_inst.mesh = box

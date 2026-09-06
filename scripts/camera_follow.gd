@@ -174,30 +174,65 @@ func check_occlusion() -> void:
 	if not target or not is_inside_tree():
 		return
 	var space_state: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
-	var query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(
-		global_position,
-		target.global_position + Vector3(0.0, 0.9, 0.0),
-		1 | 16
-	)
-	query.collide_with_areas = true
-	query.collide_with_bodies = true
+	var player_pos: Vector3 = target.global_position + Vector3(0.0, 0.9, 0.0)
 
-	var hit: Dictionary = space_state.intersect_ray(query)
+	var check_points: Array[Vector3] = [player_pos]
+
+	# Attack / combat direction point forward from player
+	var forward: Vector3 = -target.global_transform.basis.z
+	check_points.append(player_pos + forward * 1.8)
+
+	# Nearby enemies within 14m to ensure combat area foliage transparency
+	var tree: SceneTree = get_tree()
+	if tree:
+		var enemies: Array[Node] = tree.get_nodes_in_group("enemies")
+		for enemy in enemies:
+			if enemy is Node3D and is_instance_valid(enemy):
+				var enemy_3d: Node3D = enemy as Node3D
+				if enemy_3d.global_position.distance_to(target.global_position) <= 14.0:
+					check_points.append(enemy_3d.global_position + Vector3(0.0, 0.9, 0.0))
+
 	var new_occluders: Array[Node] = []
-	if not hit.is_empty():
-		var col: Object = hit.get("collider")
-		if col and col is Node:
-			var node: Node = col as Node
-			var occluder: Node = node
-			if node.name == "CanopyOcclusion" and node.get_parent():
-				occluder = node.get_parent()
-			elif not (node.is_in_group("buildings") or node.is_in_group("resource_nodes")):
-				if node.get_parent() and (node.get_parent().is_in_group("buildings") or node.get_parent().is_in_group("resource_nodes")):
+	var max_stacked_hits: int = 6
+
+	for pt in check_points:
+		var excluded_rids: Array[RID] = []
+		for _step in range(max_stacked_hits):
+			var query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(
+				global_position,
+				pt,
+				1 | 16
+			)
+			query.collide_with_areas = true
+			query.collide_with_bodies = true
+			query.exclude = excluded_rids
+
+			var hit: Dictionary = space_state.intersect_ray(query)
+			if hit.is_empty():
+				break
+
+			var rid: RID = hit.get("rid", RID())
+			if rid.is_valid():
+				excluded_rids.append(rid)
+
+			var col: Object = hit.get("collider")
+			if col and col is Node:
+				var node: Node = col as Node
+				var occluder: Node = node
+				if node.name == "CanopyOcclusion" and node.get_parent():
 					occluder = node.get_parent()
+				elif not (node.is_in_group("buildings") or node.is_in_group("resource_nodes")):
+					if node.get_parent() and (node.get_parent().is_in_group("buildings") or node.get_parent().is_in_group("resource_nodes")):
+						occluder = node.get_parent()
 
-			if occluder.is_in_group("buildings") or occluder.is_in_group("resource_nodes"):
-				new_occluders.append(occluder)
+				if occluder.is_in_group("buildings") or occluder.is_in_group("resource_nodes"):
+					if not new_occluders.has(occluder):
+						new_occluders.append(occluder)
 
+				if col is CollisionObject3D:
+					var col_rid: RID = (col as CollisionObject3D).get_rid()
+					if not excluded_rids.has(col_rid):
+						excluded_rids.append(col_rid)
 
 	# Restore buildings that are no longer occluding
 	for b in occluding_buildings:
