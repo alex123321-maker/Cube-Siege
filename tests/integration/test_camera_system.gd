@@ -208,16 +208,17 @@ func test_building_system_placement_under_panned_camera() -> void:
 	var building_system = BuildingSystem.new()
 	add_child_autoqfree(building_system)
 
-	# Control screen-space cursor input targeting an exact known grid cell (Vector3(6, 0, 4))
-	var target_grid = Vector3(6.0, 0.0, 4.0)
+	# Control screen-space cursor input targeting an exact known grid cell (cell (6, 4) centered at Vector3(6.5, 0, 4.5))
+	var target_grid = Vector3(6.5, 0.0, 4.5)
 	var screen_pos = camera.unproject_position(target_grid)
 	building_system.mouse_override = screen_pos
 
 	# Verify grid positioning calculates the exact target cell from camera ray
 	var aimed_pos = building_system.get_aimed_grid_position()
 	assert_eq(aimed_pos, target_grid, "BuildingSystem must aim at the exact target cell under panned camera")
-	assert_eq(int(aimed_pos.x), 6, "Aimed cell X must match 6")
-	assert_eq(int(aimed_pos.z), 4, "Aimed cell Z must match 4")
+	var cell: Vector2i = TerrainCombatRules.world_pos_to_voxel(aimed_pos)
+	assert_eq(cell.x, 6, "Aimed cell X must match 6")
+	assert_eq(cell.y, 4, "Aimed cell Z must match 4")
 
 	# Select prefab and verify preview position tracks correctly under cursor
 	building_system.select_prefab(BuildingSystem.PrefabType.WOOD_WALL)
@@ -226,7 +227,6 @@ func test_building_system_placement_under_panned_camera() -> void:
 	assert_eq(building_system.preview_node.global_position, target_grid, "Hologram preview must snap to aimed grid under cursor")
 
 	# Execute real building placement under panned camera
-	var cell = Vector2i(int(aimed_pos.x), int(aimed_pos.z))
 	building_system.place_building(aimed_pos, cell, BuildingSystem.PrefabType.WOOD_WALL)
 	assert_true(building_system.placed_buildings.has(cell), "Building must be registered in placed_buildings")
 	var placed_node = building_system.placed_buildings[cell]

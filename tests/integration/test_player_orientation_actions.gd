@@ -134,7 +134,7 @@ func test_building_placement_without_facing_requirement() -> void:
 	building_system.select_prefab(building_system.PrefabType.WOOD_WALL)
 
 	var target_cell = Vector2i(4, 4)
-	var target_pos = Vector3(4.0, 0.0, 4.0)
+	var target_pos = Vector3(4.5, 0.0, 4.5)
 
 	# Even though player is facing North (-Z), building at (4, 4) succeeds immediately
 	building_system.place_building(target_pos, target_cell, building_system.PrefabType.WOOD_WALL)

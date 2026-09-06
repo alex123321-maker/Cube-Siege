@@ -18,6 +18,8 @@ var active_chunks: Dictionary = {}        # Vector2i -> Node3D (Terrain chunk)
 var chunk_resources: Dictionary = {}      # Vector2i -> Array[Node]
 var harvested_cells: Dictionary = {}      # Vector3i -> bool
 var last_player_chunk: Vector2i = Vector2i(-999999, -999999)
+var pending_load_chunks: Array[Vector2i] = []
+@export var max_chunk_loads_per_frame: int = 1
 
 var terrain_container: Node3D = null
 var resources_container: Node3D = null
@@ -124,6 +126,7 @@ func generate_world() -> void:
 		_free_chunk(coord)
 	active_chunks.clear()
 	chunk_resources.clear()
+	pending_load_chunks.clear()
 
 	if terrain_container:
 		for c in terrain_container.get_children():
@@ -153,8 +156,25 @@ func _process(_delta: float) -> void:
 	)
 
 	if cur_chunk != last_player_chunk:
-		update_player_chunks(cur_chunk)
+		update_player_chunks(cur_chunk, false)
 		last_player_chunk = cur_chunk
+
+	# Amortize pending chunk generation across frames
+	if not pending_load_chunks.is_empty():
+		pending_load_chunks.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+			var da: int = (a.x - cur_chunk.x) * (a.x - cur_chunk.x) + (a.y - cur_chunk.y) * (a.y - cur_chunk.y)
+			var db: int = (b.x - cur_chunk.x) * (b.x - cur_chunk.x) + (b.y - cur_chunk.y) * (b.y - cur_chunk.y)
+			return da < db
+		)
+		var loaded: int = 0
+		while not pending_load_chunks.is_empty() and loaded < max_chunk_loads_per_frame:
+			var next_chunk: Vector2i = pending_load_chunks.pop_front()
+			if not active_chunks.has(next_chunk):
+				var dx: int = absi(next_chunk.x - cur_chunk.x)
+				var dz: int = absi(next_chunk.y - cur_chunk.y)
+				if dx <= unload_radius_chunks and dz <= unload_radius_chunks:
+					load_chunk(next_chunk.x, next_chunk.y)
+					loaded += 1
 
 func _find_player() -> Node3D:
 	var players: Array[Node] = get_tree().get_nodes_in_group("player")
@@ -162,15 +182,18 @@ func _find_player() -> Node3D:
 		return players[0] as Node3D
 	return null
 
-func update_player_chunks(center_chunk: Vector2i) -> void:
-	# 1. Load missing chunks in load radius
+func update_player_chunks(center_chunk: Vector2i, immediate: bool = true) -> void:
+	# 1. Load or queue missing chunks in load radius
 	for cz in range(center_chunk.y - load_radius_chunks, center_chunk.y + load_radius_chunks + 1):
 		for cx in range(center_chunk.x - load_radius_chunks, center_chunk.x + load_radius_chunks + 1):
 			var coord: Vector2i = Vector2i(cx, cz)
 			if not active_chunks.has(coord):
-				load_chunk(cx, cz)
+				if immediate:
+					load_chunk(cx, cz)
+				elif not pending_load_chunks.has(coord):
+					pending_load_chunks.append(coord)
 
-	# 2. Unload distant chunks outside unload radius
+	# 2. Unload distant chunks outside unload radius immediately
 	var to_unload: Array[Vector2i] = []
 	for coord: Vector2i in active_chunks.keys():
 		var dx: int = absi(coord.x - center_chunk.x)
@@ -180,6 +203,16 @@ func update_player_chunks(center_chunk: Vector2i) -> void:
 
 	for coord: Vector2i in to_unload:
 		unload_chunk(coord.x, coord.y)
+
+	# 3. Discard pending chunks that moved outside unload radius
+	if not immediate and not pending_load_chunks.is_empty():
+		var valid_pending: Array[Vector2i] = []
+		for p: Vector2i in pending_load_chunks:
+			var dx: int = absi(p.x - center_chunk.x)
+			var dz: int = absi(p.y - center_chunk.y)
+			if dx <= unload_radius_chunks and dz <= unload_radius_chunks and not active_chunks.has(p):
+				valid_pending.append(p)
+		pending_load_chunks = valid_pending
 
 func load_chunk(cx: int, cz: int) -> void:
 	var coord: Vector2i = Vector2i(cx, cz)

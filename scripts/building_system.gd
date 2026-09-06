@@ -100,7 +100,7 @@ func _process(_delta: float) -> void:
 		return
 
 	var snapped_pos: Vector3 = get_aimed_grid_position()
-	var cell: Vector2i = Vector2i(int(snapped_pos.x), int(snapped_pos.z))
+	var cell: Vector2i = TerrainCombatRules.world_pos_to_voxel(snapped_pos)
 	preview_node.global_position = snapped_pos
 	preview_node.visible = true
 
@@ -157,7 +157,7 @@ func is_cell_free(cell: Vector2i) -> bool:
 	for res in resources:
 		if res and is_instance_valid(res) and res is Node3D:
 			var r_pos: Vector3 = (res as Node3D).global_position
-			if Vector2i(round(r_pos.x), round(r_pos.z)) == cell:
+			if TerrainCombatRules.world_pos_to_voxel(r_pos) == cell:
 				return false
 	return true
 
@@ -229,17 +229,29 @@ func get_aimed_grid_position() -> Vector3:
 
 	var hit: Dictionary = space_state.intersect_ray(query)
 
+	var target_cell: Vector2i
+	var surface_y: float = 0.0
+
 	if not hit.is_empty():
 		var hit_pos: Vector3 = hit.position
 		var hit_norm: Vector3 = hit.normal
-		var target: Vector3 = hit_pos + hit_norm * 0.1
-		return Vector3(round(target.x), round(target.y), round(target.z))
+		var target: Vector3 = hit_pos + hit_norm * 0.05
+		target_cell = TerrainCombatRules.world_pos_to_voxel(target)
+		surface_y = hit_pos.y
+	else:
+		var ground_plane: Plane = Plane(Vector3.UP, 0.0)
+		var inter: Variant = ground_plane.intersects_ray(ray_origin, ray_normal)
+		if inter is Vector3:
+			target_cell = TerrainCombatRules.world_pos_to_voxel(inter)
+			surface_y = 0.0
+		else:
+			return Vector3.ZERO
 
-	var ground_plane: Plane = Plane(Vector3.UP, 0.0)
-	var inter: Variant = ground_plane.intersects_ray(ray_origin, ray_normal)
-	if inter is Vector3:
-		return Vector3(round(inter.x), 0.0, round(inter.z))
-	return Vector3.ZERO
+	var map_gen: Node = get_tree().get_first_node_in_group("map_generator") if get_tree() else null
+	if map_gen and map_gen.has_method("get_voxel_height"):
+		surface_y = float(map_gen.get_voxel_height(target_cell.x, target_cell.y))
+
+	return Vector3(float(target_cell.x) + 0.5, surface_y, float(target_cell.y) + 0.5)
 
 func add_resource(wood: int = 0, stone: int = 0, iron: int = 0, magic_stone: int = 0) -> void:
 	wallet.add_resource(wood, stone, iron, magic_stone)

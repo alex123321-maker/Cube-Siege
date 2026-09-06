@@ -39,8 +39,9 @@ func _process(delta: float) -> void:
 	time_left -= delta
 	var total_duration: float = night_duration if is_night else day_duration
 	emit_signal("time_updated", time_left, total_duration, is_night)
-	if get_node_or_null("/root/EventBus"):
-		EventBus.cycle_time_updated.emit(time_left, total_duration, is_night, current_day)
+	var eb = get_node_or_null("/root/EventBus")
+	if eb and eb.has_signal("cycle_time_updated"):
+		eb.cycle_time_updated.emit(time_left, total_duration, is_night, current_day)
 	update_ambient_lighting(delta)
 
 	if time_left <= 0.0:
@@ -53,8 +54,9 @@ func start_night() -> void:
 	is_night = true
 	time_left = night_duration
 	emit_signal("phase_changed", true, current_day)
-	if get_node_or_null("/root/EventBus"):
-		EventBus.night_started.emit(current_day)
+	var eb = get_node_or_null("/root/EventBus")
+	if eb and eb.has_signal("night_started"):
+		eb.night_started.emit(current_day)
 	transition_lighting(true)
 
 func start_day() -> void:
@@ -68,8 +70,9 @@ func start_day() -> void:
 			roster.save_roster()
 	time_left = day_duration
 	emit_signal("phase_changed", false, current_day)
-	if get_node_or_null("/root/EventBus"):
-		EventBus.day_started.emit(current_day)
+	var eb = get_node_or_null("/root/EventBus")
+	if eb and eb.has_signal("day_started"):
+		eb.day_started.emit(current_day)
 	transition_lighting(false)
 
 func skip_to_night() -> void:
