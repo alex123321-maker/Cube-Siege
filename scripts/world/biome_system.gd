@@ -48,6 +48,37 @@ static func normalize_angle(a: float) -> float:
 static func angular_distance(a: float, b: float) -> float:
 	return absf(normalize_angle(a - b))
 
+static var _cached_warp_noise: FastNoiseLite = null
+static var _cached_broad_noise: FastNoiseLite = null
+static var _cached_hills_noise: FastNoiseLite = null
+
+static func _get_warp_noise(seed_val: int) -> FastNoiseLite:
+	if _cached_warp_noise == null:
+		_cached_warp_noise = FastNoiseLite.new()
+		_cached_warp_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
+		_cached_warp_noise.frequency = 0.015
+	if _cached_warp_noise.seed != seed_val + 777:
+		_cached_warp_noise.seed = seed_val + 777
+	return _cached_warp_noise
+
+static func _get_broad_noise(seed_val: int) -> FastNoiseLite:
+	if _cached_broad_noise == null:
+		_cached_broad_noise = FastNoiseLite.new()
+		_cached_broad_noise.noise_type = FastNoiseLite.TYPE_PERLIN
+		_cached_broad_noise.frequency = 0.02
+	if _cached_broad_noise.seed != seed_val + 101:
+		_cached_broad_noise.seed = seed_val + 101
+	return _cached_broad_noise
+
+static func _get_hills_noise(seed_val: int) -> FastNoiseLite:
+	if _cached_hills_noise == null:
+		_cached_hills_noise = FastNoiseLite.new()
+		_cached_hills_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
+		_cached_hills_noise.frequency = 0.04
+	if _cached_hills_noise.seed != seed_val + 202:
+		_cached_hills_noise.seed = seed_val + 202
+	return _cached_hills_noise
+
 ## Calculates warped direction angle and biome weights for world (x, z).
 static func sample_biome_weights(x: float, z: float, seed_val: int) -> Dictionary:
 	var dist: float = Vector2(x, z).length()
@@ -61,11 +92,7 @@ static func sample_biome_weights(x: float, z: float, seed_val: int) -> Dictionar
 	var base_angle: float = atan2(z, x)
 
 	# Boundary warping noise to prevent straight ray boundaries
-	var warp_noise: FastNoiseLite = FastNoiseLite.new()
-	warp_noise.seed = seed_val + 777
-	warp_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX
-	warp_noise.frequency = 0.015
-
+	var warp_noise: FastNoiseLite = _get_warp_noise(seed_val)
 	var warp_offset: float = warp_noise.get_noise_2d(x, z) * 0.35
 	var angle: float = normalize_angle(base_angle + warp_offset)
 
@@ -115,16 +142,9 @@ static func sample_height(x: float, z: float, seed_val: int) -> float:
 	var wm: float = w[BiomeType.MOUNTAINS]
 	var warped_angle: float = weights_info.get("warped_angle", atan2(z, x))
 
-	# Elevation noise generators
-	var noise_broad: FastNoiseLite = FastNoiseLite.new()
-	noise_broad.seed = seed_val + 101
-	noise_broad.noise_type = FastNoiseLite.TYPE_PERLIN
-	noise_broad.frequency = 0.02
-
-	var noise_hills: FastNoiseLite = FastNoiseLite.new()
-	noise_hills.seed = seed_val + 202
-	noise_hills.noise_type = FastNoiseLite.TYPE_SIMPLEX
-	noise_hills.frequency = 0.04
+	# Elevation noise generators (cached)
+	var noise_broad: FastNoiseLite = _get_broad_noise(seed_val)
+	var noise_hills: FastNoiseLite = _get_hills_noise(seed_val)
 
 	var broad_val: float = (noise_broad.get_noise_2d(x, z) + 1.0) * 0.5  # 0..1
 	var hills_val: float = (noise_hills.get_noise_2d(x, z) + 1.0) * 0.5  # 0..1

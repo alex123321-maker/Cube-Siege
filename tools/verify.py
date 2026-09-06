@@ -270,6 +270,28 @@ def step_headless_smoke_run(godot_bin: str) -> bool:
         print(out[-2000:])
         return False
 
+def step_run_issue_18_verification(godot_bin: str) -> bool:
+    log_header("8. Running Issue #18 Procedural World & Combat Verification")
+    verifier = "tools/verify_issue_18.gd"
+    if not (REPO_DIR / verifier).is_file():
+        return True
+
+    cmd = [
+        godot_bin,
+        "--headless",
+        "--path", str(REPO_DIR),
+        "-s", verifier
+    ]
+    ok, out = run_command(cmd, REPO_DIR, "issue 18 verification")
+    if ok:
+        log_step("Issue #18 Verification", "PASS", "All procedural world, vertical combat, and streaming checks passed")
+        return True
+    else:
+        log_step("Issue #18 Verification", "FAIL", "Verification failed")
+        print("\n--- Issue #18 Output ---")
+        print(out)
+        return False
+
 def main():
     print("\n" + "#" * 70)
     print(" CUBE SIEGE - AUTOMATED ENVIRONMENT & CODEBASE AUDIT")
@@ -303,6 +325,11 @@ def main():
     python_tests_ok = step_run_python_tests()
     if not python_tests_ok:
         print("\n[ERROR] Python tooling unit tests failed. Verification aborted.")
+        sys.exit(1)
+
+    issue_18_ok = step_run_issue_18_verification(godot_bin)
+    if not issue_18_ok:
+        print("\n[ERROR] Issue #18 verification failed. Audit aborted.")
         sys.exit(1)
 
     run_ok = step_headless_smoke_run(godot_bin)

@@ -35,10 +35,10 @@ func _physics_process(delta: float) -> void:
 	var current_pos: Vector3 = global_position
 	var next_pos: Vector3 = current_pos + direction * speed * delta
 
-	var cur_x: int = int(roundf(current_pos.x))
-	var cur_z: int = int(roundf(current_pos.z))
-	var next_x: int = int(roundf(next_pos.x))
-	var next_z: int = int(roundf(next_pos.z))
+	var cur_x: int = TerrainCombatRules.world_to_voxel(current_pos.x)
+	var cur_z: int = TerrainCombatRules.world_to_voxel(current_pos.z)
+	var next_x: int = TerrainCombatRules.world_to_voxel(next_pos.x)
+	var next_z: int = TerrainCombatRules.world_to_voxel(next_pos.z)
 
 	var h_curr: float = _get_terrain_height(cur_x, cur_z)
 	var h_next: float = _get_terrain_height(next_x, next_z)

@@ -151,3 +151,32 @@ func test_melee_connectivity_with_character_body_offset() -> void:
 	var connected_step: bool = TerrainCombatRules.is_melee_connected(player_pos, enemy_step_pos, height_lookup_step)
 	assert_true(connected_step, "Melee attack must connect across reachable +1 step with CharacterBody +0.9 y offset")
 
+func test_voxel_boundary_mapping_and_melee_at_fractional_coords() -> void:
+	# ChunkBuilder cells span [wx, wx+1).
+	# Verify authoritative world_to_voxel mapping:
+	assert_eq(TerrainCombatRules.world_to_voxel(0.0), 0)
+	assert_eq(TerrainCombatRules.world_to_voxel(0.49), 0)
+	assert_eq(TerrainCombatRules.world_to_voxel(0.75), 0, "0.75 must still belong to voxel cell 0, not 1")
+	assert_eq(TerrainCombatRules.world_to_voxel(0.999), 0, "0.999 must still belong to voxel cell 0")
+	assert_eq(TerrainCombatRules.world_to_voxel(1.0), 1, "1.0 begins voxel cell 1")
+	assert_eq(TerrainCombatRules.world_to_voxel(1.05), 1)
+
+	# Cell 0 has height 0. Cell 1 has height 2 (a +2 wall).
+	var height_lookup: Callable = func(x: int, _z: int) -> int:
+		return 2 if x >= 1 else 0
+
+	# Attacker at x=0.75 (inside cell 0, ground 0) attacking target at x=0.95 (still inside cell 0, ground 0)
+	var attacker_p: Vector3 = Vector3(0.75, 0.9, 0.0)
+	var target_same_cell: Vector3 = Vector3(0.95, 0.9, 0.0)
+	assert_true(
+		TerrainCombatRules.is_melee_connected(attacker_p, target_same_cell, height_lookup),
+		"Attacks within the same voxel cell [0.0, 1.0) must connect regardless of fractional position"
+	)
+
+	# Target just across the edge at x=1.05 (inside cell 1, ground 2)
+	var target_next_cell: Vector3 = Vector3(1.05, 2.9, 0.0)
+	assert_false(
+		TerrainCombatRules.is_melee_connected(attacker_p, target_next_cell, height_lookup),
+		"Attacks across voxel edge into cell 1 (+2 cliff) must be blocked"
+	)
+

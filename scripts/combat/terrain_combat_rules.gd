@@ -9,6 +9,15 @@ enum TerrainMode {
 	TERRAIN_INDEPENDENT = 1
 }
 
+## Authoritative mapping from world coordinate to integer voxel cell index.
+## ChunkBuilder builds voxel cell (wx, wz) on [wx, wx + 1) and [wz, wz + 1).
+## Therefore, the authoritative mapping is strictly floorf.
+static func world_to_voxel(coord: float) -> int:
+	return int(floorf(coord))
+
+static func world_pos_to_voxel(pos: Vector3) -> Vector2i:
+	return Vector2i(int(floorf(pos.x)), int(floorf(pos.z)))
+
 ## Evaluates whether a melee attack from source_pos can reach target_pos given discrete terrain steps.
 ## A direct melee hit requires |target_y - source_y| <= 1.0.
 ## For extended ranges, all intermediate voxel height transitions along the 2D ray must have |delta_y| <= 1.0.
@@ -21,10 +30,10 @@ static func is_melee_connected(
 
 	# If authoritative height lookup is available, evaluate using terrain surface heights
 	if height_lookup.is_valid():
-		var src_x: int = int(roundf(source_pos.x))
-		var src_z: int = int(roundf(source_pos.z))
-		var tgt_x: int = int(roundf(target_pos.x))
-		var tgt_z: int = int(roundf(target_pos.z))
+		var src_x: int = int(floorf(source_pos.x))
+		var src_z: int = int(floorf(source_pos.z))
+		var tgt_x: int = int(floorf(target_pos.x))
+		var tgt_z: int = int(floorf(target_pos.z))
 
 		var src_y: int = int(height_lookup.call(src_x, src_z))
 		var tgt_y: int = int(height_lookup.call(tgt_x, tgt_z))
@@ -33,14 +42,14 @@ static func is_melee_connected(
 		if horizontal_dist <= 1.5:
 			return absi(tgt_y - src_y) <= 1
 
-		# Extended range: trace intermediate discrete steps along line
-		var steps: int = maxi(1, int(ceilf(horizontal_dist)))
+		# Extended range: trace intermediate discrete steps along line at sub-voxel resolution
+		var steps: int = maxi(1, int(ceilf(horizontal_dist * 2.0)))
 		var prev_y: int = src_y
 
 		for i in range(1, steps + 1):
 			var t: float = float(i) / float(steps)
-			var sample_x: int = int(roundf(lerpf(source_pos.x, target_pos.x, t)))
-			var sample_z: int = int(roundf(lerpf(source_pos.z, target_pos.z, t)))
+			var sample_x: int = int(floorf(lerpf(source_pos.x, target_pos.x, t)))
+			var sample_z: int = int(floorf(lerpf(source_pos.z, target_pos.z, t)))
 			var cur_y: int = int(height_lookup.call(sample_x, sample_z))
 
 			if absi(cur_y - prev_y) >= 2:

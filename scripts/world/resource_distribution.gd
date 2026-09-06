@@ -165,7 +165,7 @@ static func resolve_spawn_details(
 			"solid": false
 		}
 
-	# Full deposits (solid obstacles)
+	# Full deposits (solid obstacles) - strictly yield > 3 (>= 4)
 	var deposit_yield: int = 4
 	var tier: int = 1 # 0: small, 1: medium, 2: large
 	var var_idx: int = int(variation_roll * 4.0) % 4
@@ -176,30 +176,33 @@ static func resolve_spawn_details(
 		var is_mountain_tree: bool = (variation_roll < w_mountain)
 		if is_mountain_tree:
 			var_idx = 3 + (int(variation_roll * 100.0) % 2) # 3: young oak, 4: shrub
-			deposit_yield = 3
+			deposit_yield = 4 # Small tree deposit strictly yield > 3 (4 units)
 		else:
 			var_idx = int(variation_roll * 5.0) % 5 # 0..4 oak variants
-			deposit_yield = 4
+			deposit_yield = 5 # Standard oak deposit (5 units)
 	elif res_type == ResourceType.STONE:
 		if variation_roll < 0.35:
-			tier = 0 # small (yield 3)
-			deposit_yield = 3
+			tier = 0 # small (yield 4)
+			deposit_yield = 4
 		elif variation_roll < 0.75:
-			tier = 1 # medium (yield 5)
-			deposit_yield = 5
+			tier = 1 # medium (yield 6)
+			deposit_yield = 6
 		else:
 			tier = 2 # large (yield 8)
 			deposit_yield = 8
 	elif res_type == ResourceType.IRON:
 		if variation_roll < 0.40:
-			tier = 0 # small (yield 2)
-			deposit_yield = 2
-		elif variation_roll < 0.80:
-			tier = 1 # medium (yield 4)
+			tier = 0 # small (yield 4)
 			deposit_yield = 4
-		else:
-			tier = 2 # large (yield 6)
+		elif variation_roll < 0.80:
+			tier = 1 # medium (yield 6)
 			deposit_yield = 6
+		else:
+			tier = 2 # large (yield 8)
+			deposit_yield = 8
+
+	# Invariant safety: any full deposit MUST yield strictly > 3
+	deposit_yield = maxi(deposit_yield, 4)
 
 	return {
 		"resource_type": res_type,

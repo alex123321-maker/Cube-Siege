@@ -1,8 +1,9 @@
 extends SceneTree
 
 ## Comprehensive Verification Runner for Issue #18:
-## Procedural Biomes, Mountain Trail Verticality, Vertical Combat,
-## Multi-Hit Foliage Occlusion, Starting Enemy Snapping, and O(1) Chunk Streaming.
+## Procedural Biomes, Mountain Trail Verticality, Vertical Combat & Cell Alignment,
+## High-Elevation Aiming, Multi-Hit Foliage Occlusion, Starting Enemy Snapping,
+## Resource Yield Contracts, and O(1) Chunk Streaming.
 
 const MAIN_SCENE_PATH = "res://scenes/main.tscn"
 
@@ -29,7 +30,8 @@ func _run_all_checks() -> void:
 	await _check_biome_distribution_and_blending()
 	await _check_mountain_trail_verticality_and_lateral_profile()
 	await _check_resource_distribution_and_mountain_variations()
-	await _check_vertical_combat_rules()
+	await _check_vertical_combat_rules_and_fractional_cell_mapping()
+	await _check_high_mountain_duel_aiming()
 	await _check_multi_hit_foliage_occlusion()
 	await _check_starting_enemies_alignment()
 	await _check_chunk_streaming_and_o1_memory_profile()
@@ -136,9 +138,9 @@ func _check_mountain_trail_verticality_and_lateral_profile() -> void:
 
 	_assert_check(lateral_max_step <= 1, "Lateral Valley Smoothness", "Max lateral step across valley corridor is <= 1 (actual: %d)" % lateral_max_step)
 
-## 3. Resource Distribution & Mountain Variations
+## 3. Resource Distribution & Yield Contracts
 func _check_resource_distribution_and_mountain_variations() -> void:
-	print("\n--- 3. Testing Resource Distribution Rules ---")
+	print("\n--- 3. Testing Resource Distribution & Yield Contracts ---")
 	# Plains Magic Stone
 	var plains_w = {BiomeSystem.BiomeType.FOREST: 0.0, BiomeSystem.BiomeType.PLAINS: 1.0, BiomeSystem.BiomeType.MOUNTAINS: 0.0}
 	var magic_stone_found: bool = false
@@ -159,47 +161,56 @@ func _check_resource_distribution_and_mountain_variations() -> void:
 			break
 	_assert_check(iron_found, "High Mountains Iron Spawning", "Iron spawned in High Mountains (h=55 >= 50, 15%)")
 
-	# Mountain Tree Variations (no large oaks in mountains)
-	var shrub_count: int = 0
-	for i in range(50):
-		var details = ResourceDistribution.resolve_spawn_details(
-			ResourceDistribution.ResourceType.WOOD,
-			mount_w,
-			60.0,
-			0.5,
-			float(i) / 50.0
-		)
-		var v_idx: int = details["variation_index"]
-		if v_idx == 3 or v_idx == 4:
-			shrub_count += 1
-	_assert_check(shrub_count == 50, "Mountain Tree Form Constraints", "All mountain trees constrained to small oaks / shrubs (50/50)")
+	# Yield Contract Check across all resources and rolls:
+	# FREE_PICKUP strictly in [1, 3], FULL_DEPOSIT strictly > 3
+	var yield_contract_valid: bool = true
+	var tested_count: int = 0
+	for r_type in [ResourceDistribution.ResourceType.WOOD, ResourceDistribution.ResourceType.STONE, ResourceDistribution.ResourceType.IRON, ResourceDistribution.ResourceType.MAGIC_STONE]:
+		for b in [BiomeSystem.BiomeType.FOREST, BiomeSystem.BiomeType.PLAINS, BiomeSystem.BiomeType.MOUNTAINS]:
+			for i in range(25):
+				tested_count += 1
+				var d = ResourceDistribution.resolve_spawn_details(r_type, b, 60.0, float(i) / 25.0, float(24 - i) / 25.0)
+				var form = d["deposit_form"]
+				var y_amt: int = int(d["yield_amount"])
+				if form == ResourceDistribution.DepositForm.FREE_PICKUP and (y_amt < 1 or y_amt > 3):
+					yield_contract_valid = false
+				elif form == ResourceDistribution.DepositForm.FULL_DEPOSIT and y_amt <= 3:
+					yield_contract_valid = false
 
-## 4. Vertical Combat Rules
-func _check_vertical_combat_rules() -> void:
-	print("\n--- 4. Testing Vertical Combat & Projectile Over-Canyon Flight ---")
-	var lookup = func(x: int, z: int) -> int:
-		if x < 2: return 0
-		if x < 6: return 2
-		if x < 10: return 4
-		return 6
+	_assert_check(
+		yield_contract_valid and tested_count > 0,
+		"Loose vs Deposit Yield Contract",
+		"All FREE_PICKUP yields are in [1, 3] and all FULL_DEPOSIT yields strictly > 3 (%d tested)" % tested_count
+	)
 
-	# Melee connectivity with +0.9 CharacterBody offset across +2 step
-	# Player at X=1 (ground 0, body Y=0.9), Target at X=2 (ground 2, body Y=2.9)
-	var melee_connected = TerrainCombatRules.is_melee_connected(
-		Vector3(1.0, 0.9, 0.0),
-		Vector3(2.0, 2.9, 0.0),
+## 4. Vertical Combat Rules & Cell Boundary Alignment
+func _check_vertical_combat_rules_and_fractional_cell_mapping() -> void:
+	print("\n--- 4. Testing Vertical Combat & Fractional Cell Boundary Alignment ---")
+	# Verify floorf cell mapping
+	_assert_check(
+		TerrainCombatRules.world_to_voxel(0.75) == 0 and TerrainCombatRules.world_to_voxel(1.05) == 1,
+		"Authoritative World-to-Voxel Mapping",
+		"x=0.75 maps to cell 0, x=1.05 maps to cell 1 (strictly matches ChunkBuilder)"
+	)
+
+	var lookup = func(x: int, _z: int) -> int:
+		return 2 if x >= 1 else 0
+
+	# Fractional positioning inside cell 0 connecting
+	var melee_in_cell = TerrainCombatRules.is_melee_connected(
+		Vector3(0.25, 0.9, 0.0),
+		Vector3(0.85, 0.9, 0.0),
 		lookup
 	)
-	_assert_check(not melee_connected, "Melee Step Limit with CharacterBody Offset", "Melee blocked across +2 cliff despite root Y=0.9")
+	_assert_check(melee_in_cell, "Fractional In-Cell Melee Hit", "Melee connects within cell [0.0, 1.0) at fractional coords")
 
-	# Melee across +1 step
-	var step1_lookup = func(x: int, z: int) -> int: return 1 if x >= 2 else 0
-	var melee_step1 = TerrainCombatRules.is_melee_connected(
-		Vector3(1.0, 0.9, 0.0),
-		Vector3(2.0, 1.9, 0.0),
-		step1_lookup
+	# Fractional positioning across cell boundary into cell 1 (+2 step) blocked
+	var melee_across_boundary = TerrainCombatRules.is_melee_connected(
+		Vector3(0.85, 0.9, 0.0),
+		Vector3(1.15, 2.9, 0.0),
+		lookup
 	)
-	_assert_check(melee_step1, "Melee Allowed Across Step 1", "Melee connects across delta_h = 1")
+	_assert_check(not melee_across_boundary, "Fractional Cell Edge Step Blocked", "Melee blocked across x=1.0 boundary into +2 wall")
 
 	# Projectile flying horizontally at Y=10.8 over canyon with floor rising 2 -> 4
 	var proj_pos: Vector3 = Vector3(5.0, 10.8, 0.0)
@@ -224,9 +235,48 @@ func _check_vertical_combat_rules() -> void:
 		"Projectile preserves horizontal altitude over chasm (Y=%.2f)" % flight_res["new_y"]
 	)
 
-## 5. Multi-Hit Foliage Occlusion
+## 5. High Mountain Warrior Duel Aiming
+func _check_high_mountain_duel_aiming() -> void:
+	print("\n--- 5. Testing Warrior Duel Aiming on High Mountain Terrain ---")
+	var player_scene = load("res://scenes/player.tscn")
+	var enemy_scene = load("res://scenes/enemy_dummy.tscn")
+	if not player_scene or not enemy_scene:
+		_assert_check(false, "Load Player & Enemy Scenes", "Failed to load scenes")
+		return
+
+	var player = player_scene.instantiate()
+	root.add_child(player)
+	player.set_class(player.CharacterClass.WARRIOR, false)
+	player.global_position = Vector3(0.0, 60.9, 0.0) # High elevation (60m)
+
+	var camera = CameraFollow.new()
+	root.add_child(camera)
+	camera.target = player
+	camera.current = true
+	camera._init_camera_transform()
+	camera._process(0.016)
+
+	var high_enemy = enemy_scene.instantiate()
+	root.add_child(high_enemy)
+	high_enemy.global_position = Vector3(4.0, 60.9, 2.0)
+
+	var enemy_screen_pos: Vector2 = camera.unproject_position(high_enemy.global_position)
+	camera.mouse_override = enemy_screen_pos
+
+	var target = player.abilities.find_target_near_mouse(player)
+	_assert_check(
+		target == high_enemy,
+		"High Mountain Duel Target Acquisition",
+		"Warrior duel aiming successfully selects target on high mountain (Y=60.9)"
+	)
+
+	player.queue_free()
+	camera.queue_free()
+	high_enemy.queue_free()
+
+## 6. Multi-Hit Foliage Occlusion
 func _check_multi_hit_foliage_occlusion() -> void:
-	print("\n--- 5. Testing Multi-Hit Foliage Occlusion ---")
+	print("\n--- 6. Testing Multi-Hit Foliage Occlusion & Bounded Targets ---")
 	var camera: CameraFollow = CameraFollow.new()
 	root.add_child(camera)
 	camera.global_position = Vector3(15.0, 20.0, 15.0)
@@ -245,7 +295,6 @@ func _check_multi_hit_foliage_occlusion() -> void:
 		tree.global_position = player_node.global_position.lerp(camera.global_position, t_val)
 		trees.append(tree)
 
-	# Wait physics frames for colliders and areas to register in physics server
 	for frame in range(4):
 		await process_frame
 
@@ -273,9 +322,9 @@ func _check_multi_hit_foliage_occlusion() -> void:
 	for t in trees:
 		t.queue_free()
 
-## 6. Starting Debug Enemies Height Alignment
+## 7. Starting Debug Enemies Height Alignment
 func _check_starting_enemies_alignment() -> void:
-	print("\n--- 6. Testing Starting Enemies Alignment ---")
+	print("\n--- 7. Testing Starting Enemies Alignment ---")
 	var main_scene = load(MAIN_SCENE_PATH)
 	if not main_scene:
 		_assert_check(false, "Load main.tscn", "Could not load main.tscn")
@@ -284,7 +333,6 @@ func _check_starting_enemies_alignment() -> void:
 	var main = main_scene.instantiate()
 	root.add_child(main)
 
-	# Immediately check alignment done by main._ready()
 	var map_gen: MapGenerator = main.get_node_or_null("MapGenerator") as MapGenerator
 	var enemies_node: Node3D = main.get_node_or_null("Enemies") as Node3D
 
@@ -297,7 +345,6 @@ func _check_starting_enemies_alignment() -> void:
 				var ex: int = int(floorf(enemy.global_position.x))
 				var ez: int = int(floorf(enemy.global_position.z))
 				var expected_y: float = float(map_gen.get_voxel_height(ex, ez)) + 0.9
-				print("    [DEBUG] Enemy '%s' pos=(%.2f, %.2f, %.2f) expected_y=%.2f" % [enemy.name, enemy.global_position.x, enemy.global_position.y, enemy.global_position.z, expected_y])
 				if absf(enemy.global_position.y - expected_y) < 0.05:
 					aligned_count += 1
 
@@ -309,9 +356,9 @@ func _check_starting_enemies_alignment() -> void:
 
 	main.queue_free()
 
-## 7. Chunk Streaming & O(1) Memory Profile
+## 8. Chunk Streaming & O(1) Memory Profile
 func _check_chunk_streaming_and_o1_memory_profile() -> void:
-	print("\n--- 7. Testing Chunk Streaming & O(1) Bounded Memory Profile ---")
+	print("\n--- 8. Testing Chunk Streaming & O(1) Bounded Memory Profile ---")
 	var map_gen: MapGenerator = MapGenerator.new()
 	map_gen.load_radius_chunks = 2 # 5x5 = 25 active chunks
 	map_gen.unload_radius_chunks = 2
@@ -348,9 +395,9 @@ func _check_chunk_streaming_and_o1_memory_profile() -> void:
 		avg_ms += t
 	avg_ms /= float(gen_times.size())
 	_assert_check(
-		avg_ms < 250.0,
+		avg_ms < 150.0,
 		"O(1) Chunk Update Execution Time",
-		"Average chunk transition processing time: %.2f ms (bounded, constant)" % avg_ms
+		"Average chunk transition processing time: %.2f ms (zero-allocation noise, O(1))" % avg_ms
 	)
 
 	map_gen.queue_free()

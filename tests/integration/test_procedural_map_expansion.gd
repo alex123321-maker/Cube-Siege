@@ -152,3 +152,40 @@ func test_blended_biome_resource_probabilities() -> void:
 	var res2 = ResourceDist.roll_blended_resource_type(weights, 0.0, 0.60)
 	assert_eq(res2, ResourceDist.ResourceType.STONE, "Blended roll at 0.60 should yield Stone")
 
+func test_free_pickup_vs_full_deposit_yield_boundary() -> void:
+	# Issue #18 Contract:
+	# Free loose pickups (1-3 units).
+	# Full harvestable deposits (strictly yield > 3).
+	var resource_types = [
+		ResourceDist.ResourceType.WOOD,
+		ResourceDist.ResourceType.STONE,
+		ResourceDist.ResourceType.IRON,
+		ResourceDist.ResourceType.MAGIC_STONE
+	]
+	var biomes = [
+		BiomeSystem.BiomeType.FOREST,
+		BiomeSystem.BiomeType.PLAINS,
+		BiomeSystem.BiomeType.MOUNTAINS
+	]
+
+	for r_type in resource_types:
+		for b in biomes:
+			# Test 50 random rolls
+			for i in range(50):
+				var form_roll: float = float(i) / 50.0
+				var var_roll: float = float(49 - i) / 50.0
+				var details = ResourceDist.resolve_spawn_details(r_type, b, 60.0, form_roll, var_roll)
+				var form = details["deposit_form"]
+				var yield_amt: int = int(details["yield_amount"])
+
+				if form == ResourceDist.DepositForm.FREE_PICKUP:
+					assert_true(
+						yield_amt >= 1 and yield_amt <= 3,
+						"FREE_PICKUP yield must be in [1, 3] (was %d for %s)" % [yield_amt, r_type]
+					)
+				elif form == ResourceDist.DepositForm.FULL_DEPOSIT:
+					assert_true(
+						yield_amt > 3,
+						"FULL_DEPOSIT yield must strictly be > 3 (was %d for %s)" % [yield_amt, r_type]
+					)
+

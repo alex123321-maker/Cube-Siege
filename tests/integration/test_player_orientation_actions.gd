@@ -477,3 +477,31 @@ func test_warrior_ultimate_cancels_if_locked_target_dies_in_tree_without_retarge
 	assert_false(player.orientation.is_action_pending(), "Action should be cancelled when target dies")
 	assert_false(player.abilities.is_dueling, "Duel must NOT start with a dying enemy (current_health <= 0)")
 	assert_null(player.abilities.duel_target, "Duel target must remain null (no retargeting to enemy B)")
+
+func test_warrior_duel_mouse_aiming_on_high_mountain_terrain() -> void:
+	var player = PLAYER_SCENE.instantiate()
+	add_child_autoqfree(player)
+	player.set_class(player.CharacterClass.WARRIOR, false)
+	player.global_position = Vector3(0.0, 60.9, 0.0) # Player on high mountain peak (height 60)
+
+	var camera = CameraFollow.new()
+	add_child_autoqfree(camera)
+	camera.target = player
+	camera.current = true
+	camera._init_camera_transform()
+	camera._process(0.016)
+
+	# Mock enemy standing near player at high mountain elevation (Y = 60.9)
+	var enemy_scene = preload("res://scenes/enemy_dummy.tscn")
+	var high_enemy = enemy_scene.instantiate()
+	add_child_autoqfree(high_enemy)
+	high_enemy.global_position = Vector3(4.0, 60.9, 2.0)
+
+	# Camera unprojects enemy position to viewport coordinates
+	var enemy_screen_pos: Vector2 = camera.unproject_position(high_enemy.global_position)
+	camera.mouse_override = enemy_screen_pos
+
+	# Aim at the enemy on high mountain terrain
+	var found_target = player.abilities.find_target_near_mouse(player)
+	assert_not_null(found_target, "Duel aiming must successfully find target on high mountain terrain (Y >= 50)")
+	assert_eq(found_target, high_enemy, "Found target must be the enemy on high mountain")

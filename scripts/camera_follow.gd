@@ -17,6 +17,8 @@ const CameraMath = preload("res://scripts/camera/camera_math.gd")
 
 var target: Node3D = null
 var occluding_buildings: Array[Node] = []
+var occlusion_timer: float = 0.0
+const OCCLUSION_CHECK_INTERVAL: float = 0.10
 
 var fixed_basis: Basis
 var fixed_rotation_degrees: Vector3
@@ -168,29 +170,47 @@ func _process(delta: float) -> void:
 	# Ensure orientation remains strictly fixed after translation
 	transform.basis = fixed_basis
 
-	check_occlusion()
+	occlusion_timer += delta
+	if occlusion_timer >= OCCLUSION_CHECK_INTERVAL:
+		occlusion_timer = 0.0
+		check_occlusion()
 
 func check_occlusion() -> void:
 	if not target or not is_inside_tree():
 		return
 	var space_state: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
-	var player_pos: Vector3 = target.global_position + Vector3(0.0, 0.9, 0.0)
+	if not space_state:
+		return
 
+	var player_pos: Vector3 = target.global_position + Vector3(0.0, 0.9, 0.0)
 	var check_points: Array[Vector3] = [player_pos]
 
 	# Attack / combat direction point forward from player
 	var forward: Vector3 = -target.global_transform.basis.z
 	check_points.append(player_pos + forward * 1.8)
 
-	# Nearby enemies within 14m to ensure combat area foliage transparency
-	var tree: SceneTree = get_tree()
-	if tree:
-		var enemies: Array[Node] = tree.get_nodes_in_group("enemies")
-		for enemy in enemies:
-			if enemy is Node3D and is_instance_valid(enemy):
-				var enemy_3d: Node3D = enemy as Node3D
-				if enemy_3d.global_position.distance_to(target.global_position) <= 14.0:
-					check_points.append(enemy_3d.global_position + Vector3(0.0, 0.9, 0.0))
+	# Bounded nearby enemy candidates (query EntityRegistry without full SceneTree group scan)
+	var candidate_enemies: Array = []
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if reg and reg.has_method("get_enemies"):
+		candidate_enemies = reg.get_enemies()
+	elif is_inside_tree():
+		# Fallback only when EntityRegistry autoload is not present (isolated unit tests)
+		candidate_enemies = get_tree().get_nodes_in_group("enemies")
+
+	var max_combat_enemies: int = 3
+	var nearby_count: int = 0
+	var target_pos: Vector3 = target.global_position
+	const COMBAT_RADIUS_SQ: float = 196.0 # 14.0 * 14.0
+
+	for enemy in candidate_enemies:
+		if enemy and is_instance_valid(enemy) and enemy is Node3D and enemy.is_inside_tree():
+			var e3d: Node3D = enemy as Node3D
+			if target_pos.distance_squared_to(e3d.global_position) <= COMBAT_RADIUS_SQ:
+				check_points.append(e3d.global_position + Vector3(0.0, 0.9, 0.0))
+				nearby_count += 1
+				if nearby_count >= max_combat_enemies:
+					break
 
 	var new_occluders: Array[Node] = []
 	var max_stacked_hits: int = 6
