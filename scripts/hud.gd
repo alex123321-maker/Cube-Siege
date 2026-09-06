@@ -9,6 +9,7 @@ extends CanvasLayer
 @onready var wood_label: Label = $Margin/TopLeft/Resources/WoodBox/WoodLabel
 @onready var stone_label: Label = $Margin/TopLeft/Resources/StoneBox/StoneLabel
 @onready var iron_label: Label = $Margin/TopLeft/Resources/IronBox/IronLabel
+@onready var magic_label: Label = get_node_or_null("Margin/TopLeft/Resources/MagicBox/MagicLabel")
 @onready var card_draft_popup: Control = $CardDraftPopup
 
 @onready var player_floating_hp: Control = $PlayerFloatingHP
@@ -41,7 +42,7 @@ func _ready() -> void:
 		eb.player_health_changed.connect(func(cur, mx): _on_health_changed(cur, mx))
 		eb.player_xp_changed.connect(func(cur, mx, lvl): _on_xp_changed(cur, mx, lvl))
 		eb.player_level_up.connect(func(lvl): _on_level_up_reached(lvl))
-		eb.resources_changed.connect(func(w, s, i): _on_resources_changed(w, s, i))
+		eb.resources_changed.connect(func(w, s, i, m): _on_resources_changed(w, s, i, m))
 		eb.cycle_time_updated.connect(func(tl, _tot, night, day_num): _update_day_night_label(tl, night, day_num))
 		eb.boss_spawned.connect(func(boss): show_boss_bar(boss))
 		eb.boss_defeated.connect(func(_b): _on_boss_defeated())
@@ -80,13 +81,15 @@ func _on_health_changed(current: float, max_hp: float) -> void:
 	if player_hp_label:
 		player_hp_label.text = "%d / %d HP" % [max(0, int(current)), int(max_hp)]
 
-func _on_resources_changed(wood: int, stone: int, iron: int) -> void:
+func _on_resources_changed(wood: int, stone: int, iron: int, magic_stone: int = 0) -> void:
 	if wood_label:
 		wood_label.text = "WOOD: %d / 25" % wood
 	if stone_label:
 		stone_label.text = "STONE: %d / 25" % stone
 	if iron_label:
 		iron_label.text = "IRON: %d" % iron
+	if magic_label:
+		magic_label.text = "MAGIC STONE: %d" % magic_stone
 
 func _on_skip_night_pressed() -> void:
 	if day_night_cycle:

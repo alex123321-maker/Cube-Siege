@@ -184,7 +184,7 @@ func check_occlusion() -> void:
 	var new_occluders: Array[Node] = []
 	if not hit.is_empty():
 		var col: Object = hit.get("collider")
-		if col and col is Node and (col as Node).is_in_group("buildings"):
+		if col and col is Node and ((col as Node).is_in_group("buildings") or (col as Node).is_in_group("resource_nodes")):
 			new_occluders.append(col as Node)
 
 	# Restore buildings that are no longer occluding

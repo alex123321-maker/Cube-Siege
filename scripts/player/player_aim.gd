@@ -46,11 +46,27 @@ func handle_aim(body: CharacterBody3D, forced_target: Node3D = null, deadzone: f
 
 	var ray_origin: Vector3 = cam.project_ray_origin(current_mouse_pos)
 	var ray_normal: Vector3 = cam.project_ray_normal(current_mouse_pos)
-	var ground_plane: Plane = Plane(Vector3(0, 1, 0), body.global_position.y)
-	var intersect: Variant = ground_plane.intersects_ray(ray_origin, ray_normal)
 
-	if intersect is Vector3:
-		return resolve_cursor_aim(body.global_position, intersect as Vector3, deadzone)
+	var hit_pos: Vector3 = Vector3.ZERO
+	var has_hit: bool = false
+
+	if body.is_inside_tree():
+		var space_state: PhysicsDirectSpaceState3D = body.get_world_3d().direct_space_state
+		var query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(ray_origin, ray_origin + ray_normal * 1000.0, 1)
+		var hit: Dictionary = space_state.intersect_ray(query)
+		if not hit.is_empty():
+			hit_pos = hit.position
+			has_hit = true
+
+	if not has_hit:
+		var ground_plane: Plane = Plane(Vector3(0, 1, 0), body.global_position.y)
+		var intersect: Variant = ground_plane.intersects_ray(ray_origin, ray_normal)
+		if intersect is Vector3:
+			hit_pos = intersect as Vector3
+			has_hit = true
+
+	if has_hit:
+		return resolve_cursor_aim(body.global_position, hit_pos, deadzone)
 
 	return _safe_aim_fallback(body)
 

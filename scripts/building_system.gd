@@ -59,13 +59,13 @@ func _ready() -> void:
 	wallet.resources_changed.connect(_on_wallet_resources_changed)
 	setup_materials()
 	setup_preview()
-	_on_wallet_resources_changed(wallet.get_wood(), wallet.get_stone(), wallet.get_iron())
+	_on_wallet_resources_changed(wallet.get_wood(), wallet.get_stone(), wallet.get_iron(), wallet.get_magic_stone())
 
-func _on_wallet_resources_changed(wood: int, stone: int, iron: int) -> void:
+func _on_wallet_resources_changed(wood: int, stone: int, iron: int, magic_stone: int = 0) -> void:
 	emit_signal("resources_updated", wood, stone, iron)
 	var eb = get_node_or_null("/root/EventBus")
 	if eb and eb.has_signal("resources_changed"):
-		eb.resources_changed.emit(wood, stone, iron)
+		eb.resources_changed.emit(wood, stone, iron, magic_stone)
 
 func setup_materials() -> void:
 	green_mat = StandardMaterial3D.new()
@@ -218,7 +218,7 @@ func get_aimed_grid_position() -> Vector3:
 	var ray_normal: Vector3 = cam.project_ray_normal(mouse_pos)
 
 	var space_state: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state
-	var query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(ray_origin, ray_origin + ray_normal * 100.0, 1)
+	var query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(ray_origin, ray_origin + ray_normal * 1000.0, 1)
 
 	# Exclude existing buildings so ray passes THROUGH them to the ground behind!
 	var exclude_rids: Array[RID] = []
@@ -241,14 +241,14 @@ func get_aimed_grid_position() -> Vector3:
 		return Vector3(round(inter.x), 0.0, round(inter.z))
 	return Vector3.ZERO
 
-func add_resource(wood: int = 0, stone: int = 0, iron: int = 0) -> void:
-	wallet.add_resource(wood, stone, iron)
+func add_resource(wood: int = 0, stone: int = 0, iron: int = 0, magic_stone: int = 0) -> void:
+	wallet.add_resource(wood, stone, iron, magic_stone)
 
-func spend_resources(wood: int = 0, stone: int = 0, iron: int = 0) -> bool:
-	return wallet.spend_resources(wood, stone, iron)
+func spend_resources(wood: int = 0, stone: int = 0, iron: int = 0, magic_stone: int = 0) -> bool:
+	return wallet.spend_resources(wood, stone, iron, magic_stone)
 
-func has_resources(wood: int = 0, stone: int = 0, iron: int = 0) -> bool:
-	return wallet.has_resources(wood, stone, iron)
+func has_resources(wood: int = 0, stone: int = 0, iron: int = 0, magic_stone: int = 0) -> bool:
+	return wallet.has_resources(wood, stone, iron, magic_stone)
 
 func update_hud_counters() -> void:
 	# Deprecated direct mutation: UI components now react to EventBus.resources_changed

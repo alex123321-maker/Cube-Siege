@@ -80,13 +80,15 @@ func try_spawn_wave_enemy() -> void:
 	var radius: float = randf_range(20.0, 28.0)
 	var spawn_pos: Vector3 = player.global_position + Vector3(cos(angle) * radius, 0.0, sin(angle) * radius)
 
-	# Clamp within arena ground
-	spawn_pos.x = clamp(spawn_pos.x, -36.0, 36.0)
-	spawn_pos.z = clamp(spawn_pos.z, -36.0, 36.0)
-	spawn_pos.y = 0.9
+	# Resolve surface height at spawn point without fixed arena clamp
+	var terrain_y: float = 0.0
+	var map_gen = get_tree().get_first_node_in_group("map_generator") if is_inside_tree() else null
+	if map_gen and map_gen.has_method("get_voxel_height"):
+		terrain_y = float(map_gen.get_voxel_height(int(roundf(spawn_pos.x)), int(roundf(spawn_pos.z))))
+	spawn_pos.y = terrain_y + 0.9
 
 	# If inside SafeZone, reject spawn!
-	var cell: Vector2i = Vector2i(round(spawn_pos.x), round(spawn_pos.z))
+	var cell: Vector2i = Vector2i(int(roundf(spawn_pos.x)), int(roundf(spawn_pos.z)))
 	if safe_zone_cells.has(cell):
 		return
 

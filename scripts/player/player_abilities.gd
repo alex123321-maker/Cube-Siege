@@ -146,10 +146,23 @@ func get_nuke_target_position(player: CharacterBody3D) -> Vector3:
 	var mouse_pos: Vector2 = vp.get_mouse_position()
 	var ray_origin: Vector3 = cam.project_ray_origin(mouse_pos)
 	var ray_normal: Vector3 = cam.project_ray_normal(mouse_pos)
-	var ground_plane: Plane = Plane(Vector3.UP, 0.0)
+
+	if player.is_inside_tree():
+		var space_state: PhysicsDirectSpaceState3D = player.get_world_3d().direct_space_state
+		var query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(ray_origin, ray_origin + ray_normal * 1000.0, 1)
+		var hit: Dictionary = space_state.intersect_ray(query)
+		if not hit.is_empty():
+			return hit.position
+
+	var ground_plane: Plane = Plane(Vector3.UP, player.global_position.y)
 	var intersect: Variant = ground_plane.intersects_ray(ray_origin, ray_normal)
 	if intersect is Vector3:
-		return intersect as Vector3
+		var inter_pos: Vector3 = intersect as Vector3
+		if player.is_inside_tree():
+			var map_gen: Node = player.get_tree().get_first_node_in_group("map_generator")
+			if map_gen and map_gen.has_method("get_voxel_height"):
+				inter_pos.y = float(map_gen.get_voxel_height(int(roundf(inter_pos.x)), int(roundf(inter_pos.z))))
+		return inter_pos
 	return player.global_position
 
 func _execute_tactical_nuke(player: CharacterBody3D, target_pos: Vector3) -> void:
@@ -187,8 +200,13 @@ func _apply_nuke_impact_damage(player: CharacterBody3D, target_pos: Vector3, dam
 	var enemies: Array[Node] = player.get_tree().get_nodes_in_group("enemies")
 	for e in enemies:
 		if e and is_instance_valid(e) and e is Node3D:
-			var dist: float = target_pos.distance_to((e as Node3D).global_position)
-			if dist <= radius:
+			var can_hit: bool = TerrainCombatRules.can_ability_hit_target(
+				target_pos,
+				(e as Node3D).global_position,
+				TerrainCombatRules.TerrainMode.TERRAIN_INDEPENDENT,
+				radius
+			)
+			if can_hit:
 				var kb_dir: Vector3 = ((e as Node3D).global_position - target_pos).normalized()
 				if e.has_method("_on_damaged"):
 					e._on_damaged(damage, kb_dir * 15.0, "nuke", player)
@@ -199,7 +217,13 @@ func _apply_nuke_burn_damage(player: CharacterBody3D, target_pos: Vector3, damag
 	var burn_enemies: Array[Node] = player.get_tree().get_nodes_in_group("enemies")
 	for e in burn_enemies:
 		if e and is_instance_valid(e) and e is Node3D:
-			if target_pos.distance_to((e as Node3D).global_position) <= radius:
+			var can_hit: bool = TerrainCombatRules.can_ability_hit_target(
+				target_pos,
+				(e as Node3D).global_position,
+				TerrainCombatRules.TerrainMode.TERRAIN_INDEPENDENT,
+				radius
+			)
+			if can_hit:
 				if e.has_method("_on_damaged"):
 					e._on_damaged(damage, Vector3.ZERO, "burn", player)
 

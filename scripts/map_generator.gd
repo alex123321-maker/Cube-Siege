@@ -1,174 +1,342 @@
 extends Node3D
 class_name MapGenerator
 
+## MapGenerator: Expandable procedural voxel world with Forest, Plains,
+## and Mountains macro-biomes, local chunk streaming, and deterministic generation.
+
 signal map_generated(seed_used: int)
 
 @export var random_seed: bool = true
 @export var custom_seed: int = 1337
-@export var map_radius: int = 32 # 64x64 grid (-32 to 32)
+@export var load_radius_chunks: int = 3   # 7x7 chunks = 49 chunks (~96m across)
+@export var unload_radius_chunks: int = 5 # Chunks beyond ~80m are unloaded
 @export var portal_clear_radius: float = 6.5
+@export var map_radius: int = 32 # Retained for API compatibility
 
 var actual_seed: int = 0
-var noise_height: FastNoiseLite
-var noise_forest: FastNoiseLite
-var noise_minerals: FastNoiseLite
+var active_chunks: Dictionary = {}        # Vector2i -> Node3D (Terrain chunk)
+var chunk_resources: Dictionary = {}      # Vector2i -> Array[Node]
+var harvested_cells: Dictionary = {}      # Vector3i -> bool
+var last_player_chunk: Vector2i = Vector2i(-999999, -999999)
 
+var terrain_container: Node3D = null
+var resources_container: Node3D = null
+
+# Materials
+var mat_forest: StandardMaterial3D
+var mat_plains: StandardMaterial3D
+var mat_mountains: StandardMaterial3D
+var mat_cliff: StandardMaterial3D
+
+# Preloaded scenes
 const SCENE_TREE = preload("res://scenes/resource_tree.tscn")
 const SCENE_STONE = preload("res://scenes/resource_stone.tscn")
 const SCENE_IRON = preload("res://scenes/resource_iron.tscn")
 
-@onready var resources_container: Node3D = $Resources
-@onready var terrain_container: Node3D = $Terrain
-
-# Materials & Shared Resources
-var mat_grass_cliff: StandardMaterial3D
-var mat_rock_cliff: StandardMaterial3D
-var mat_border_cliff: StandardMaterial3D
-var shared_box_shape: BoxShape3D
-var mesh_grass_cliff: BoxMesh
-var mesh_rock_cliff: BoxMesh
-var mesh_border_cliff: BoxMesh
-
 func _ready() -> void:
+	add_to_group("map_generator")
+	terrain_container = get_node_or_null("Terrain")
+	if not terrain_container:
+		terrain_container = Node3D.new()
+		terrain_container.name = "Terrain"
+		add_child(terrain_container)
+
+	resources_container = get_node_or_null("Resources")
+	if not resources_container:
+		resources_container = Node3D.new()
+		resources_container.name = "Resources"
+		add_child(resources_container)
+
 	setup_materials()
 	generate_world()
 
 func setup_materials() -> void:
-	mat_grass_cliff = StandardMaterial3D.new()
-	mat_grass_cliff.albedo_color = Color(0.24, 0.42, 0.22, 1.0)
-	mat_grass_cliff.roughness = 0.85
+	mat_forest = StandardMaterial3D.new()
+	mat_forest.albedo_color = Color(0.20, 0.44, 0.20, 1.0)
+	mat_forest.roughness = 0.85
 
-	mat_rock_cliff = StandardMaterial3D.new()
-	mat_rock_cliff.albedo_color = Color(0.42, 0.44, 0.46, 1.0)
-	mat_rock_cliff.roughness = 0.9
+	mat_plains = StandardMaterial3D.new()
+	mat_plains.albedo_color = Color(0.38, 0.58, 0.22, 1.0)
+	mat_plains.roughness = 0.85
 
-	mat_border_cliff = StandardMaterial3D.new()
-	mat_border_cliff.albedo_color = Color(0.25, 0.26, 0.28, 1.0)
-	mat_border_cliff.roughness = 0.95
+	mat_mountains = StandardMaterial3D.new()
+	mat_mountains.albedo_color = Color(0.48, 0.49, 0.52, 1.0)
+	mat_mountains.roughness = 0.90
 
-	shared_box_shape = BoxShape3D.new()
-	shared_box_shape.size = Vector3(1.0, 1.0, 1.0)
+	mat_cliff = StandardMaterial3D.new()
+	mat_cliff.albedo_color = Color(0.32, 0.30, 0.28, 1.0)
+	mat_cliff.roughness = 0.92
 
-	mesh_grass_cliff = BoxMesh.new()
-	mesh_grass_cliff.size = Vector3(1.0, 1.0, 1.0)
-	mesh_grass_cliff.material = mat_grass_cliff
-
-	mesh_rock_cliff = BoxMesh.new()
-	mesh_rock_cliff.size = Vector3(1.0, 1.0, 1.0)
-	mesh_rock_cliff.material = mat_rock_cliff
-
-	mesh_border_cliff = BoxMesh.new()
-	mesh_border_cliff.size = Vector3(1.0, 1.0, 1.0)
-	mesh_border_cliff.material = mat_border_cliff
-
-func init_noises() -> void:
+func generate_world() -> void:
 	if random_seed:
 		actual_seed = randi()
 	else:
 		actual_seed = custom_seed
 
-	noise_height = FastNoiseLite.new()
-	noise_height.seed = actual_seed
-	noise_height.noise_type = FastNoiseLite.TYPE_PERLIN
-	noise_height.frequency = 0.045
+	# Clear previous loaded chunks
+	for coord in active_chunks.keys():
+		_free_chunk(coord)
+	active_chunks.clear()
+	chunk_resources.clear()
 
-	noise_forest = FastNoiseLite.new()
-	noise_forest.seed = actual_seed + 101
-	noise_forest.noise_type = FastNoiseLite.TYPE_SIMPLEX
-	noise_forest.frequency = 0.08
+	if terrain_container:
+		for c in terrain_container.get_children():
+			c.queue_free()
+	if resources_container:
+		for c in resources_container.get_children():
+			c.queue_free()
 
-	noise_minerals = FastNoiseLite.new()
-	noise_minerals.seed = actual_seed + 202
-	noise_minerals.noise_type = FastNoiseLite.TYPE_SIMPLEX
-	noise_minerals.frequency = 0.075
+	# Initial chunk loading around Portal (0, 0)
+	for cz in range(-load_radius_chunks, load_radius_chunks + 1):
+		for cx in range(-load_radius_chunks, load_radius_chunks + 1):
+			load_chunk(cx, cz)
 
-func generate_world() -> void:
-	init_noises()
+	last_player_chunk = Vector2i(0, 0)
+	map_generated.emit(actual_seed)
 
-	# Clear previous children if any
-	for c in resources_container.get_children():
-		c.queue_free()
-	for c in terrain_container.get_children():
-		c.queue_free()
-
-	# Generate Grid
-	for x in range(-map_radius, map_radius + 1):
-		for z in range(-map_radius, map_radius + 1):
-			generate_cell(x, z)
-
-	emit_signal("map_generated", actual_seed)
-
-func generate_cell(x: int, z: int) -> void:
-	var dist_from_center: float = Vector2(x, z).length()
-	var is_border: bool = (abs(x) >= map_radius - 2 or abs(z) >= map_radius - 2)
-
-	# 1. Border mountains (Height 3 cubes stacked: y=0, 1, 2)
-	if is_border:
-		create_cube(x, 0, z, mat_border_cliff)
-		create_cube(x, 1, z, mat_border_cliff)
-		create_cube(x, 2, z, mat_border_cliff)
+func _process(_delta: float) -> void:
+	var player_node: Node3D = _find_player()
+	if not player_node:
 		return
 
-	# 2. Portal Sanctuary: strictly flat at Y=0, no obstacles
-	if dist_from_center <= portal_clear_radius:
+	var px: float = player_node.global_position.x
+	var pz: float = player_node.global_position.z
+	var cur_chunk: Vector2i = Vector2i(
+		int(floorf(px / float(ChunkBuilder.CHUNK_SIZE))),
+		int(floorf(pz / float(ChunkBuilder.CHUNK_SIZE)))
+	)
+
+	if cur_chunk != last_player_chunk:
+		update_player_chunks(cur_chunk)
+		last_player_chunk = cur_chunk
+
+func _find_player() -> Node3D:
+	var players: Array[Node] = get_tree().get_nodes_in_group("player")
+	if not players.is_empty():
+		return players[0] as Node3D
+	return null
+
+func update_player_chunks(center_chunk: Vector2i) -> void:
+	# 1. Load missing chunks in load radius
+	for cz in range(center_chunk.y - load_radius_chunks, center_chunk.y + load_radius_chunks + 1):
+		for cx in range(center_chunk.x - load_radius_chunks, center_chunk.x + load_radius_chunks + 1):
+			var coord: Vector2i = Vector2i(cx, cz)
+			if not active_chunks.has(coord):
+				load_chunk(cx, cz)
+
+	# 2. Unload distant chunks outside unload radius
+	var to_unload: Array[Vector2i] = []
+	for coord: Vector2i in active_chunks.keys():
+		var dx: int = absi(coord.x - center_chunk.x)
+		var dz: int = absi(coord.y - center_chunk.y)
+		if dx > unload_radius_chunks or dz > unload_radius_chunks:
+			to_unload.append(coord)
+
+	for coord: Vector2i in to_unload:
+		unload_chunk(coord.x, coord.y)
+
+func load_chunk(cx: int, cz: int) -> void:
+	var coord: Vector2i = Vector2i(cx, cz)
+	if active_chunks.has(coord):
 		return
 
-	# 3. Sample elevation noise
-	var h_val: float = noise_height.get_noise_2d(float(x), float(z))
+	# Build terrain mesh & collision
+	var terrain_data: Dictionary = ChunkBuilder.build_chunk_terrain(
+		cx,
+		cz,
+		actual_seed,
+		mat_forest,
+		mat_plains,
+		mat_mountains,
+		mat_cliff
+	)
 
-	if h_val > 0.38:
-		# High cliff rock (Height 2 cubes stacked: y=0, 1) - impassable chokepoints
-		create_cube(x, 0, z, mat_rock_cliff)
-		create_cube(x, 1, z, mat_rock_cliff)
-		return
-	elif h_val > 0.18:
-		# Low plateau (Height 1 cube: y=0, top surface is y=1.0)
-		create_cube(x, 0, z, mat_grass_cliff)
+	var mesh: ArrayMesh = terrain_data["mesh"]
+	var shape: Shape3D = terrain_data["shape"]
 
-	# 4. Resource generation on walkable ground (Height 0.0 on plains, 1.0 on hill)
-	var spawn_y: float = 1.0 if h_val > 0.18 else 0.0
+	var chunk_body: StaticBody3D = StaticBody3D.new()
+	chunk_body.name = "Chunk_%d_%d" % [cx, cz]
+	chunk_body.collision_layer = 1
+	chunk_body.collision_mask = 0
+	chunk_body.add_to_group("terrain")
 
-	var f_val: float = noise_forest.get_noise_2d(float(x), float(z))
-	var m_val: float = noise_minerals.get_noise_2d(float(x), float(z))
-
-	# Cluster rules
-	if f_val > 0.34 and randf() < 0.40:
-		spawn_resource(SCENE_TREE, Vector3(x, spawn_y, z))
-	elif m_val > 0.36 and randf() < 0.35:
-		if m_val > 0.52:
-			spawn_resource(SCENE_IRON, Vector3(x, spawn_y, z))
-		else:
-			spawn_resource(SCENE_STONE, Vector3(x, spawn_y, z))
-
-func create_cube(x: int, y_layer: int, z: int, mat: Material) -> void:
-	var body: StaticBody3D = StaticBody3D.new()
-	terrain_container.add_child(body)
-	body.global_position = Vector3(float(x), float(y_layer) + 0.5, float(z))
-	body.collision_layer = 1
-	body.collision_mask = 0
-	body.add_to_group("terrain")
-
-	# 1.0 x 1.0 x 1.0 Cube Mesh (Re-using shared mesh resource per material)
 	var mesh_inst: MeshInstance3D = MeshInstance3D.new()
-	if mat == mat_grass_cliff:
-		mesh_inst.mesh = mesh_grass_cliff
-	elif mat == mat_rock_cliff:
-		mesh_inst.mesh = mesh_rock_cliff
-	elif mat == mat_border_cliff:
-		mesh_inst.mesh = mesh_border_cliff
-	else:
-		var box_mesh: BoxMesh = BoxMesh.new()
-		box_mesh.size = Vector3(1.0, 1.0, 1.0)
-		box_mesh.material = mat
-		mesh_inst.mesh = box_mesh
-	body.add_child(mesh_inst)
+	mesh_inst.mesh = mesh
+	chunk_body.add_child(mesh_inst)
 
-	# 1.0 x 1.0 x 1.0 Cube Collision Box (Re-using shared shape resource)
-	var col: CollisionShape3D = CollisionShape3D.new()
-	col.shape = shared_box_shape if shared_box_shape else BoxShape3D.new()
-	body.add_child(col)
+	if shape:
+		var col_shape: CollisionShape3D = CollisionShape3D.new()
+		col_shape.shape = shape
+		chunk_body.add_child(col_shape)
+
+	if terrain_container:
+		terrain_container.add_child(chunk_body)
+	else:
+		add_child(chunk_body)
+
+	active_chunks[coord] = chunk_body
+
+	# Spawn resources and decorative details for this chunk
+	var spawned_nodes: Array[Node] = []
+	_spawn_chunk_resources(cx, cz, spawned_nodes)
+	chunk_resources[coord] = spawned_nodes
+
+func unload_chunk(cx: int, cz: int) -> void:
+	var coord: Vector2i = Vector2i(cx, cz)
+	if not active_chunks.has(coord):
+		return
+	_free_chunk(coord)
+	active_chunks.erase(coord)
+	chunk_resources.erase(coord)
+
+func _free_chunk(coord: Vector2i) -> void:
+	if active_chunks.has(coord):
+		var body: Node = active_chunks[coord]
+		if is_instance_valid(body):
+			body.queue_free()
+
+	if chunk_resources.has(coord):
+		var nodes: Array = chunk_resources[coord]
+		for n in nodes:
+			if is_instance_valid(n):
+				n.queue_free()
+
+func _spawn_chunk_resources(cx: int, cz: int, out_nodes: Array[Node]) -> void:
+	var origin_x: int = cx * ChunkBuilder.CHUNK_SIZE
+	var origin_z: int = cz * ChunkBuilder.CHUNK_SIZE
+
+	for lz in range(ChunkBuilder.CHUNK_SIZE):
+		for lx in range(ChunkBuilder.CHUNK_SIZE):
+			var wx: int = origin_x + lx
+			var wz: int = origin_z + lz
+
+			var dist: float = Vector2(float(wx), float(wz)).length()
+			if dist <= portal_clear_radius:
+				continue
+
+			var y: int = BiomeSystem.get_voxel_height(wx, wz, actual_seed)
+			var cell_key: Vector3i = Vector3i(wx, y, wz)
+			if harvested_cells.has(cell_key):
+				continue
+
+			var h_pos: Vector3 = Vector3(float(wx) + 0.5, float(y) + 0.5, float(wz) + 0.5)
+
+			# Deterministic hash for resource attempt and rolls
+			var cell_seed: int = int((wx * 73856093) ^ (wz * 19349663) ^ (actual_seed * 83492791))
+			var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+			rng.seed = cell_seed
+
+			var attempt_roll: float = rng.randf()
+			if attempt_roll > 0.16: # Base density of attempts ~16%
+				continue
+
+			var biome_info: Dictionary = BiomeSystem.sample_biome_weights(float(wx), float(wz), actual_seed)
+			var biome: BiomeSystem.BiomeType = biome_info["primary"]
+			var continuous_h: float = BiomeSystem.sample_height(float(wx), float(wz), actual_seed)
+
+			var res_roll: float = rng.randf()
+			var res_type: ResourceDistribution.ResourceType = ResourceDistribution.roll_resource_type(biome, continuous_h, res_roll)
+
+			if res_type == ResourceDistribution.ResourceType.NONE:
+				# Spawn non-colliding decorative details for Plains
+				if biome == BiomeSystem.BiomeType.PLAINS and rng.randf() < 0.45:
+					var grass: Node3D = _create_decorative_grass(h_pos, rng)
+					if resources_container:
+						resources_container.add_child(grass)
+					else:
+						add_child(grass)
+					out_nodes.append(grass)
+				continue
+
+			var form_roll: float = rng.randf()
+			var var_roll: float = rng.randf()
+			var details: Dictionary = ResourceDistribution.resolve_spawn_details(res_type, biome, continuous_h, form_roll, var_roll)
+
+			if details["deposit_form"] == ResourceDistribution.DepositForm.FREE_PICKUP:
+				var pickup: FreeResourcePickup = FreeResourcePickup.new()
+				pickup.resource_type = details["resource_type"]
+				pickup.yield_amount = details["yield_amount"]
+				pickup.variation_index = details["variation_index"]
+				pickup.position = h_pos
+				if resources_container:
+					resources_container.add_child(pickup)
+				else:
+					add_child(pickup)
+				out_nodes.append(pickup)
+
+			elif details["deposit_form"] == ResourceDistribution.DepositForm.FULL_DEPOSIT:
+				var node: Node3D = null
+				if res_type == ResourceDistribution.ResourceType.WOOD:
+					node = SCENE_TREE.instantiate()
+					if node.has_method("configure_tree"):
+						node.configure_tree(details["variation_index"], details["yield_amount"])
+				elif res_type == ResourceDistribution.ResourceType.STONE:
+					node = SCENE_STONE.instantiate()
+					if node.has_method("configure_rock"):
+						node.configure_rock(0, details["yield_amount"], details["tier"], details["variation_index"])
+				elif res_type == ResourceDistribution.ResourceType.IRON:
+					node = SCENE_IRON.instantiate()
+					if node.has_method("configure_rock"):
+						node.configure_rock(1, details["yield_amount"], details["tier"], details["variation_index"])
+
+				if node:
+					node.position = h_pos
+					if resources_container:
+						resources_container.add_child(node)
+					else:
+						add_child(node)
+					out_nodes.append(node)
+
+func _create_decorative_grass(pos: Vector3, rng: RandomNumberGenerator) -> Node3D:
+	var grass_node: Node3D = Node3D.new()
+	grass_node.position = pos
+	var mesh_inst: MeshInstance3D = MeshInstance3D.new()
+	var box: BoxMesh = BoxMesh.new()
+	var h: float = 0.3 + rng.randf() * 0.35
+	box.size = Vector3(0.3, h, 0.3)
+	var mat: StandardMaterial3D = StandardMaterial3D.new()
+	mat.albedo_color = Color(0.36 + rng.randf() * 0.1, 0.65 + rng.randf() * 0.1, 0.20, 1.0)
+	mat.roughness = 0.9
+	box.material = mat
+	mesh_inst.mesh = box
+	mesh_inst.position.y = h * 0.5
+	mesh_inst.rotation_degrees.y = rng.randf() * 180.0
+	grass_node.add_child(mesh_inst)
+	return grass_node
+
+## Public authoritative height lookup: returns integer voxel height at world (x, z).
+func get_voxel_height(x: int, z: int) -> int:
+	return BiomeSystem.get_voxel_height(x, z, actual_seed)
+
+## Public authoritative continuous height lookup at world (x, z).
+func sample_height(x: float, z: float) -> float:
+	return BiomeSystem.sample_height(x, z, actual_seed)
+
+## Public authoritative biome lookup at world (x, z).
+func sample_biome(x: float, z: float) -> Dictionary:
+	return BiomeSystem.sample_biome_weights(x, z, actual_seed)
+
+## Records that a resource at world_pos was harvested, preventing respawn upon chunk reload.
+func record_harvest(world_pos: Vector3) -> void:
+	var wx: int = int(floorf(world_pos.x))
+	var wz: int = int(floorf(world_pos.z))
+	var wy: int = BiomeSystem.get_voxel_height(wx, wz, actual_seed)
+	var key: Vector3i = Vector3i(wx, wy, wz)
+	harvested_cells[key] = true
+
+func is_harvested(world_pos: Vector3) -> bool:
+	var wx: int = int(floorf(world_pos.x))
+	var wz: int = int(floorf(world_pos.z))
+	var wy: int = BiomeSystem.get_voxel_height(wx, wz, actual_seed)
+	var key: Vector3i = Vector3i(wx, wy, wz)
+	return harvested_cells.has(key)
+
+# Backward-compatibility helpers
+func create_cube(x: int, y_layer: int, z: int, mat: Material) -> void:
+	pass
 
 func spawn_resource(scene: PackedScene, pos: Vector3) -> void:
-	var res: Node3D = scene.instantiate()
-	resources_container.add_child(res)
-	res.global_position = pos
+	if scene and resources_container:
+		var res: Node3D = scene.instantiate()
+		resources_container.add_child(res)
+		res.global_position = pos

@@ -31,10 +31,50 @@ func setup(p_direction: Vector3, p_damage: float, p_owner: Node, p_pierce: int =
 			vfx.attach_arrow_trail(self)
 
 func _physics_process(delta: float) -> void:
-	global_position += direction * speed * delta
+	var current_pos: Vector3 = global_position
+	var next_pos: Vector3 = current_pos + direction * speed * delta
+
+	var cur_x: int = int(roundf(current_pos.x))
+	var cur_z: int = int(roundf(current_pos.z))
+	var next_x: int = int(roundf(next_pos.x))
+	var next_z: int = int(roundf(next_pos.z))
+
+	var h_curr: float = _get_terrain_height(cur_x, cur_z)
+	var h_next: float = _get_terrain_height(next_x, next_z)
+
+	var step_info: Dictionary = TerrainCombatRules.update_projectile_height(
+		current_pos,
+		next_pos,
+		h_curr,
+		h_next,
+		0.8
+	)
+
+	if step_info.get("collided", false):
+		_on_terrain_collision(next_pos)
+		return
+
+	next_pos.y = step_info.get("new_y", next_pos.y)
+	global_position = next_pos
+
 	lifetime -= delta
 	if lifetime <= 0.0:
 		queue_free()
+
+func _get_terrain_height(x: int, z: int) -> float:
+	if not is_inside_tree():
+		return 0.0
+	var map_gen: Node = get_tree().get_first_node_in_group("map_generator")
+	if map_gen and map_gen.has_method("get_voxel_height"):
+		return float(map_gen.get_voxel_height(x, z))
+	return 0.0
+
+func _on_terrain_collision(hit_pos: Vector3) -> void:
+	var vfx = get_node_or_null("/root/VFXManager")
+	if vfx:
+		vfx.spawn_sparks(hit_pos, -direction, Color(0.8, 0.8, 0.8), 6, 3.0)
+	queue_free()
+
 
 func _on_hitbox_area_entered(area: Area3D) -> void:
 	if not area.has_method("take_damage"):

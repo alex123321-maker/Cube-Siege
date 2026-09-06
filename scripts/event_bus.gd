@@ -1,7 +1,7 @@
 extends Node
 
 # Resource events
-signal resources_changed(wood: int, stone: int, iron: int)
+signal resources_changed(wood: int, stone: int, iron: int, magic_stone: int)
 signal resource_gathered(resource_type: String, amount: int, gatherer: Node)
 
 # Combat events  

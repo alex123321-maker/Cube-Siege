@@ -223,6 +223,14 @@ layout_mode = 2
 layout_mode = 2
 text = "IRON: 0"
 
+[node name="MagicBox" type="HBoxContainer" parent="HUD/Margin/TopLeft/Resources"]
+layout_mode = 2
+
+[node name="MagicLabel" type="Label" parent="HUD/Margin/TopLeft/Resources/MagicBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.9, 1.0, 1.0)
+text = "MAGIC STONE: 0"
+
 [node name="BottomCenter" type="HBoxContainer" parent="HUD/Margin"]
 layout_mode = 1
 anchors_preset = 7
