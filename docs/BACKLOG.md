@@ -6,7 +6,7 @@
 
 ---
 
-## Дорожная карта (Milestones 1–5)
+## Дорожная карта (Milestones 1–6)
 
 ```mermaid
 gantt
