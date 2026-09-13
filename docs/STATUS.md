@@ -68,7 +68,7 @@
 
 ### 2. Результаты аудита и стабилизации вертикального среза (Issue #20)
 
-Подробный анализ первопричин, реестр временных прототипов и пошаговая дорожная карта стабилизации зафиксированы в **[`docs/AUDIT_VERTICAL_SLICE_STABILIZATION.md`](docs/AUDIT_VERTICAL_SLICE_STABILIZATION.md)**.
+Подробный анализ первопричин, реестр временных прототипов и пошаговая дорожная карта стабилизации зафиксированы в **[`docs/AUDIT_VERTICAL_SLICE_STABILIZATION.md`](AUDIT_VERTICAL_SLICE_STABILIZATION.md)**.
 
 1. **P0: Сломанный подбор срубленных ресурсов (`ResourceTree`, `ResourceRock`)**:
    - `fell_tree()` отключает коллизию `CollisionShape3D`, вызывая `body_exited` на `InteractionSensor` игрока и стирая ноду из кандидатов. Требуется исправление интерактивности добытого ресурса (выбор формата дропа — DESIGN DECISION REQUIRED).
