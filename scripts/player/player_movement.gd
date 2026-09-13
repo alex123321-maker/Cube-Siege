@@ -17,8 +17,9 @@ var dash_cooldown_timer: float = 0.0
 var dash_direction: Vector3 = Vector3.ZERO
 
 var forced_target: Variant = null
-var last_movement_basis_forward: Vector3 = Vector3(0.0, 0.0, -1.0)
+var last_movement_basis_forward: Vector3 = PlayerMovementMath.DEFAULT_SCREEN_FORWARD
 var current_move_direction: Vector3 = Vector3.ZERO
+var step_smooth_offset_y: float = 0.0
 
 func update_timers(delta: float) -> void:
 	if dash_cooldown_timer > 0.0:
@@ -31,6 +32,8 @@ func update_timers(delta: float) -> void:
 ## Resolves the current movement basis (forward and right vectors on XZ plane).
 func get_movement_basis(player_pos: Vector3, aim_dir: Vector3, target: Variant = null) -> Dictionary:
 	var effective_target: Variant = target if (target != null and is_instance_valid(target)) else forced_target
+	if effective_target == null or not is_instance_valid(effective_target):
+		last_movement_basis_forward = PlayerMovementMath.DEFAULT_SCREEN_FORWARD
 	var basis: Dictionary = PlayerMovementMath.calculate_movement_basis(
 		player_pos,
 		aim_dir,
@@ -56,13 +59,13 @@ func perform_dash(facing_dir: Vector3, explicit_move_dir: Vector3 = Vector3.ZERO
 		if input_dir.length_squared() > 0.01:
 			var basis_fwd: Vector3 = last_movement_basis_forward
 			if basis_fwd.length_squared() < 0.01:
-				basis_fwd = facing_dir if facing_dir.length_squared() > 0.01 else Vector3(0.0, 0.0, -1.0)
+				basis_fwd = facing_dir if facing_dir.length_squared() > 0.01 else PlayerMovementMath.DEFAULT_SCREEN_FORWARD
 			var basis_right: Vector3 = basis_fwd.cross(Vector3.UP).normalized()
 			dash_direction = PlayerMovementMath.compute_movement_vector(input_dir, basis_fwd, basis_right)
 		elif facing_dir.length_squared() > 0.01:
 			dash_direction = facing_dir.normalized()
 		else:
-			dash_direction = Vector3(0.0, 0.0, -1.0)
+			dash_direction = PlayerMovementMath.DEFAULT_SCREEN_FORWARD
 
 	is_dashing = true
 	dash_timer = dash_duration
@@ -152,4 +155,15 @@ func _apply_gravity_and_step_up(body: CharacterBody3D, delta: float, move_dir: V
 				var step_transform: Transform3D = Transform3D(body.global_transform.basis, body.global_position + Vector3(0, 1.05, 0))
 				if not body.test_move(step_transform, move_dir * 0.35):
 					body.global_position.y += 1.05
+					step_smooth_offset_y -= 1.05
 					break
+
+	# Visual smoothing of step-up (prevents instant position jump without altering physics traversability)
+	if absf(step_smooth_offset_y) > 0.001:
+		step_smooth_offset_y = move_toward(step_smooth_offset_y, 0.0, 9.0 * delta)
+	else:
+		step_smooth_offset_y = 0.0
+
+	var visuals: Node3D = body.get_node_or_null("Visuals") as Node3D
+	if visuals:
+		visuals.position.y = -0.9 + step_smooth_offset_y

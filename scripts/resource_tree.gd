@@ -126,7 +126,12 @@ func _on_damaged(amount: float, _knockback: Vector3, _type: String, _attacker: N
 
 func fell_tree() -> void:
 	is_destroyed = true
-	$CollisionShape3D.set_deferred("disabled", true)
+	# Shift to collision_layer 8 (interactable items). The player (mask 1) no longer collides
+	# with the stump, while InteractionSensor (mask 9 = 1 | 8) continues to detect it.
+	collision_layer = 8
+	collision_mask = 0
+	if has_node("CollisionShape3D"):
+		$CollisionShape3D.set_deferred("disabled", false)
 	if hurtbox:
 		hurtbox.set_deferred("monitoring", false)
 		hurtbox.set_deferred("monitorable", false)
@@ -181,6 +186,8 @@ func harvest(player: Node) -> void:
 		return
 
 	is_harvested = true
+	if player and "interaction" in player and player.interaction:
+		player.interaction.remove_candidate(self)
 	pickup_prompt.visible = false
 
 	var mult: int = 1

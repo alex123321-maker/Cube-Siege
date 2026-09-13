@@ -131,6 +131,47 @@ func test_projectile_multi_frame_flight_over_chasm() -> void:
 	var res4: Dictionary = TerrainCombatRules.update_projectile_height(arrow_pos, Vector3(4, 10.8, 0), 4.0, 12.0, 0.8, is_over_drop)
 	assert_true(res4["collided"], "Arrow must collide when rock wall rises above flight altitude")
 
+func test_projectile_descending_consecutive_minus_one_steps() -> void:
+	# Issue #22: Consecutive -1 steps must allow arrow to descend properly without triggering is_over_drop
+	var arrow_pos: Vector3 = Vector3(0, 5.8, 0) # Over ground 5.0 at height 0.8
+	var is_over_drop: bool = false
+
+	# Step 1: ground 5.0 -> 4.0 (-1 step)
+	var r1: Dictionary = TerrainCombatRules.update_projectile_height(arrow_pos, Vector3(1, 5.8, 0), 5.0, 4.0, 0.8, is_over_drop)
+	assert_false(r1["collided"])
+	assert_lt(r1["new_y"], arrow_pos.y, "Must descend downward on -1 step")
+	is_over_drop = r1.get("is_over_drop", false)
+	assert_false(is_over_drop, "Consecutive -1 step must not trigger is_over_drop")
+	arrow_pos = Vector3(1, r1["new_y"], 0)
+
+	# Step 2: ground 4.0 -> 3.0 (-1 step)
+	var r2: Dictionary = TerrainCombatRules.update_projectile_height(arrow_pos, Vector3(2, arrow_pos.y, 0), 4.0, 3.0, 0.8, is_over_drop)
+	assert_false(r2["collided"])
+	assert_lt(r2["new_y"], arrow_pos.y, "Must continue descending downward on consecutive -1 step")
+	is_over_drop = r2.get("is_over_drop", false)
+	assert_false(is_over_drop, "Must still not trigger is_over_drop")
+	arrow_pos = Vector3(2, r2["new_y"], 0)
+
+	# Step 3: ground 3.0 -> 2.0 (-1 step)
+	var r3: Dictionary = TerrainCombatRules.update_projectile_height(arrow_pos, Vector3(3, arrow_pos.y, 0), 3.0, 2.0, 0.8, is_over_drop)
+	assert_false(r3["collided"])
+	assert_lt(r3["new_y"], arrow_pos.y, "Continues descending")
+	is_over_drop = r3.get("is_over_drop", false)
+	assert_false(is_over_drop, "Remains false on consecutive -1 steps")
+	arrow_pos = Vector3(3, r3["new_y"], 0)
+
+	# Step 4: ground 2.0 -> 0.0 (-2 drop) -> NOW triggers is_over_drop
+	var r4: Dictionary = TerrainCombatRules.update_projectile_height(arrow_pos, Vector3(4, arrow_pos.y, 0), 2.0, 0.0, 0.8, is_over_drop)
+	assert_false(r4["collided"])
+	assert_almost_eq(r4["new_y"], arrow_pos.y, 0.01, "Arrow maintains altitude over -2 drop")
+	is_over_drop = r4.get("is_over_drop", false)
+	assert_true(is_over_drop, "Drop of -2 must trigger is_over_drop")
+	arrow_pos = Vector3(4, r4["new_y"], 0)
+
+	# Step 5: ground 0.0 -> 3.0 (+3 obstacle) -> Collides
+	var r5: Dictionary = TerrainCombatRules.update_projectile_height(arrow_pos, Vector3(5, arrow_pos.y, 0), 0.0, 3.0, 0.8, is_over_drop)
+	assert_true(r5["collided"], "+3 obstacle above flight altitude must collide")
+
 func test_melee_connectivity_with_character_body_offset() -> void:
 	# In runtime, player and enemy CharacterBody3D are at terrain_y + 0.9.
 	# Ground at (0, 0) is y=0. Ground at (2, 0) is y=2 (wall of +2 blocks).

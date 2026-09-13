@@ -15,9 +15,9 @@ var is_harvested: bool = false
 var degradation_stage: int = 2 # 2: full, 1: cracked, 0: heavily chipped
 var base_scale: Vector3 = Vector3.ONE
 
-@onready var hurtbox: Area3D = $Hurtbox
-@onready var rock_mesh: MeshInstance3D = $Visuals/RockMesh
-@onready var prompt_label: Label3D = $PromptLabel
+@onready var hurtbox: Area3D = get_node_or_null("Hurtbox")
+@onready var rock_mesh: MeshInstance3D = get_node_or_null("Visuals/RockMesh")
+@onready var prompt_label: Label3D = get_node_or_null("PromptLabel")
 
 const FLOATING_TEXT_SCENE = preload("res://scenes/floating_text.tscn")
 
@@ -120,13 +120,19 @@ func _trigger_breakdown_step(scale_factor: float) -> void:
 
 func break_rock() -> void:
 	is_destroyed = true
-	$CollisionShape3D.set_deferred("disabled", true)
+	# Shift to collision_layer 8 (interactable items). The player (mask 1) no longer collides
+	# with the broken rock, while InteractionSensor (mask 9 = 1 | 8) continues to detect it.
+	collision_layer = 8
+	collision_mask = 0
+	if has_node("CollisionShape3D"):
+		$CollisionShape3D.set_deferred("disabled", false)
 	if hurtbox:
 		hurtbox.set_deferred("monitoring", false)
 		hurtbox.set_deferred("monitorable", false)
 
-	var tween: Tween = create_tween()
-	tween.tween_property(rock_mesh, "scale", Vector3(base_scale.x * 1.2, 0.22, base_scale.z * 1.2), 0.15)
+	if is_inside_tree() and rock_mesh:
+		var tween: Tween = create_tween()
+		tween.tween_property(rock_mesh, "scale", Vector3(base_scale.x * 1.2, 0.22, base_scale.z * 1.2), 0.15)
 
 	if prompt_label:
 		prompt_label.visible = false
@@ -171,7 +177,10 @@ func harvest(player: Node) -> void:
 		return
 
 	is_harvested = true
-	prompt_label.visible = false
+	if player and "interaction" in player and player.interaction:
+		player.interaction.remove_candidate(self)
+	if prompt_label:
+		prompt_label.visible = false
 
 	var mult: int = 1
 	if player and player.get("resource_multiplier") != null:
@@ -195,9 +204,12 @@ func harvest(player: Node) -> void:
 	if map_gen and map_gen.has_method("record_harvest"):
 		map_gen.record_harvest(global_position)
 
-	var tween: Tween = create_tween()
-	tween.tween_property(rock_mesh, "scale", Vector3.ZERO, 0.2)
-	tween.chain().tween_callback(queue_free)
+	if is_inside_tree() and rock_mesh:
+		var tween: Tween = create_tween()
+		tween.tween_property(rock_mesh, "scale", Vector3.ZERO, 0.2)
+		tween.chain().tween_callback(queue_free)
+	else:
+		queue_free()
 
 func spawn_damage_text(amount: float, custom_text: String = "", custom_color: Color = Color.WHITE) -> void:
 	var popup: Node3D = FLOATING_TEXT_SCENE.instantiate()

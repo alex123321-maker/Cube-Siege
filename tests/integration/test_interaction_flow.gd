@@ -104,3 +104,52 @@ func test_player_interaction_candidate_lifecycle() -> void:
 
 	interaction_system.remove_candidate(n2)
 	assert_eq(interaction_system.candidate_nodes.size(), 0)
+
+func test_tree_and_rock_harvest_retention_and_no_duplicate_harvest() -> void:
+	var dummy_player = CharacterBody3D.new()
+	add_child_autoqfree(dummy_player)
+	dummy_player.position = Vector3(0, 0, 0)
+
+	# Mock wallet / inventory if needed
+	var tree = RESOURCE_TREE_SCENE.instantiate()
+	add_child_autoqfree(tree)
+	tree.position = Vector3(1, 0, 0)
+
+	tree.fell_tree()
+	assert_eq(tree.collision_layer, 8, "Felled tree collision_layer must be shifted to layer 8 for sensor detection")
+	assert_true(tree.is_destroyed, "Tree must be destroyed/felled")
+	assert_false(tree.is_harvested, "Tree must not yet be harvested")
+	assert_true(InteractableTarget.can_interact(tree, dummy_player), "Felled tree must be interactable")
+
+	# Harvest once
+	tree.harvest(dummy_player)
+	assert_true(tree.is_harvested, "Tree must be marked as harvested")
+	assert_false(InteractableTarget.can_interact(tree, dummy_player), "Harvested tree must no longer be interactable")
+
+	# Duplicate harvest attempt must keep is_harvested true
+	tree.harvest(dummy_player)
+	assert_true(tree.is_harvested)
+
+	# Rock test
+	var rock = ResourceRock.new()
+	add_child_autoqfree(rock)
+	var col_shape = CollisionShape3D.new()
+	col_shape.shape = BoxShape3D.new()
+	rock.add_child(col_shape)
+	rock.position = Vector3(2, 0, 0)
+
+	rock.break_rock()
+	assert_eq(rock.collision_layer, 8, "Broken rock collision_layer must be shifted to layer 8 for sensor detection")
+	assert_true(rock.is_destroyed, "Rock must be destroyed")
+	assert_false(rock.is_harvested, "Rock must not yet be harvested")
+	assert_true(InteractableTarget.can_interact(rock, dummy_player), "Broken rock must be interactable")
+
+	# Harvest rock once
+	rock.harvest(dummy_player)
+	assert_true(rock.is_harvested, "Rock must be marked as harvested")
+	assert_false(InteractableTarget.can_interact(rock, dummy_player), "Harvested rock must no longer be interactable")
+
+	# Duplicate harvest attempt on rock
+	rock.harvest(dummy_player)
+	assert_true(rock.is_harvested)
+

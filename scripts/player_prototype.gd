@@ -218,6 +218,7 @@ func _ready() -> void:
 	)
 	health.player_died.connect(func():
 		orientation.cancel_pending_action()
+		presentation.set_active_model(null)
 		player_died.emit()
 	)
 	progression.xp_changed.connect(func(cur, mx, lvl): xp_changed.emit(cur, mx, lvl))
@@ -230,10 +231,40 @@ func _ready() -> void:
 	# Interaction sensor setup if present
 	var sensor = get_node_or_null("InteractionSensor") as Area3D
 	if sensor:
-		sensor.area_entered.connect(func(a): interaction.add_candidate(a))
-		sensor.area_exited.connect(func(a): interaction.remove_candidate(a))
-		sensor.body_entered.connect(func(b): interaction.add_candidate(b))
-		sensor.body_exited.connect(func(b): interaction.remove_candidate(b))
+		var get_interactable_node = func(col_obj: Node) -> Node:
+			if not col_obj or not is_instance_valid(col_obj):
+				return null
+			if col_obj.is_in_group("interactables") or col_obj.has_method("is_interactable"):
+				return col_obj
+			var p: Node = col_obj.get_parent()
+			if p and (p.is_in_group("interactables") or p.has_method("is_interactable")):
+				return p
+			return col_obj
+
+		sensor.area_entered.connect(func(a):
+			var node = get_interactable_node.call(a)
+			if node:
+				interaction.add_candidate(node)
+		)
+		sensor.area_exited.connect(func(a):
+			var node = get_interactable_node.call(a)
+			if node:
+				interaction.remove_candidate(node)
+		)
+		sensor.body_entered.connect(func(b):
+			var node = get_interactable_node.call(b)
+			if node:
+				interaction.add_candidate(node)
+		)
+		sensor.body_exited.connect(func(b):
+			var node = get_interactable_node.call(b)
+			if node and is_instance_valid(node):
+				# Guard against premature drop when a resource node is destroyed within sensor radius
+				if (node is ResourceTree or node is ResourceRock) and node.is_ready_for_pickup():
+					if global_position.distance_to(node.global_position) <= 4.5:
+						return
+				interaction.remove_candidate(node)
+		)
 
 	# Initialize class from RosterManager
 	apply_mastery_stats()
@@ -278,7 +309,7 @@ func _physics_process(delta: float) -> void:
 	combat.update_timers(delta)
 	abilities.update_timers(delta, self)
 
-	# Aim computed before movement basis
+	# Locomotion and aim directions computed before action inputs
 	var deadzone: float = orientation.settings.aim_deadzone if orientation.settings else 0.6
 	var target_aim: Vector3 = aim.handle_aim(self, duel_target if is_dueling else null, deadzone)
 	if target_aim.length_squared() > 0.001:

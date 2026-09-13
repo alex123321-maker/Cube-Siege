@@ -103,8 +103,8 @@ static func update_projectile_height(
 	var int_step: int = int(roundf(step_diff))
 	var clearance: float = current_pos.y - next_terrain_y
 
-	# Detect if entering or currently inside over-drop state
-	var currently_over_drop: bool = is_over_drop or int_step <= -2 or (clearance >= projectile_base_offset + 1.2)
+	# Detect if entering or currently inside over-drop state (step <= -2 is a cliff drop)
+	var currently_over_drop: bool = is_over_drop or int_step <= -2
 
 	# 1. Rising wall >= 2 blocks when ground-following (near ground):
 	if int_step >= 2 and not currently_over_drop:
