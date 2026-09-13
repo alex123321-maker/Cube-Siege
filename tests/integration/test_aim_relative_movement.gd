@@ -170,6 +170,41 @@ func test_forced_target_movement_basis_supports_strafe_and_retreat() -> void:
 	var a_vec = player.movement.compute_move_direction(player.global_position, player.aim_direction, Vector2(-1.0, 0.0), target)
 	assert_almost_eq(a_vec.x, 1.0, 0.01, "A must strafe left around target")
 
+func test_forced_target_transition_to_null_and_freed_during_movement() -> void:
+	var player = PLAYER_SCENE.instantiate()
+	add_child_autoqfree(player)
+	player.global_position = Vector3.ZERO
+
+	var target = Node3D.new()
+	add_child_autoqfree(target)
+	target.global_position = Vector3(10.0, 0.0, 0.0) # Target is East (+X)
+
+	# 1. Moving with forced_target active
+	player.forced_target = target
+	var move_with_target = player.movement.compute_move_direction(player.global_position, player.orientation.aim_direction, Vector2(0.0, -1.0))
+	assert_almost_eq(move_with_target.x, 1.0, 0.01, "While forced_target is active, W moves toward target (East)")
+	assert_almost_eq(move_with_target.z, 0.0, 0.01)
+
+	# 2. Transition forced_target -> null while holding W
+	player.forced_target = null
+	var move_after_null = player.movement.compute_move_direction(player.global_position, player.orientation.aim_direction, Vector2(0.0, -1.0))
+	assert_almost_eq(move_after_null.x, PlayerMovementMath.DEFAULT_SCREEN_FORWARD.x, 0.01, "When forced_target becomes null, WASD must immediately revert to Screen-Relative")
+	assert_almost_eq(move_after_null.z, PlayerMovementMath.DEFAULT_SCREEN_FORWARD.z, 0.01)
+
+	# 3. Moving with another target (South)
+	var target2 = Node3D.new()
+	add_child(target2)
+	target2.global_position = Vector3(0.0, 0.0, 10.0)
+	player.forced_target = target2
+	var move_with_target2 = player.movement.compute_move_direction(player.global_position, player.orientation.aim_direction, Vector2(0.0, -1.0))
+	assert_almost_eq(move_with_target2.z, 1.0, 0.01, "W moves toward target2 (South)")
+
+	# 4. Transition forced_target -> freed while holding W
+	target2.free()
+	var move_after_freed = player.movement.compute_move_direction(player.global_position, player.orientation.aim_direction, Vector2(0.0, -1.0))
+	assert_almost_eq(move_after_freed.x, PlayerMovementMath.DEFAULT_SCREEN_FORWARD.x, 0.01, "When forced_target is freed, WASD must immediately revert to Screen-Relative")
+	assert_almost_eq(move_after_freed.z, PlayerMovementMath.DEFAULT_SCREEN_FORWARD.z, 0.01)
+
 func test_peripheral_camera_pan_does_not_change_movement_basis() -> void:
 	var player = PLAYER_SCENE.instantiate()
 	add_child_autoqfree(player)

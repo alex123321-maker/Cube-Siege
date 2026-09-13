@@ -79,15 +79,25 @@ func set_distance_preset(preset: int, immediate: bool = false) -> void:
 		current_base_offset = target_base_offset
 
 func _init() -> void:
-	set_process(false)
+	set_process(true)
+	set_physics_process(false)
 	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 
-func _physics_process(delta: float) -> void:
+func _process(delta: float) -> void:
 	step_camera(delta)
 
-func _process(delta: float) -> void:
-	# Allows unit tests to manually step the camera via _process()
+func _physics_process(delta: float) -> void:
+	# Keep fallback for explicit physics step calls
 	step_camera(delta)
+
+func _get_target_position() -> Vector3:
+	if not target or not is_instance_valid(target):
+		return Vector3.ZERO
+	if target is Node3D and target.is_inside_tree() and target.has_method("get_global_transform_interpolated"):
+		var interp: Vector3 = target.get_global_transform_interpolated().origin
+		if interp.is_finite():
+			return interp
+	return target.global_position
 
 func step_camera(delta: float) -> void:
 	if not target or not is_instance_valid(target):
@@ -151,7 +161,8 @@ func step_camera(delta: float) -> void:
 			)
 
 	# Desired position: character anchor + selected distance preset + peripheral pan
-	var desired_pos: Vector3 = target.global_position + current_base_offset + current_peripheral_offset
+	var target_pos: Vector3 = _get_target_position()
+	var desired_pos: Vector3 = target_pos + current_base_offset + current_peripheral_offset
 
 	# Smooth follow for character movement and pan
 	global_position = global_position.lerp(
@@ -165,7 +176,7 @@ func step_camera(delta: float) -> void:
 	if vp_current:
 		var current_vp_size: Vector2 = vp_current.get_visible_rect().size
 		if current_vp_size.x > 10.0 and current_vp_size.y > 10.0:
-			var actual_disp: Vector3 = global_position - (target.global_position + current_base_offset)
+			var actual_disp: Vector3 = global_position - (target_pos + current_base_offset)
 			actual_disp.y = 0.0
 			var safe_disp: Vector3 = CameraMath.clamp_offset_to_safe_frustum(
 				actual_disp,
@@ -176,7 +187,7 @@ func step_camera(delta: float) -> void:
 				CameraMath.DEFAULT_SAFE_FRUSTUM_MARGIN
 			)
 			if safe_disp.length_squared() < actual_disp.length_squared() - 0.0001:
-				global_position = target.global_position + current_base_offset + safe_disp
+				global_position = target_pos + current_base_offset + safe_disp
 
 	# Ensure orientation remains strictly fixed after translation
 	transform.basis = fixed_basis
@@ -193,7 +204,8 @@ func check_occlusion() -> void:
 	if not space_state:
 		return
 
-	var player_pos: Vector3 = target.global_position + Vector3(0.0, 0.9, 0.0)
+	var target_pos: Vector3 = _get_target_position()
+	var player_pos: Vector3 = target_pos + Vector3(0.0, 0.9, 0.0)
 	var check_points: Array[Vector3] = [player_pos]
 
 	# Attack / combat direction point forward from player
@@ -209,7 +221,6 @@ func check_occlusion() -> void:
 		# Fallback only when EntityRegistry autoload is not present (isolated unit tests)
 		candidate_enemies = get_tree().get_nodes_in_group("enemies")
 
-	var target_pos: Vector3 = target.global_position
 	const COMBAT_RADIUS_SQ: float = 196.0 # 14.0 * 14.0
 	const MAX_COMBAT_ENEMIES: int = 24
 

@@ -32,6 +32,8 @@ func update_timers(delta: float) -> void:
 ## Resolves the current movement basis (forward and right vectors on XZ plane).
 func get_movement_basis(player_pos: Vector3, aim_dir: Vector3, target: Variant = null) -> Dictionary:
 	var effective_target: Variant = target if (target != null and is_instance_valid(target)) else forced_target
+	if effective_target == null or not is_instance_valid(effective_target):
+		last_movement_basis_forward = PlayerMovementMath.DEFAULT_SCREEN_FORWARD
 	var basis: Dictionary = PlayerMovementMath.calculate_movement_basis(
 		player_pos,
 		aim_dir,

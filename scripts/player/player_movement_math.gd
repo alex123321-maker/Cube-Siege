@@ -33,8 +33,11 @@ static func calculate_movement_basis(
 		to_target.y = 0.0
 		if to_target.length_squared() > MIN_HORIZONTAL_LENGTH_SQ and to_target.is_finite():
 			forward = to_target.normalized()
+		elif fallback_fwd.length_squared() > MIN_HORIZONTAL_LENGTH_SQ and fallback_fwd.is_finite():
+			forward = Vector3(fallback_fwd.x, 0.0, fallback_fwd.z).normalized()
 
-	# 2. Priority 2: Screen-Relative basis (cursor/aim does not affect WASD locomotion basis)
+	# 2. Priority 2: Screen-Relative basis (cursor/aim position does not modify locomotion basis;
+	# when no target is active, movement uses fallback_fwd or DEFAULT_SCREEN_FORWARD)
 	if forward.length_squared() <= MIN_HORIZONTAL_LENGTH_SQ:
 		var h_fb: Vector3 = Vector3(fallback_fwd.x, 0.0, fallback_fwd.z)
 		if h_fb.length_squared() > MIN_HORIZONTAL_LENGTH_SQ and h_fb.is_finite():
