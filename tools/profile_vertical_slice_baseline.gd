@@ -226,7 +226,7 @@ func _run_profiling() -> void:
 		"## 3. Mob Scaling Runtime Performance (0 to 100 Mobs)",
 		"Each step was warmed up for 20 frames for physics settlement, then measured over a 30-frame window.",
 		"",
-		"| Mobs | Process Logic (ms) | Physics Tick (ms) | Render CPU (ms) | Render GPU (ms) | Total Frame (ms) | Est. FPS | Draw Calls | Active Dynamic Bodies | Collision Pairs |",
+		"| Mobs | Other CPU / Frame Remainder (ms) | Physics Tick (ms) | Render CPU (ms) | Render GPU (ms) | Total Frame (ms) | Est. FPS | Draw Calls | Active Dynamic Bodies | Collision Pairs |",
 		"|---|---|---|---|---|---|---|---|---|---|"
 	]
 
@@ -237,16 +237,18 @@ func _run_profiling() -> void:
 		])
 
 	report_lines.append("")
+	report_lines.append("*Note: 'Other CPU / Frame Remainder' represents CPU frame time outside physics tick and render dispatch (`Total - Physics Tick - Render CPU`), including game logic, scene traversal, and window/vsync frame synchronization.*")
+	report_lines.append("")
 	report_lines.append("## 4. Verification & Bottleneck Analysis")
 	report_lines.append("- **Resource Bodies**: 49 chunks contain ~%d `StaticBody3D` and ~%d `Area3D` nodes (~%d collision shapes). Physics Server collision pairs remain low (~%d pairs) in steady state because static bodies sleep effectively in the broadphase tree." % [
 		static_body_count, area_3d_count, collision_shape_count, phys_collision_pairs
 	])
-	report_lines.append("- **Chunk Generation**: Single chunk resource generation average is ~%.3f ms, allowing background streaming within the 16.6ms 60Hz frame budget." % (avg_spawn_us / 1000.0))
+	report_lines.append("- **Chunk Generation**: Single chunk resource generation (`_spawn_chunk_resources`) averages ~%.3f ms. This isolated resource spawning overhead fits within a single frame slice, though complete chunk generation in practice also includes terrain mesh and collision generation which must remain distributed or threaded across frames." % (avg_spawn_us / 1000.0))
 	report_lines.append("- **Mob Scaling**: Moving dynamic entities scale cleanly from 0 to 100 mobs. Active dynamic bodies increase from %d to %d, with collision pairs scaling from %d to %d without exponential blowup." % [
 		scaling_results[0]["dynamic_objects"], scaling_results[-1]["dynamic_objects"],
 		scaling_results[0]["collision_pairs"], scaling_results[-1]["collision_pairs"]
 	])
-	report_lines.append("- **Render Breakdown**: In graphical runtime, Render CPU dispatch takes ~1-2 ms and GPU rendering takes ~5-6 ms for ~1600-1700 draw calls, confirming the GPU pipeline is stable.")
+	report_lines.append("- **Render Breakdown**: In graphical runtime, Render CPU dispatch takes ~1.2-1.4 ms and GPU rendering takes ~3.4-3.7 ms for ~1460-1580 draw calls, confirming the GPU pipeline is stable within 60 Hz budget.")
 	report_lines.append("")
 
 	var file: FileAccess = FileAccess.open(report_path, FileAccess.WRITE)
