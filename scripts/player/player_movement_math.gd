@@ -4,27 +4,28 @@ extends RefCounted
 ## Pure mathematical helpers for aim-relative and forced-target locomotion basis,
 ## diagonal normalization, and world-space movement direction calculation (Issue #16).
 
-const DEFAULT_FALLBACK_FORWARD: Vector3 = Vector3(0.0, 0.0, -1.0)
+const DEFAULT_SCREEN_FORWARD: Vector3 = Vector3(-0.70710678118, 0.0, -0.70710678118)
+const DEFAULT_SCREEN_RIGHT: Vector3 = Vector3(0.70710678118, 0.0, -0.70710678118)
+const DEFAULT_FALLBACK_FORWARD: Vector3 = DEFAULT_SCREEN_FORWARD
 const MIN_HORIZONTAL_LENGTH_SQ: float = 0.0001
 
 ## Computes the orthogonal horizontal basis (forward and right vectors on the XZ plane)
 ## based on the priority:
-## 1. Valid forced_target horizontal offset from player_pos
-## 2. Horizontal aim_dir
-## 3. Fallback basis forward (defaults to Vector3(0, 0, -1))
+## 1. Valid forced_target horizontal offset from player_pos (target-relative basis)
+## 2. Screen-Relative basis (independent of cursor/aim position)
 ##
 ## Returns Dictionary with:
 ##   "forward": Vector3 (normalized, y=0, non-zero)
 ##   "right": Vector3 (normalized, y=0, non-zero, orthogonal to forward)
 static func calculate_movement_basis(
 	player_pos: Vector3,
-	aim_dir: Vector3,
+	_aim_dir: Vector3 = Vector3.ZERO,
 	forced_target: Variant = null,
 	fallback_fwd: Vector3 = DEFAULT_FALLBACK_FORWARD
 ) -> Dictionary:
 	var forward: Vector3 = Vector3.ZERO
 
-	# 1. Priority 1: valid forced_target
+	# 1. Priority 1: valid forced_target (W to target, S from target, A/D orbital strafe)
 	if forced_target != null and is_instance_valid(forced_target) and forced_target is Node3D:
 		var target_node: Node3D = forced_target as Node3D
 		var target_pos: Vector3 = target_node.global_position if target_node.is_inside_tree() else target_node.position
@@ -33,27 +34,21 @@ static func calculate_movement_basis(
 		if to_target.length_squared() > MIN_HORIZONTAL_LENGTH_SQ and to_target.is_finite():
 			forward = to_target.normalized()
 
-	# 2. Priority 2: current aim_direction
-	if forward.length_squared() <= MIN_HORIZONTAL_LENGTH_SQ:
-		var h_aim: Vector3 = Vector3(aim_dir.x, 0.0, aim_dir.z)
-		if h_aim.length_squared() > MIN_HORIZONTAL_LENGTH_SQ and h_aim.is_finite():
-			forward = h_aim.normalized()
-
-	# 3. Priority 3: fallback basis forward
+	# 2. Priority 2: Screen-Relative basis (cursor/aim does not affect WASD locomotion basis)
 	if forward.length_squared() <= MIN_HORIZONTAL_LENGTH_SQ:
 		var h_fb: Vector3 = Vector3(fallback_fwd.x, 0.0, fallback_fwd.z)
 		if h_fb.length_squared() > MIN_HORIZONTAL_LENGTH_SQ and h_fb.is_finite():
 			forward = h_fb.normalized()
 		else:
-			forward = DEFAULT_FALLBACK_FORWARD
+			forward = DEFAULT_SCREEN_FORWARD
 
 	# Right is perpendicular to forward on XZ plane: forward.cross(Vector3.UP)
-	# For forward = (0, 0, -1) [North], right is (1, 0, 0) [East]
+	# For DEFAULT_SCREEN_FORWARD (-1, 0, -1).normalized(), right is (1, 0, -1).normalized() [Screen Right]
 	var right: Vector3 = forward.cross(Vector3.UP)
 	if right.length_squared() > MIN_HORIZONTAL_LENGTH_SQ and right.is_finite():
 		right = right.normalized()
 	else:
-		right = Vector3(1.0, 0.0, 0.0)
+		right = DEFAULT_SCREEN_RIGHT
 
 	return {
 		"forward": forward,

@@ -5,6 +5,7 @@ class_name ChunkBuilder
 ## for a 16x16 voxel terrain chunk with zero border seams and optimized draw calls.
 
 const CHUNK_SIZE: int = 16
+const SKIRT_DEPTH: float = 16.0
 
 static func build_chunk_terrain(
 	cx: int,
@@ -87,7 +88,18 @@ static func build_chunk_terrain(
 				var s1: Vector3 = Vector3(fx, y_top, fz)
 				var s2: Vector3 = Vector3(fx + 1.0, y_top, fz)
 				var s3: Vector3 = Vector3(fx + 1.0, y_bot, fz)
-				_add_quad(st_cliff, s0, s1, s2, s3, Vector3(0, 0, -1))
+				_add_quad_uv(st_cliff, s0, s1, s2, s3, Vector3(0, 0, -1), y_top - y_bot)
+				count_cliff += 1
+
+			# Perimeter skirt on North chunk boundary (lz == 0) prevents void sightlines
+			if lz == 0:
+				var skirt_top: float = float(min(y, yn))
+				var skirt_bot: float = skirt_top - SKIRT_DEPTH
+				var k0: Vector3 = Vector3(fx, skirt_bot, fz)
+				var k1: Vector3 = Vector3(fx, skirt_top, fz)
+				var k2: Vector3 = Vector3(fx + 1.0, skirt_top, fz)
+				var k3: Vector3 = Vector3(fx + 1.0, skirt_bot, fz)
+				_add_quad_uv(st_cliff, k0, k1, k2, k3, Vector3(0, 0, -1), SKIRT_DEPTH)
 				count_cliff += 1
 
 			# South (+Z)
@@ -98,7 +110,18 @@ static func build_chunk_terrain(
 				var s1: Vector3 = Vector3(fx + 1.0, y_top, fz + 1.0)
 				var s2: Vector3 = Vector3(fx, y_top, fz + 1.0)
 				var s3: Vector3 = Vector3(fx, y_bot, fz + 1.0)
-				_add_quad(st_cliff, s0, s1, s2, s3, Vector3(0, 0, 1))
+				_add_quad_uv(st_cliff, s0, s1, s2, s3, Vector3(0, 0, 1), y_top - y_bot)
+				count_cliff += 1
+
+			# Perimeter skirt on South chunk boundary (lz == CHUNK_SIZE - 1)
+			if lz == CHUNK_SIZE - 1:
+				var skirt_top: float = float(min(y, ys))
+				var skirt_bot: float = skirt_top - SKIRT_DEPTH
+				var k0: Vector3 = Vector3(fx + 1.0, skirt_bot, fz + 1.0)
+				var k1: Vector3 = Vector3(fx + 1.0, skirt_top, fz + 1.0)
+				var k2: Vector3 = Vector3(fx, skirt_top, fz + 1.0)
+				var k3: Vector3 = Vector3(fx, skirt_bot, fz + 1.0)
+				_add_quad_uv(st_cliff, k0, k1, k2, k3, Vector3(0, 0, 1), SKIRT_DEPTH)
 				count_cliff += 1
 
 			# West (-X)
@@ -109,7 +132,18 @@ static func build_chunk_terrain(
 				var s1: Vector3 = Vector3(fx, y_top, fz + 1.0)
 				var s2: Vector3 = Vector3(fx, y_top, fz)
 				var s3: Vector3 = Vector3(fx, y_bot, fz)
-				_add_quad(st_cliff, s0, s1, s2, s3, Vector3(-1, 0, 0))
+				_add_quad_uv(st_cliff, s0, s1, s2, s3, Vector3(-1, 0, 0), y_top - y_bot)
+				count_cliff += 1
+
+			# Perimeter skirt on West chunk boundary (lx == 0)
+			if lx == 0:
+				var skirt_top: float = float(min(y, yw))
+				var skirt_bot: float = skirt_top - SKIRT_DEPTH
+				var k0: Vector3 = Vector3(fx, skirt_bot, fz + 1.0)
+				var k1: Vector3 = Vector3(fx, skirt_top, fz + 1.0)
+				var k2: Vector3 = Vector3(fx, skirt_top, fz)
+				var k3: Vector3 = Vector3(fx, skirt_bot, fz)
+				_add_quad_uv(st_cliff, k0, k1, k2, k3, Vector3(-1, 0, 0), SKIRT_DEPTH)
 				count_cliff += 1
 
 			# East (+X)
@@ -120,7 +154,18 @@ static func build_chunk_terrain(
 				var s1: Vector3 = Vector3(fx + 1.0, y_top, fz)
 				var s2: Vector3 = Vector3(fx + 1.0, y_top, fz + 1.0)
 				var s3: Vector3 = Vector3(fx + 1.0, y_bot, fz + 1.0)
-				_add_quad(st_cliff, s0, s1, s2, s3, Vector3(1, 0, 0))
+				_add_quad_uv(st_cliff, s0, s1, s2, s3, Vector3(1, 0, 0), y_top - y_bot)
+				count_cliff += 1
+
+			# Perimeter skirt on East chunk boundary (lx == CHUNK_SIZE - 1)
+			if lx == CHUNK_SIZE - 1:
+				var skirt_top: float = float(min(y, ye))
+				var skirt_bot: float = skirt_top - SKIRT_DEPTH
+				var k0: Vector3 = Vector3(fx + 1.0, skirt_bot, fz)
+				var k1: Vector3 = Vector3(fx + 1.0, skirt_top, fz)
+				var k2: Vector3 = Vector3(fx + 1.0, skirt_top, fz + 1.0)
+				var k3: Vector3 = Vector3(fx + 1.0, skirt_bot, fz + 1.0)
+				_add_quad_uv(st_cliff, k0, k1, k2, k3, Vector3(1, 0, 0), SKIRT_DEPTH)
 				count_cliff += 1
 
 
@@ -158,4 +203,29 @@ static func _add_quad(st: SurfaceTool, p0: Vector3, p1: Vector3, p2: Vector3, p3
 	st.set_uv(Vector2(1, 1))
 	st.add_vertex(p2)
 	st.set_uv(Vector2(0, 1))
+	st.add_vertex(p3)
+
+static func _add_quad_uv(
+	st: SurfaceTool,
+	p0: Vector3,
+	p1: Vector3,
+	p2: Vector3,
+	p3: Vector3,
+	norm: Vector3,
+	uv_height: float
+) -> void:
+	st.set_normal(norm)
+	st.set_uv(Vector2(0, 0))
+	st.add_vertex(p0)
+	st.set_uv(Vector2(0, uv_height))
+	st.add_vertex(p1)
+	st.set_uv(Vector2(1, uv_height))
+	st.add_vertex(p2)
+
+	st.set_normal(norm)
+	st.set_uv(Vector2(0, 0))
+	st.add_vertex(p0)
+	st.set_uv(Vector2(1, uv_height))
+	st.add_vertex(p2)
+	st.set_uv(Vector2(1, 0))
 	st.add_vertex(p3)

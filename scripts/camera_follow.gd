@@ -78,7 +78,18 @@ func set_distance_preset(preset: int, immediate: bool = false) -> void:
 	if immediate:
 		current_base_offset = target_base_offset
 
+func _init() -> void:
+	set_process(false)
+	physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+
+func _physics_process(delta: float) -> void:
+	step_camera(delta)
+
 func _process(delta: float) -> void:
+	# Allows unit tests to manually step the camera via _process()
+	step_camera(delta)
+
+func step_camera(delta: float) -> void:
 	if not target or not is_instance_valid(target):
 		return
 

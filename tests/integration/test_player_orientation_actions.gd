@@ -41,7 +41,7 @@ func test_backward_and_strafe_speed_scaled_by_curve() -> void:
 	Input.action_press("move_up")
 	player.movement.process_movement(player, 0.016, null, player.directional_speed_multiplier)
 	Input.action_release("move_up")
-	assert_almost_eq(absf(player.velocity.z), player.speed * 1.0, 0.1)
+	assert_almost_eq(Vector2(player.velocity.x, player.velocity.z).length(), player.speed * 1.0, 0.1)
 
 	# 2. Moving backward: 180° -> multiplier 0.50
 	player.orientation.process_orientation(player, 0.016, Vector3(0, 0, -1), Vector3(0, 0, 1))
@@ -49,7 +49,7 @@ func test_backward_and_strafe_speed_scaled_by_curve() -> void:
 	Input.action_press("move_down")
 	player.movement.process_movement(player, 0.016, null, player.directional_speed_multiplier)
 	Input.action_release("move_down")
-	assert_almost_eq(absf(player.velocity.z), player.speed * 0.50, 0.1)
+	assert_almost_eq(Vector2(player.velocity.x, player.velocity.z).length(), player.speed * 0.50, 0.1)
 
 func test_attack_within_tolerance_executes_immediately() -> void:
 	var player = PLAYER_SCENE.instantiate()
