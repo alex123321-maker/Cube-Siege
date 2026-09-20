@@ -29,6 +29,7 @@ var mat_forest: StandardMaterial3D
 var mat_plains: StandardMaterial3D
 var mat_mountains: StandardMaterial3D
 var mat_cliff: StandardMaterial3D
+var mat_turf: StandardMaterial3D
 
 # Preloaded scenes
 const SCENE_TREE = preload("res://scenes/resource_tree.tscn")
@@ -61,56 +62,85 @@ func _exit_tree() -> void:
 func setup_materials() -> void:
 
 	mat_forest = StandardMaterial3D.new()
-	mat_forest.albedo_texture = _create_voxel_texture(Color(0.20, 0.44, 0.20, 1.0), Color(0.15, 0.36, 0.15, 1.0), 0)
+	mat_forest.albedo_texture = _create_voxel_texture(Color(0.22, 0.46, 0.22, 1.0), Color(0.16, 0.36, 0.16, 1.0), 0)
 	mat_forest.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
 	mat_forest.roughness = 0.85
 
 	mat_plains = StandardMaterial3D.new()
-	mat_plains.albedo_texture = _create_voxel_texture(Color(0.38, 0.58, 0.22, 1.0), Color(0.85, 0.82, 0.35, 1.0), 1)
+	mat_plains.albedo_texture = _create_voxel_texture(Color(0.40, 0.60, 0.24, 1.0), Color(0.86, 0.82, 0.36, 1.0), 1)
 	mat_plains.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
 	mat_plains.roughness = 0.85
 
 	mat_mountains = StandardMaterial3D.new()
-	mat_mountains.albedo_texture = _create_voxel_texture(Color(0.48, 0.49, 0.52, 1.0), Color(0.35, 0.36, 0.38, 1.0), 2)
+	mat_mountains.albedo_texture = _create_voxel_texture(Color(0.52, 0.53, 0.56, 1.0), Color(0.42, 0.43, 0.46, 1.0), 2)
 	mat_mountains.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
 	mat_mountains.roughness = 0.90
 
 	mat_cliff = StandardMaterial3D.new()
-	mat_cliff.albedo_texture = _create_voxel_texture(Color(0.32, 0.30, 0.28, 1.0), Color(0.22, 0.20, 0.18, 1.0), 3)
+	mat_cliff.albedo_texture = _create_voxel_texture(Color(0.40, 0.39, 0.41, 1.0), Color(0.30, 0.29, 0.31, 1.0), 3)
 	mat_cliff.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
 	mat_cliff.roughness = 0.92
+
+	mat_turf = StandardMaterial3D.new()
+	mat_turf.albedo_texture = _create_voxel_texture(Color(0.24, 0.44, 0.22, 1.0), Color(0.18, 0.36, 0.18, 1.0), 4)
+	mat_turf.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
+	mat_turf.roughness = 0.88
 
 func _create_voxel_texture(base_col: Color, accent_col: Color, pattern_type: int) -> ImageTexture:
 	var img: Image = Image.create(16, 16, false, Image.FORMAT_RGBA8)
 	for y in range(16):
 		for x in range(16):
 			var col: Color = base_col
-			var is_border: bool = (x == 0 or x == 15 or y == 0 or y == 15)
 			match pattern_type:
-				0: # Forest grass with blade accents
-					if is_border:
-						col = base_col.darkened(0.12)
-					elif ((x * 7 + y * 13) % 11) == 0:
+				0: # Forest grass with organic meadow blades, seamlessly tiling
+					var blade_hash: int = (x * 7 + y * 13) % 11
+					if blade_hash == 0:
 						col = accent_col
-				1: # Plains meadow with tiny wildflower speckles
-					if is_border:
-						col = base_col.darkened(0.08)
-					elif (x == 4 and y == 5) or (x == 11 and y == 12) or (x == 7 and y == 9):
+					elif blade_hash == 5:
+						col = base_col.lightened(0.06)
+					elif blade_hash == 8:
+						col = base_col.darkened(0.06)
+				1: # Plains meadow with subtle wildflowers, seamlessly tiling
+					var grass_hash: int = (x * 11 + y * 7) % 13
+					if (x == 4 and y == 5) or (x == 11 and y == 12) or (x == 7 and y == 9):
+						col = accent_col # wildflower blossom
+					elif grass_hash == 0:
+						col = base_col.lightened(0.08)
+					elif grass_hash == 4:
+						col = base_col.darkened(0.05)
+				2: # Mountain slate: natural faceted rock planes, seamlessly tiling
+					var facet_hash: int = (x * 3 + y * 5) % 17
+					if facet_hash < 3:
+						col = accent_col # deeper chisel
+					elif facet_hash > 13:
+						col = base_col.lightened(0.10) # highlight plane
+					elif ((x + y * 2) % 7) == 0:
+						col = base_col.darkened(0.07)
+				3: # Cliff: natural continuous horizontal strata layers across blocks
+					var strata_band: int = y % 16
+					if strata_band >= 0 and strata_band <= 2:
+						col = accent_col # dark rock stratum
+					elif strata_band >= 7 and strata_band <= 9:
+						col = base_col.lightened(0.12) # warm mineral band
+					elif strata_band == 14:
 						col = accent_col
-				2: # Mountain slate facets and chisel lines
-					if is_border:
-						col = base_col.darkened(0.18)
-					elif ((x + y * 3) % 5) == 0:
-						col = accent_col
-					elif ((x * 2 + y) % 7) == 0:
-						col = base_col.lightened(0.12)
-				3: # Cliff horizontal strata layers
-					if (y % 4) == 0:
-						col = base_col.darkened(0.25)
-					elif (y % 4) == 2:
-						col = accent_col
-					elif is_border:
-						col = base_col.darkened(0.15)
+					else:
+						var grain: int = (x * 7 + y * 3) % 9
+						if grain == 0:
+							col = col.darkened(0.06)
+						elif grain == 5:
+							col = col.lightened(0.05)
+				4: # Turf / earthen riser: top grass fringe blending into rich loam
+					if y <= 2:
+						col = accent_col # grass turf top edge
+					elif y == 3:
+						col = base_col.lerp(accent_col, 0.45)
+					else:
+						var loam_hash: int = (x * 5 + y * 11) % 9
+						if loam_hash == 0:
+							col = base_col.darkened(0.10) # rich dark soil
+						elif loam_hash == 4:
+							col = base_col.lightened(0.08) # pebble fleck
 			img.set_pixel(x, y, col)
 	return ImageTexture.create_from_image(img)
 
@@ -227,7 +257,8 @@ func load_chunk(cx: int, cz: int) -> void:
 		mat_forest,
 		mat_plains,
 		mat_mountains,
-		mat_cliff
+		mat_cliff,
+		mat_turf
 	)
 
 	var mesh: ArrayMesh = terrain_data["mesh"]
