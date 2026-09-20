@@ -23,7 +23,10 @@ func _init() -> void:
 	if mode == "after" and output_dir == "docs/screenshots/issue_25/before":
 		output_dir = "docs/screenshots/issue_25/after"
 
-	print("[TERRAIN-PASS] Running in mode: %s, benchmark_only: %s, output: %s" % [mode, benchmark_only, output_dir])
+	ChunkBuilder.use_legacy_presentation = (mode == "before")
+	print("[TERRAIN-PASS] Running in mode: %s (legacy_presentation: %s), benchmark_only: %s, output: %s" % [
+		mode, ChunkBuilder.use_legacy_presentation, benchmark_only, output_dir
+	])
 	call_deferred("_run")
 
 var watchdog_elapsed: float = 0.0

@@ -11,6 +11,10 @@ const LEDGE_OVERHANG: float = 0.12
 const LEDGE_THICKNESS: float = 0.15
 const BUTTRESS_EXTRUSION: float = 0.14
 
+## Verification harness flag: when true, ChunkBuilder executes the exact 1:1 legacy
+## baseline generation algorithm from base SHA f09d1c4 for reproducible benchmarking.
+static var use_legacy_presentation: bool = false
+
 static func build_chunk_terrain(
 	cx: int,
 	cz: int,
@@ -18,14 +22,28 @@ static func build_chunk_terrain(
 	mat_forest: Material,
 	mat_plains: Material,
 	mat_mountains: Material,
-	mat_cliff: Material,
-	mat_turf: Material = null
+	mat_cliff: Material
+) -> Dictionary:
+	if use_legacy_presentation:
+		return _build_chunk_terrain_legacy(cx, cz, seed_val, mat_forest, mat_plains, mat_mountains, mat_cliff)
+	return _build_chunk_terrain_modern(cx, cz, seed_val, mat_forest, mat_plains, mat_mountains, mat_cliff)
+
+# =============================================================================
+# Modern Visual Presentation Pass (Issue #25)
+# =============================================================================
+static func _build_chunk_terrain_modern(
+	cx: int,
+	cz: int,
+	seed_val: int,
+	mat_forest: Material,
+	mat_plains: Material,
+	mat_mountains: Material,
+	mat_cliff: Material
 ) -> Dictionary:
 	var st_forest: SurfaceTool = SurfaceTool.new()
 	var st_plains: SurfaceTool = SurfaceTool.new()
 	var st_mountains: SurfaceTool = SurfaceTool.new()
 	var st_cliff: SurfaceTool = SurfaceTool.new()
-	var st_turf: SurfaceTool = SurfaceTool.new()
 	var st_col: SurfaceTool = SurfaceTool.new()
 
 	st_forest.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -40,13 +58,10 @@ static func build_chunk_terrain(
 	st_cliff.begin(Mesh.PRIMITIVE_TRIANGLES)
 	st_cliff.set_material(mat_cliff)
 
-	st_turf.begin(Mesh.PRIMITIVE_TRIANGLES)
-	st_turf.set_material(mat_turf if mat_turf != null else mat_forest)
-
 	st_col.begin(Mesh.PRIMITIVE_TRIANGLES)
 
-	# Surface counts array: [0: Forest, 1: Plains, 2: Mountains, 3: Cliff, 4: Turf]
-	var counts: Array[int] = [0, 0, 0, 0, 0]
+	# Surface counts array: [0: Forest, 1: Plains, 2: Mountains, 3: Cliff]
+	var counts: Array[int] = [0, 0, 0, 0]
 
 	var origin_x: int = cx * CHUNK_SIZE
 	var origin_z: int = cz * CHUNK_SIZE
@@ -110,7 +125,7 @@ static func build_chunk_terrain(
 				# Visual presentation & material classification
 				var visual_res: Dictionary = _resolve_side_presentation(
 					wx, wz, wx, wz - 1, y, yn, cell_biome, seed_val,
-					st_forest, st_plains, st_mountains, st_cliff, st_turf,
+					st_forest, st_plains, st_mountains, st_cliff,
 					Vector3(0, 0, -1)
 				)
 				var st_side: SurfaceTool = visual_res["surface_tool"]
@@ -150,7 +165,7 @@ static func build_chunk_terrain(
 
 				var visual_res: Dictionary = _resolve_side_presentation(
 					wx, wz, wx, wz + 1, y, ys, cell_biome, seed_val,
-					st_forest, st_plains, st_mountains, st_cliff, st_turf,
+					st_forest, st_plains, st_mountains, st_cliff,
 					Vector3(0, 0, 1)
 				)
 				var st_side: SurfaceTool = visual_res["surface_tool"]
@@ -159,10 +174,10 @@ static func build_chunk_terrain(
 				counts[visual_res["type"]] += 1
 
 				if visual_res["has_dressing"]:
-					_add_ledge_dressing_south(st_cliff, fx, y_top, fz + 1.0)
+					_add_ledge_dressing_south(st_cliff, fx, y_top, fz)
 					counts[3] += 3
 				if visual_res["has_buttress"]:
-					_add_buttress_south(st_cliff, fx, y_bot, y_top, fz + 1.0)
+					_add_buttress_south(st_cliff, fx, y_bot, y_top, fz)
 					counts[3] += 3
 
 			# Perimeter skirt on South chunk boundary (lz == CHUNK_SIZE - 1)
@@ -189,7 +204,7 @@ static func build_chunk_terrain(
 
 				var visual_res: Dictionary = _resolve_side_presentation(
 					wx, wz, wx - 1, wz, y, yw, cell_biome, seed_val,
-					st_forest, st_plains, st_mountains, st_cliff, st_turf,
+					st_forest, st_plains, st_mountains, st_cliff,
 					Vector3(-1, 0, 0)
 				)
 				var st_side: SurfaceTool = visual_res["surface_tool"]
@@ -228,7 +243,7 @@ static func build_chunk_terrain(
 
 				var visual_res: Dictionary = _resolve_side_presentation(
 					wx, wz, wx + 1, wz, y, ye, cell_biome, seed_val,
-					st_forest, st_plains, st_mountains, st_cliff, st_turf,
+					st_forest, st_plains, st_mountains, st_cliff,
 					Vector3(1, 0, 0)
 				)
 				var st_side: SurfaceTool = visual_res["surface_tool"]
@@ -237,10 +252,10 @@ static func build_chunk_terrain(
 				counts[visual_res["type"]] += 1
 
 				if visual_res["has_dressing"]:
-					_add_ledge_dressing_east(st_cliff, fx + 1.0, y_top, fz)
+					_add_ledge_dressing_east(st_cliff, fx, y_top, fz)
 					counts[3] += 3
 				if visual_res["has_buttress"]:
-					_add_buttress_east(st_cliff, fx + 1.0, y_bot, y_top, fz)
+					_add_buttress_east(st_cliff, fx, y_bot, y_top, fz)
 					counts[3] += 3
 
 			# Perimeter skirt on East chunk boundary (lx == CHUNK_SIZE - 1)
@@ -254,7 +269,6 @@ static func build_chunk_terrain(
 				_add_side_quad_uv(st_cliff, k0, k1, k2, k3, Vector3(1, 0, 0), fz, fz + 1.0, skirt_bot, skirt_top)
 				counts[3] += 1
 
-	# Commit visual mesh surfaces
 	var mesh: ArrayMesh = ArrayMesh.new()
 	if counts[0] > 0:
 		st_forest.commit(mesh)
@@ -264,14 +278,11 @@ static func build_chunk_terrain(
 		st_mountains.commit(mesh)
 	if counts[3] > 0:
 		st_cliff.commit(mesh)
-	if counts[4] > 0:
-		st_turf.commit(mesh)
 
-	# Commit authoritative collision shape
+	# Collision Shape3D: generated strictly from authoritative voxel quads
+	var shape: Shape3D = null
 	var col_mesh: ArrayMesh = ArrayMesh.new()
 	st_col.commit(col_mesh)
-
-	var shape: Shape3D = null
 	if col_mesh.get_surface_count() > 0:
 		shape = col_mesh.create_trimesh_shape()
 
@@ -280,70 +291,36 @@ static func build_chunk_terrain(
 		"shape": shape
 	}
 
+# -----------------------------------------------------------------------------
+# Organic Side Presentation Resolver
+# -----------------------------------------------------------------------------
 static func _resolve_side_presentation(
 	wx: int,
 	wz: int,
-	nx: int,
-	nz: int,
-	y: int,
-	yn: int,
-	cell_biome: int,
+	_wnx: int,
+	_wnz: int,
+	y_from: int,
+	y_to: int,
+	from_biome: int,
 	seed_val: int,
 	st_forest: SurfaceTool,
 	st_plains: SurfaceTool,
 	st_mountains: SurfaceTool,
 	st_cliff: SurfaceTool,
-	st_turf: SurfaceTool,
-	base_normal: Vector3
+	dir: Vector3
 ) -> Dictionary:
-	var h_drop: int = y - yn
-	var is_trail_step: bool = BiomeSystem.is_mountain_trail(wx, wz, seed_val) or BiomeSystem.is_mountain_trail(nx, nz, seed_val)
+	var h_drop: int = y_from - y_to
 
-	# Softened normal for 1-meter terrace steps catches sunlight from above,
-	# completely eliminating the harsh black terminator shadow stripe
-	var softened_normal: Vector3 = Vector3(base_normal.x * 0.4, 0.9, base_normal.z * 0.4).normalized()
+	# BLOCKER 1 FIX:
+	# Gameplay traversal contract is strictly |Δheight| <= 1.
+	# Only walkable drops (h_drop <= 1) receive gentle visual treatment (softened upward normal).
+	# Any drop >= 2 is an impassable vertical barrier and MUST be visually presented
+	# as an impassable rock cliff with perpendicular normal and cliff material.
+	if h_drop <= 1:
+		var softened_normal: Vector3 = Vector3(dir.x * 0.4, 0.9, dir.z * 0.4).normalized()
 
-	# 1. Mountain trail: preserve clean stone path appearance without zebra stripes
-	if is_trail_step and h_drop <= 1:
-		return {
-			"surface_tool": st_mountains,
-			"normal": softened_normal,
-			"type": 2,
-			"has_dressing": false,
-			"has_buttress": false
-		}
-
-	# 2. Forest / Plains gentle slope step: use matching grass material for seamless grassy hillside
-	if h_drop <= 2 and cell_biome != 2:
-		var grass_tool: SurfaceTool = st_forest if cell_biome == 0 else st_plains
-		var grass_type: int = cell_biome
-		return {
-			"surface_tool": grass_tool,
-			"normal": softened_normal,
-			"type": grass_type,
-			"has_dressing": false,
-			"has_buttress": false
-		}
-
-	# 3. Mountains: group slopes into broad stone terrace masses and distinct cliff clusters
-	if cell_biome == 2:
-		# Coherent spatial clustering for natural rock bluffs vs broad terrace masses
-		var cx_f: float = float(wx) * 0.18
-		var cz_f: float = float(wz) * 0.18
-		var seed_phase: float = float(seed_val % 79) * 0.12
-		var cluster_field: float = sin(cx_f + seed_phase) * cos(cz_f * 0.85 + seed_phase * 0.7) + sin((cx_f + cz_f) * 0.5) * 0.35
-
-		# A cliff cluster forms bold escarpments in high-relief zones
-		var is_cliff_cluster: bool = false
-		if h_drop >= 3:
-			is_cliff_cluster = true
-		elif h_drop >= 2:
-			is_cliff_cluster = (cluster_field > -0.10)
-		elif h_drop == 1 and (y % 4 == 0):
-			is_cliff_cluster = (cluster_field > 0.40)
-
-		if not is_cliff_cluster:
-			# Cohesive mountain slate terrace step
+		# Mountain trail steps and mountain biome terraces
+		if from_biome == BiomeSystem.BiomeType.MOUNTAINS or BiomeSystem.is_mountain_trail(wx, wz, seed_val):
 			return {
 				"surface_tool": st_mountains,
 				"normal": softened_normal,
@@ -351,27 +328,46 @@ static func _resolve_side_presentation(
 				"has_dressing": false,
 				"has_buttress": false
 			}
-		else:
-			# Bold cliff face with stratified rock texture and optional ledge dressing
-			var has_dressing: bool = (h_drop >= 2)
-			var has_buttress: bool = (h_drop >= 3) and (((wx * 11 + wz * 17 + seed_val) % 3) == 0)
+		elif from_biome == BiomeSystem.BiomeType.PLAINS:
 			return {
-				"surface_tool": st_cliff,
-				"normal": base_normal,
-				"type": 3,
-				"has_dressing": has_dressing,
-				"has_buttress": has_buttress
+				"surface_tool": st_plains,
+				"normal": softened_normal,
+				"type": 1,
+				"has_dressing": false,
+				"has_buttress": false
+			}
+		else: # FOREST
+			return {
+				"surface_tool": st_forest,
+				"normal": softened_normal,
+				"type": 0,
+				"has_dressing": false,
+				"has_buttress": false
 			}
 
-	# 4. Sheer drops in other biomes (h_drop >= 3): Exposed bedrock cliff
+	# High cliffs / impassable drops (h_drop >= 2)
+	# Crisp perpendicular normal for bold stylized shadow contrast and unmistakable impassable reading
+	var norm_cliff: Vector3 = dir
+	var has_dressing: bool = true
+	var has_buttress: bool = (h_drop >= 3) and ((_hash2d(wx, wz) % 3) == 0)
+
 	return {
 		"surface_tool": st_cliff,
-		"normal": base_normal,
+		"normal": norm_cliff,
 		"type": 3,
-		"has_dressing": true,
-		"has_buttress": (h_drop >= 3) and (((wx * 13 + wz * 23 + seed_val) % 3) == 0)
+		"has_dressing": has_dressing,
+		"has_buttress": has_buttress
 	}
 
+# -----------------------------------------------------------------------------
+# Spatial Hashing
+# -----------------------------------------------------------------------------
+static func _hash2d(ix: int, iz: int) -> int:
+	return int((ix * 374761393) ^ (iz * 668265263)) & 0x7fffffff
+
+# -----------------------------------------------------------------------------
+# Geometry Helpers (World-Aligned UVs)
+# -----------------------------------------------------------------------------
 static func _add_quad_world_uv(
 	st: SurfaceTool,
 	p0: Vector3,
@@ -449,14 +445,14 @@ static func _add_ledge_dressing_north(st: SurfaceTool, fx: float, y_top: float, 
 	var t3: Vector3 = Vector3(fx, y_top, z_over)
 	_add_quad_world_uv(st, t0, t1, t2, t3, Vector3.UP, Vector2(fx, fz), Vector2(fx + 1.0, z_over))
 
-	# Front face of ledge
+	# Front face of overhanging ledge
 	var f0: Vector3 = Vector3(fx, y_lip, z_over)
 	var f1: Vector3 = Vector3(fx, y_top, z_over)
 	var f2: Vector3 = Vector3(fx + 1.0, y_top, z_over)
 	var f3: Vector3 = Vector3(fx + 1.0, y_lip, z_over)
 	_add_side_quad_uv(st, f0, f1, f2, f3, Vector3(0, 0, -1), fx, fx + 1.0, y_lip, y_top)
 
-	# Underside return
+	# Bottom undercut of overhanging ledge
 	var b0: Vector3 = Vector3(fx, y_lip, z_over)
 	var b1: Vector3 = Vector3(fx + 1.0, y_lip, z_over)
 	var b2: Vector3 = Vector3(fx + 1.0, y_lip, fz)
@@ -615,11 +611,229 @@ static func _add_buttress_east(st: SurfaceTool, fx: float, y_bot: float, y_top: 
 	var s_n0: Vector3 = Vector3(fx, y_bot, fz + 0.15)
 	var s_n1: Vector3 = Vector3(fx, y_high, fz + 0.15)
 	var s_n2: Vector3 = Vector3(x_b, y_high, fz + 0.15)
-	var s_n3: Vector3 = Vector3(x_b, y_bot, fz + 0.15)
+	var s_n3: Vector3 = Vector3(fx, y_bot, fz + 0.15)
 	_add_side_quad_uv(st, s_n0, s_n1, s_n2, s_n3, Vector3(0, 0, -1), fx, x_b, y_bot, y_high)
 
 	var s_s0: Vector3 = Vector3(x_b, y_bot, fz + 0.85)
 	var s_s1: Vector3 = Vector3(x_b, y_high, fz + 0.85)
 	var s_s2: Vector3 = Vector3(fx, y_high, fz + 0.85)
-	var s_s3: Vector3 = Vector3(fx, y_bot, fz + 0.85)
+	var s_s3: Vector3 = Vector3(x_b, y_bot, fz + 0.85)
 	_add_side_quad_uv(st, s_s0, s_s1, s_s2, s_s3, Vector3(0, 0, 1), x_b, fx, y_bot, y_high)
+
+# =============================================================================
+# Legacy Baseline Generation (1:1 emulation of base SHA f09d1c4)
+# =============================================================================
+static func _build_chunk_terrain_legacy(
+	cx: int,
+	cz: int,
+	seed_val: int,
+	mat_forest: Material,
+	mat_plains: Material,
+	mat_mountains: Material,
+	mat_cliff: Material
+) -> Dictionary:
+	var st_forest: SurfaceTool = SurfaceTool.new()
+	var st_plains: SurfaceTool = SurfaceTool.new()
+	var st_mountains: SurfaceTool = SurfaceTool.new()
+	var st_cliff: SurfaceTool = SurfaceTool.new()
+
+	st_forest.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st_forest.set_material(mat_forest)
+
+	st_plains.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st_plains.set_material(mat_plains)
+
+	st_mountains.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st_mountains.set_material(mat_mountains)
+
+	st_cliff.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st_cliff.set_material(mat_cliff)
+
+	var count_forest: int = 0
+	var count_plains: int = 0
+	var count_mountains: int = 0
+	var count_cliff: int = 0
+
+	var origin_x: int = cx * CHUNK_SIZE
+	var origin_z: int = cz * CHUNK_SIZE
+
+	for lz in range(CHUNK_SIZE):
+		for lx in range(CHUNK_SIZE):
+			var wx: int = origin_x + lx
+			var wz: int = origin_z + lz
+
+			var y: int = BiomeSystem.get_voxel_height(wx, wz, seed_val)
+			var y_top: float = float(y)
+
+			var biome_info: Dictionary = BiomeSystem.sample_biome_weights(float(wx) + 0.5, float(wz) + 0.5, seed_val)
+			var weights: Dictionary = biome_info["weights"]
+			var wf: float = weights.get(BiomeSystem.BiomeType.FOREST, 0.0)
+			var wp: float = weights.get(BiomeSystem.BiomeType.PLAINS, 0.0)
+
+			var dither_hash: int = int((wx * 374761393) ^ (wz * 668265263) ^ (seed_val * 1274126177)) & 0x7fffffff
+			var dither_val: float = float(dither_hash % 10000) / 10000.0
+
+			var st_top: SurfaceTool = st_mountains
+			if dither_val < wf:
+				st_top = st_forest
+				count_forest += 1
+			elif dither_val < wf + wp:
+				st_top = st_plains
+				count_plains += 1
+			else:
+				count_mountains += 1
+
+			var fx: float = float(wx)
+			var fz: float = float(wz)
+
+			var p0: Vector3 = Vector3(fx, y_top, fz)
+			var p1: Vector3 = Vector3(fx + 1.0, y_top, fz)
+			var p2: Vector3 = Vector3(fx + 1.0, y_top, fz + 1.0)
+			var p3: Vector3 = Vector3(fx, y_top, fz + 1.0)
+
+			_add_quad_legacy(st_top, p0, p1, p2, p3, Vector3.UP)
+
+			# North (-Z)
+			var yn: int = BiomeSystem.get_voxel_height(wx, wz - 1, seed_val)
+			if yn < y:
+				var y_bot: float = float(yn)
+				var s0: Vector3 = Vector3(fx, y_bot, fz)
+				var s1: Vector3 = Vector3(fx, y_top, fz)
+				var s2: Vector3 = Vector3(fx + 1.0, y_top, fz)
+				var s3: Vector3 = Vector3(fx + 1.0, y_bot, fz)
+				_add_quad_uv_legacy(st_cliff, s0, s1, s2, s3, Vector3(0, 0, -1), y_top - y_bot)
+				count_cliff += 1
+
+			if lz == 0:
+				var skirt_top: float = float(min(y, yn))
+				var skirt_bot: float = skirt_top - SKIRT_DEPTH
+				var k0: Vector3 = Vector3(fx, skirt_bot, fz)
+				var k1: Vector3 = Vector3(fx, skirt_top, fz)
+				var k2: Vector3 = Vector3(fx + 1.0, skirt_top, fz)
+				var k3: Vector3 = Vector3(fx + 1.0, skirt_bot, fz)
+				_add_quad_uv_legacy(st_cliff, k0, k1, k2, k3, Vector3(0, 0, -1), SKIRT_DEPTH)
+				count_cliff += 1
+
+			# South (+Z)
+			var ys: int = BiomeSystem.get_voxel_height(wx, wz + 1, seed_val)
+			if ys < y:
+				var y_bot: float = float(ys)
+				var s0: Vector3 = Vector3(fx + 1.0, y_bot, fz + 1.0)
+				var s1: Vector3 = Vector3(fx + 1.0, y_top, fz + 1.0)
+				var s2: Vector3 = Vector3(fx, y_top, fz + 1.0)
+				var s3: Vector3 = Vector3(fx, y_bot, fz + 1.0)
+				_add_quad_uv_legacy(st_cliff, s0, s1, s2, s3, Vector3(0, 0, 1), y_top - y_bot)
+				count_cliff += 1
+
+			if lz == CHUNK_SIZE - 1:
+				var skirt_top: float = float(min(y, ys))
+				var skirt_bot: float = skirt_top - SKIRT_DEPTH
+				var k0: Vector3 = Vector3(fx + 1.0, skirt_bot, fz + 1.0)
+				var k1: Vector3 = Vector3(fx + 1.0, skirt_top, fz + 1.0)
+				var k2: Vector3 = Vector3(fx, skirt_top, fz + 1.0)
+				var k3: Vector3 = Vector3(fx, skirt_bot, fz + 1.0)
+				_add_quad_uv_legacy(st_cliff, k0, k1, k2, k3, Vector3(0, 0, 1), SKIRT_DEPTH)
+				count_cliff += 1
+
+			# West (-X)
+			var yw: int = BiomeSystem.get_voxel_height(wx - 1, wz, seed_val)
+			if yw < y:
+				var y_bot: float = float(yw)
+				var s0: Vector3 = Vector3(fx, y_bot, fz + 1.0)
+				var s1: Vector3 = Vector3(fx, y_top, fz + 1.0)
+				var s2: Vector3 = Vector3(fx, y_top, fz)
+				var s3: Vector3 = Vector3(fx, y_bot, fz)
+				_add_quad_uv_legacy(st_cliff, s0, s1, s2, s3, Vector3(-1, 0, 0), y_top - y_bot)
+				count_cliff += 1
+
+			if lx == 0:
+				var skirt_top: float = float(min(y, yw))
+				var skirt_bot: float = skirt_top - SKIRT_DEPTH
+				var k0: Vector3 = Vector3(fx, skirt_bot, fz + 1.0)
+				var k1: Vector3 = Vector3(fx, skirt_top, fz + 1.0)
+				var k2: Vector3 = Vector3(fx, skirt_top, fz)
+				var k3: Vector3 = Vector3(fx, skirt_bot, fz)
+				_add_quad_uv_legacy(st_cliff, k0, k1, k2, k3, Vector3(-1, 0, 0), SKIRT_DEPTH)
+				count_cliff += 1
+
+			# East (+X)
+			var ye: int = BiomeSystem.get_voxel_height(wx + 1, wz, seed_val)
+			if ye < y:
+				var y_bot: float = float(ye)
+				var s0: Vector3 = Vector3(fx + 1.0, y_bot, fz)
+				var s1: Vector3 = Vector3(fx + 1.0, y_top, fz)
+				var s2: Vector3 = Vector3(fx + 1.0, y_top, fz + 1.0)
+				var s3: Vector3 = Vector3(fx + 1.0, y_bot, fz + 1.0)
+				_add_quad_uv_legacy(st_cliff, s0, s1, s2, s3, Vector3(1, 0, 0), y_top - y_bot)
+				count_cliff += 1
+
+			if lx == CHUNK_SIZE - 1:
+				var skirt_top: float = float(min(y, ye))
+				var skirt_bot: float = skirt_top - SKIRT_DEPTH
+				var k0: Vector3 = Vector3(fx + 1.0, skirt_bot, fz)
+				var k1: Vector3 = Vector3(fx + 1.0, skirt_top, fz)
+				var k2: Vector3 = Vector3(fx + 1.0, skirt_top, fz + 1.0)
+				var k3: Vector3 = Vector3(fx + 1.0, skirt_bot, fz + 1.0)
+				_add_quad_uv_legacy(st_cliff, k0, k1, k2, k3, Vector3(1, 0, 0), SKIRT_DEPTH)
+				count_cliff += 1
+
+	var mesh: ArrayMesh = ArrayMesh.new()
+	if count_forest > 0:
+		st_forest.commit(mesh)
+	if count_plains > 0:
+		st_plains.commit(mesh)
+	if count_mountains > 0:
+		st_mountains.commit(mesh)
+	if count_cliff > 0:
+		st_cliff.commit(mesh)
+
+	var shape: Shape3D = null
+	if mesh.get_surface_count() > 0:
+		shape = mesh.create_trimesh_shape()
+
+	return {
+		"mesh": mesh,
+		"shape": shape
+	}
+
+static func _add_quad_legacy(st: SurfaceTool, p0: Vector3, p1: Vector3, p2: Vector3, p3: Vector3, norm: Vector3) -> void:
+	st.set_normal(norm)
+	st.set_uv(Vector2(0, 0))
+	st.add_vertex(p0)
+	st.set_uv(Vector2(1, 0))
+	st.add_vertex(p1)
+	st.set_uv(Vector2(1, 1))
+	st.add_vertex(p2)
+
+	st.set_normal(norm)
+	st.set_uv(Vector2(0, 0))
+	st.add_vertex(p0)
+	st.set_uv(Vector2(1, 1))
+	st.add_vertex(p2)
+	st.set_uv(Vector2(0, 1))
+	st.add_vertex(p3)
+
+static func _add_quad_uv_legacy(
+	st: SurfaceTool,
+	p0: Vector3,
+	p1: Vector3,
+	p2: Vector3,
+	p3: Vector3,
+	norm: Vector3,
+	uv_height: float
+) -> void:
+	st.set_normal(norm)
+	st.set_uv(Vector2(0, 0))
+	st.add_vertex(p0)
+	st.set_uv(Vector2(0, uv_height))
+	st.add_vertex(p1)
+	st.set_uv(Vector2(1, uv_height))
+	st.add_vertex(p2)
+
+	st.set_normal(norm)
+	st.set_uv(Vector2(0, 0))
+	st.add_vertex(p0)
+	st.set_uv(Vector2(1, uv_height))
+	st.add_vertex(p2)
+	st.set_uv(Vector2(1, 0))
+	st.add_vertex(p3)
