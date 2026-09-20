@@ -53,8 +53,8 @@ In the baseline (base commit `20bca292`):
 | System / Parameter | Actual Baseline (`20bca292`) | Final Overhaul (Current) | Rationale |
 | :--- | :--- | :--- | :--- |
 | **Sun Light Direction** | Parallel to camera (`-35.3°, 45.0°`) | Asymmetric (`-64.0°, 28.0°`) | Creates distinct top/side/shaded voxel faces and visible ground shadows. |
-| **Sun Color & Energy (Day)** | `Color(1.0, 0.96, 0.9)`, Energy `1.0` | `Color(1.0, 0.957, 0.867)`, Energy `1.05` | Warm sunlight accents top/side block faces without blowing out highlights. |
-| **Sun Color & Energy (Night)** | `Color(0.25, 0.35, 0.6)`, Energy `0.3` | `Color(0.416, 0.549, 0.667)`, Energy `0.40` | Directional moonlight definition preserving silhouettes and volume. |
+| **Sun Color & Energy (Day)** | `Color(1.0, 0.96, 0.9)`, Energy `1.0` | `Color(1.0, 0.96, 0.90)`, Energy `1.05` | Warm sunlight accents top/side block faces without blowing out highlights. |
+| **Sun Color & Energy (Night)** | `Color(0.25, 0.35, 0.6)`, Energy `0.3` | `Color(0.58, 0.72, 0.96)`, Energy `0.40` | Directional moonlight definition preserving silhouettes and volume. |
 | **Shadow Cascades** | 4 Splits (`0.1, 0.2, 0.5`), 60m, no blend | 4 Splits (`0.12, 0.28, 0.55`), 70m, blend | Eliminates cascade seam popping and extends shadow reach across frustum. |
 | **Shadow Bias / Normal Bias** | `0.1 / 2.0` (Godot 4.6 default) | `0.03 / 2.0` | Eliminates floating contact gaps at character feet while avoiding acne. |
 | **Shadow Blur** | `1.0` (Godot 4.6 default) | `1.2` | Soft stylized penumbra matching the low-poly block aesthetic. |
@@ -62,7 +62,7 @@ In the baseline (base commit `20bca292`):
 | **SSAO** | Disabled (`false`) | Enabled (`radius 1.0m, intensity 1.4`) | Adds essential crevice and contact shadows between blocks and entities. |
 | **Depth Fog** | Disabled (`false`) | Depth Fog (`begin 40m, end 110m`) | Softens chunk horizon boundaries with zero gameplay occlusion. |
 | **HDR Glow** | Disabled (`false`) | Enabled (`threshold 1.0, bloom 0.12`) | Soft bloom on emissive materials (portal, magic stone, ultimate VFX). |
-| **Ambient Source & Energy** | Sky (`3`), Energy `1.0` (`0.25` night) | Controlled Color (`2`), Energy `0.82` (`0.48` night) | Controlled sky fill contrasting warm sunlight; prevents shadow washing. |
+| **Ambient Source & Energy** | Sky (`3`), Energy `1.0` (`0.25` night) | Controlled Color (`2`), Day `Color(0.68, 0.76, 0.88)` Energy `0.82`, Night `Color(0.28, 0.38, 0.56)` Energy `0.48` | Controlled sky fill contrasting warm sunlight; prevents shadow washing. |
 
 ---
 
