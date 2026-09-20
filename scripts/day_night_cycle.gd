@@ -9,6 +9,7 @@ signal time_updated(seconds_left: float, total_duration: float, is_night: bool)
 
 @export var sun_light_path: NodePath
 @export var world_env_path: NodePath
+@export var lighting_profile: LightingProfile = null
 
 var current_day: int = 1
 var is_night: bool = false
@@ -17,19 +18,19 @@ var time_left: float = 180.0
 var sun_light: DirectionalLight3D = null
 var world_env: WorldEnvironment = null
 
-# Colors for day/sunset/night
-const COLOR_DAY_SUN = Color(1.0, 0.96, 0.9, 1.0)
-const COLOR_SUNSET_SUN = Color(1.0, 0.45, 0.15, 1.0)
-const COLOR_NIGHT_MOON = Color(0.25, 0.35, 0.6, 1.0)
-
-const COLOR_DAY_SKY = Color(0.35, 0.55, 0.85, 1.0)
-const COLOR_NIGHT_SKY = Color(0.04, 0.05, 0.12, 1.0)
+var _lighting_tween: Tween = null
 
 func _ready() -> void:
+	if not lighting_profile:
+		lighting_profile = LightingProfile.new()
+
 	if has_node(sun_light_path):
 		sun_light = get_node(sun_light_path)
 	if has_node(world_env_path):
 		world_env = get_node(world_env_path)
+
+	if lighting_profile:
+		lighting_profile.apply_base_setup(sun_light, world_env)
 
 	time_left = day_duration
 	is_night = false
@@ -79,37 +80,31 @@ func skip_to_night() -> void:
 	if not is_night:
 		start_night()
 
-
 func transition_lighting(to_night: bool) -> void:
 	if not sun_light:
 		return
-
-	var tween: Tween = create_tween()
-	tween.set_parallel(true)
-
-	if to_night:
-		# Sunset to Moon
-		tween.tween_property(sun_light, "light_color", COLOR_NIGHT_MOON, 3.0)
-		tween.tween_property(sun_light, "light_energy", 0.3, 3.0)
-		if world_env and world_env.environment:
-			tween.tween_property(world_env.environment, "ambient_light_energy", 0.25, 3.0)
-	else:
-		# Sunrise to Day
-		tween.tween_property(sun_light, "light_color", COLOR_DAY_SUN, 3.0)
-		tween.tween_property(sun_light, "light_energy", 1.0, 3.0)
-		if world_env and world_env.environment:
-			tween.tween_property(world_env.environment, "ambient_light_energy", 1.0, 3.0)
+	if is_instance_valid(_lighting_tween) and _lighting_tween.is_running():
+		_lighting_tween.kill()
+	if not lighting_profile:
+		lighting_profile = LightingProfile.new()
+	_lighting_tween = lighting_profile.create_transition_tween(self, sun_light, world_env, to_night, 3.0)
 
 func update_ambient_lighting(_delta: float) -> void:
 	if not is_night and time_left <= 30.0 and sun_light:
-		# Gradual sunset shift in last 20 seconds of day
+		# If a transition tween is running, let it complete
+		if is_instance_valid(_lighting_tween) and _lighting_tween.is_running():
+			return
+		# Gradual sunset shift in last 30 seconds of day
 		var sunset_t: float = 1.0 - (time_left / 30.0)
-		sun_light.light_color = COLOR_DAY_SUN.lerp(COLOR_SUNSET_SUN, sunset_t)
-		sun_light.light_energy = lerp(1.0, 0.6, sunset_t)
+		if lighting_profile:
+			lighting_profile.apply_sunset_lerp(sun_light, world_env, sunset_t)
 
 func apply_lighting_state() -> void:
-	if sun_light:
-		sun_light.light_color = COLOR_DAY_SUN
-		sun_light.light_energy = 1.0
-	if world_env and world_env.environment:
-		world_env.environment.ambient_light_energy = 1.0
+	if is_instance_valid(_lighting_tween) and _lighting_tween.is_running():
+		_lighting_tween.kill()
+	if not lighting_profile:
+		lighting_profile = LightingProfile.new()
+	if is_night:
+		lighting_profile.apply_night_instant(sun_light, world_env)
+	else:
+		lighting_profile.apply_day_instant(sun_light, world_env)

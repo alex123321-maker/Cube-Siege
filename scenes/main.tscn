@@ -23,10 +23,10 @@
 [ext_resource type="PackedScene" path="res://scenes/settings_modal.tscn" id="22_settingsmodal"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_main"]
-sky_top_color = Color(0.35, 0.55, 0.85, 1.0)
-sky_horizon_color = Color(0.7, 0.75, 0.82, 1.0)
-ground_bottom_color = Color(0.2, 0.22, 0.25, 1.0)
-ground_horizon_color = Color(0.7, 0.75, 0.82, 1.0)
+sky_top_color = Color(0.26, 0.5, 0.86, 1)
+sky_horizon_color = Color(0.66, 0.76, 0.88, 1)
+ground_bottom_color = Color(0.15, 0.18, 0.22, 1)
+ground_horizon_color = Color(0.58, 0.68, 0.78, 1)
 
 [sub_resource type="Sky" id="Sky_main"]
 sky_material = SubResource("ProceduralSkyMaterial_main")
@@ -34,10 +34,31 @@ sky_material = SubResource("ProceduralSkyMaterial_main")
 [sub_resource type="Environment" id="Environment_main"]
 background_mode = 2
 sky = SubResource("Sky_main")
-ambient_light_source = 3
-ambient_light_color = Color(0.65, 0.7, 0.78, 1.0)
-ambient_light_energy = 1.0
-tonemap_mode = 2
+ambient_light_source = 2
+ambient_light_color = Color(0.68, 0.76, 0.88, 1)
+ambient_light_energy = 0.82
+tonemap_mode = 3
+tonemap_exposure = 1.1
+ssao_enabled = true
+ssao_radius = 1.0
+ssao_intensity = 1.4
+ssao_power = 1.5
+ssao_detail = 0.5
+ssao_horizon = 0.06
+ssao_sharpness = 0.98
+ssao_light_affect = 0.2
+glow_enabled = true
+glow_normalized = true
+glow_intensity = 0.35
+glow_bloom = 0.12
+glow_hdr_threshold = 1.0
+fog_enabled = true
+fog_mode = 1
+fog_light_color = Color(0.62, 0.72, 0.86, 1)
+fog_light_energy = 0.85
+fog_depth_curve = 1.2
+fog_depth_begin = 40.0
+fog_depth_end = 110.0
 
 [sub_resource type="StyleBoxFlat" id="StyleBox_HP_Fill"]
 bg_color = Color(0.85, 0.2, 0.2, 1.0)
@@ -75,9 +96,20 @@ script = ExtResource("8_building")
 environment = SubResource("Environment_main")
 
 [node name="SunLight" type="DirectionalLight3D" parent="."]
-transform = Transform3D(0.707107, -0.5, 0.5, 0, 0.707107, 0.707107, -0.707107, -0.5, 0.5, 0, 20, 0)
+transform = Transform3D(0.882948, 0, 0.469472, -0.421958, 0.438371, 0.793588, -0.205803, -0.898794, 0.387059, 0, 20, 0)
+light_color = Color(1, 0.96, 0.9, 1)
+light_energy = 1.05
 shadow_enabled = true
-directional_shadow_max_distance = 60.0
+shadow_bias = 0.03
+shadow_normal_bias = 2.0
+shadow_blur = 1.2
+directional_shadow_mode = 2
+directional_shadow_split_1 = 0.12
+directional_shadow_split_2 = 0.28
+directional_shadow_split_3 = 0.55
+directional_shadow_blend_splits = true
+directional_shadow_fade_start = 0.8
+directional_shadow_max_distance = 70.0
 
 [node name="MapGenerator" parent="." instance=ExtResource("17_mapgen")]
 
