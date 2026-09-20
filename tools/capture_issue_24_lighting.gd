@@ -46,37 +46,65 @@ func _capture_viewport(file_name: String) -> void:
 		print("  [CAPTURE] Saved: %s" % full_path)
 
 func _apply_baseline_setup(sun_light: DirectionalLight3D, world_env: WorldEnvironment) -> void:
-	# Directional light baseline (parallel to isometric camera)
-	sun_light.rotation_degrees = Vector3(-35.264, 45.0, 0.0)
+	# Directional light baseline transform from base main.tscn (SHA 20bca292)
+	# transform = Transform3D(0.707107, -0.5, 0.5, 0, 0.707107, 0.707107, -0.707107, -0.5, 0.5, 0, 20, 0)
+	sun_light.transform = Transform3D(
+		Vector3(0.707107, -0.5, 0.5),
+		Vector3(0.0, 0.707107, 0.707107),
+		Vector3(-0.707107, -0.5, 0.5),
+		Vector3(0.0, 20.0, 0.0)
+	)
+
+	# Actual base main.tscn & Godot 4.6 implicit defaults:
+	# 4-splits parallel shadow cascades with default 0.1/0.2/0.5 splits and 60m max distance
 	sun_light.shadow_enabled = true
-	sun_light.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
+	sun_light.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
+	sun_light.directional_shadow_split_1 = 0.1
+	sun_light.directional_shadow_split_2 = 0.2
+	sun_light.directional_shadow_split_3 = 0.5
+	sun_light.directional_shadow_blend_splits = false
 	sun_light.directional_shadow_max_distance = 60.0
 	sun_light.shadow_bias = 0.1
-	sun_light.shadow_normal_bias = 0.0
+	sun_light.shadow_normal_bias = 2.0
 	sun_light.shadow_blur = 1.0
 
-	# WorldEnvironment baseline (Filmic, no SSAO, no Fog, no Glow)
+	# WorldEnvironment baseline from base main.tscn (SHA 20bca292):
 	if world_env and world_env.environment:
 		var env: Environment = world_env.environment
+		env.background_mode = Environment.BG_SKY
+
+		# Exact ProceduralSkyMaterial from base main.tscn:
+		var sky_mat := ProceduralSkyMaterial.new()
+		sky_mat.sky_top_color = Color(0.35, 0.55, 0.85, 1.0)
+		sky_mat.sky_horizon_color = Color(0.7, 0.75, 0.82, 1.0)
+		sky_mat.ground_bottom_color = Color(0.2, 0.22, 0.25, 1.0)
+		sky_mat.ground_horizon_color = Color(0.7, 0.75, 0.82, 1.0)
+		var sky := Sky.new()
+		sky.sky_material = sky_mat
+		env.sky = sky
+
+		env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
+		env.ambient_light_color = Color(0.65, 0.7, 0.78, 1.0)
+		env.ambient_light_energy = 1.0
 		env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 		env.tonemap_exposure = 1.0
 		env.ssao_enabled = false
 		env.fog_enabled = false
 		env.glow_enabled = false
-		env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-		env.ambient_light_energy = 1.0
 
 func _apply_baseline_day(sun_light: DirectionalLight3D, world_env: WorldEnvironment) -> void:
-	sun_light.light_color = Color(1.0, 1.0, 1.0)
+	# Actual baseline day colors from scripts/day_night_cycle.gd (SHA 20bca292)
+	sun_light.light_color = Color(1.0, 0.96, 0.9, 1.0)
 	sun_light.light_energy = 1.0
 	if world_env and world_env.environment:
 		world_env.environment.ambient_light_energy = 1.0
 
 func _apply_baseline_night(sun_light: DirectionalLight3D, world_env: WorldEnvironment) -> void:
-	sun_light.light_color = Color(0.27, 0.43, 0.67)
-	sun_light.light_energy = 0.2
+	# Actual baseline night colors from scripts/day_night_cycle.gd (SHA 20bca292)
+	sun_light.light_color = Color(0.25, 0.35, 0.6, 1.0)
+	sun_light.light_energy = 0.3
 	if world_env and world_env.environment:
-		world_env.environment.ambient_light_energy = 0.2
+		world_env.environment.ambient_light_energy = 0.25
 
 func _measure_performance(frames: int = 120, warmup: int = 20) -> Dictionary:
 	for w in range(warmup):
@@ -127,6 +155,7 @@ func _run() -> void:
 
 	# Apply baseline configuration if running in before mode
 	if mode == "before":
+		day_night.lighting_profile = null
 		_apply_baseline_setup(sun_light, world_env)
 	else:
 		# Ensure profile is fully applied for after mode
@@ -304,7 +333,7 @@ func _run() -> void:
 			"baseline_day": base_day,
 			"baseline_night": base_night,
 			"without_shadows": base_no_shadows,
-			"shadow_cost_ms": snapped(base_day["frame_time_ms"] - base_no_shadows["frame_time_ms"], 0.01)
+			"baseline_shadow_cost_ms": snapped(base_day["frame_time_ms"] - base_no_shadows["frame_time_ms"], 0.01)
 		}
 
 	else:
@@ -350,10 +379,18 @@ func _run() -> void:
 		var no_shadows = await _measure_performance(120, 20)
 		sun_light.shadow_enabled = true
 
-		# 3e. With 1-Split Shadows (Baseline Orthogonal Mode)
-		sun_light.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
-		var one_split = await _measure_performance(120, 20)
-		sun_light.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS
+		# 3e. With Baseline Shadow Cascade Splits & Settings (0.1/0.2/0.5, blend_splits=false, max_distance=60)
+		sun_light.directional_shadow_split_1 = 0.1
+		sun_light.directional_shadow_split_2 = 0.2
+		sun_light.directional_shadow_split_3 = 0.5
+		sun_light.directional_shadow_blend_splits = false
+		sun_light.directional_shadow_max_distance = 60.0
+		var base_splits = await _measure_performance(120, 20)
+		sun_light.directional_shadow_split_1 = 0.12
+		sun_light.directional_shadow_split_2 = 0.28
+		sun_light.directional_shadow_split_3 = 0.55
+		sun_light.directional_shadow_blend_splits = true
+		sun_light.directional_shadow_max_distance = 70.0
 
 		var base_ft: float = full_day["frame_time_ms"]
 		perf_report["ablation"] = {
@@ -367,8 +404,8 @@ func _run() -> void:
 			"glow_cost_ms": snapped(base_ft - no_glow["frame_time_ms"], 0.01),
 			"without_shadows": no_shadows,
 			"directional_shadow_total_cost_ms": snapped(base_ft - no_shadows["frame_time_ms"], 0.01),
-			"with_1_split_shadows": one_split,
-			"cost_4_splits_vs_1_split_ms": snapped(base_ft - one_split["frame_time_ms"], 0.01)
+			"with_baseline_splits_and_no_blend": base_splits,
+			"cascade_tuning_and_blending_delta_ms": snapped(base_ft - base_splits["frame_time_ms"], 0.01)
 		}
 
 	for node in spawned_entities:
