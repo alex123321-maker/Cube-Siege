@@ -14,7 +14,7 @@ In the previous baseline:
 - Day/Night lighting was driven by hardcoded magic numbers scattered in `DayNightCycle._process()`.
 
 ### Technical Solution
-1. **Centralized Data-Driven Architecture**: Created [`LightingProfile`](file:///d:/Repository/game/scripts/resources/lighting_profile.gd) (`Resource`) holding all directional light parameters, 4-split shadow cascades, ACES tonemapping, SSAO, depth fog, and Day/Sunset/Night color profiles.
+1. **Centralized Data-Driven Architecture**: Created [`LightingProfile`](../scripts/resources/lighting_profile.gd) (`Resource`) holding all directional light parameters, 4-split shadow cascades, ACES tonemapping, SSAO, depth fog, and Day/Sunset/Night color profiles.
 2. **Asymmetric Isometric Lighting**: Rotated `DirectionalLight3D` to `(-64.0, 28.0, 0.0)` in Euler space. Light rays now strike at an angle from the top-left relative to the camera, creating crisp 3-tone shading on voxels (bright top, lit side, shaded side) and clearly projecting shadows into visible terrain.
 3. **Optimized Forward+ Shadow Cascades**:
    - `directional_shadow_mode = SHADOW_PARALLEL_4_SPLITS` (4 PSSM cascades).
@@ -42,7 +42,7 @@ In the previous baseline:
 | **Day/night transitions сохраняют gameplay timings** | ✅ PASS | GDD canonical timings (`180s` day, `120s` night) and 3-second sunset/sunrise tweens strictly preserved. |
 | **Rendering parameters централизованы** | ✅ PASS | Fully encapsulated in `LightingProfile` resource; zero magic constants in `DayNightCycle`. |
 | **Before/after capture set приложен** | ✅ PASS | All 6 pairs captured with identical seeds (`1337`) and camera positions in `docs/screenshots/issue_24/`. |
-| **Performance regression измерен и документирован** | ✅ PASS | Telemetry benchmark measured: Day `32.9 FPS` (30.4 ms), Night `32.7 FPS` (30.5 ms) — **0% regression**. |
+| **Performance regression измерен и документирован** | ✅ PASS | VSync-disabled hardware benchmark: Day `300.3 FPS` (3.33 ms) vs Baseline `380.0 FPS` (2.63 ms). Cost is ~0.70 ms, comfortably exceeding 60 FPS target (>300 FPS). Individual ablation costs fully measured. |
 | **CI/headless checks green** | ✅ PASS | Full `python tools/verify.py` audit passed: SCons build, import, all 36 GUT test suites (199 tests), smoke run. |
 
 ---
@@ -52,6 +52,7 @@ In the previous baseline:
 | System / Parameter | Baseline (Previous) | Final Overhaul (Current) | Rationale |
 | :--- | :--- | :--- | :--- |
 | **Sun Light Angle** | Parallel to camera (`-35.3°, 45.0°`) | Asymmetric (`-64.0°, 28.0°`) | Creates distinct top/side/shaded voxel faces and visible ground shadows. |
+| **Sun Energy (Day)** | `1.0` | `1.05` (`#FFF4DD`) | Crisp daylight with subtle warm tint without blowing out highlights. |
 | **Shadow Cascades** | Default single split, 60m | 4 Splits (`0.12, 0.28, 0.55`), 70m | Razor-sharp near player, smooth distant coverage, 0 cascade popping. |
 | **Shadow Bias / Normal Bias** | Default (`0.1 / 0.0`) | `0.03 / 2.0` | Eliminates peter-panning at character feet and surface acne on voxels. |
 | **Shadow Blur** | Default (`1.0`) | `1.2` | Soft stylized penumbra matching the low-poly aesthetic. |
@@ -65,16 +66,36 @@ In the previous baseline:
 
 ## 4. Performance & Telemetry Benchmark
 
-Benchmarked on hardware GPU (Intel Arc Graphics, Vulkan 1.4 Forward+) under identical world streaming conditions (Seed `1337`, 49 active chunks):
+Benchmarked on hardware GPU (**Intel Arc Graphics, Vulkan 1.4 Forward+**) under identical world streaming conditions (Seed `1337`, 49 active chunks, resolution `1280x720`, 120 frames per run) with **VSync strictly disabled** (`DisplayServer.VSYNC_DISABLED` and `Engine.max_fps = 0`):
 
-| Metric | Baseline (Before) | Overhaul (After) | Delta |
-| :--- | :---: | :---: | :---: |
-| **Daytime FPS** | 32.8 FPS | 32.9 FPS | +0.1 FPS |
-| **Daytime Frame Time** | 30.47 ms | 30.42 ms | -0.05 ms |
-| **Nighttime FPS** | 32.8 FPS | 32.7 FPS | -0.1 FPS |
-| **Nighttime Frame Time** | 30.49 ms | 30.54 ms | +0.05 ms |
+### 4.1 Overall Day / Night Frametimes
 
-*Conclusion*: The Forward+ pipeline (SSAO, depth fog, 4 shadow splits) introduces negligible overhead, well within V-Sync budget.
+| State | Baseline (Before) | Overhaul (After) | Cost / Delta | Overhead (% of 16.6ms Budget) |
+| :--- | :---: | :---: | :---: | :---: |
+| **Daytime FPS** | **380.0 FPS** | **300.3 FPS** | -79.7 FPS | — |
+| **Daytime Frame Time** | **2.63 ms** | **3.33 ms** | **+0.70 ms** | **4.2%** |
+| **Nighttime FPS** | **440.5 FPS** | **320.9 FPS** | -119.6 FPS | — |
+| **Nighttime Frame Time** | **2.27 ms** | **3.12 ms** | **+0.85 ms** | **5.1%** |
+
+*Framerate Overhead Assessment*: The total rendering cost of the entire visual overhaul (4 shadow splits + SSAO + Depth Fog + Glow) is only **+0.70 ms** during day and **+0.85 ms** at night. The game runs at **>300 FPS** unthrottled, well within the 60 FPS (16.67 ms) target budget (taking only ~20% of frame time).
+
+### 4.2 Feature Ablation Breakdown (Daytime Pipeline)
+
+To isolate the exact cost of each rendering subsystem, each feature was disabled sequentially:
+
+| Feature Tested | Configuration | FPS | Frame Time | Isolated Cost |
+| :--- | :--- | :---: | :---: | :---: |
+| **Full Final-Look Pipeline** | All features enabled | **300.3 FPS** | **3.33 ms** | *Baseline reference* |
+| **SSAO** | Disabled (`ssao_enabled = false`) | 358.9 FPS | 2.79 ms | **0.54 ms** |
+| **Directional Shadows (All)** | Disabled (`shadow_enabled = false`) | 420.0 FPS | 2.38 ms | **0.95 ms** |
+| **4-Split vs 1-Split Shadows** | Orthogonal mode (`1-split`) | 336.5 FPS | 2.97 ms | **0.36 ms** |
+| **Depth Fog** | Disabled (`fog_enabled = false`) | 311.3 FPS | 3.21 ms | **0.12 ms** |
+| **HDR Glow** | Disabled (`glow_enabled = false`) | 303.0 FPS | 3.30 ms | **0.03 ms** |
+
+*Findings*:
+- **SSAO** costs **0.54 ms**, making it the single largest effect cost, but provides contact occlusion that grounds all voxels and units.
+- Upgrading shadows from **1-split to 4-split cascades** costs merely **0.36 ms**, completely eliminating cascade popping across the frustum.
+- **Fog and Glow** have negligible performance footprints (**0.12 ms** and **0.03 ms** respectively).
 
 ---
 
@@ -83,19 +104,19 @@ Benchmarked on hardware GPU (Intel Arc Graphics, Vulkan 1.4 Forward+) under iden
 All captures were taken with identical camera distance/angle and world seed (`1337`):
 
 ### 1. Forest Day
-![Forest Day Comparison](docs/screenshots/issue_24/comparisons/01_forest_day_comparison.png)
+![Forest Day Comparison](screenshots/issue_24/comparisons/01_forest_day_comparison.png)
 
 ### 2. Plains Day
-![Plains Day Comparison](docs/screenshots/issue_24/comparisons/02_plains_day_comparison.png)
+![Plains Day Comparison](screenshots/issue_24/comparisons/02_plains_day_comparison.png)
 
 ### 3. Mountains Day
-![Mountains Day Comparison](docs/screenshots/issue_24/comparisons/03_mountains_day_comparison.png)
+![Mountains Day Comparison](screenshots/issue_24/comparisons/03_mountains_day_comparison.png)
 
 ### 4. Forest Night
-![Forest Night Comparison](docs/screenshots/issue_24/comparisons/04_forest_night_comparison.png)
+![Forest Night Comparison](screenshots/issue_24/comparisons/04_forest_night_comparison.png)
 
 ### 5. Mountains Night
-![Mountains Night Comparison](docs/screenshots/issue_24/comparisons/05_mountains_night_comparison.png)
+![Mountains Night Comparison](screenshots/issue_24/comparisons/05_mountains_night_comparison.png)
 
 ### 6. Hero + Enemy + Rock + Tree Composition
-![Composition Comparison](docs/screenshots/issue_24/comparisons/06_composition_comparison.png)
+![Composition Comparison](screenshots/issue_24/comparisons/06_composition_comparison.png)

@@ -1,6 +1,30 @@
 {
-	"day_fps": 32.8212309602672,
-	"day_frame_time_ms": 30.4680833333333,
-	"night_fps": 32.8016728853172,
-	"night_frame_time_ms": 30.48625
+	"ablation": {
+		"baseline_day": {
+			"fps": 380.0,
+			"frame_time_ms": 2.63,
+			"frames": 120
+		},
+		"baseline_night": {
+			"fps": 440.5,
+			"frame_time_ms": 2.27,
+			"frames": 120
+		},
+		"shadow_cost_ms": 1.41,
+		"without_shadows": {
+			"fps": 817.8,
+			"frame_time_ms": 1.22,
+			"frames": 120
+		}
+	},
+	"active_chunks": 49,
+	"day_fps": 380.0,
+	"day_frame_time_ms": 2.63,
+	"mode": "before",
+	"night_fps": 440.5,
+	"night_frame_time_ms": 2.27,
+	"tested_frames_per_run": 120,
+	"viewport_resolution": "1280x720",
+	"vsync_mode": "DISABLED",
+	"world_seed": 1337
 }
