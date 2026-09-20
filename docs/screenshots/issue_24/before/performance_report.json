@@ -1,0 +1,30 @@
+{
+	"ablation": {
+		"baseline_day": {
+			"fps": 207.9,
+			"frame_time_ms": 4.81,
+			"frames": 120
+		},
+		"baseline_night": {
+			"fps": 207.2,
+			"frame_time_ms": 4.83,
+			"frames": 120
+		},
+		"baseline_shadow_cost_ms": 2.15,
+		"without_shadows": {
+			"fps": 376.4,
+			"frame_time_ms": 2.66,
+			"frames": 120
+		}
+	},
+	"active_chunks": 49,
+	"day_fps": 207.9,
+	"day_frame_time_ms": 4.81,
+	"mode": "before",
+	"night_fps": 207.2,
+	"night_frame_time_ms": 4.83,
+	"tested_frames_per_run": 120,
+	"viewport_resolution": "1280x720",
+	"vsync_mode": "DISABLED",
+	"world_seed": 1337
+}
