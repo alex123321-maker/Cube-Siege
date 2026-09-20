@@ -460,14 +460,15 @@ static func _add_ledge_dressing_north(st: SurfaceTool, fx: float, y_top: float, 
 	_add_quad_world_uv(st, b0, b1, b2, b3, Vector3.DOWN, Vector2(fx, z_over), Vector2(fx + 1.0, fz))
 
 static func _add_ledge_dressing_south(st: SurfaceTool, fx: float, y_top: float, fz: float) -> void:
-	var z_over: float = fz + LEDGE_OVERHANG
+	var z_boundary: float = fz + 1.0
+	var z_over: float = z_boundary + LEDGE_OVERHANG
 	var y_lip: float = y_top - LEDGE_THICKNESS
 
-	var t0: Vector3 = Vector3(fx + 1.0, y_top, fz)
-	var t1: Vector3 = Vector3(fx, y_top, fz)
+	var t0: Vector3 = Vector3(fx + 1.0, y_top, z_boundary)
+	var t1: Vector3 = Vector3(fx, y_top, z_boundary)
 	var t2: Vector3 = Vector3(fx, y_top, z_over)
 	var t3: Vector3 = Vector3(fx + 1.0, y_top, z_over)
-	_add_quad_world_uv(st, t0, t1, t2, t3, Vector3.UP, Vector2(fx + 1.0, fz), Vector2(fx, z_over))
+	_add_quad_world_uv(st, t0, t1, t2, t3, Vector3.UP, Vector2(fx + 1.0, z_boundary), Vector2(fx, z_over))
 
 	var f0: Vector3 = Vector3(fx + 1.0, y_lip, z_over)
 	var f1: Vector3 = Vector3(fx + 1.0, y_top, z_over)
@@ -477,9 +478,9 @@ static func _add_ledge_dressing_south(st: SurfaceTool, fx: float, y_top: float, 
 
 	var b0: Vector3 = Vector3(fx + 1.0, y_lip, z_over)
 	var b1: Vector3 = Vector3(fx, y_lip, z_over)
-	var b2: Vector3 = Vector3(fx, y_lip, fz)
-	var b3: Vector3 = Vector3(fx + 1.0, y_lip, fz)
-	_add_quad_world_uv(st, b0, b1, b2, b3, Vector3.DOWN, Vector2(fx + 1.0, z_over), Vector2(fx, fz))
+	var b2: Vector3 = Vector3(fx, y_lip, z_boundary)
+	var b3: Vector3 = Vector3(fx + 1.0, y_lip, z_boundary)
+	_add_quad_world_uv(st, b0, b1, b2, b3, Vector3.DOWN, Vector2(fx + 1.0, z_over), Vector2(fx, z_boundary))
 
 static func _add_ledge_dressing_west(st: SurfaceTool, fx: float, y_top: float, fz: float) -> void:
 	var x_over: float = fx - LEDGE_OVERHANG
@@ -504,14 +505,15 @@ static func _add_ledge_dressing_west(st: SurfaceTool, fx: float, y_top: float, f
 	_add_quad_world_uv(st, b0, b1, b2, b3, Vector3.DOWN, Vector2(x_over, fz + 1.0), Vector2(fx, fz))
 
 static func _add_ledge_dressing_east(st: SurfaceTool, fx: float, y_top: float, fz: float) -> void:
-	var x_over: float = fx + LEDGE_OVERHANG
+	var x_boundary: float = fx + 1.0
+	var x_over: float = x_boundary + LEDGE_OVERHANG
 	var y_lip: float = y_top - LEDGE_THICKNESS
 
-	var t0: Vector3 = Vector3(fx, y_top, fz)
-	var t1: Vector3 = Vector3(fx, y_top, fz + 1.0)
+	var t0: Vector3 = Vector3(x_boundary, y_top, fz)
+	var t1: Vector3 = Vector3(x_boundary, y_top, fz + 1.0)
 	var t2: Vector3 = Vector3(x_over, y_top, fz + 1.0)
 	var t3: Vector3 = Vector3(x_over, y_top, fz)
-	_add_quad_world_uv(st, t0, t1, t2, t3, Vector3.UP, Vector2(fx, fz), Vector2(x_over, fz + 1.0))
+	_add_quad_world_uv(st, t0, t1, t2, t3, Vector3.UP, Vector2(x_boundary, fz), Vector2(x_over, fz + 1.0))
 
 	var f0: Vector3 = Vector3(x_over, y_lip, fz)
 	var f1: Vector3 = Vector3(x_over, y_top, fz)
@@ -521,9 +523,9 @@ static func _add_ledge_dressing_east(st: SurfaceTool, fx: float, y_top: float, f
 
 	var b0: Vector3 = Vector3(x_over, y_lip, fz)
 	var b1: Vector3 = Vector3(x_over, y_lip, fz + 1.0)
-	var b2: Vector3 = Vector3(fx, y_lip, fz + 1.0)
-	var b3: Vector3 = Vector3(fx, y_lip, fz)
-	_add_quad_world_uv(st, b0, b1, b2, b3, Vector3.DOWN, Vector2(x_over, fz), Vector2(fx, fz + 1.0))
+	var b2: Vector3 = Vector3(x_boundary, y_lip, fz + 1.0)
+	var b3: Vector3 = Vector3(x_boundary, y_lip, fz)
+	_add_quad_world_uv(st, b0, b1, b2, b3, Vector3.DOWN, Vector2(x_over, fz), Vector2(x_boundary, fz + 1.0))
 
 # -----------------------------------------------------------------------------
 # Visual Rock Buttresses (3D faceted rock-face clusters on tall cliffs)
@@ -552,7 +554,8 @@ static func _add_buttress_north(st: SurfaceTool, fx: float, y_bot: float, y_top:
 	_add_side_quad_uv(st, s_e0, s_e1, s_e2, s_e3, Vector3(1, 0, 0), z_b, fz, y_bot, y_high)
 
 static func _add_buttress_south(st: SurfaceTool, fx: float, y_bot: float, y_top: float, fz: float) -> void:
-	var z_b: float = fz + BUTTRESS_EXTRUSION
+	var z_boundary: float = fz + 1.0
+	var z_b: float = z_boundary + BUTTRESS_EXTRUSION
 	var y_high: float = y_top - LEDGE_THICKNESS
 	if y_high <= y_bot: return
 
@@ -562,17 +565,17 @@ static func _add_buttress_south(st: SurfaceTool, fx: float, y_bot: float, y_top:
 	var b3: Vector3 = Vector3(fx + 0.15, y_bot, z_b)
 	_add_side_quad_uv(st, b0, b1, b2, b3, Vector3(0, 0, 1), fx + 0.85, fx + 0.15, y_bot, y_high)
 
-	var s_e0: Vector3 = Vector3(fx + 0.85, y_bot, fz)
-	var s_e1: Vector3 = Vector3(fx + 0.85, y_high, fz)
+	var s_e0: Vector3 = Vector3(fx + 0.85, y_bot, z_boundary)
+	var s_e1: Vector3 = Vector3(fx + 0.85, y_high, z_boundary)
 	var s_e2: Vector3 = Vector3(fx + 0.85, y_high, z_b)
 	var s_e3: Vector3 = Vector3(fx + 0.85, y_bot, z_b)
-	_add_side_quad_uv(st, s_e0, s_e1, s_e2, s_e3, Vector3(1, 0, 0), fz, z_b, y_bot, y_high)
+	_add_side_quad_uv(st, s_e0, s_e1, s_e2, s_e3, Vector3(1, 0, 0), z_boundary, z_b, y_bot, y_high)
 
 	var s_w0: Vector3 = Vector3(fx + 0.15, y_bot, z_b)
 	var s_w1: Vector3 = Vector3(fx + 0.15, y_high, z_b)
-	var s_w2: Vector3 = Vector3(fx + 0.15, y_high, fz)
-	var s_w3: Vector3 = Vector3(fx + 0.15, y_bot, fz)
-	_add_side_quad_uv(st, s_w0, s_w1, s_w2, s_w3, Vector3(-1, 0, 0), z_b, fz, y_bot, y_high)
+	var s_w2: Vector3 = Vector3(fx + 0.15, y_high, z_boundary)
+	var s_w3: Vector3 = Vector3(fx + 0.15, y_bot, z_boundary)
+	_add_side_quad_uv(st, s_w0, s_w1, s_w2, s_w3, Vector3(-1, 0, 0), z_b, z_boundary, y_bot, y_high)
 
 static func _add_buttress_west(st: SurfaceTool, fx: float, y_bot: float, y_top: float, fz: float) -> void:
 	var x_b: float = fx - BUTTRESS_EXTRUSION
@@ -598,7 +601,8 @@ static func _add_buttress_west(st: SurfaceTool, fx: float, y_bot: float, y_top: 
 	_add_side_quad_uv(st, s_n0, s_n1, s_n2, s_n3, Vector3(0, 0, -1), x_b, fx, y_bot, y_high)
 
 static func _add_buttress_east(st: SurfaceTool, fx: float, y_bot: float, y_top: float, fz: float) -> void:
-	var x_b: float = fx + BUTTRESS_EXTRUSION
+	var x_boundary: float = fx + 1.0
+	var x_b: float = x_boundary + BUTTRESS_EXTRUSION
 	var y_high: float = y_top - LEDGE_THICKNESS
 	if y_high <= y_bot: return
 
@@ -608,17 +612,17 @@ static func _add_buttress_east(st: SurfaceTool, fx: float, y_bot: float, y_top: 
 	var b3: Vector3 = Vector3(x_b, y_bot, fz + 0.85)
 	_add_side_quad_uv(st, b0, b1, b2, b3, Vector3(1, 0, 0), fz + 0.15, fz + 0.85, y_bot, y_high)
 
-	var s_n0: Vector3 = Vector3(fx, y_bot, fz + 0.15)
-	var s_n1: Vector3 = Vector3(fx, y_high, fz + 0.15)
+	var s_n0: Vector3 = Vector3(x_boundary, y_bot, fz + 0.15)
+	var s_n1: Vector3 = Vector3(x_boundary, y_high, fz + 0.15)
 	var s_n2: Vector3 = Vector3(x_b, y_high, fz + 0.15)
-	var s_n3: Vector3 = Vector3(fx, y_bot, fz + 0.15)
-	_add_side_quad_uv(st, s_n0, s_n1, s_n2, s_n3, Vector3(0, 0, -1), fx, x_b, y_bot, y_high)
+	var s_n3: Vector3 = Vector3(x_b, y_bot, fz + 0.15)
+	_add_side_quad_uv(st, s_n0, s_n1, s_n2, s_n3, Vector3(0, 0, -1), x_boundary, x_b, y_bot, y_high)
 
 	var s_s0: Vector3 = Vector3(x_b, y_bot, fz + 0.85)
 	var s_s1: Vector3 = Vector3(x_b, y_high, fz + 0.85)
-	var s_s2: Vector3 = Vector3(fx, y_high, fz + 0.85)
-	var s_s3: Vector3 = Vector3(x_b, y_bot, fz + 0.85)
-	_add_side_quad_uv(st, s_s0, s_s1, s_s2, s_s3, Vector3(0, 0, 1), x_b, fx, y_bot, y_high)
+	var s_s2: Vector3 = Vector3(x_boundary, y_high, fz + 0.85)
+	var s_s3: Vector3 = Vector3(x_boundary, y_bot, fz + 0.85)
+	_add_side_quad_uv(st, s_s0, s_s1, s_s2, s_s3, Vector3(0, 0, 1), x_b, x_boundary, y_bot, y_high)
 
 # =============================================================================
 # Legacy Baseline Generation (1:1 emulation of base SHA f09d1c4)

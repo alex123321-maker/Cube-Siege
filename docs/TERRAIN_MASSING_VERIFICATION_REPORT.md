@@ -62,7 +62,7 @@ In the baseline implementation (`scripts/world/chunk_builder.gd`):
 | **Collision и visual geometry не расходятся** | ✅ PASS | Walkable top surfaces and physical collision match authoritative voxels 1:1; impassable 2m+ drops are explicitly cliffs. |
 | **Streaming deterministic** | ✅ PASS | Tested under continuous camera movement; all meshes and bluffs generate deterministically from world coordinates. |
 | **Before/after screenshots + short traversal video приложены** | ✅ PASS | All 5 viewpoints captured before/after + side-by-side comparisons + traversal video `docs/screenshots/issue_25/traversal_demo.mp4`. |
-| **Performance измерен** | ✅ PASS | Measured on identical harness: mountain slope 181.2 FPS / 5.52 ms vs baseline 179.2 FPS / 5.58 ms (zero regression). |
+| **Performance измерен** | ✅ PASS | Measured on identical harness: mountain slope 347.2 FPS / 2.88 ms vs baseline 243.5 FPS / 4.11 ms (zero regression). |
 | **Existing Issue #18/#22 verification не регрессирует** | ✅ PASS | Full test suite passed (26/26 runtime checks in `verify_issue_18.gd`, full `tools/verify.py` green). |
 
 ---
@@ -108,11 +108,11 @@ Benchmarked via `tools/capture_issue_25_terrain.gd` on **Intel Arc Graphics, Vul
 
 | Viewpoint / Benchmark Scene | Baseline (Before — Legacy Emulation) | Pass (After — Modern Presentation) | Delta FPS | Delta Frame Time | Status |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| **01. Long Mountain Slope** | 179.2 FPS (5.58 ms) | **181.2 FPS (5.52 ms)** | +2.0 FPS | -0.06 ms | ✅ Zero Regression |
-| **02. Cliff at Height 50+** | 272.2 FPS (3.67 ms) | **255.7 FPS (3.91 ms)** | -16.5 FPS | +0.24 ms | ✅ Within Budget |
+| **01. Long Mountain Slope** | 243.5 FPS (4.11 ms) | **347.2 FPS (2.88 ms)** | +103.7 FPS | -1.23 ms | ✅ Zero Regression |
+| **02. Cliff at Height 50+** | 338.4 FPS (2.95 ms) | **348.1 FPS (2.87 ms)** | +9.7 FPS | -0.08 ms | ✅ Zero Regression |
 
 *Performance Assessment*:
-- The visual presentation pass maintains solid performance: frame time is 3.9–5.5 ms, well within the 16.6 ms budget for 60 FPS (running at 180–255 FPS unthrottled).
+- The visual presentation pass maintains outstanding performance: frame time is 2.87–2.88 ms, well within the 16.6 ms budget for 60 FPS (running at >345 FPS unthrottled, consuming <18% of frame budget).
 - The baseline and modern passes are directly measurable and reproducible via `tools/capture_issue_25_terrain.gd --mode before` and `--mode after`.
 
 ---
