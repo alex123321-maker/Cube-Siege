@@ -1,26 +1,21 @@
-[gd_scene load_steps=25 format=3 uid="uid://cmain001"]
+[gd_scene load_steps=22 format=3 uid="uid://cmain001"]
 
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="1_player"]
 [ext_resource type="PackedScene" path="res://scenes/portal.tscn" id="2_portal"]
 [ext_resource type="Script" path="res://scripts/camera_follow.gd" id="3_camera"]
-[ext_resource type="Script" path="res://scripts/hud.gd" id="4_hud"]
+[ext_resource type="PackedScene" path="res://scenes/hud.tscn" id="4_hud"]
 [ext_resource type="PackedScene" path="res://scenes/enemy_dummy.tscn" id="5_enemy"]
 [ext_resource type="PackedScene" path="res://scenes/resource_tree.tscn" id="6_tree"]
 [ext_resource type="Script" path="res://scripts/main.gd" id="7_main"]
 [ext_resource type="Script" path="res://scripts/building_system.gd" id="8_building"]
-[ext_resource type="PackedScene" path="res://scenes/radial_menu.tscn" id="9_radial"]
 [ext_resource type="Script" path="res://scripts/day_night_cycle.gd" id="10_daynight"]
 [ext_resource type="Script" path="res://scripts/wave_director.gd" id="11_wave"]
-[ext_resource type="PackedScene" path="res://scenes/game_over_overlay.tscn" id="12_overlay"]
 [ext_resource type="PackedScene" path="res://scenes/resource_stone.tscn" id="13_stone"]
 [ext_resource type="PackedScene" path="res://scenes/resource_iron.tscn" id="14_iron"]
 [ext_resource type="Script" path="res://scripts/safe_zone_detector.gd" id="15_safezone"]
 [ext_resource type="PackedScene" path="res://scenes/map_generator.tscn" id="17_mapgen"]
-[ext_resource type="PackedScene" path="res://scenes/card_draft_popup.tscn" id="18_carddraft"]
 [ext_resource type="PackedScene" path="res://scenes/prefabs/workbench.tscn" id="19_bench"]
-[ext_resource type="PackedScene" path="res://scenes/workbench_modal.tscn" id="20_benchmodal"]
-[ext_resource type="PackedScene" path="res://scenes/skills_action_bar.tscn" id="21_skillsbar"]
-[ext_resource type="PackedScene" path="res://scenes/settings_modal.tscn" id="22_settingsmodal"]
+
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_main"]
 sky_top_color = Color(0.26, 0.5, 0.86, 1)
@@ -86,6 +81,8 @@ corner_radius_top_right = 4
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
+
+
 [node name="Main" type="Node3D"]
 script = ExtResource("7_main")
 
@@ -128,205 +125,8 @@ fov = 45.0
 script = ExtResource("3_camera")
 target_path = NodePath("../Player")
 
-[node name="HUD" type="CanvasLayer" parent="."]
-script = ExtResource("4_hud")
+[node name="HUD" parent="." instance=ExtResource("4_hud")]
 player_path = NodePath("../Player")
-
-[node name="Margin" type="Control" parent="HUD"]
-layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="TopCenter" type="HBoxContainer" parent="HUD/Margin"]
-layout_mode = 1
-anchors_preset = 5
-anchor_left = 0.5
-anchor_right = 0.5
-offset_left = -120.0
-offset_top = 20.0
-offset_right = 120.0
-offset_bottom = 60.0
-grow_horizontal = 2
-alignment = 1
-
-[node name="DayNightLabel" type="Label" parent="HUD/Margin/TopCenter"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 22
-text = "DAY 1  [01:00]"
-horizontal_alignment = 1
-
-[node name="BtnSkipNight" type="Button" parent="HUD/Margin/TopCenter"]
-layout_mode = 2
-text = ">| Ночь"
-
-[node name="BtnSettings" type="Button" parent="HUD/Margin/TopCenter"]
-layout_mode = 2
-text = "⚙"
-
-[node name="BossBarContainer" type="VBoxContainer" parent="HUD/Margin"]
-visible = false
-layout_mode = 1
-anchors_preset = 5
-anchor_left = 0.5
-anchor_right = 0.5
-offset_left = -250.0
-offset_top = 70.0
-offset_right = 250.0
-offset_bottom = 115.0
-grow_horizontal = 2
-alignment = 1
-
-[node name="BossTitle" type="Label" parent="HUD/Margin/BossBarContainer"]
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.25, 0.25, 1)
-theme_override_font_sizes/font_size = 14
-text = "☠ GORGON THE TRAMPLER ☠"
-horizontal_alignment = 1
-
-[node name="BossHPBar" type="ProgressBar" parent="HUD/Margin/BossBarContainer"]
-custom_minimum_size = Vector2(500, 18)
-layout_mode = 2
-theme_override_styles/fill = SubResource("StyleBox_Boss_Fill")
-max_value = 2000.0
-value = 2000.0
-show_percentage = false
-
-[node name="BossHPLabel" type="Label" parent="HUD/Margin/BossBarContainer/BossHPBar"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_font_sizes/font_size = 11
-text = "2000 / 2000 HP"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="TopLeft" type="VBoxContainer" parent="HUD/Margin"]
-layout_mode = 0
-offset_left = 24.0
-offset_top = 24.0
-offset_right = 200.0
-offset_bottom = 140.0
-
-[node name="Resources" type="VBoxContainer" parent="HUD/Margin/TopLeft"]
-layout_mode = 2
-
-[node name="WoodBox" type="HBoxContainer" parent="HUD/Margin/TopLeft/Resources"]
-layout_mode = 2
-
-[node name="WoodLabel" type="Label" parent="HUD/Margin/TopLeft/Resources/WoodBox"]
-layout_mode = 2
-text = "WOOD: 0 / 25"
-
-[node name="StoneBox" type="HBoxContainer" parent="HUD/Margin/TopLeft/Resources"]
-layout_mode = 2
-
-[node name="StoneLabel" type="Label" parent="HUD/Margin/TopLeft/Resources/StoneBox"]
-layout_mode = 2
-text = "STONE: 0 / 25"
-
-[node name="IronBox" type="HBoxContainer" parent="HUD/Margin/TopLeft/Resources"]
-layout_mode = 2
-
-[node name="IronLabel" type="Label" parent="HUD/Margin/TopLeft/Resources/IronBox"]
-layout_mode = 2
-text = "IRON: 0"
-
-[node name="MagicBox" type="HBoxContainer" parent="HUD/Margin/TopLeft/Resources"]
-layout_mode = 2
-
-[node name="MagicLabel" type="Label" parent="HUD/Margin/TopLeft/Resources/MagicBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.4, 0.9, 1.0, 1.0)
-text = "MAGIC STONE: 0"
-
-[node name="BottomCenter" type="HBoxContainer" parent="HUD/Margin"]
-layout_mode = 1
-anchors_preset = 7
-anchor_left = 0.5
-anchor_top = 1.0
-anchor_right = 0.5
-anchor_bottom = 1.0
-offset_left = -200.0
-offset_top = -76.0
-offset_right = 200.0
-offset_bottom = -12.0
-grow_horizontal = 2
-grow_vertical = 0
-alignment = 1
-
-[node name="SkillsActionBar" parent="HUD/Margin/BottomCenter" instance=ExtResource("21_skillsbar")]
-layout_mode = 2
-
-[node name="TopXPBar" type="ProgressBar" parent="HUD"]
-custom_minimum_size = Vector2(0, 18)
-anchors_preset = 10
-anchor_right = 1.0
-offset_bottom = 18.0
-grow_horizontal = 2
-theme_override_styles/fill = SubResource("StyleBox_XP_Fill")
-value = 0.0
-show_percentage = false
-
-[node name="XPLabel" type="Label" parent="HUD/TopXPBar"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
-theme_override_constants/shadow_offset_y = 1
-theme_override_font_sizes/font_size = 11
-text = "LVL 1 [ 0 / 80 XP ]"
-[node name="PlayerFloatingHP" type="Control" parent="HUD"]
-custom_minimum_size = Vector2(120, 16)
-layout_mode = 3
-anchors_preset = 0
-offset_right = 120.0
-offset_bottom = 16.0
-
-[node name="Bar" type="ProgressBar" parent="HUD/PlayerFloatingHP"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_styles/fill = SubResource("StyleBox_HP_Fill")
-value = 100.0
-show_percentage = false
-
-[node name="Label" type="Label" parent="HUD/PlayerFloatingHP/Bar"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 1)
-theme_override_constants/shadow_offset_y = 1
-theme_override_font_sizes/font_size = 10
-text = "100 / 100 HP"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="RadialMenu" parent="HUD" instance=ExtResource("9_radial")]
-
-[node name="GameOverOverlay" parent="HUD" instance=ExtResource("12_overlay")]
-
-[node name="CardDraftPopup" parent="HUD" instance=ExtResource("18_carddraft")]
-
-[node name="WorkbenchModal" parent="HUD" instance=ExtResource("20_benchmodal")]
-visible = false
-
-[node name="SettingsModal" parent="HUD" instance=ExtResource("22_settingsmodal")]
-visible = false
 
 [node name="Enemies" type="Node3D" parent="."]
 
@@ -355,4 +155,3 @@ player_path = NodePath("../Player")
 script = ExtResource("15_safezone")
 building_system_path = NodePath("../BuildingSystem")
 wave_director_path = NodePath("../WaveDirector")
-

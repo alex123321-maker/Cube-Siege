@@ -1,0 +1,356 @@
+[gd_scene load_steps=20 format=3]
+
+[ext_resource type="Script" path="res://scripts/hud.gd" id="1_hud"]
+[ext_resource type="Theme" path="res://resources/hud_theme.tres" id="2_theme"]
+[ext_resource type="Texture2D" path="res://assets/ui/hud_visual_kit/frames/day_night_panel_frame.png" id="3_day_panel"]
+[ext_resource type="Texture2D" path="res://assets/ui/hud_visual_kit/frames/resource_panel_frame.png" id="4_resource_panel"]
+[ext_resource type="Texture2D" path="res://assets/ui/hud_visual_kit/icons/global_day_64.png" id="5_day_icon"]
+[ext_resource type="Texture2D" path="res://assets/ui/hud_visual_kit/icons/global_night_64.png" id="6_night_icon"]
+[ext_resource type="Texture2D" path="res://assets/ui/hud_visual_kit/icons/global_settings_64.png" id="7_settings_icon"]
+[ext_resource type="Texture2D" path="res://assets/ui/hud_visual_kit/icons/resource_wood_64.png" id="8_wood_icon"]
+[ext_resource type="Texture2D" path="res://assets/ui/hud_visual_kit/icons/resource_stone_64.png" id="9_stone_icon"]
+[ext_resource type="Texture2D" path="res://assets/ui/hud_visual_kit/icons/resource_iron_64.png" id="10_iron_icon"]
+[ext_resource type="Texture2D" path="res://assets/ui/hud_visual_kit/icons/resource_magic_stone_64.png" id="11_magic_icon"]
+[ext_resource type="PackedScene" path="res://scenes/skills_action_bar.tscn" id="12_skills"]
+[ext_resource type="PackedScene" path="res://scenes/radial_menu.tscn" id="13_radial"]
+[ext_resource type="PackedScene" path="res://scenes/game_over_overlay.tscn" id="14_overlay"]
+[ext_resource type="PackedScene" path="res://scenes/card_draft_popup.tscn" id="15_carddraft"]
+[ext_resource type="PackedScene" path="res://scenes/workbench_modal.tscn" id="16_benchmodal"]
+[ext_resource type="PackedScene" path="res://scenes/settings_modal.tscn" id="17_settingsmodal"]
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_hud_day_panel"]
+texture = ExtResource("3_day_panel")
+texture_margin_left = 80.0
+texture_margin_top = 30.0
+texture_margin_right = 80.0
+texture_margin_bottom = 30.0
+content_margin_left = 14.0
+content_margin_top = 8.0
+content_margin_right = 14.0
+content_margin_bottom = 8.0
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_hud_resource_panel"]
+texture = ExtResource("4_resource_panel")
+texture_margin_left = 20.0
+texture_margin_top = 10.0
+texture_margin_right = 20.0
+texture_margin_bottom = 10.0
+content_margin_left = 10.0
+content_margin_top = 7.0
+content_margin_right = 10.0
+content_margin_bottom = 7.0
+
+[node name="HUD" type="CanvasLayer"]
+script = ExtResource("1_hud")
+
+[node name="TopXPBar" type="ProgressBar" parent="."]
+custom_minimum_size = Vector2(0, 16)
+theme = ExtResource("2_theme")
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -280.0
+offset_top = 8.0
+offset_right = 280.0
+offset_bottom = 24.0
+grow_horizontal = 2
+theme_override_font_sizes/font_size = 10
+show_percentage = false
+
+[node name="XPLabel" type="Label" parent="TopXPBar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.94, 0.98, 1, 1)
+theme_override_font_sizes/font_size = 10
+text = "LV 1  ·  0 / 80 XP"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Margin" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("2_theme")
+
+[node name="TopCenter" type="PanelContainer" parent="Margin"]
+custom_minimum_size = Vector2(420, 84)
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -210.0
+offset_top = 20.0
+offset_right = 210.0
+offset_bottom = 104.0
+grow_horizontal = 2
+theme_override_styles/panel = SubResource("StyleBoxTexture_hud_day_panel")
+
+[node name="DayNightRow" type="HBoxContainer" parent="Margin/TopCenter"]
+layout_mode = 2
+theme_override_constants/separation = 7
+alignment = 1
+
+[node name="DayNightIcon" type="TextureRect" parent="Margin/TopCenter/DayNightRow"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("5_day_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="PhaseLabel" type="Label" parent="Margin/TopCenter/DayNightRow"]
+custom_minimum_size = Vector2(128, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "DAY 1"
+horizontal_alignment = 0
+vertical_alignment = 1
+
+[node name="TimerLabel" type="Label" parent="Margin/TopCenter/DayNightRow"]
+custom_minimum_size = Vector2(96, 34)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.98, 0.99, 1, 1)
+theme_override_font_sizes/font_size = 16
+text = "03:00"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BtnSkipNight" type="Button" parent="Margin/TopCenter/DayNightRow"]
+custom_minimum_size = Vector2(50, 32)
+layout_mode = 2
+text = "SKIP"
+tooltip_text = "Пропустить до ночи"
+
+[node name="BtnSettings" type="Button" parent="Margin/TopCenter/DayNightRow"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+icon = ExtResource("7_settings_icon")
+icon_alignment = 1
+tooltip_text = "Настройки"
+
+[node name="DayNightLabel" type="Label" parent="Margin"]
+visible = false
+layout_mode = 1
+anchors_preset = 0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 9.0
+offset_bottom = 9.0
+
+[node name="BossBarContainer" type="VBoxContainer" parent="Margin"]
+visible = false
+custom_minimum_size = Vector2(450, 40)
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -225.0
+offset_top = 190.0
+offset_right = 225.0
+offset_bottom = 236.0
+grow_horizontal = 2
+theme_override_constants/separation = 2
+alignment = 1
+
+[node name="BossTitle" type="Label" parent="Margin/BossBarContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.48, 0.38, 1)
+theme_override_font_sizes/font_size = 12
+text = "BOSS"
+horizontal_alignment = 1
+
+[node name="BossHPBar" type="ProgressBar" parent="Margin/BossBarContainer"]
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
+theme_type_variation = "BossProgressBar"
+show_percentage = false
+
+[node name="BossHPLabel" type="Label" parent="Margin/BossBarContainer/BossHPBar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 10
+text = "0 / 0 HP"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Resources" type="PanelContainer" parent="Margin"]
+custom_minimum_size = Vector2(380, 70)
+layout_mode = 1
+anchors_preset = 0
+offset_left = 16.0
+offset_top = 112.0
+offset_right = 396.0
+offset_bottom = 182.0
+theme_override_styles/panel = SubResource("StyleBoxTexture_hud_resource_panel")
+
+[node name="ResourceRows" type="HBoxContainer" parent="Margin/Resources"]
+layout_mode = 2
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="WoodBox" type="VBoxContainer" parent="Margin/Resources/ResourceRows"]
+custom_minimum_size = Vector2(82, 50)
+layout_mode = 2
+theme_override_constants/separation = 0
+alignment = 1
+
+[node name="Icon" type="TextureRect" parent="Margin/Resources/ResourceRows/WoodBox"]
+custom_minimum_size = Vector2(28, 28)
+layout_mode = 2
+size_flags_horizontal = 4
+texture = ExtResource("8_wood_icon")
+expand_mode = 1
+stretch_mode = 5
+tooltip_text = "Дерево"
+
+[node name="WoodLabel" type="Label" parent="Margin/Resources/ResourceRows/WoodBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 9
+text = "ДЕРЕВО\n0 / 25"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="StoneBox" type="VBoxContainer" parent="Margin/Resources/ResourceRows"]
+custom_minimum_size = Vector2(82, 50)
+layout_mode = 2
+theme_override_constants/separation = 0
+alignment = 1
+
+[node name="Icon" type="TextureRect" parent="Margin/Resources/ResourceRows/StoneBox"]
+custom_minimum_size = Vector2(28, 28)
+layout_mode = 2
+size_flags_horizontal = 4
+texture = ExtResource("9_stone_icon")
+expand_mode = 1
+stretch_mode = 5
+tooltip_text = "Камень"
+
+[node name="StoneLabel" type="Label" parent="Margin/Resources/ResourceRows/StoneBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 9
+text = "КАМЕНЬ\n0 / 25"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="IronBox" type="VBoxContainer" parent="Margin/Resources/ResourceRows"]
+custom_minimum_size = Vector2(82, 50)
+layout_mode = 2
+theme_override_constants/separation = 0
+alignment = 1
+
+[node name="Icon" type="TextureRect" parent="Margin/Resources/ResourceRows/IronBox"]
+custom_minimum_size = Vector2(28, 28)
+layout_mode = 2
+size_flags_horizontal = 4
+texture = ExtResource("10_iron_icon")
+expand_mode = 1
+stretch_mode = 5
+tooltip_text = "Железо"
+
+[node name="IronLabel" type="Label" parent="Margin/Resources/ResourceRows/IronBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 9
+text = "ЖЕЛЕЗО\n0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="MagicBox" type="VBoxContainer" parent="Margin/Resources/ResourceRows"]
+custom_minimum_size = Vector2(82, 50)
+layout_mode = 2
+theme_override_constants/separation = 0
+alignment = 1
+
+[node name="Icon" type="TextureRect" parent="Margin/Resources/ResourceRows/MagicBox"]
+custom_minimum_size = Vector2(28, 28)
+layout_mode = 2
+size_flags_horizontal = 4
+texture = ExtResource("11_magic_icon")
+expand_mode = 1
+stretch_mode = 5
+tooltip_text = "Магический камень"
+
+[node name="MagicLabel" type="Label" parent="Margin/Resources/ResourceRows/MagicBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.72, 0.65, 1, 1)
+theme_override_font_sizes/font_size = 9
+text = "МАГ. КАМЕНЬ\n0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="BottomCenter" type="HBoxContainer" parent="Margin"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -234.0
+offset_top = -114.0
+offset_right = 234.0
+offset_bottom = -24.0
+grow_horizontal = 2
+grow_vertical = 0
+alignment = 1
+
+[node name="SkillsActionBar" parent="Margin/BottomCenter" instance=ExtResource("12_skills")]
+layout_mode = 2
+
+[node name="PlayerFloatingHP" type="Control" parent="."]
+custom_minimum_size = Vector2(132, 20)
+theme = ExtResource("2_theme")
+layout_mode = 3
+anchors_preset = 0
+offset_right = 132.0
+offset_bottom = 20.0
+mouse_filter = 2
+
+[node name="Bar" type="ProgressBar" parent="PlayerFloatingHP"]
+custom_minimum_size = Vector2(132, 20)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = "HealthyProgressBar"
+show_percentage = false
+
+[node name="Label" type="Label" parent="PlayerFloatingHP/Bar"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 10
+text = "100 / 100 HP"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="RadialMenu" parent="." instance=ExtResource("13_radial")]
+
+[node name="GameOverOverlay" parent="." instance=ExtResource("14_overlay")]
+
+[node name="CardDraftPopup" parent="." instance=ExtResource("15_carddraft")]
+
+[node name="WorkbenchModal" parent="." instance=ExtResource("16_benchmodal")]
+visible = false
+
+[node name="SettingsModal" parent="." instance=ExtResource("17_settingsmodal")]
+visible = false

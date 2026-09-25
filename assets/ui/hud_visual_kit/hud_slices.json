@@ -1,0 +1,104 @@
+{
+  "action_slot_normal.png": {
+    "margin_left": 16,
+    "margin_top": 16,
+    "margin_right": 16,
+    "margin_bottom": 16
+  },
+  "action_slot_hover.png": {
+    "margin_left": 16,
+    "margin_top": 16,
+    "margin_right": 16,
+    "margin_bottom": 16
+  },
+  "action_slot_pressed.png": {
+    "margin_left": 16,
+    "margin_top": 16,
+    "margin_right": 16,
+    "margin_bottom": 16
+  },
+  "action_slot_disabled.png": {
+    "margin_left": 16,
+    "margin_top": 16,
+    "margin_right": 16,
+    "margin_bottom": 16
+  },
+  "action_slot_cooldown.png": {
+    "margin_left": 16,
+    "margin_top": 16,
+    "margin_right": 16,
+    "margin_bottom": 16
+  },
+  "keycap_frame_normal.png": {
+    "margin_left": 6,
+    "margin_top": 6,
+    "margin_right": 6,
+    "margin_bottom": 6
+  },
+  "keycap_frame_pressed.png": {
+    "margin_left": 6,
+    "margin_top": 6,
+    "margin_right": 6,
+    "margin_bottom": 6
+  },
+  "health_bar_bg.png": {
+    "margin_left": 8,
+    "margin_top": 6,
+    "margin_right": 8,
+    "margin_bottom": 6
+  },
+  "health_bar_fill_full.png": {
+    "margin_left": 4,
+    "margin_top": 4,
+    "margin_right": 4,
+    "margin_bottom": 4
+  },
+  "health_bar_fill_danger.png": {
+    "margin_left": 4,
+    "margin_top": 4,
+    "margin_right": 4,
+    "margin_bottom": 4
+  },
+  "wave_bar_bg.png": {
+    "margin_left": 8,
+    "margin_top": 6,
+    "margin_right": 8,
+    "margin_bottom": 6
+  },
+  "wave_bar_fill.png": {
+    "margin_left": 4,
+    "margin_top": 4,
+    "margin_right": 4,
+    "margin_bottom": 4
+  },
+  "xp_bar_bg.png": {
+    "margin_left": 8,
+    "margin_top": 6,
+    "margin_right": 8,
+    "margin_bottom": 6
+  },
+  "xp_bar_fill.png": {
+    "margin_left": 4,
+    "margin_top": 4,
+    "margin_right": 4,
+    "margin_bottom": 4
+  },
+  "resource_panel_frame.png": {
+    "margin_left": 20,
+    "margin_top": 10,
+    "margin_right": 20,
+    "margin_bottom": 10
+  },
+  "tooltip_frame.png": {
+    "margin_left": 18,
+    "margin_top": 18,
+    "margin_right": 18,
+    "margin_bottom": 18
+  },
+  "day_night_panel_frame.png": {
+    "margin_left": 80,
+    "margin_top": 30,
+    "margin_right": 80,
+    "margin_bottom": 30
+  }
+}
