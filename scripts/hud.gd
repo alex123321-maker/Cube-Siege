@@ -64,6 +64,11 @@ func _ready() -> void:
 				player.connect("level_up_reached", Callable(self, "_on_level_up_reached"))
 		if day_night_cycle:
 			day_night_cycle.time_updated.connect(func(tl, _tot, night): _update_day_night_label(tl, night, day_night_cycle.current_day))
+	if player and is_instance_valid(player):
+		var current_health: Variant = player.get("current_health")
+		var max_health: Variant = player.get("max_health")
+		if current_health != null and max_health != null:
+			_on_health_changed(float(current_health), float(max_health))
 
 func _process(_delta: float) -> void:
 	if not player or not is_instance_valid(player) or not player_floating_hp:

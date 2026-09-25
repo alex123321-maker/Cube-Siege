@@ -34,6 +34,28 @@ func test_hud_renders_day_night_label_from_event() -> void:
 	assert_eq(label.text, "NIGHT 2 [SIEGE]  01:30", "HUD should format night siege label")
 	assert_eq(label.modulate, Color(1.0, 0.3, 0.3, 1.0), "Night text color should be reddish")
 
+func test_hud_initializes_health_from_player_on_ready() -> void:
+	var main = MAIN_SCENE.instantiate()
+	add_child_autoqfree(main)
+
+	var player = main.get_node("Player")
+	var hud = main.get_node("HUD")
+	assert_eq(hud.player_hp_bar.value, player.current_health, "Floating HP bar should show the player's current health at startup")
+	assert_eq(hud.player_hp_bar.max_value, player.max_health, "Floating HP bar should use the player's current max health at startup")
+	assert_eq(hud.player_hp_label.text, "%d / %d HP" % [int(player.current_health), int(player.max_health)], "Floating HP label should match the player's startup health")
+
+func test_action_slot_keycap_fits_without_overlapping_icon() -> void:
+	var main = MAIN_SCENE.instantiate()
+	add_child_autoqfree(main)
+	await get_tree().process_frame
+
+	var slot: Control = main.get_node("HUD/Margin/BottomCenter/SkillsActionBar/SlotSpace")
+	var keycap: TextureRect = slot.get_node("Keycap")
+	var icon: TextureRect = slot.get_node("Icon")
+	assert_eq(keycap.size, Vector2(37, 18), "Keycap should fit its authored layout size")
+	assert_false(keycap.get_global_rect().intersects(icon.get_global_rect()), "Keycap should not overlap the action icon")
+	assert_eq(keycap.get_node("KeyLabel").text, "SPACE", "Space binding should remain readable in the resized keycap")
+
 func test_hud_skip_night_uses_explicit_dependency() -> void:
 	var main = MAIN_SCENE.instantiate()
 	add_child_autoqfree(main)
