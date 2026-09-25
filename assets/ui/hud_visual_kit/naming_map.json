@@ -1,0 +1,122 @@
+{
+  "resources": {
+    "wood": {
+      "file": "resource_wood.png",
+      "action": "Chopped Wood Logs"
+    },
+    "stone": {
+      "file": "resource_stone.png",
+      "action": "Granite Stone Blocks"
+    },
+    "iron": {
+      "file": "resource_iron.png",
+      "action": "Forged Iron Ingot"
+    },
+    "magic_stone": {
+      "file": "resource_magic_stone.png",
+      "action": "Glowing Mana Crystal"
+    }
+  },
+  "global_hud": {
+    "day": {
+      "file": "global_day.png",
+      "action": "Day Phase Indicator"
+    },
+    "night": {
+      "file": "global_night.png",
+      "action": "Night Phase Indicator"
+    },
+    "settings": {
+      "file": "global_settings.png",
+      "action": "Settings / Pause Menu"
+    },
+    "build": {
+      "file": "global_build.png",
+      "action": "Build Mode (TAB)"
+    }
+  },
+  "warrior": {
+    "lmb": {
+      "file": "warrior_sword_attack.png",
+      "action": "LMB Sword Attack"
+    },
+    "rmb": {
+      "file": "warrior_cleave.png",
+      "action": "RMB Whirlwind Cleave"
+    },
+    "space": {
+      "file": "warrior_dash.png",
+      "action": "Space Combat Dash"
+    },
+    "q": {
+      "file": "warrior_parry.png",
+      "action": "Q Shield Parry"
+    },
+    "f": {
+      "file": "warrior_duel.png",
+      "action": "F Duel Challenge"
+    }
+  },
+  "archer": {
+    "lmb": {
+      "file": "archer_shot.png",
+      "action": "LMB Standard Shot"
+    },
+    "rmb": {
+      "file": "archer_piercing_shot.png",
+      "action": "RMB Piercing Drill Shot"
+    },
+    "space": {
+      "file": "archer_roll.png",
+      "action": "Space Evasive Roll"
+    },
+    "q": {
+      "file": "archer_decoy.png",
+      "action": "Q Holographic Decoy"
+    },
+    "f": {
+      "file": "archer_sniper.png",
+      "action": "F Lethal Sniper Stance"
+    }
+  },
+  "engineer": {
+    "lmb": {
+      "file": "engineer_hammer.png",
+      "action": "LMB Power Hammer"
+    },
+    "rmb": {
+      "file": "engineer_turret.png",
+      "action": "RMB Sentry Turret"
+    },
+    "space": {
+      "file": "engineer_dash.png",
+      "action": "Space Rocket Thruster"
+    },
+    "q": {
+      "file": "engineer_mine.png",
+      "action": "Q Proximity Landmine"
+    },
+    "f": {
+      "file": "engineer_overclock.png",
+      "action": "F Clockwork Overclock"
+    }
+  },
+  "auxiliary": {
+    "skull_wave": {
+      "file": "hud_skull_wave.png",
+      "action": "Wave / Boss Threat Indicator"
+    },
+    "health_cross": {
+      "file": "hud_health_cross.png",
+      "action": "Vitality / Healing"
+    },
+    "armor_shield": {
+      "file": "hud_armor_shield.png",
+      "action": "Armor / Fortification"
+    },
+    "target_range": {
+      "file": "hud_target_range.png",
+      "action": "Range Reticle"
+    }
+  }
+}

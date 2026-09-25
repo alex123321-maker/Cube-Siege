@@ -1,15 +1,21 @@
 extends CanvasLayer
 
+const DAY_ICON: Texture2D = preload("res://assets/ui/hud_visual_kit/icons/global_day_64.png")
+const NIGHT_ICON: Texture2D = preload("res://assets/ui/hud_visual_kit/icons/global_night_64.png")
+
 @export var player_path: NodePath
 @export var day_night_cycle_path: NodePath = NodePath("../DayNightCycle")
 
 @onready var top_xp_bar: ProgressBar = $TopXPBar
 @onready var xp_label: Label = $TopXPBar/XPLabel
-@onready var day_night_label: Label = $Margin/TopCenter/DayNightLabel
-@onready var wood_label: Label = $Margin/TopLeft/Resources/WoodBox/WoodLabel
-@onready var stone_label: Label = $Margin/TopLeft/Resources/StoneBox/StoneLabel
-@onready var iron_label: Label = $Margin/TopLeft/Resources/IronBox/IronLabel
-@onready var magic_label: Label = get_node_or_null("Margin/TopLeft/Resources/MagicBox/MagicLabel")
+@onready var day_night_label: Label = $Margin/DayNightLabel
+@onready var day_night_icon: TextureRect = $Margin/TopCenter/DayNightRow/DayNightIcon
+@onready var day_night_phase_label: Label = $Margin/TopCenter/DayNightRow/PhaseLabel
+@onready var day_night_timer_label: Label = $Margin/TopCenter/DayNightRow/TimerLabel
+@onready var wood_label: Label = $Margin/Resources/ResourceRows/WoodBox/WoodLabel
+@onready var stone_label: Label = $Margin/Resources/ResourceRows/StoneBox/StoneLabel
+@onready var iron_label: Label = $Margin/Resources/ResourceRows/IronBox/IronLabel
+@onready var magic_label: Label = get_node_or_null("Margin/Resources/ResourceRows/MagicBox/MagicLabel")
 @onready var card_draft_popup: Control = $CardDraftPopup
 
 @onready var player_floating_hp: Control = $PlayerFloatingHP
@@ -19,6 +25,7 @@ extends CanvasLayer
 var player: Node3D = null
 var day_night_cycle: DayNightCycle = null
 var camera: Camera3D = null
+var _last_night_state: Variant = null
 
 func _ready() -> void:
 	if has_node(player_path):
@@ -26,11 +33,11 @@ func _ready() -> void:
 	if has_node(day_night_cycle_path):
 		day_night_cycle = get_node(day_night_cycle_path) as DayNightCycle
 
-	if has_node("Margin/TopCenter/BtnSkipNight"):
-		$Margin/TopCenter/BtnSkipNight.pressed.connect(_on_skip_night_pressed)
+	if has_node("Margin/TopCenter/DayNightRow/BtnSkipNight"):
+		$Margin/TopCenter/DayNightRow/BtnSkipNight.pressed.connect(_on_skip_night_pressed)
 
-	if has_node("Margin/TopCenter/BtnSettings"):
-		$Margin/TopCenter/BtnSettings.pressed.connect(func():
+	if has_node("Margin/TopCenter/DayNightRow/BtnSettings"):
+		$Margin/TopCenter/DayNightRow/BtnSettings.pressed.connect(func():
 			var modal = get_node_or_null("SettingsModal")
 			if modal and modal.has_method("open_modal"):
 				modal.open_modal()
@@ -57,6 +64,11 @@ func _ready() -> void:
 				player.connect("level_up_reached", Callable(self, "_on_level_up_reached"))
 		if day_night_cycle:
 			day_night_cycle.time_updated.connect(func(tl, _tot, night): _update_day_night_label(tl, night, day_night_cycle.current_day))
+	if player and is_instance_valid(player):
+		var current_health: Variant = player.get("current_health")
+		var max_health: Variant = player.get("max_health")
+		if current_health != null and max_health != null:
+			_on_health_changed(float(current_health), float(max_health))
 
 func _process(_delta: float) -> void:
 	if not player or not is_instance_valid(player) or not player_floating_hp:
@@ -78,18 +90,19 @@ func _on_health_changed(current: float, max_hp: float) -> void:
 	if player_hp_bar:
 		player_hp_bar.max_value = max_hp
 		player_hp_bar.value = current
+		player_hp_bar.theme_type_variation = "HealthProgressBar" if current <= max_hp * 0.3 else "HealthyProgressBar"
 	if player_hp_label:
 		player_hp_label.text = "%d / %d HP" % [max(0, int(current)), int(max_hp)]
 
 func _on_resources_changed(wood: int, stone: int, iron: int, magic_stone: int = 0) -> void:
 	if wood_label:
-		wood_label.text = "WOOD: %d / 25" % wood
+		wood_label.text = "ДЕРЕВО\n%d / 25" % wood
 	if stone_label:
-		stone_label.text = "STONE: %d / 25" % stone
+		stone_label.text = "КАМЕНЬ\n%d / 25" % stone
 	if iron_label:
-		iron_label.text = "IRON: %d" % iron
+		iron_label.text = "ЖЕЛЕЗО\n%d" % iron
 	if magic_label:
-		magic_label.text = "MAGIC STONE: %d" % magic_stone
+		magic_label.text = "МАГ. КАМЕНЬ\n%d" % magic_stone
 
 func _on_skip_night_pressed() -> void:
 	if day_night_cycle:
@@ -100,18 +113,30 @@ func _on_skip_night_pressed() -> void:
 func _update_day_night_label(seconds_left: float, is_night: bool, day_number: int) -> void:
 	if not day_night_label:
 		return
+	if day_night_icon and _last_night_state != is_night:
+		day_night_icon.texture = NIGHT_ICON if is_night else DAY_ICON
+		_last_night_state = is_night
 	var minutes: int = int(seconds_left) / 60
 	var seconds: int = int(seconds_left) % 60
+	var tint: Color = Color.WHITE
 	if is_night:
 		day_night_label.text = "NIGHT %d [SIEGE]  %02d:%02d" % [day_number, minutes, seconds]
-		day_night_label.modulate = Color(1.0, 0.3, 0.3, 1.0)
+		day_night_phase_label.text = "NIGHT %d [SIEGE]" % day_number
+		tint = Color(1.0, 0.3, 0.3, 1.0)
 	else:
 		if seconds_left <= 30.0:
 			day_night_label.text = "DAY %d [SUNSET]  %02d:%02d" % [day_number, minutes, seconds]
-			day_night_label.modulate = Color(1.0, 0.6, 0.1, 1.0)
+			day_night_phase_label.text = "DAY %d [SUNSET]" % day_number
+			tint = Color(1.0, 0.6, 0.1, 1.0)
 		else:
 			day_night_label.text = "DAY %d  %02d:%02d" % [day_number, minutes, seconds]
-			day_night_label.modulate = Color.WHITE
+			day_night_phase_label.text = "DAY %d" % day_number
+	day_night_label.modulate = tint
+	if day_night_timer_label:
+		day_night_timer_label.text = "%02d:%02d" % [minutes, seconds]
+		day_night_timer_label.modulate = tint
+	if day_night_phase_label:
+		day_night_phase_label.modulate = tint
 
 func _on_xp_changed(current: float, max_xp: float, level: int) -> void:
 	if top_xp_bar:
@@ -119,7 +144,7 @@ func _on_xp_changed(current: float, max_xp: float, level: int) -> void:
 		top_xp_bar.value = current
 	if xp_label:
 		var pct: int = int((current / max(1.0, max_xp)) * 100)
-		xp_label.text = "LVL %d — [ %d / %d XP ] (%d%%)" % [level, int(current), int(max_xp), pct]
+		xp_label.text = "LV %d  ·  %d / %d XP  ·  %d%%" % [level, int(current), int(max_xp), pct]
 
 func _on_level_up_reached(new_level: int) -> void:
 	if card_draft_popup and card_draft_popup.has_method("open_draft"):
