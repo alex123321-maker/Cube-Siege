@@ -1,106 +1,64 @@
-#!/usr/bin/env python3
-## tools/capture_terrain.gd — запускается как: godot -s tools/capture_terrain.gd
-## Примечание: этот файл должен быть в формате GDScript с shebang-комментарием
-## Реальный capture выполняется через gen_terrain_comparison.py (Pillow)
-## и через ручной запуск игры с фиксированным seed=1337.
 extends SceneTree
+## Render deterministic terrain views after the camera and streaming have settled.
+## godot --path . --script res://tools/capture_terrain.gd [-- --output res://directory]
 
-## Capture script для terrain comparison screenshots.
-## Запуск: godot --path . -s tools/capture_terrain.gd
-##
-## Генерирует PNG-файлы в docs/terrain_capture/:
-##   runtime_forest_close.png
-##   runtime_forest_gameplay.png
-##   runtime_plains.png
-##   runtime_mountain_top.png
-##   runtime_cliff.png
-##   runtime_forest_plains_boundary.png
-##   runtime_plains_mountain_boundary.png
-
-const SEED_VALUE: int = 1337
-const OUTPUT_DIR: String = "res://docs/terrain_capture/"
-
-# Camera positions для каждого биома при seed=1337
-# Forest: ~(+X direction от Portal), Plains: ~(+120°), Mountains: ~(-120°)
-const CAPTURE_POINTS: Array = [
-	{"name": "runtime_forest_close",          "pos": Vector3(12, 20, 0),   "look": Vector3(12, 0, 0)},
-	{"name": "runtime_forest_gameplay",       "pos": Vector3(30, 28, 0),   "look": Vector3(30, 0, 0)},
-	{"name": "runtime_plains",               "pos": Vector3(-15, 20, 26),  "look": Vector3(-15, 0, 26)},
-	{"name": "runtime_mountain_top",         "pos": Vector3(-15, 28, -26), "look": Vector3(-15, 0, -26)},
-	{"name": "runtime_cliff",               "pos": Vector3(-20, 22, -30),  "look": Vector3(-20, 0, -30)},
-	{"name": "runtime_forest_plains_boundary", "pos": Vector3(5, 24, 15),  "look": Vector3(5, 0, 15)},
-	{"name": "runtime_plains_mountain_boundary","pos": Vector3(-10, 24, 0),"look": Vector3(-10, 0, 0)},
+const CAPTURE_POINTS: Array[Dictionary] = [
+	{"name": "runtime_forest_close", "cell": Vector2i(35, 15), "distance": 10.0},
+	{"name": "runtime_forest_gameplay", "cell": Vector2i(35, 15), "distance": 24.0},
+	{"name": "runtime_plains", "cell": Vector2i(-35, 55), "distance": 24.0},
+	{"name": "runtime_mountain_top", "cell": Vector2i(-75, -115), "distance": 24.0},
+	{"name": "runtime_cliff", "cell": Vector2i(-75, -115), "distance": 12.0},
+	{"name": "runtime_forest_plains_boundary", "cell": Vector2i(0, 60), "distance": 24.0},
+	{"name": "runtime_plains_mountain_boundary", "cell": Vector2i(-60, -15), "distance": 24.0},
 ]
 
-var _map_gen: Node = null
-var _camera: Camera3D = null
-var _capture_idx: int = 0
-var _frames_waited: int = 0
-const FRAMES_PER_CAPTURE: int = 5
-
 func _initialize() -> void:
-	var root: Window = get_root()
+	call_deferred("_capture")
 
-	# Ensure output dir exists
-	DirAccess.make_dir_recursive_absolute(
-		ProjectSettings.globalize_path(OUTPUT_DIR)
-	)
-
-	# Load and add MapGenerator
-	var mg_scene: PackedScene = load("res://scenes/main.tscn")
-	if not mg_scene:
-		push_error("Cannot load main.tscn")
+func _capture() -> void:
+	if DisplayServer.get_name() == "headless":
+		push_error("Terrain screenshots require a rendering display.")
 		quit(1)
 		return
-	var main_node: Node = mg_scene.instantiate()
-	root.add_child(main_node)
-
-	# Set fixed seed
-	var map_gen: Node = main_node.find_child("MapGenerator", true, false)
-	if map_gen:
-		map_gen.random_seed = false
-		map_gen.custom_seed = SEED_VALUE
-		map_gen.generate_world()
-		_map_gen = map_gen
-
-	# Add isometric-style camera
-	_camera = Camera3D.new()
-	_camera.fov = 60.0
-	root.add_child(_camera)
-	_camera.make_current()
-
-	print("[Capture] Initialized. Will capture %d views." % CAPTURE_POINTS.size())
-
-func _process(_delta: float) -> bool:
-	_frames_waited += 1
-	if _frames_waited < FRAMES_PER_CAPTURE:
-		return false
-	_frames_waited = 0
-
-	if _capture_idx >= CAPTURE_POINTS.size():
-		print("[Capture] All captures done. Exiting.")
-		quit(0)
-		return false
-
-	var cp: Dictionary = CAPTURE_POINTS[_capture_idx]
-	var cam_pos: Vector3 = cp["pos"]
-	var look_at: Vector3  = cp["look"]
-
-	_camera.global_position = cam_pos
-	_camera.look_at(look_at, Vector3.UP)
-
-	# Take screenshot
-	var img: Image = get_root().get_texture().get_image()
-	if img and not img.is_empty():
-		var path: String = OUTPUT_DIR + cp["name"] + ".png"
-		var err: Error = img.save_png(ProjectSettings.globalize_path(path))
-		if err == OK:
-			print("[Capture] Saved: " + path)
-		else:
-			push_warning("[Capture] Failed to save: " + path)
-	else:
-		push_warning("[Capture] Empty image at view: " + cp["name"])
-
-	_capture_idx += 1
-	return false
-
+	var output: String = "res://docs/terrain_capture"
+	var args: PackedStringArray = OS.get_cmdline_user_args()
+	var index: int = args.find("--output")
+	if index >= 0 and index + 1 < args.size():
+		output = args[index + 1]
+	DirAccess.make_dir_recursive_absolute(output)
+	var main: Node3D = load("res://scenes/main.tscn").instantiate()
+	var map: MapGenerator = main.get_node("MapGenerator")
+	map.random_seed = false
+	map.custom_seed = 1337
+	root.add_child(main)
+	current_scene = main
+	# Freeze gameplay in this disposable review scene while retaining terrain and lighting.
+	main.process_mode = Node.PROCESS_MODE_DISABLED
+	var player: Node3D = main.get_node("Player")
+	player.visible = false
+	main.get_node("Enemies").visible = false
+	var hud: CanvasLayer = main.get_node_or_null("HUD") as CanvasLayer
+	if hud:
+		hud.visible = false
+	var camera: Camera3D = Camera3D.new()
+	root.add_child(camera)
+	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
+	camera.far = 500.0
+	camera.make_current()
+	for point: Dictionary in CAPTURE_POINTS:
+		var cell: Vector2i = point.cell
+		var target: Vector3 = Vector3(cell.x, map.get_voxel_height(cell.x, cell.y), cell.y)
+		map.update_player_chunks(Vector2i(floori(cell.x / 16.0), floori(cell.y / 16.0)), true)
+		camera.size = point.distance
+		camera.position = target + Vector3(25, 32, 25)
+		camera.look_at(target, Vector3.UP)
+		for frame: int in 5:
+			await process_frame
+		await RenderingServer.frame_post_draw
+		var capture: Image = root.get_texture().get_image()
+		if capture == null or capture.is_empty() or capture.save_png(output.path_join(point.name + ".png")) != OK:
+			push_error("Cannot save terrain view: " + point.name)
+			quit(1)
+			return
+		print("[Capture] Saved: " + point.name)
+	quit(0)
