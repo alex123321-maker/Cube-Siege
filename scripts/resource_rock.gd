@@ -14,14 +14,33 @@ var is_destroyed: bool = false
 var is_harvested: bool = false
 var degradation_stage: int = 2 # 2: full, 1: cracked, 0: heavily chipped
 var base_scale: Vector3 = Vector3.ONE
+var broken_scale: Vector3 = Vector3.ONE
 
 @onready var hurtbox: Area3D = get_node_or_null("Hurtbox")
-@onready var rock_mesh: MeshInstance3D = get_node_or_null("Visuals/RockMesh")
+@onready var rock_mesh: Node3D = get_node_or_null("Visuals/RockMesh")
 @onready var prompt_label: Label3D = get_node_or_null("PromptLabel")
+@onready var body_collision_shape: CollisionShape3D = get_node_or_null("CollisionShape3D")
+@onready var hurtbox_shape: CollisionShape3D = get_node_or_null("Hurtbox/CollisionShape3D")
+
+var rock_asset: Node3D = null
+var rock_mesh_instances: Array[MeshInstance3D] = []
+var rock_bounds: AABB
 
 const FLOATING_TEXT_SCENE = preload("res://scenes/floating_text.tscn")
+const ROCK_VARIANTS: Array[PackedScene] = [
+	preload("res://assets/environment/resources/rock_stage1/rock_stage1_var_0.glb"),
+	preload("res://assets/environment/resources/rock_stage1/rock_stage1_var_1.glb"),
+	preload("res://assets/environment/resources/rock_stage1/rock_stage1_var_2.glb"),
+	preload("res://assets/environment/resources/rock_stage1/rock_stage1_var_3.glb"),
+	preload("res://assets/environment/resources/rock_stage1/rock_stage1_var_4.glb"),
+	preload("res://assets/environment/resources/rock_stage1/rock_stage1_var_5.glb")
+]
+
+static func visual_variant_for_cell(cell_seed: int) -> int:
+	return posmod(cell_seed, ROCK_VARIANTS.size())
 
 func _ready() -> void:
+	_make_collision_shapes_local()
 	add_to_group("interactables")
 	add_to_group("resource_nodes")
 
@@ -34,9 +53,15 @@ func _ready() -> void:
 	if prompt_label:
 		prompt_label.visible = false
 	if hurtbox and hurtbox.has_signal("damaged"):
-		hurtbox.connect("damaged", Callable(self, "_on_damaged"))
+		hurtbox.damaged.connect(_on_damaged)
 
 	_apply_tier_and_variation()
+
+func _make_collision_shapes_local() -> void:
+	if body_collision_shape and body_collision_shape.shape:
+		body_collision_shape.shape = body_collision_shape.shape.duplicate(true)
+	if hurtbox_shape and hurtbox_shape.shape:
+		hurtbox_shape.shape = hurtbox_shape.shape.duplicate(true)
 
 func configure_rock(p_type: RockType, p_yield: int, p_tier: int, p_var_idx: int) -> void:
 	rock_type = p_type
@@ -54,6 +79,9 @@ func configure_rock(p_type: RockType, p_yield: int, p_tier: int, p_var_idx: int)
 func _apply_tier_and_variation() -> void:
 	if not rock_mesh:
 		return
+	for child in rock_mesh.get_children():
+		child.free()
+	rock_mesh_instances.clear()
 
 	# Amount-driven visual scale based on tier/yield
 	match deposit_tier:
@@ -66,21 +94,79 @@ func _apply_tier_and_variation() -> void:
 		_:
 			base_scale = Vector3(1.0, 1.0, 1.0)
 
-	# Silhouette variations per tier
-	match variation_index % 4:
-		0:
-			rock_mesh.rotation_degrees = Vector3(0, 0, 0)
-		1:
-			base_scale = Vector3(base_scale.x * 1.2, base_scale.y * 0.9, base_scale.z * 0.85)
-			rock_mesh.rotation_degrees = Vector3(5, 35, -4)
-		2:
-			base_scale = Vector3(base_scale.x * 0.9, base_scale.y * 1.15, base_scale.z * 1.1)
-			rock_mesh.rotation_degrees = Vector3(-6, 75, 8)
-		3:
-			base_scale = Vector3(base_scale.x * 1.1, base_scale.y * 1.0, base_scale.z * 1.15)
-			rock_mesh.rotation_degrees = Vector3(4, 130, -5)
-
+	# Select a production Stage 1 mesh by variation index; keep each authored silhouette intact.
+	var variant_index: int = posmod(variation_index, ROCK_VARIANTS.size())
+	rock_asset = ROCK_VARIANTS[variant_index].instantiate() as Node3D
+	rock_asset.name = "Stage1RockVariant%d" % variant_index
+	rock_mesh.add_child(rock_asset)
+	for node in rock_asset.find_children("*", "MeshInstance3D", true, false):
+		var mesh_instance: MeshInstance3D = node as MeshInstance3D
+		if mesh_instance:
+			rock_mesh_instances.append(mesh_instance)
+	if rock_type == RockType.IRON:
+		_apply_iron_material_tint()
+	rock_bounds = _get_mesh_bounds(rock_mesh_instances, rock_asset)
 	rock_mesh.scale = base_scale
+	_fit_collision_shapes(rock_bounds)
+	_update_prompt_position(rock_bounds)
+	_update_hurtbox_flash_target()
+
+func _apply_iron_material_tint() -> void:
+	for mesh_instance in rock_mesh_instances:
+		if not mesh_instance.mesh:
+			continue
+		for surface_index in range(mesh_instance.mesh.get_surface_count()):
+			var source_material: Material = mesh_instance.get_active_material(surface_index)
+			if source_material is StandardMaterial3D:
+				var material: StandardMaterial3D = source_material.duplicate() as StandardMaterial3D
+				material.albedo_color = Color(
+					material.albedo_color.r * 1.12,
+					material.albedo_color.g * 0.82,
+					material.albedo_color.b * 0.64,
+					material.albedo_color.a
+				)
+				material.metallic = maxf(material.metallic, 0.35)
+				mesh_instance.set_surface_override_material(surface_index, material)
+
+func _get_mesh_bounds(meshes: Array[MeshInstance3D], relative_to: Node3D) -> AABB:
+	var has_bounds: bool = false
+	var result: AABB = AABB()
+	for mesh_instance in meshes:
+		if not is_instance_valid(mesh_instance) or not mesh_instance.mesh:
+			continue
+		var local_bounds: AABB = mesh_instance.mesh.get_aabb()
+		var mesh_transform: Transform3D = relative_to.global_transform.affine_inverse() * mesh_instance.global_transform
+		for corner_index in range(8):
+			var point: Vector3 = mesh_transform * local_bounds.get_endpoint(corner_index)
+			if not has_bounds:
+				result = AABB(point, Vector3.ZERO)
+				has_bounds = true
+			else:
+				result = result.expand(point)
+	return result
+
+func _fit_collision_shapes(bounds: AABB) -> void:
+	var scaled_bounds: AABB = _scale_aabb(bounds, base_scale)
+	if body_collision_shape and body_collision_shape.shape is BoxShape3D:
+		(body_collision_shape.shape as BoxShape3D).size = scaled_bounds.size
+		body_collision_shape.position = scaled_bounds.position + scaled_bounds.size * 0.5
+	if hurtbox_shape and hurtbox_shape.shape is BoxShape3D:
+		(hurtbox_shape.shape as BoxShape3D).size = scaled_bounds.size
+		hurtbox_shape.position = scaled_bounds.position + scaled_bounds.size * 0.5
+
+func _scale_aabb(bounds: AABB, scale: Vector3) -> AABB:
+	var scaled_min: Vector3 = bounds.position * scale
+	var scaled_max: Vector3 = bounds.end * scale
+	return AABB(scaled_min, scaled_max - scaled_min)
+
+func _update_prompt_position(bounds: AABB) -> void:
+	if prompt_label:
+		prompt_label.position.y = _scale_aabb(bounds, base_scale).end.y + 0.3
+
+func _update_hurtbox_flash_target() -> void:
+	var hurtbox_controller: HurtboxArea = hurtbox as HurtboxArea
+	if hurtbox_controller and not rock_mesh_instances.is_empty():
+		hurtbox_controller.mesh_to_flash = rock_mesh_instances[0]
 
 func _on_damaged(amount: float, _knockback: Vector3, _type: String, _attacker: Node) -> void:
 	if is_destroyed:
@@ -131,8 +217,11 @@ func break_rock() -> void:
 		hurtbox.set_deferred("monitorable", false)
 
 	if is_inside_tree() and rock_mesh:
+		broken_scale = Vector3(base_scale.x * 1.2, 0.22, base_scale.z * 1.2)
 		var tween: Tween = create_tween()
-		tween.tween_property(rock_mesh, "scale", Vector3(base_scale.x * 1.2, 0.22, base_scale.z * 1.2), 0.15)
+		tween.tween_property(rock_mesh, "scale", broken_scale, 0.15)
+	else:
+		broken_scale = Vector3(base_scale.x * 1.2, 0.22, base_scale.z * 1.2)
 
 	if prompt_label:
 		prompt_label.visible = false
@@ -156,10 +245,13 @@ func set_focused(focused: bool) -> void:
 		prompt_label.text = "[E] HOLD (1.0s)\n(+%d %s)" % [resource_yield, res_name]
 		prompt_label.modulate = Color(1.0, 0.9, 0.2)
 		if rock_mesh:
-			rock_mesh.scale = Vector3(1.3, 0.35, 1.3)
+			rock_mesh.scale = _pickup_base_scale() * 1.08
 	else:
 		if rock_mesh:
-			rock_mesh.scale = Vector3(1.2, 0.25, 1.2)
+			rock_mesh.scale = _pickup_base_scale()
+
+func _pickup_base_scale() -> Vector3:
+	return broken_scale if is_destroyed else base_scale
 
 func set_interaction_progress(progress: float) -> void:
 	if not is_ready_for_pickup() or not prompt_label:
