@@ -59,60 +59,12 @@ func _exit_tree() -> void:
 	chunk_resources.clear()
 
 func setup_materials() -> void:
-
-	mat_forest = StandardMaterial3D.new()
-	mat_forest.albedo_texture = _create_voxel_texture(Color(0.20, 0.44, 0.20, 1.0), Color(0.15, 0.36, 0.15, 1.0), 0)
-	mat_forest.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-	mat_forest.roughness = 0.85
-
-	mat_plains = StandardMaterial3D.new()
-	mat_plains.albedo_texture = _create_voxel_texture(Color(0.38, 0.58, 0.22, 1.0), Color(0.85, 0.82, 0.35, 1.0), 1)
-	mat_plains.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-	mat_plains.roughness = 0.85
-
-	mat_mountains = StandardMaterial3D.new()
-	mat_mountains.albedo_texture = _create_voxel_texture(Color(0.48, 0.49, 0.52, 1.0), Color(0.35, 0.36, 0.38, 1.0), 2)
-	mat_mountains.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-	mat_mountains.roughness = 0.90
-
-	mat_cliff = StandardMaterial3D.new()
-	mat_cliff.albedo_texture = _create_voxel_texture(Color(0.32, 0.30, 0.28, 1.0), Color(0.22, 0.20, 0.18, 1.0), 3)
-	mat_cliff.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-	mat_cliff.roughness = 0.92
-
-func _create_voxel_texture(base_col: Color, accent_col: Color, pattern_type: int) -> ImageTexture:
-	var img: Image = Image.create(16, 16, false, Image.FORMAT_RGBA8)
-	for y in range(16):
-		for x in range(16):
-			var col: Color = base_col
-			var is_border: bool = (x == 0 or x == 15 or y == 0 or y == 15)
-			match pattern_type:
-				0: # Forest grass with blade accents
-					if is_border:
-						col = base_col.darkened(0.12)
-					elif ((x * 7 + y * 13) % 11) == 0:
-						col = accent_col
-				1: # Plains meadow with tiny wildflower speckles
-					if is_border:
-						col = base_col.darkened(0.08)
-					elif (x == 4 and y == 5) or (x == 11 and y == 12) or (x == 7 and y == 9):
-						col = accent_col
-				2: # Mountain slate facets and chisel lines
-					if is_border:
-						col = base_col.darkened(0.18)
-					elif ((x + y * 3) % 5) == 0:
-						col = accent_col
-					elif ((x * 2 + y) % 7) == 0:
-						col = base_col.lightened(0.12)
-				3: # Cliff horizontal strata layers
-					if (y % 4) == 0:
-						col = base_col.darkened(0.25)
-					elif (y % 4) == 2:
-						col = accent_col
-					elif is_border:
-						col = base_col.darkened(0.15)
-			img.set_pixel(x, y, col)
-	return ImageTexture.create_from_image(img)
+	## Load production terrain materials from authored asset resources.
+	## These replace the previous runtime-generated prototype textures.
+	mat_forest = load("res://assets/environment/terrain_materials/textures/material_forest.tres")
+	mat_plains = load("res://assets/environment/terrain_materials/textures/material_plains.tres")
+	mat_mountains = load("res://assets/environment/terrain_materials/textures/material_mountains.tres")
+	mat_cliff = load("res://assets/environment/terrain_materials/textures/material_cliff.tres")
 
 
 func generate_world() -> void:
