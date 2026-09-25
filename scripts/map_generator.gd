@@ -412,7 +412,11 @@ func _remove_scatter_at_cell(cell: Vector2i) -> void:
 		return
 	var nodes: Array = chunk_resources[chunk_coord]
 	for node_index: int in range(nodes.size() - 1, -1, -1):
-		var node: Node = nodes[node_index]
+		var node_value: Variant = nodes[node_index]
+		if not is_instance_valid(node_value):
+			nodes.remove_at(node_index)
+			continue
+		var node: Node = node_value as Node
 		if not node is MultiMeshInstance3D or not String(node.name).begins_with("Scatter_"):
 			continue
 		var scatter: MultiMeshInstance3D = node as MultiMeshInstance3D

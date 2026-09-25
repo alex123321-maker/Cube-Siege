@@ -141,18 +141,38 @@ func test_building_removes_scatter_and_chunk_reload_respects_building_cell() -> 
 	building_system.stone_count = 1000
 	building_system.iron_count = 1000
 
+	var target_chunk: Vector2i = Vector2i.ZERO
+	var pickup: FreeResourcePickup = null
 	var target_cell: Vector2i = Vector2i(2147483647, 2147483647)
 	for coord_value: Variant in generator.chunk_resources:
+		var candidate_pickup: FreeResourcePickup = null
+		var candidate_cell: Vector2i = Vector2i(2147483647, 2147483647)
 		for node: Node in generator.chunk_resources[coord_value]:
+			if node is FreeResourcePickup and is_instance_valid(node):
+				candidate_pickup = node as FreeResourcePickup
 			if node is MultiMeshInstance3D and String(node.name).begins_with("Scatter_"):
 				var cells: Array = node.get_meta("scatter_cells", [])
-				if not cells.is_empty():
-					target_cell = cells[0]
-					break
-		if target_cell.x != 2147483647:
+				for cell_value: Vector2i in cells:
+					if building_system.is_cell_free(cell_value):
+						candidate_cell = cell_value
+						break
+		if candidate_pickup and candidate_cell.x != 2147483647:
+			pickup = candidate_pickup
+			target_cell = candidate_cell
+			target_chunk = coord_value
 			break
 	assert_ne(target_cell.x, 2147483647, "Seeded map should have a decorated cell to build on")
+	assert_not_null(pickup, "Chosen chunk should also contain a collectible resource pickup")
 	assert_true(building_system.is_cell_free(target_cell), "Scatter must not block building placement")
+	var harvested_position: Vector3 = pickup.global_position
+	var chosen_chunk_nodes: Array = generator.chunk_resources[target_chunk]
+	assert_true(chosen_chunk_nodes.has(pickup), "The pickup should be tracked by the loaded chunk")
+	pickup.harvest(null)
+	await get_tree().process_frame
+	assert_false(is_instance_valid(pickup), "Harvest should queue and complete pickup removal")
+	assert_gt(_invalid_node_reference_count(chosen_chunk_nodes), 0, "The harvested node should still be a stale chunk entry before placement")
+	assert_true(generator.is_harvested(harvested_position), "Harvested pickup must remain recorded")
+
 	var build_position: Vector3 = Vector3(
 		float(target_cell.x) + 0.5,
 		float(generator.get_voxel_height(target_cell.x, target_cell.y)),
@@ -161,11 +181,7 @@ func test_building_removes_scatter_and_chunk_reload_respects_building_cell() -> 
 	building_system.place_building(build_position, target_cell, BuildingSystem.PrefabType.FLOOR_SPIKES)
 	assert_true(building_system.placed_buildings.has(target_cell), "Building placement should complete on the decorated cell")
 	assert_eq(_scatter_count_at_cell(generator, target_cell), 0, "Building placement should remove every scatter instance in that cell")
-
-	var target_chunk: Vector2i = Vector2i(
-		floori(float(target_cell.x) / float(ChunkBuilder.CHUNK_SIZE)),
-		floori(float(target_cell.y) / float(ChunkBuilder.CHUNK_SIZE))
-	)
+	assert_eq(_invalid_node_reference_count(chosen_chunk_nodes), 0, "Building cleanup must prune freed resource references before traversing nodes")
 	generator.unload_chunk(target_chunk.x, target_chunk.y)
 	await get_tree().process_frame
 	generator.load_chunk(target_chunk.x, target_chunk.y)
@@ -178,4 +194,11 @@ func _scatter_count_at_cell(generator: MapGenerator, cell: Vector2i) -> int:
 			if node is MultiMeshInstance3D and String(node.name).begins_with("Scatter_"):
 				var cells: Array = node.get_meta("scatter_cells", [])
 				count += cells.count(cell)
+	return count
+
+func _invalid_node_reference_count(nodes: Array) -> int:
+	var count: int = 0
+	for node_value: Variant in nodes:
+		if not is_instance_valid(node_value):
+			count += 1
 	return count
