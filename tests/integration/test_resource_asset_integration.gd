@@ -152,3 +152,50 @@ func test_focused_broken_rock_keeps_its_broken_scale() -> void:
 	assert_eq(rock.rock_mesh.scale, rock.broken_scale * 1.08, "Focusing must emphasize the broken pickup scale")
 	rock.set_focused(false)
 	assert_eq(rock.rock_mesh.scale, rock.broken_scale, "Unfocusing must restore the broken pickup scale")
+
+func test_rock_health_maps_evenly_to_five_authored_stages() -> void:
+	assert_eq(ResourceRock.visual_stage_for_health(100.0, 100.0), 1)
+	assert_eq(ResourceRock.visual_stage_for_health(80.0, 100.0), 2)
+	assert_eq(ResourceRock.visual_stage_for_health(60.0, 100.0), 3)
+	assert_eq(ResourceRock.visual_stage_for_health(40.0, 100.0), 4)
+	assert_eq(ResourceRock.visual_stage_for_health(20.0, 100.0), 5)
+	assert_eq(ResourceRock.visual_stage_for_health(0.0, 100.0), 5)
+	assert_eq(ResourceRock.visual_stage_for_health(10.0, 0.0), 5)
+
+func test_rock_stage_pools_are_complete_and_seeded_selection_is_stable() -> void:
+	var pools: Array[Array] = [ResourceRock.ROCK_STAGE1_VARIANTS, ResourceRock.ROCK_STAGE2_VARIANTS, ResourceRock.ROCK_STAGE3_VARIANTS, ResourceRock.ROCK_STAGE4_VARIANTS, ResourceRock.ROCK_STAGE5_VARIANTS]
+	var expected_counts: Array[int] = [6, 3, 3, 2, 3]
+	for stage_index in range(pools.size()):
+		assert_eq(pools[stage_index].size(), expected_counts[stage_index])
+		for seed_value in range(12):
+			var selected: int = ResourceRock.visual_variant_for_seed(seed_value, stage_index + 1)
+			assert_true(selected >= 0 and selected < expected_counts[stage_index])
+			assert_eq(selected, ResourceRock.visual_variant_for_seed(seed_value, stage_index + 1), "Variant must repeat for a fixed cell seed")
+
+func test_rock_stage_swap_keeps_bottom_center_anchor_and_pickup_contract() -> void:
+	var rock: ResourceRock = RESOURCE_STONE_SCENE.instantiate() as ResourceRock
+	rock.configure_rock(ResourceRock.RockType.STONE, 6, 1, 2, 12345)
+	var rock_container := Node3D.new()
+	add_child_autoqfree(rock_container)
+	rock_container.add_child(rock)
+	var expected_health: float = rock.max_health
+	var expected_yield: int = rock.resource_yield
+	for stage in range(1, 6):
+		rock._set_visual_stage(stage)
+		assert_eq(rock.visual_stage, stage)
+		assert_eq(rock.rock_mesh.scale, rock.base_scale, "Stage swaps must not scale the authored mesh")
+		assert_almost_eq(rock.rock_bounds.position.x + rock.rock_bounds.size.x * 0.5, 0.0, 0.01)
+		assert_almost_eq(rock.rock_bounds.position.z + rock.rock_bounds.size.z * 0.5, 0.0, 0.01)
+		assert_almost_eq(rock.rock_bounds.position.y, 0.0, 0.01)
+	rock._set_visual_stage(1)
+	for damage_step in range(1, 5):
+		rock._on_damaged(expected_health / 5.0, Vector3.ZERO, "test", null)
+		assert_eq(rock.visual_stage, damage_step + 1, "Damage must advance through the health-mapped stage")
+		assert_almost_eq(rock.current_health, expected_health * (1.0 - damage_step / 5.0), 0.01)
+	assert_eq(rock.max_health, expected_health)
+	assert_eq(rock.resource_yield, expected_yield)
+	rock._on_damaged(expected_health / 5.0, Vector3.ZERO, "test", null)
+	assert_true(rock.is_ready_for_pickup())
+	assert_eq(rock.collision_layer, 8)
+	assert_eq(rock.collision_mask, 0)
+	assert_eq(rock.visual_stage, 5)

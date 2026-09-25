@@ -8,6 +8,8 @@ var active_effect_ids: Dictionary = {}
 var _timed_effects: Array[Dictionary] = []
 var _container: Node3D = null
 
+enum StoneBreakStrength { HIT, STAGE_TRANSITION, FINAL_BREAK }
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_ensure_container()
@@ -167,6 +169,82 @@ func spawn_sparks(pos: Vector3, normal: Vector3, col: Color = Color(1.0, 0.85, 0
 
 	root.add_child(parts)
 	register_effect(root, 0.45)
+	return root
+
+## Short-lived stone chips and dust. These are particle meshes, never physics bodies.
+func spawn_stone_break(pos: Vector3, col: Color = Color(0.63, 0.61, 0.58), strength: int = StoneBreakStrength.HIT) -> Node3D:
+	var container := _ensure_container()
+	var root := Node3D.new()
+	root.name = "StoneBreakVFX"
+	container.add_child(root)
+	root.global_position = pos
+
+	var fragment_count: int
+	var fragment_speed: float
+	var dust_count: int
+	match strength:
+		StoneBreakStrength.STAGE_TRANSITION:
+			fragment_count = randi_range(8, 12)
+			fragment_speed = 4.8
+			dust_count = 10
+		StoneBreakStrength.FINAL_BREAK:
+			fragment_count = randi_range(16, 22)
+			fragment_speed = 6.2
+			dust_count = 18
+		_:
+			fragment_count = randi_range(2, 4)
+			fragment_speed = 3.4
+			dust_count = 4
+
+	var chip_mesh := BoxMesh.new()
+	chip_mesh.size = Vector3(0.12, 0.12, 0.12)
+	var chip_material := StandardMaterial3D.new()
+	chip_material.albedo_color = col
+	chip_material.roughness = 1.0
+	chip_mesh.material = chip_material
+	var chips := CPUParticles3D.new()
+	chips.name = "StoneChips"
+	chips.one_shot = true
+	chips.explosiveness = 1.0
+	chips.amount = fragment_count
+	chips.lifetime = 0.55
+	chips.direction = Vector3.UP
+	chips.spread = 68.0
+	chips.initial_velocity_min = fragment_speed * 0.55
+	chips.initial_velocity_max = fragment_speed
+	chips.gravity = Vector3(0, -10.0, 0)
+	chips.scale_amount_min = 0.55
+	chips.scale_amount_max = 1.5 if strength == StoneBreakStrength.FINAL_BREAK else 1.1
+	chips.mesh = chip_mesh
+	root.add_child(chips)
+
+	var dust_mesh := SphereMesh.new()
+	dust_mesh.radius = 0.16
+	dust_mesh.height = 0.32
+	dust_mesh.radial_segments = 6
+	dust_mesh.rings = 3
+	var dust_material := StandardMaterial3D.new()
+	dust_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	dust_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	dust_material.albedo_color = Color(col.r, col.g, col.b, 0.22)
+	dust_mesh.material = dust_material
+	var dust := CPUParticles3D.new()
+	dust.name = "StoneDust"
+	dust.one_shot = true
+	dust.explosiveness = 0.85
+	dust.amount = dust_count
+	dust.lifetime = 0.65
+	dust.direction = Vector3.UP
+	dust.spread = 48.0
+	dust.initial_velocity_min = 0.35
+	dust.initial_velocity_max = 1.15 if strength == StoneBreakStrength.FINAL_BREAK else 0.8
+	dust.gravity = Vector3(0, -0.45, 0)
+	dust.scale_amount_min = 0.8
+	dust.scale_amount_max = 2.2 if strength == StoneBreakStrength.FINAL_BREAK else 1.5
+	dust.mesh = dust_mesh
+	root.add_child(dust)
+
+	register_effect(root, 0.85)
 	return root
 
 ## Expanding ground shockwave ring

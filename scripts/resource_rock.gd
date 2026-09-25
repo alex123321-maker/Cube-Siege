@@ -12,9 +12,10 @@ enum RockType { STONE, IRON }
 var current_health: float = 80.0
 var is_destroyed: bool = false
 var is_harvested: bool = false
-var degradation_stage: int = 2 # 2: full, 1: cracked, 0: heavily chipped
 var base_scale: Vector3 = Vector3.ONE
 var broken_scale: Vector3 = Vector3.ONE
+var visual_stage: int = 1
+var visual_seed: int = 0
 
 @onready var hurtbox: Area3D = get_node_or_null("Hurtbox")
 @onready var rock_mesh: Node3D = get_node_or_null("Visuals/RockMesh")
@@ -27,7 +28,7 @@ var rock_mesh_instances: Array[MeshInstance3D] = []
 var rock_bounds: AABB
 
 const FLOATING_TEXT_SCENE = preload("res://scenes/floating_text.tscn")
-const ROCK_VARIANTS: Array[PackedScene] = [
+const ROCK_STAGE1_VARIANTS: Array[PackedScene] = [
 	preload("res://assets/environment/resources/rock_stage1/rock_stage1_var_0.glb"),
 	preload("res://assets/environment/resources/rock_stage1/rock_stage1_var_1.glb"),
 	preload("res://assets/environment/resources/rock_stage1/rock_stage1_var_2.glb"),
@@ -35,9 +36,44 @@ const ROCK_VARIANTS: Array[PackedScene] = [
 	preload("res://assets/environment/resources/rock_stage1/rock_stage1_var_4.glb"),
 	preload("res://assets/environment/resources/rock_stage1/rock_stage1_var_5.glb")
 ]
+const ROCK_STAGE2_VARIANTS: Array[PackedScene] = [
+	preload("res://assets/environment/resources/rock_stage2/rock_stage2_var_0.glb"),
+	preload("res://assets/environment/resources/rock_stage2/rock_stage2_var_1.glb"),
+	preload("res://assets/environment/resources/rock_stage2/rock_stage2_var_2.glb")
+]
+const ROCK_STAGE3_VARIANTS: Array[PackedScene] = [
+	preload("res://assets/environment/resources/rock_stage3/rock_stage3_var_0.glb"),
+	preload("res://assets/environment/resources/rock_stage3/rock_stage3_var_1.glb"),
+	preload("res://assets/environment/resources/rock_stage3/rock_stage3_var_2.glb")
+]
+const ROCK_STAGE4_VARIANTS: Array[PackedScene] = [
+	preload("res://assets/environment/resources/rock_stage4/rock_stage4_var_0.glb"),
+	preload("res://assets/environment/resources/rock_stage4/rock_stage4_var_1.glb")
+]
+const ROCK_STAGE5_VARIANTS: Array[PackedScene] = [
+	preload("res://assets/environment/resources/rock_stage5/rock_stage5_var_0.glb"),
+	preload("res://assets/environment/resources/rock_stage5/rock_stage5_var_1.glb"),
+	preload("res://assets/environment/resources/rock_stage5/rock_stage5_var_2.glb")
+]
+const ROCK_VARIANTS: Array[PackedScene] = ROCK_STAGE1_VARIANTS
 
 static func visual_variant_for_cell(cell_seed: int) -> int:
 	return posmod(cell_seed, ROCK_VARIANTS.size())
+
+static func visual_stage_for_health(health: float, max_hp: float) -> int:
+	if max_hp <= 0.0:
+		return 5
+	var health_ratio: float = clampf(health / max_hp, 0.0, 1.0)
+	return clampi(1 + int(floor((1.0 - health_ratio) * 5.0 + 0.0001)), 1, 5)
+
+static func visual_variant_for_seed(seed_value: int, stage: int) -> int:
+	var counts: Array[int] = [ROCK_STAGE1_VARIANTS.size(), ROCK_STAGE2_VARIANTS.size(), ROCK_STAGE3_VARIANTS.size(), ROCK_STAGE4_VARIANTS.size(), ROCK_STAGE5_VARIANTS.size()]
+	var stage_index: int = clampi(stage - 1, 0, counts.size() - 1)
+	if stage_index == 0:
+		return posmod(seed_value, counts[stage_index])
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed_value + stage_index * 104729
+	return rng.randi_range(0, counts[stage_index] - 1)
 
 func _ready() -> void:
 	_make_collision_shapes_local()
@@ -63,11 +99,12 @@ func _make_collision_shapes_local() -> void:
 	if hurtbox_shape and hurtbox_shape.shape:
 		hurtbox_shape.shape = hurtbox_shape.shape.duplicate(true)
 
-func configure_rock(p_type: RockType, p_yield: int, p_tier: int, p_var_idx: int) -> void:
+func configure_rock(p_type: RockType, p_yield: int, p_tier: int, p_var_idx: int, p_visual_seed: int = -1) -> void:
 	rock_type = p_type
 	resource_yield = p_yield
 	deposit_tier = p_tier
 	variation_index = p_var_idx
+	visual_seed = p_var_idx if p_visual_seed < 0 else p_visual_seed
 	if rock_type == RockType.IRON:
 		max_health = 80.0 + float(p_tier * 35.0)
 	else:
@@ -79,9 +116,6 @@ func configure_rock(p_type: RockType, p_yield: int, p_tier: int, p_var_idx: int)
 func _apply_tier_and_variation() -> void:
 	if not rock_mesh:
 		return
-	for child in rock_mesh.get_children():
-		child.free()
-	rock_mesh_instances.clear()
 
 	# Amount-driven visual scale based on tier/yield
 	match deposit_tier:
@@ -94,21 +128,48 @@ func _apply_tier_and_variation() -> void:
 		_:
 			base_scale = Vector3(1.0, 1.0, 1.0)
 
-	# Select a production Stage 1 mesh by variation index; keep each authored silhouette intact.
-	var variant_index: int = posmod(variation_index, ROCK_VARIANTS.size())
-	rock_asset = ROCK_VARIANTS[variant_index].instantiate() as Node3D
-	rock_asset.name = "Stage1RockVariant%d" % variant_index
+	visual_seed = variation_index if visual_seed == 0 else visual_seed
+	_set_visual_stage(1)
+	rock_mesh.scale = base_scale
+	_fit_collision_shapes(rock_bounds)
+	_update_prompt_position(rock_bounds)
+	_update_hurtbox_flash_target()
+
+func _variants_for_stage(stage: int) -> Array[PackedScene]:
+	match stage:
+		2:
+			return ROCK_STAGE2_VARIANTS
+		3:
+			return ROCK_STAGE3_VARIANTS
+		4:
+			return ROCK_STAGE4_VARIANTS
+		5:
+			return ROCK_STAGE5_VARIANTS
+		_:
+			return ROCK_STAGE1_VARIANTS
+
+func _set_visual_stage(stage: int) -> void:
+	if not rock_mesh:
+		return
+	for child in rock_mesh.get_children():
+		rock_mesh.remove_child(child)
+		child.queue_free()
+	rock_mesh_instances.clear()
+	visual_stage = clampi(stage, 1, 5)
+	var variants: Array[PackedScene] = _variants_for_stage(visual_stage)
+	var variant_index: int = visual_variant_for_seed(visual_seed, visual_stage)
+	rock_asset = variants[variant_index].instantiate() as Node3D
+	rock_asset.name = "Stage1RockVariant%d" % variant_index if visual_stage == 1 else "Stage%dRockVariant%d" % [visual_stage, variant_index]
 	rock_mesh.add_child(rock_asset)
 	for node in rock_asset.find_children("*", "MeshInstance3D", true, false):
 		var mesh_instance: MeshInstance3D = node as MeshInstance3D
 		if mesh_instance:
 			rock_mesh_instances.append(mesh_instance)
+	var initial_bounds: AABB = _get_mesh_bounds(rock_mesh_instances, rock_asset)
+	rock_asset.position += Vector3(-initial_bounds.get_center().x, -initial_bounds.position.y, -initial_bounds.get_center().z)
 	if rock_type == RockType.IRON:
 		_apply_iron_material_tint()
-	rock_bounds = _get_mesh_bounds(rock_mesh_instances, rock_asset)
-	rock_mesh.scale = base_scale
-	_fit_collision_shapes(rock_bounds)
-	_update_prompt_position(rock_bounds)
+	rock_bounds = _get_mesh_bounds(rock_mesh_instances, rock_mesh)
 	_update_hurtbox_flash_target()
 
 func _apply_iron_material_tint() -> void:
@@ -181,31 +242,37 @@ func _on_damaged(amount: float, _knockback: Vector3, _type: String, _attacker: N
 	tween.tween_property($Visuals, "rotation:z", -0.07, 0.04)
 	tween.tween_property($Visuals, "rotation:z", 0.0, 0.04)
 
-	# Visual stages of breakdown
-	var hp_ratio: float = current_health / max_health
-	if hp_ratio <= 0.33 and degradation_stage > 0:
-		degradation_stage = 0
-		_trigger_breakdown_step(0.60)
-	elif hp_ratio <= 0.66 and degradation_stage > 1:
-		degradation_stage = 1
-		_trigger_breakdown_step(0.82)
-
 	if current_health <= 0.0:
 		break_rock()
+		return
 
-func _trigger_breakdown_step(scale_factor: float) -> void:
-	if rock_mesh:
-		var target_s: Vector3 = base_scale * scale_factor
-		var t: Tween = create_tween()
-		t.tween_property(rock_mesh, "scale", target_s, 0.12).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
-
+	var next_stage: int = visual_stage_for_health(current_health, max_health)
 	var vfx = get_node_or_null("/root/VFXManager")
-	if vfx:
-		var spark_col: Color = Color(0.8, 0.5, 0.2) if rock_type == RockType.IRON else Color(0.7, 0.7, 0.75)
-		vfx.spawn_sparks(global_position + Vector3(0, 0.5, 0), Vector3.UP, spark_col, 8, 3.5)
+	if next_stage > visual_stage:
+		if vfx:
+			vfx.spawn_stone_break(_stone_vfx_position(), _stone_vfx_color(), 1)
+		_set_visual_stage(next_stage)
+		rock_mesh.scale = base_scale
+		_update_prompt_position(rock_bounds)
+	elif vfx:
+		vfx.spawn_stone_break(_stone_vfx_position(), _stone_vfx_color(), 0)
+
+func _stone_vfx_color() -> Color:
+	return Color(0.8, 0.5, 0.2) if rock_type == RockType.IRON else Color(0.63, 0.61, 0.58)
+
+func _stone_vfx_position() -> Vector3:
+	return global_position + Vector3.UP * maxf(0.35, rock_bounds.size.y * base_scale.y * 0.5)
 
 func break_rock() -> void:
 	is_destroyed = true
+	var vfx = get_node_or_null("/root/VFXManager")
+	if vfx:
+		vfx.spawn_stone_break(_stone_vfx_position(), _stone_vfx_color(), 2)
+	if visual_stage != 5:
+		_set_visual_stage(5)
+		if rock_mesh:
+			rock_mesh.scale = base_scale
+		_update_prompt_position(rock_bounds)
 	# Shift to collision_layer 8 (interactable items). The player (mask 1) no longer collides
 	# with the broken rock, while InteractionSensor (mask 9 = 1 | 8) continues to detect it.
 	collision_layer = 8
@@ -216,12 +283,7 @@ func break_rock() -> void:
 		hurtbox.set_deferred("monitoring", false)
 		hurtbox.set_deferred("monitorable", false)
 
-	if is_inside_tree() and rock_mesh:
-		broken_scale = Vector3(base_scale.x * 1.2, 0.22, base_scale.z * 1.2)
-		var tween: Tween = create_tween()
-		tween.tween_property(rock_mesh, "scale", broken_scale, 0.15)
-	else:
-		broken_scale = Vector3(base_scale.x * 1.2, 0.22, base_scale.z * 1.2)
+	broken_scale = base_scale
 
 	if prompt_label:
 		prompt_label.visible = false
