@@ -16,6 +16,7 @@ var base_scale: Vector3 = Vector3.ONE
 var broken_scale: Vector3 = Vector3.ONE
 var visual_stage: int = 1
 var visual_seed: int = 0
+var visual_seed_is_explicit: bool = false
 
 @onready var hurtbox: Area3D = get_node_or_null("Hurtbox")
 @onready var rock_mesh: Node3D = get_node_or_null("Visuals/RockMesh")
@@ -79,6 +80,8 @@ func _ready() -> void:
 	_make_collision_shapes_local()
 	add_to_group("interactables")
 	add_to_group("resource_nodes")
+	if not visual_seed_is_explicit:
+		visual_seed = variation_index
 
 	if rock_type == RockType.IRON:
 		max_health = 120.0
@@ -99,12 +102,13 @@ func _make_collision_shapes_local() -> void:
 	if hurtbox_shape and hurtbox_shape.shape:
 		hurtbox_shape.shape = hurtbox_shape.shape.duplicate(true)
 
-func configure_rock(p_type: RockType, p_yield: int, p_tier: int, p_var_idx: int, p_visual_seed: int = -1) -> void:
+func configure_rock(p_type: RockType, p_yield: int, p_tier: int, p_var_idx: int, p_visual_seed: Variant = null) -> void:
 	rock_type = p_type
 	resource_yield = p_yield
 	deposit_tier = p_tier
 	variation_index = p_var_idx
-	visual_seed = p_var_idx if p_visual_seed < 0 else p_visual_seed
+	visual_seed_is_explicit = p_visual_seed != null
+	visual_seed = p_var_idx if p_visual_seed == null else int(p_visual_seed)
 	if rock_type == RockType.IRON:
 		max_health = 80.0 + float(p_tier * 35.0)
 	else:
@@ -128,7 +132,8 @@ func _apply_tier_and_variation() -> void:
 		_:
 			base_scale = Vector3(1.0, 1.0, 1.0)
 
-	visual_seed = variation_index if visual_seed == 0 else visual_seed
+	if not visual_seed_is_explicit:
+		visual_seed = variation_index
 	_set_visual_stage(1)
 	rock_mesh.scale = base_scale
 	_fit_collision_shapes(rock_bounds)
@@ -157,7 +162,7 @@ func _set_visual_stage(stage: int) -> void:
 	rock_mesh_instances.clear()
 	visual_stage = clampi(stage, 1, 5)
 	var variants: Array[PackedScene] = _variants_for_stage(visual_stage)
-	var variant_index: int = visual_variant_for_seed(visual_seed, visual_stage)
+	var variant_index: int = posmod(variation_index, variants.size()) if visual_stage == 1 else visual_variant_for_seed(visual_seed, visual_stage)
 	rock_asset = variants[variant_index].instantiate() as Node3D
 	rock_asset.name = "Stage1RockVariant%d" % variant_index if visual_stage == 1 else "Stage%dRockVariant%d" % [visual_stage, variant_index]
 	rock_mesh.add_child(rock_asset)

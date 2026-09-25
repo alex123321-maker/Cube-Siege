@@ -172,6 +172,25 @@ func test_rock_stage_pools_are_complete_and_seeded_selection_is_stable() -> void
 			assert_true(selected >= 0 and selected < expected_counts[stage_index])
 			assert_eq(selected, ResourceRock.visual_variant_for_seed(seed_value, stage_index + 1), "Variant must repeat for a fixed cell seed")
 
+func test_configured_rock_preserves_explicit_seeds_and_stage_one_variation() -> void:
+	for seed_value in [12345, -6, 0]:
+		var rock: ResourceRock = RESOURCE_STONE_SCENE.instantiate() as ResourceRock
+		rock.configure_rock(ResourceRock.RockType.STONE, 6, 1, 2, seed_value)
+		assert_eq(rock.visual_seed, seed_value, "Configured seed %d must be preserved" % seed_value)
+		add_child_autoqfree(rock)
+		assert_eq(rock.rock_asset.name, "Stage1RockVariant2", "Stage 1 must use the requested variation index")
+		rock._set_visual_stage(2)
+		assert_eq(rock.rock_asset.name, "Stage2RockVariant%d" % ResourceRock.visual_variant_for_seed(seed_value, 2), "Later stages must use the explicit visual seed")
+
+func test_configure_rock_without_visual_seed_uses_variation_as_compatible_fallback() -> void:
+	var rock: ResourceRock = RESOURCE_STONE_SCENE.instantiate() as ResourceRock
+	rock.configure_rock(ResourceRock.RockType.STONE, 6, 1, 4)
+	assert_eq(rock.visual_seed, 4)
+	add_child_autoqfree(rock)
+	assert_eq(rock.rock_asset.name, "Stage1RockVariant4")
+	rock._set_visual_stage(2)
+	assert_eq(rock.rock_asset.name, "Stage2RockVariant%d" % ResourceRock.visual_variant_for_seed(4, 2))
+
 func test_rock_stage_swap_keeps_bottom_center_anchor_and_pickup_contract() -> void:
 	var rock: ResourceRock = RESOURCE_STONE_SCENE.instantiate() as ResourceRock
 	rock.configure_rock(ResourceRock.RockType.STONE, 6, 1, 2, 12345)
