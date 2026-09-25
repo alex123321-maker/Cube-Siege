@@ -56,6 +56,7 @@ var red_mat: StandardMaterial3D = null
 var mouse_override: Vector2 = Vector2(-9999, -9999)
 
 func _ready() -> void:
+	add_to_group("building_system")
 	wallet.resources_changed.connect(_on_wallet_resources_changed)
 	setup_materials()
 	setup_preview()

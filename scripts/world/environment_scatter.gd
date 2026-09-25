@@ -14,6 +14,7 @@ const DENSITY_MULTIPLIERS: Dictionary = {
 }
 const CLUSTER_SIZE: int = 8
 const CLUSTER_ACTIVE_CHANCE: float = 0.42
+const SCATTER_CHOICE_SALT: int = 0x53434154
 
 const PROP_PATHS: Dictionary = {
 	"grass_tuft_small_01": "res://assets/environment/dressing_pack/grass_tuft_small_01.glb",
@@ -59,7 +60,7 @@ static func choose_prop(
 	world_x: int,
 	world_z: int,
 	world_seed: int,
-	cell_seed: int,
+	_cell_seed: int,
 	biome_weights: Dictionary,
 	world_height: float,
 	density_level: DensityLevel,
@@ -100,7 +101,8 @@ static func choose_prop(
 
 	var density_scale: float = float(DENSITY_MULTIPLIERS.get(density_level, DENSITY_MULTIPLIERS[PRODUCTION_DENSITY]))
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
-	rng.seed = _stable_seed(world_x, world_z, world_seed, cell_seed)
+	# Keep scatter selection independent from MapGenerator's existing resource RNG.
+	rng.seed = _stable_seed(world_x, world_z, world_seed, SCATTER_CHOICE_SALT)
 	if rng.randf() >= minf(total_chance * density_scale, 0.95):
 		return &""
 
@@ -154,16 +156,25 @@ static func make_instance_transform(
 	var basis: Basis = Basis(Vector3.UP, rotation).scaled(Vector3.ONE * scale)
 	return Transform3D(basis, position)
 
-static func append_instance(instances_by_prop: Dictionary, prop_id: StringName, transform: Transform3D) -> void:
+static func append_instance(
+	instances_by_prop: Dictionary,
+	prop_id: StringName,
+	transform: Transform3D,
+	world_cell: Vector2i = Vector2i(-2147483648, -2147483648)
+) -> void:
 	if not instances_by_prop.has(prop_id):
-		instances_by_prop[prop_id] = []
-	(instances_by_prop[prop_id] as Array).append(transform)
+		instances_by_prop[prop_id] = {"transforms": [], "cells": []}
+	var entry: Dictionary = instances_by_prop[prop_id]
+	(entry["transforms"] as Array).append(transform)
+	(entry["cells"] as Array).append(world_cell)
 
 static func create_multimesh_nodes(instances_by_prop: Dictionary) -> Array[Node]:
 	var nodes: Array[Node] = []
 	for prop_value: Variant in instances_by_prop:
 		var prop_id: StringName = StringName(prop_value)
-		var transforms: Array = instances_by_prop[prop_value]
+		var entry: Variant = instances_by_prop[prop_value]
+		var transforms: Array = entry["transforms"] if entry is Dictionary else entry
+		var cells: Array = entry["cells"] if entry is Dictionary else []
 		if transforms.is_empty():
 			continue
 		var mesh: Mesh = _get_mesh(prop_id)
@@ -180,6 +191,7 @@ static func create_multimesh_nodes(instances_by_prop: Dictionary) -> Array[Node]
 		instance.name = "Scatter_%s" % prop_id
 		instance.multimesh = multimesh
 		instance.material_override = SHARED_DRESSING_MATERIAL
+		instance.set_meta("scatter_cells", cells)
 		nodes.append(instance)
 	return nodes
 

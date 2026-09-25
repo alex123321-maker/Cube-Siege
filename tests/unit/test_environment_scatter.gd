@@ -34,6 +34,29 @@ func test_density_levels_are_ordered_and_medium_is_production_default() -> void:
 	assert_gt(counts[Scatter.DensityLevel.HIGH], counts[Scatter.DensityLevel.MEDIUM])
 	assert_eq(Scatter.PRODUCTION_DENSITY, Scatter.DensityLevel.MEDIUM)
 
+func test_real_resource_seed_formula_keeps_scatter_varied_and_density_ordered() -> void:
+	var weights: Dictionary = {
+		BiomeSystem.BiomeType.FOREST: 0.0,
+		BiomeSystem.BiomeType.PLAINS: 1.0,
+		BiomeSystem.BiomeType.MOUNTAINS: 0.0,
+	}
+	var counts: Dictionary = {Scatter.DensityLevel.LOW: 0, Scatter.DensityLevel.MEDIUM: 0, Scatter.DensityLevel.HIGH: 0}
+	var selected_props: Dictionary = {}
+	var world_seed: int = 7123
+	for z: int in range(-32, 32):
+		for x: int in range(-32, 32):
+			var cell_seed: int = (x * 73856093) ^ (z * 19349663) ^ (world_seed * 83492791)
+			for level: int in [Scatter.DensityLevel.LOW, Scatter.DensityLevel.MEDIUM, Scatter.DensityLevel.HIGH]:
+				var prop_id: StringName = Scatter.choose_prop(x, z, world_seed, cell_seed, weights, 1.0, level, false)
+				if not prop_id.is_empty():
+					counts[level] += 1
+					if level == Scatter.DensityLevel.HIGH:
+						selected_props[prop_id] = true
+	assert_gt(selected_props.size(), 1, "Real MapGenerator cell seeds must select multiple authored props")
+	assert_gt(counts[Scatter.DensityLevel.LOW], 0)
+	assert_gt(counts[Scatter.DensityLevel.MEDIUM], counts[Scatter.DensityLevel.LOW])
+	assert_gt(counts[Scatter.DensityLevel.HIGH], counts[Scatter.DensityLevel.MEDIUM])
+
 func test_bare_high_mountains_never_receive_grass_or_flowers() -> void:
 	var mountain_weights: Dictionary = {
 		BiomeSystem.BiomeType.FOREST: 0.0,
@@ -105,3 +128,54 @@ func test_chunk_unload_cleans_batches_and_reload_is_deterministic() -> void:
 		if node is MultiMeshInstance3D and String(node.name).begins_with("Scatter_"):
 			reloaded_instances += (node as MultiMeshInstance3D).multimesh.instance_count
 	assert_eq(reloaded_instances, initial_instances, "Reloading the same seed and chunk must restore the same scatter")
+
+func test_building_removes_scatter_and_chunk_reload_respects_building_cell() -> void:
+	var map_scene: PackedScene = load("res://scenes/map_generator.tscn") as PackedScene
+	var generator: MapGenerator = map_scene.instantiate() as MapGenerator
+	generator.random_seed = false
+	generator.custom_seed = 1337
+	add_child_autoqfree(generator)
+	var building_system: BuildingSystem = BuildingSystem.new()
+	add_child_autoqfree(building_system)
+	building_system.wood_count = 1000
+	building_system.stone_count = 1000
+	building_system.iron_count = 1000
+
+	var target_cell: Vector2i = Vector2i(2147483647, 2147483647)
+	for coord_value: Variant in generator.chunk_resources:
+		for node: Node in generator.chunk_resources[coord_value]:
+			if node is MultiMeshInstance3D and String(node.name).begins_with("Scatter_"):
+				var cells: Array = node.get_meta("scatter_cells", [])
+				if not cells.is_empty():
+					target_cell = cells[0]
+					break
+		if target_cell.x != 2147483647:
+			break
+	assert_ne(target_cell.x, 2147483647, "Seeded map should have a decorated cell to build on")
+	assert_true(building_system.is_cell_free(target_cell), "Scatter must not block building placement")
+	var build_position: Vector3 = Vector3(
+		float(target_cell.x) + 0.5,
+		float(generator.get_voxel_height(target_cell.x, target_cell.y)),
+		float(target_cell.y) + 0.5
+	)
+	building_system.place_building(build_position, target_cell, BuildingSystem.PrefabType.FLOOR_SPIKES)
+	assert_true(building_system.placed_buildings.has(target_cell), "Building placement should complete on the decorated cell")
+	assert_eq(_scatter_count_at_cell(generator, target_cell), 0, "Building placement should remove every scatter instance in that cell")
+
+	var target_chunk: Vector2i = Vector2i(
+		floori(float(target_cell.x) / float(ChunkBuilder.CHUNK_SIZE)),
+		floori(float(target_cell.y) / float(ChunkBuilder.CHUNK_SIZE))
+	)
+	generator.unload_chunk(target_chunk.x, target_chunk.y)
+	await get_tree().process_frame
+	generator.load_chunk(target_chunk.x, target_chunk.y)
+	assert_eq(_scatter_count_at_cell(generator, target_cell), 0, "Reloading a chunk must not restore scatter under a placed building")
+
+func _scatter_count_at_cell(generator: MapGenerator, cell: Vector2i) -> int:
+	var count: int = 0
+	for chunk_nodes: Array in generator.chunk_resources.values():
+		for node: Node in chunk_nodes:
+			if node is MultiMeshInstance3D and String(node.name).begins_with("Scatter_"):
+				var cells: Array = node.get_meta("scatter_cells", [])
+				count += cells.count(cell)
+	return count

@@ -17,12 +17,14 @@ var actual_seed: int = 0
 var active_chunks: Dictionary = {}        # Vector2i -> Node3D (Terrain chunk)
 var chunk_resources: Dictionary = {}      # Vector2i -> Array[Node]
 var harvested_cells: Dictionary = {}      # Vector3i -> bool
+var occupied_building_cells: Dictionary = {} # Vector2i -> true
 var last_player_chunk: Vector2i = Vector2i(-999999, -999999)
 var pending_load_chunks: Array[Vector2i] = []
 @export var max_chunk_loads_per_frame: int = 1
 
 var terrain_container: Node3D = null
 var resources_container: Node3D = null
+var event_bus: Node = null
 
 # Materials
 var mat_forest: StandardMaterial3D
@@ -53,9 +55,16 @@ func _ready() -> void:
 		add_child(resources_container)
 
 	setup_materials()
+	event_bus = get_node_or_null("/root/EventBus")
+	_connect_building_events()
+	_refresh_occupied_building_cells()
 	generate_world()
 
 func _exit_tree() -> void:
+	if event_bus and event_bus.has_signal("building_placed") and event_bus.is_connected("building_placed", _on_building_placed):
+		event_bus.disconnect("building_placed", _on_building_placed)
+	if event_bus and event_bus.has_signal("building_destroyed") and event_bus.is_connected("building_destroyed", _on_building_destroyed):
+		event_bus.disconnect("building_destroyed", _on_building_destroyed)
 	for coord in active_chunks.keys():
 		_free_chunk(coord)
 	active_chunks.clear()
@@ -173,6 +182,7 @@ func load_chunk(cx: int, cz: int) -> void:
 	var coord: Vector2i = Vector2i(cx, cz)
 	if active_chunks.has(coord):
 		return
+	_refresh_occupied_building_cells()
 
 	# Build terrain mesh & collision
 	var terrain_data: Dictionary = ChunkBuilder.build_chunk_terrain(
@@ -272,6 +282,8 @@ func _spawn_chunk_resources(cx: int, cz: int, out_nodes: Array[Node]) -> void:
 				res_type = ResourceDistribution.roll_blended_resource_type(biome_info["weights"], continuous_h, res_roll)
 
 			if res_type == ResourceDistribution.ResourceType.NONE:
+				if _is_building_cell_occupied(Vector2i(wx, wz)):
+					continue
 				if not EnvironmentScatter.cluster_is_active(wx, wz, actual_seed):
 					continue
 				if biome_info.is_empty():
@@ -299,7 +311,7 @@ func _spawn_chunk_resources(cx: int, cz: int, out_nodes: Array[Node]) -> void:
 						scatter_position += Vector3(float(ledge_direction.x), 0.0, float(ledge_direction.y)) * 0.48
 						rotation_offset = atan2(float(ledge_direction.x), float(ledge_direction.y))
 					var scatter_transform: Transform3D = EnvironmentScatter.make_instance_transform(prop_id, scatter_position, cell_seed, rotation_offset)
-					EnvironmentScatter.append_instance(scatter_instances, prop_id, scatter_transform)
+					EnvironmentScatter.append_instance(scatter_instances, prop_id, scatter_transform, Vector2i(wx, wz))
 				continue
 
 			var form_roll: float = rng.randf()
@@ -356,9 +368,9 @@ func _spawn_chunk_resources(cx: int, cz: int, out_nodes: Array[Node]) -> void:
 					cell_seed,
 					scatter_density_level
 				)
-				if not moss_id.is_empty():
+				if not moss_id.is_empty() and not _is_building_cell_occupied(Vector2i(wx, wz)):
 					var moss_transform: Transform3D = EnvironmentScatter.make_instance_transform(moss_id, h_pos, cell_seed)
-					EnvironmentScatter.append_instance(scatter_instances, moss_id, moss_transform)
+					EnvironmentScatter.append_instance(scatter_instances, moss_id, moss_transform, Vector2i(wx, wz))
 
 	for scatter_node: Node in EnvironmentScatter.create_multimesh_nodes(scatter_instances):
 		if resources_container:
@@ -366,6 +378,63 @@ func _spawn_chunk_resources(cx: int, cz: int, out_nodes: Array[Node]) -> void:
 		else:
 			add_child(scatter_node)
 		out_nodes.append(scatter_node)
+
+func _connect_building_events() -> void:
+	if not event_bus:
+		return
+	if event_bus.has_signal("building_placed") and not event_bus.is_connected("building_placed", _on_building_placed):
+		event_bus.connect("building_placed", _on_building_placed)
+	if event_bus.has_signal("building_destroyed") and not event_bus.is_connected("building_destroyed", _on_building_destroyed):
+		event_bus.connect("building_destroyed", _on_building_destroyed)
+
+func _refresh_occupied_building_cells() -> void:
+	for building_system: Node in get_tree().get_nodes_in_group("building_system"):
+		var placed_buildings: Dictionary = building_system.get("placed_buildings")
+		for cell_value: Variant in placed_buildings:
+			occupied_building_cells[cell_value] = true
+
+func _is_building_cell_occupied(cell: Vector2i) -> bool:
+	return occupied_building_cells.has(cell)
+
+func _on_building_placed(_building_id: String, cell: Vector2i, _building: Node) -> void:
+	occupied_building_cells[cell] = true
+	_remove_scatter_at_cell(cell)
+
+func _on_building_destroyed(cell: Vector2i, _building: Node) -> void:
+	occupied_building_cells.erase(cell)
+
+func _remove_scatter_at_cell(cell: Vector2i) -> void:
+	var chunk_coord: Vector2i = Vector2i(
+		floori(float(cell.x) / float(ChunkBuilder.CHUNK_SIZE)),
+		floori(float(cell.y) / float(ChunkBuilder.CHUNK_SIZE))
+	)
+	if not chunk_resources.has(chunk_coord):
+		return
+	var nodes: Array = chunk_resources[chunk_coord]
+	for node_index: int in range(nodes.size() - 1, -1, -1):
+		var node: Node = nodes[node_index]
+		if not node is MultiMeshInstance3D or not String(node.name).begins_with("Scatter_"):
+			continue
+		var scatter: MultiMeshInstance3D = node as MultiMeshInstance3D
+		var cells: Array = scatter.get_meta("scatter_cells", [])
+		var retained_cells: Array[Vector2i] = []
+		var retained_transforms: Array[Transform3D] = []
+		for instance_index: int in range(scatter.multimesh.instance_count):
+			var instance_cell: Vector2i = cells[instance_index] if instance_index < cells.size() else Vector2i(-2147483648, -2147483648)
+			if instance_cell == cell:
+				continue
+			retained_cells.append(instance_cell)
+			retained_transforms.append(scatter.multimesh.get_instance_transform(instance_index))
+		if retained_transforms.size() == scatter.multimesh.instance_count:
+			continue
+		if retained_transforms.is_empty():
+			nodes.remove_at(node_index)
+			node.queue_free()
+			continue
+		scatter.multimesh.instance_count = retained_transforms.size()
+		for instance_index: int in retained_transforms.size():
+			scatter.multimesh.set_instance_transform(instance_index, retained_transforms[instance_index])
+		scatter.set_meta("scatter_cells", retained_cells)
 
 ## Public authoritative height lookup: returns integer voxel height at world (x, z).
 func get_voxel_height(x: int, z: int) -> int:
