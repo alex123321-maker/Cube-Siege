@@ -298,3 +298,20 @@ func test_engineer_turret_animation_continuity() -> void:
 	# deploy_temp_turret must NOT have restarted the animation back to 0.0
 	assert_gt(player.anim_player.current_animation_position, 0.15, "Animation must continue past 0.15s placement pose without restarting")
 
+func test_stone_break_effects_are_strength_scaled_and_ephemeral() -> void:
+	var vfx = get_node_or_null("/root/VFXManager")
+	assert_not_null(vfx)
+	var hit: Node3D = vfx.spawn_stone_break(Vector3.ZERO, Color.GRAY, VFXManager.StoneBreakStrength.HIT)
+	var transition: Node3D = vfx.spawn_stone_break(Vector3(2, 0, 0), Color.GRAY, VFXManager.StoneBreakStrength.STAGE_TRANSITION)
+	var final_break: Node3D = vfx.spawn_stone_break(Vector3(4, 0, 0), Color.GRAY, VFXManager.StoneBreakStrength.FINAL_BREAK)
+	assert_true(hit.get_node("StoneChips") is CPUParticles3D)
+	assert_true(hit.get_node("StoneDust") is CPUParticles3D)
+	assert_true(hit.get_node("StoneChips").amount >= 2 and hit.get_node("StoneChips").amount <= 4)
+	assert_gt(transition.get_node("StoneChips").amount, hit.get_node("StoneChips").amount)
+	assert_gt(final_break.get_node("StoneChips").amount, transition.get_node("StoneChips").amount)
+	assert_eq(final_break.find_children("*", "PhysicsBody3D", true, false).size(), 0)
+	await get_tree().create_timer(1.0).timeout
+	assert_false(is_instance_valid(hit), "Stone hit particles must expire automatically")
+	assert_false(is_instance_valid(transition), "Stage transition particles must expire automatically")
+	assert_false(is_instance_valid(final_break), "Final break particles must expire automatically")
+

@@ -315,11 +315,11 @@ func _spawn_chunk_resources(cx: int, cz: int, out_nodes: Array[Node]) -> void:
 				elif res_type == ResourceDistribution.ResourceType.STONE:
 					node = SCENE_STONE.instantiate()
 					if node.has_method("configure_rock"):
-						node.configure_rock(0, details["yield_amount"], details["tier"], rock_visual_index)
+						node.configure_rock(0, details["yield_amount"], details["tier"], rock_visual_index, cell_seed)
 				elif res_type == ResourceDistribution.ResourceType.IRON:
 					node = SCENE_IRON.instantiate()
 					if node.has_method("configure_rock"):
-						node.configure_rock(1, details["yield_amount"], details["tier"], rock_visual_index)
+						node.configure_rock(1, details["yield_amount"], details["tier"], rock_visual_index, cell_seed)
 
 				if node:
 					node.position = h_pos
