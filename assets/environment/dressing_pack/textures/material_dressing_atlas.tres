@@ -1,0 +1,14 @@
+[gd_resource type="StandardMaterial3D" load_steps=3 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/environment/dressing_pack/textures/dressing_palette_atlas.png" id="1_atlas"]
+[ext_resource type="Texture2D" path="res://assets/environment/dressing_pack/textures/dressing_roughness_atlas.png" id="2_roughness"]
+
+[resource]
+resource_name = "material_dressing_atlas"
+albedo_texture = ExtResource("1_atlas")
+texture_filter = 0
+roughness = 1.0
+roughness_texture = ExtResource("2_roughness")
+roughness_texture_channel = 1
+specular = 0.1
+metallic = 0.0

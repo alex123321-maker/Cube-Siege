@@ -34,6 +34,9 @@ var mat_cliff: StandardMaterial3D
 const SCENE_TREE = preload("res://scenes/resource_tree.tscn")
 const SCENE_STONE = preload("res://scenes/resource_stone.tscn")
 const SCENE_IRON = preload("res://scenes/resource_iron.tscn")
+const EnvironmentScatter = preload("res://scripts/world/environment_scatter.gd")
+
+@export_enum("Low", "Medium", "High") var scatter_density_level: int = EnvironmentScatter.PRODUCTION_DENSITY
 
 func _ready() -> void:
 	add_to_group("map_generator")
@@ -235,6 +238,7 @@ func _free_chunk(coord: Vector2i) -> void:
 func _spawn_chunk_resources(cx: int, cz: int, out_nodes: Array[Node]) -> void:
 	var origin_x: int = cx * ChunkBuilder.CHUNK_SIZE
 	var origin_z: int = cz * ChunkBuilder.CHUNK_SIZE
+	var scatter_instances: Dictionary = {}
 
 	for lz in range(ChunkBuilder.CHUNK_SIZE):
 		for lx in range(ChunkBuilder.CHUNK_SIZE):
@@ -258,28 +262,44 @@ func _spawn_chunk_resources(cx: int, cz: int, out_nodes: Array[Node]) -> void:
 			rng.seed = cell_seed
 
 			var attempt_roll: float = rng.randf()
-			if attempt_roll > 0.16: # Base density of attempts ~16%
-				continue
-
-			var biome_info: Dictionary = BiomeSystem.sample_biome_weights(float(wx), float(wz), actual_seed)
-			var biome: BiomeSystem.BiomeType = biome_info["primary"]
-			var continuous_h: float = BiomeSystem.sample_height(float(wx), float(wz), actual_seed)
-
-			var res_roll: float = rng.randf()
-			var res_type: ResourceDistribution.ResourceType = ResourceDistribution.roll_blended_resource_type(biome_info["weights"], continuous_h, res_roll)
+			var biome_info: Dictionary = {}
+			var continuous_h: float = 0.0
+			var res_type: ResourceDistribution.ResourceType = ResourceDistribution.ResourceType.NONE
+			if attempt_roll <= 0.16: # Preserve the existing resource attempt rate.
+				biome_info = BiomeSystem.sample_biome_weights(float(wx), float(wz), actual_seed)
+				continuous_h = BiomeSystem.sample_height(float(wx), float(wz), actual_seed)
+				var res_roll: float = rng.randf()
+				res_type = ResourceDistribution.roll_blended_resource_type(biome_info["weights"], continuous_h, res_roll)
 
 			if res_type == ResourceDistribution.ResourceType.NONE:
-				# Smoothly blend decorative vegetation details across biomes
-				var w_plains: float = biome_info["weights"].get(BiomeSystem.BiomeType.PLAINS, 0.0)
-				var w_forest: float = biome_info["weights"].get(BiomeSystem.BiomeType.FOREST, 0.0)
-				var grass_chance: float = 0.45 * w_plains + 0.15 * w_forest
-				if rng.randf() < grass_chance:
-					var grass: Node3D = _create_decorative_grass(h_pos, rng, w_forest, w_plains)
-					if resources_container:
-						resources_container.add_child(grass)
-					else:
-						add_child(grass)
-					out_nodes.append(grass)
+				if not EnvironmentScatter.cluster_is_active(wx, wz, actual_seed):
+					continue
+				if biome_info.is_empty():
+					biome_info = BiomeSystem.sample_biome_weights(float(wx), float(wz), actual_seed)
+					continuous_h = BiomeSystem.sample_height(float(wx), float(wz), actual_seed)
+				var mountain_weight: float = float(biome_info["weights"].get(BiomeSystem.BiomeType.MOUNTAINS, 0.0))
+				var ledge_direction: Vector2i = Vector2i.ZERO
+				if mountain_weight >= 0.45 and continuous_h > 5.0:
+					ledge_direction = EnvironmentScatter.find_cliff_ledge_direction(wx, wz, actual_seed)
+				var prop_id: StringName = EnvironmentScatter.choose_prop(
+					wx,
+					wz,
+					actual_seed,
+					cell_seed,
+					biome_info["weights"],
+					continuous_h,
+					scatter_density_level,
+					BiomeSystem.is_mountain_trail(wx, wz, actual_seed),
+					ledge_direction != Vector2i.ZERO
+				)
+				if not prop_id.is_empty():
+					var scatter_position: Vector3 = h_pos
+					var rotation_offset: float = 0.0
+					if prop_id == &"moss_cliff_ledge":
+						scatter_position += Vector3(float(ledge_direction.x), 0.0, float(ledge_direction.y)) * 0.48
+						rotation_offset = atan2(float(ledge_direction.x), float(ledge_direction.y))
+					var scatter_transform: Transform3D = EnvironmentScatter.make_instance_transform(prop_id, scatter_position, cell_seed, rotation_offset)
+					EnvironmentScatter.append_instance(scatter_instances, prop_id, scatter_transform)
 				continue
 
 			var form_roll: float = rng.randf()
@@ -329,25 +349,23 @@ func _spawn_chunk_resources(cx: int, cz: int, out_nodes: Array[Node]) -> void:
 						add_child(node)
 					out_nodes.append(node)
 
-func _create_decorative_grass(pos: Vector3, rng: RandomNumberGenerator, w_forest: float = 0.0, w_plains: float = 1.0) -> Node3D:
-	var grass_node: Node3D = Node3D.new()
-	grass_node.position = pos
-	var mesh_inst: MeshInstance3D = MeshInstance3D.new()
-	var box: BoxMesh = BoxMesh.new()
-	var h: float = 0.25 + rng.randf() * 0.35
-	box.size = Vector3(0.25, h, 0.25)
-	var mat: StandardMaterial3D = StandardMaterial3D.new()
-	var plains_col: Color = Color(0.38 + rng.randf() * 0.08, 0.65 + rng.randf() * 0.08, 0.20, 1.0)
-	var forest_col: Color = Color(0.18 + rng.randf() * 0.05, 0.42 + rng.randf() * 0.08, 0.16, 1.0)
-	var total_w: float = maxf(0.001, w_forest + w_plains)
-	mat.albedo_color = forest_col * (w_forest / total_w) + plains_col * (w_plains / total_w)
-	mat.roughness = 0.9
-	box.material = mat
-	mesh_inst.mesh = box
-	mesh_inst.position.y = h * 0.5
-	mesh_inst.rotation_degrees.y = rng.randf() * 180.0
-	grass_node.add_child(mesh_inst)
-	return grass_node
+				var forest_weight: float = float(biome_info["weights"].get(BiomeSystem.BiomeType.FOREST, 0.0))
+				var moss_id: StringName = EnvironmentScatter.choose_associated_moss(
+					res_type,
+					forest_weight,
+					cell_seed,
+					scatter_density_level
+				)
+				if not moss_id.is_empty():
+					var moss_transform: Transform3D = EnvironmentScatter.make_instance_transform(moss_id, h_pos, cell_seed)
+					EnvironmentScatter.append_instance(scatter_instances, moss_id, moss_transform)
+
+	for scatter_node: Node in EnvironmentScatter.create_multimesh_nodes(scatter_instances):
+		if resources_container:
+			resources_container.add_child(scatter_node)
+		else:
+			add_child(scatter_node)
+		out_nodes.append(scatter_node)
 
 ## Public authoritative height lookup: returns integer voxel height at world (x, z).
 func get_voxel_height(x: int, z: int) -> int:
