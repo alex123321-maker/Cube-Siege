@@ -1,0 +1,19 @@
+{
+  "asset": "res://assets/models/characters/hero_warrior.tscn",
+  "bad_lengths": [],
+  "checks": {
+    "animation_timings_preserved": true,
+    "animations_preserved": true,
+    "hooks_preserved": true,
+    "idle_loops": true,
+    "mesh_count_at_least_20": true,
+    "scene_instantiates": true,
+    "walk_loops": true,
+    "weapon_hooks_own_meshes": true
+  },
+  "mesh_count": 74,
+  "missing_animations": [],
+  "missing_hooks": [],
+  "ok": true,
+  "rig_type": "rigid node hierarchy"
+}

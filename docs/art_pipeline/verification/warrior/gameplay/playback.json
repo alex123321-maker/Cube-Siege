@@ -1,0 +1,53 @@
+{
+  "mode": "gameplay",
+  "observations": [
+    {
+      "action": "idle",
+      "animation": "idle",
+      "duel_active": false,
+      "speed": 0.0,
+      "tick": 30,
+      "time": 0.166666571299236
+    },
+    {
+      "action": "run",
+      "animation": "walk",
+      "duel_active": false,
+      "speed": 7.0,
+      "tick": 90,
+      "time": 0.099999988079071
+    },
+    {
+      "action": "LMB",
+      "animation": "attack",
+      "duel_active": false,
+      "speed": 0.0,
+      "tick": 123,
+      "time": 0.0333333333333333
+    },
+    {
+      "action": "RMB",
+      "animation": "special",
+      "duel_active": false,
+      "speed": 0.0,
+      "tick": 156,
+      "time": 0.133333333333333
+    },
+    {
+      "action": "Q",
+      "animation": "utility",
+      "duel_active": false,
+      "speed": 0.0,
+      "tick": 185,
+      "time": 0.1
+    },
+    {
+      "action": "F",
+      "animation": "ultimate",
+      "duel_active": true,
+      "speed": 0.0,
+      "tick": 220,
+      "time": 0.266666666666667
+    }
+  ]
+}

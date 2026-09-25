@@ -1,0 +1,2 @@
+# Blender sources and concept references are versioned here but are not runtime resources.
+# Game-ready exports belong under res://assets and are imported by Godot there.

@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="CharacterGait" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/character_gait.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+rotations = PackedVector3Array(0.48, 0, 0, 0.05, 0, 0, -0.48, 0, 0, -0.22, 0, 0, 0, 0, 0, 0.42, 0, 0)
+lifts = PackedFloat32Array(0, 0, 0, 0.045, 0.10, 0.06)

@@ -166,12 +166,13 @@
   - *[PLANNED]* 2D Flowfield на основе волнового фронта Дейкстры на C++ GDExtension.
 - **Безопасная зона (Safe Zone)**: детекция замкнутого контура баз (`scripts/safe_zone_detector.gd` flood-fill), блокирующая спавн врагов внутри огороженной стенами территории.
 - **Режиссер волн (Wave Director)**: кольцевой спавн мобов на дистанции 20..28м (`scripts/wave_director.gd`) с лимитом 20 обычных врагов (дросселируется до 4 при наличии активного босса).
-- **3D Модели**: воксельные low-poly меши, экспортированные из Blockbench (`.bbmodel`).
+- **3D-модели**: воин использует Blender → GLB pipeline; лучник и инженер — воксельные low-poly меши из Blockbench. Исходники и проверки описаны в [`docs/art_pipeline/`](docs/art_pipeline/README.md).
 
 ### Структура проекта
 ```text
 ├── assets/                 # 3D модели, анимации и превью
-│   └── models/characters/  # Модели героев, текстуры, Blockbench исходники
+│   └── models/characters/  # Runtime-модели героев и текстуры
+├── art/                    # Blender-исходники и утверждённые concept references
 ├── bin/                    # Скомпилированные библиотеки GDExtension (.dll, .gdextension)
 ├── docs/                   # Полная дизайн- и тех-документация
 │   ├── ARCHITECTURE.md     # Техническая архитектура и алгоритмы

@@ -1,0 +1,42 @@
+{
+  "collection": "REFERENCES",
+  "count": 4,
+  "common_scale_m": 2.0,
+  "locked": true,
+  "hidden_from_render": true,
+  "views": {
+    "REF_FRONT": {
+      "location": [
+        0.0,
+        0.75,
+        1.0
+      ],
+      "source": "D:\\Repository\\game\\art\\work\\pipeline_verification\\references\\front.png"
+    },
+    "REF_BACK": {
+      "location": [
+        0.0,
+        -0.75,
+        1.0
+      ],
+      "source": "D:\\Repository\\game\\art\\work\\pipeline_verification\\references\\back.png"
+    },
+    "REF_SIDE": {
+      "location": [
+        0.75,
+        0.0,
+        1.0
+      ],
+      "source": "D:\\Repository\\game\\art\\work\\pipeline_verification\\references\\side.png"
+    },
+    "REF_THREE_QUARTER": {
+      "location": [
+        -0.75,
+        0.75,
+        1.0
+      ],
+      "source": "D:\\Repository\\game\\art\\work\\pipeline_verification\\references\\three_quarter.png"
+    }
+  },
+  "output_blend": "D:\\Repository\\game\\art\\work\\pipeline_verification\\reference_setup.blend"
+}

@@ -36,3 +36,26 @@ screenshots_debug/
 .review_loop/
 __pycache__/
 *.pyc
+
+# Art pipeline: local environments, third-party sources, checkpoints, and caches
+tools/art_pipeline/.venv*/
+tools/art_pipeline/.vendor/
+tools/art_pipeline/ai/checkpoints/
+tools/art_pipeline/ai/cache/
+art/work/
+assets/models/validation/*.glb.import
+docs/art_pipeline/verification/renders/*.png.import
+docs/art_pipeline/verification/**/*.png.import
+docs/art_pipeline/verification/**/*_frames/
+
+# Blender recovery/temporary files (approved .blend sources remain tracked)
+*.blend1
+*.blend2
+*.blend@
+*.blend~
+*.blend.autosave
+
+# Review images are documentation, not runtime textures.
+docs/animation/**/*.import
+docs/terrain_capture/*.import
+docs/concepts/*.import

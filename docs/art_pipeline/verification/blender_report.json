@@ -1,0 +1,13 @@
+{
+  "blender_version": "5.2.1 LTS",
+  "python_version": "3.13.13",
+  "background": true,
+  "checks": {
+    "version_at_least_5_2": true,
+    "python_executes": true,
+    "gltf_export_operator": true,
+    "gltf_import_operator": true,
+    "eevee_available": true
+  },
+  "ok": true
+}

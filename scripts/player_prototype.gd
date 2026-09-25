@@ -208,6 +208,7 @@ func _ready() -> void:
 	orientation.setup(initial_fwd if initial_fwd.length_squared() > 0.01 else Vector3(0.0, 0.0, -1.0))
 	if debug_orientation:
 		orientation.set_debug_enabled(true, self)
+		presentation.debug_enabled = true
 
 	# Connect component signals to root
 	health.health_changed.connect(func(cur, mx): health_changed.emit(cur, mx))
@@ -356,13 +357,16 @@ func _physics_process(delta: float) -> void:
 		movement.process_duel_movement(self, delta, duel_target)
 	else:
 		movement.process_movement(self, delta, forced_target, orientation.directional_speed_multiplier, orientation.aim_direction)
-	presentation.update_animations(self, health.is_parrying, movement.is_dashing)
+	presentation.update_animations(self, health.is_parrying, movement.is_dashing, delta, orientation)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_F3:
 			debug_orientation = not debug_orientation
 			orientation.set_debug_enabled(debug_orientation, self)
+			presentation.debug_enabled = debug_orientation
+		elif event.keycode == KEY_F4:
+			presentation.procedural_enabled = not presentation.procedural_enabled
 
 func take_damage(damage: float, attacker: Node = null) -> void:
 	health.take_damage(damage, attacker, movement.is_dashing, is_dueling, duel_target, self)
@@ -404,19 +408,19 @@ func set_class(new_class: CharacterClass, show_popup: bool = true) -> void:
 			if m_warrior: m_warrior.visible = true
 			if m_archer: m_archer.visible = false
 			if m_engineer: m_engineer.visible = false
-			if presentation and m_warrior: presentation.set_active_model(m_warrior)
+			if presentation and m_warrior: presentation.set_active_model(m_warrior, PlayerPresentation.WARRIOR_PROFILE)
 			if show_popup: spawn_popup_text("КЛАСС: ВОИН [МЕЧ & ПАРИРОВАНИЕ]", Color(0.3, 0.6, 1.0))
 		CharacterClass.ARCHER:
 			if m_warrior: m_warrior.visible = false
 			if m_archer: m_archer.visible = true
 			if m_engineer: m_engineer.visible = false
-			if presentation and m_archer: presentation.set_active_model(m_archer)
+			if presentation and m_archer: presentation.set_active_model(m_archer, PlayerPresentation.ARCHER_PROFILE)
 			if show_popup: spawn_popup_text("КЛАСС: ЛУЧНИК [СТРЕЛЬБА & ПРИМАНКА]", Color(0.3, 1.0, 0.5))
 		CharacterClass.ENGINEER:
 			if m_warrior: m_warrior.visible = false
 			if m_archer: m_archer.visible = false
 			if m_engineer: m_engineer.visible = true
-			if presentation and m_engineer: presentation.set_active_model(m_engineer)
+			if presentation and m_engineer: presentation.set_active_model(m_engineer, PlayerPresentation.ENGINEER_PROFILE)
 			if show_popup: spawn_popup_text("КЛАСС: ИНЖЕНЕР [МОЛОТ & ТУРЕЛИ]", Color(1.0, 0.6, 0.2))
 
 func perform_attack() -> void:

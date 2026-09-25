@@ -1,0 +1,12 @@
+{
+	"animations": "Not authored; low-guard pose candidate",
+	"engine": "4.6.1-stable (official)",
+	"glb_import": "PASS",
+	"ground_y": 0.0000000298023223876953,
+	"height_m": 2.0,
+	"joints": "PASS",
+	"materials_and_nearest_filter": "PASS",
+	"meshes": 13,
+	"runtime_captures": 3,
+	"triangles": 4788
+}

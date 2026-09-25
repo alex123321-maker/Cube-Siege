@@ -1,0 +1,58 @@
+{
+  "source": "D:\\Repository\\game\\art\\characters\\warrior_reference\\warrior_reference.bbmodel",
+  "elements": 376,
+  "joints": 14,
+  "triangles": 4788,
+  "materials": 22,
+  "height_m": 2.0,
+  "ground_m": 2.9802322387695312e-08,
+  "bounds_blender": {
+    "min": [
+      -1.023176908493042,
+      -0.3172893524169922,
+      2.9802322387695312e-08
+    ],
+    "max": [
+      0.6816386580467224,
+      0.27168768644332886,
+      2.0
+    ]
+  },
+  "renders": [
+    "front",
+    "side",
+    "back",
+    "three_quarter",
+    "gameplay",
+    "rear_three_quarter"
+  ],
+  "updated_views": [],
+  "texture_filter": "Nearest",
+  "animations": [],
+  "status": "low-guard pose candidate",
+  "pose": {
+    "blade_outward_deg": 29.53990749800838,
+    "blade_back_deg": 10.477165686873636,
+    "blade_forearm_angle_deg": 3.0000267639090508,
+    "grip_height_m": 0.8127701282501221,
+    "tip_blender_m": [
+      -0.9076453447341919,
+      0.21693289279937744,
+      0.1961459517478943
+    ],
+    "tip_to_boot_lateral_gap_m": 0.6231886744499207,
+    "tip_shift_outward_m": 0.3086355924606323,
+    "previous": {
+      "blade_outward_deg": 15.000006717511855,
+      "blade_back_deg": 0.0,
+      "blade_forearm_angle_deg": 15.000003832507613,
+      "grip_height_m": 0.7750410437583923,
+      "tip_blender_m": [
+        -0.5990097522735596,
+        -0.07702888548374176,
+        0.07883037626743317
+      ],
+      "tip_to_boot_lateral_gap_m": 0.31455308198928833
+    }
+  }
+}

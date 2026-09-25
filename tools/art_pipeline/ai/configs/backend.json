@@ -1,0 +1,7 @@
+{
+  "backend": "blender-only",
+  "ai_enabled": false,
+  "reason": "No NVIDIA GPU or CUDA runtime was detected on the verified workstation.",
+  "reviewed_candidates": ["TRELLIS", "InstantMesh", "TripoSR"],
+  "checkpoint_cache": null
+}

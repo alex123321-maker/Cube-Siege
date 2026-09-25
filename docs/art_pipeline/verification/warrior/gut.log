@@ -1,0 +1,227 @@
+Godot Engine v4.6.1.stable.official.14d19694e - https://godotengine.org
+
+---  GUT  ---
+[1m[INFO]:  [0musing [D:/Repository/game/art/work/issue-8/gut-shield-profile/Godot/app_userdata/Cube Siege] for temporary output.
+Godot version:  4.6.1
+GUT version:  9.6.1
+[4m
+
+res://tests/smoke/test_main_menu.gd
+[0m* test_main_menu_can_load_and_instantiate
+[1m1/1 passed.
+[0m[4m
+
+res://tests/smoke/test_main_scene.gd
+[0m* test_main_game_scene_can_load_and_instantiate
+DEBUG_CAMERA: target=Player:<CharacterBody3D#114370284124> pos=(18.0, 24.9, 22.0) rot=(-43.31386, 45.0, 0.0)
+[1m1/1 passed.
+[0m[4m
+
+res://tests/smoke/test_player_scene.gd
+[0m* test_player_scene_can_load_and_instantiate
+[1m1/1 passed.
+[0m[4m
+
+res://tests/smoke/test_project_loads.gd
+[0m* test_required_autoloads_exist
+* test_project_settings_valid
+[1m2/2 passed.
+[0m[4m
+
+res://tests/smoke/test_resources_valid.gd
+[0m* test_core_game_scenes_loadable
+[1m1/1 passed.
+[0m[4m
+
+res://tests/unit/test_building_definitions.gd
+[0m* test_building_catalog_costs_match_specification
+* test_character_catalog_classes_match_specification
+[1m2/2 passed.
+[0m[4m
+
+res://tests/unit/test_character_models_and_animations.gd
+[0m* test_bbmodel_source_files_exist
+* test_character_scenes_instantiate
+* test_character_bones_hierarchy
+* test_character_animations_present
+* test_warrior_art_source_texture_and_runtime_contract
+* test_prop_models_instantiate
+* test_warrior_weapon_hooks_own_visible_geometry
+* test_warrior_export_retains_idle_pose_and_combat_contacts
+* test_warrior_grip_stays_in_hand_through_all_clips
+* test_warrior_run_articulates_legs_and_has_no_root_motion
+* test_warrior_shield_board_clears_hand_and_forearm
+[1m11/11 passed.
+[0m[4m
+
+res://tests/unit/test_entity_registry.gd
+[0m* test_entity_registry_building_tracking
+* test_entity_registry_enemy_and_boss_tracking
+[1m2/2 passed.
+[0m[4m
+
+res://tests/unit/test_gdextension_probe.gd
+[0m* test_native_probe_available_in_classdb
+* test_native_probe_instance_methods
+[1m2/2 passed.
+[0m[4m
+
+res://tests/unit/test_persistence.gd
+[0m* test_save_and_load_round_trip
+* test_migration_from_v1_schema
+* test_corrupted_json_recovery
+WARNING: SaveManager: Failed to parse save JSON at user://test_cube_siege_save.json. Using default safe state.
+   at: push_warning (core/variant/variant_utility.cpp:1034)
+   GDScript backtrace (most recent call first):
+       [0] load_from_disk (res://scripts/save_manager.gd:194)
+       [1] test_corrupted_json_recovery (res://tests/unit/test_persistence.gd:82)
+       [2] _run_test (res://addons/gut/gut.gd:622)
+       [3] _test_the_scripts (res://addons/gut/gut.gd:835)
+* test_run_end_victory_and_defeat_resolution
+[1m4/4 passed.
+[0m[4m
+
+res://tests/unit/test_safe_zone_calculator.gd
+[0m* test_fewer_than_four_walls_returns_empty
+* test_closed_single_tile_enclosed
+* test_open_contour_not_enclosed
+* test_diagonal_gap_leaks_and_does_not_enclose
+* test_broken_wall_invalidates_safe_zone
+* test_multiple_independent_enclosures
+* test_nested_internal_walls
+[1m7/7 passed.
+[0m[4m
+
+res://tests/unit/test_wallet.gd
+[0m* test_wallet_initial_values
+* test_wallet_add_resources_emits_signal
+* test_wallet_spend_success
+* test_wallet_spend_insufficient_fails_and_preserves_balance
+* test_wallet_rejects_negative_amounts
+WARNING: ResourceWallet: Cannot add negative resource amounts.
+   at: push_warning (core/variant/variant_utility.cpp:1034)
+   GDScript backtrace (most recent call first):
+       [0] add_resource (res://scripts/economy/resource_wallet.gd:36)
+       [1] test_wallet_rejects_negative_amounts (res://tests/unit/test_wallet.gd:47)
+       [2] _run_test (res://addons/gut/gut.gd:622)
+       [3] _test_the_scripts (res://addons/gut/gut.gd:835)
+WARNING: ResourceWallet: Cannot spend negative resource amounts.
+   at: push_warning (core/variant/variant_utility.cpp:1034)
+   GDScript backtrace (most recent call first):
+       [0] spend_resources (res://scripts/economy/resource_wallet.gd:54)
+       [1] test_wallet_rejects_negative_amounts (res://tests/unit/test_wallet.gd:50)
+       [2] _run_test (res://addons/gut/gut.gd:622)
+       [3] _test_the_scripts (res://addons/gut/gut.gd:835)
+[1m5/5 passed.
+[0m[4m
+
+res://tests/integration/test_interaction_flow.gd
+[0m* test_real_workbench_interaction
+* test_real_building_interaction
+WARNING: BuildingBase: cannot refund resources because Player.building_system is not wired.
+   at: push_warning (core/variant/variant_utility.cpp:1034)
+   GDScript backtrace (most recent call first):
+       [0] demolish (res://scripts/building_base.gd:106)
+       [1] interact (res://scripts/building_base.gd:50)
+       [2] execute_interaction (res://scripts/interaction/interactable_target.gd:102)
+       [3] test_real_building_interaction (res://tests/integration/test_interaction_flow.gd:44)
+       [4] _run_test (res://addons/gut/gut.gd:622)
+       [5] _test_the_scripts (res://addons/gut/gut.gd:835)
+* test_real_portal_interaction
+* test_real_resource_tree_interaction
+* test_inert_node_non_interactable
+* test_player_interaction_candidate_lifecycle
+[1m6/6 passed.
+[0m[4m
+
+res://tests/integration/test_main_persistence_wiring.gd
+[0m* test_main_scene_has_no_local_save_manager
+DEBUG_CAMERA: target=Player:<CharacterBody3D#352438979259> pos=(18.0, 24.9, 22.0) rot=(-43.31386, 45.0, 0.0)
+* test_persistence_delegation_without_sidecar_files
+[1m2/2 passed.
+[0m[4m
+
+res://tests/integration/test_player_damage_death.gd
+[0m* test_player_takes_damage
+* test_player_parry_negates_damage
+* test_player_lethal_damage_triggers_death
+* test_player_healing
+[1m4/4 passed.
+[0m[4m
+
+res://tests/integration/test_player_initialization.gd
+[0m* test_player_initialization_defaults_warrior
+* test_player_set_class_archer_preserves_baseline_stats
+* test_player_set_class_engineer_preserves_baseline_stats
+* test_mastery_multipliers_applied_and_not_wiped_by_set_class
+[1m4/4 passed.
+[0m[4m
+
+res://tests/integration/test_siege_breaker_targeting.gd
+[0m* test_siege_breaker_targets_nearest_building
+* test_siege_breaker_falls_back_to_player_without_buildings
+* test_siege_breaker_duel_locks_target
+[33m[WARNING]:  [0mTest script has 2 unfreed children.  Increase log level for more details.
+[1m3/3 passed.
+[0m[4m
+
+res://tests/integration/test_ui_domain_separation.gd
+[0m* test_day_night_cycle_has_no_hud_coupling
+* test_hud_renders_day_night_label_from_event
+DEBUG_CAMERA: target=Player:<CharacterBody3D#577706658407> pos=(18.0, 24.9, 22.0) rot=(-43.31386, 45.0, 0.0)
+* test_hud_skip_night_uses_explicit_dependency
+DEBUG_CAMERA: target=Player:<CharacterBody3D#777456192182> pos=(18.0, 24.9, 22.0) rot=(-43.31386, 45.0, 0.0)
+* test_portal_evacuation_emits_eventbus_signal
+* test_workbench_modal_resolves_building_system_without_find_child
+DEBUG_CAMERA: target=Player:<CharacterBody3D#1001062927251> pos=(18.0, 24.9, 22.0) rot=(-43.31386, 45.0, 0.0)
+[33m[WARNING]:  [0mTest script has 2 unfreed children.  Increase log level for more details.
+[1m5/5 passed.
+[0m[4m
+
+res://tests/integration/test_vfx_and_abilities.gd
+[0m* test_vfx_manager_autoload_exists
+* test_player_class_switching_updates_visual_model
+* test_warrior_attacks_and_vfx
+* test_archer_attacks_and_vfx
+* test_engineer_attacks_and_vfx
+* test_vfx_nodes_cleanup_properly
+[33m    --- Awaiting 0.8 seconds  ---
+[0m[33m    --- Awaiting 0.6 seconds  ---
+[0m* test_persistent_vfx_cleanup
+* test_tactical_nuke_decoupled_gameplay_execution
+* test_windup_actions_cancel_on_player_death
+* test_engineer_turret_animation_continuity
+[33m[WARNING]:  [0mTest script has 3 unfreed children.  Increase log level for more details.
+[1m10/10 passed.
+[0m[4m
+
+res://tests/integration/test_wave_director_safezone.gd
+[0m* test_wave_director_safe_zone_cells_storage
+* test_wave_director_morning_sun_destroys_enemies
+* test_wave_director_morning_sun_destroys_preexisting_and_spawned_enemies
+[1m3/3 passed.
+[0m
+
+
+
+[33m==============================================
+[0m[33m= Run Summary
+[0m[33m==============================================
+[0m
+Totals
+------
+Warnings              3
+
+Scripts              20
+Tests                76
+Passing Tests        76
+Asserts             593
+Time              8.587s
+
+
+[32m---- All tests passed! ----
+[0m
+WARNING: ObjectDB instances leaked at exit (run with --verbose for details).
+   at: cleanup (core/object/object.cpp:2641)
+ERROR: 1 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:810)

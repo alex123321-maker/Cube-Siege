@@ -1,0 +1,17 @@
+{
+  "frames": 1440,
+  "metric": "Whole-scene TIME_PROCESS microseconds; paired 4-second OFF/ON windows; first second discarded; includes world simulation and rendering. Not an isolated animation profiler.",
+  "off": {
+    "mean_usec": 10730.2141527002,
+    "median_usec": 8981.0,
+    "p95_usec": 17790.0,
+    "samples": 537
+  },
+  "on": {
+    "mean_usec": 8464.99068901304,
+    "median_usec": 8432.0,
+    "p95_usec": 8636.0,
+    "samples": 537
+  },
+  "scene": "res://scenes/main.tscn"
+}

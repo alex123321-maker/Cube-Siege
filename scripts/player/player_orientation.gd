@@ -320,7 +320,7 @@ func _create_debug_node(body: Node3D) -> void:
 	_debug_label.no_depth_test = true
 	_debug_label.font_size = 18
 	_debug_label.outline_size = 4
-	_debug_label.outline_color = Color(0, 0, 0, 1)
+	_debug_label.outline_modulate = Color(0, 0, 0, 1)
 	_debug_label.position = Vector3(0, 2.5, 0)
 	debug_node.add_child(_debug_label)
 

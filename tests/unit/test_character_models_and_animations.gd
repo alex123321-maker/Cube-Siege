@@ -71,6 +71,28 @@ func test_character_animations_present() -> void:
 			var has_util = ap.has_animation("utility") or ap.has_animation("block")
 			assert_true(has_util, s.name + " must have utility or block animation")
 
+func test_warrior_art_source_texture_and_runtime_contract() -> void:
+	assert_true(FileAccess.file_exists("res://art/characters/warrior/hero_warrior.blend"), "Warrior must have an editable Blender source")
+	var warrior_texture := "res://assets/models/textures/warrior/hero_warrior_material_atlas.png"
+	assert_true(FileAccess.file_exists(warrior_texture), "Warrior must have its own runtime texture")
+	var warrior_hash: String = FileAccess.get_sha256(warrior_texture)
+	for other_texture: String in [
+		"res://assets/models/textures/hero_archer.png",
+		"res://assets/models/textures/hero_engineer.png",
+	]:
+		assert_ne(warrior_hash, FileAccess.get_sha256(other_texture), "Warrior texture must be unique: " + other_texture)
+
+	var warrior: Node3D = load(WARRIOR_SCENE_PATH).instantiate()
+	add_child_autoqfree(warrior)
+	var ap: AnimationPlayer = warrior.find_child("AnimationPlayer", true, false) as AnimationPlayer
+	assert_not_null(ap, "Warrior runtime scene must expose AnimationPlayer")
+	if ap:
+		assert_almost_eq(ap.get_animation("idle").length, 1.2, 0.001, "Idle timing must remain unchanged")
+		assert_almost_eq(ap.get_animation("walk").length, 0.8, 0.001, "Run/movement timing must remain unchanged")
+		assert_almost_eq(ap.get_animation("attack").length, 0.35, 0.001, "LMB timing must remain unchanged")
+		assert_eq(ap.get_animation("idle").loop_mode, Animation.LOOP_LINEAR, "Idle must loop")
+		assert_eq(ap.get_animation("walk").loop_mode, Animation.LOOP_LINEAR, "Run/movement must loop")
+
 func test_prop_models_instantiate() -> void:
 	for path in [DECOY_SCENE_PATH, TURRET_SCENE_PATH, MINE_SCENE_PATH]:
 		assert_true(ResourceLoader.exists(path), "Prop scene must exist: " + path)
@@ -78,3 +100,87 @@ func test_prop_models_instantiate() -> void:
 		var inst = scn.instantiate()
 		assert_not_null(inst, "Prop instance should not be null: " + path)
 		add_child_autoqfree(inst)
+
+func test_warrior_weapon_hooks_own_visible_geometry() -> void:
+	var warrior: Node3D = load(WARRIOR_SCENE_PATH).instantiate()
+	add_child_autoqfree(warrior)
+	for path: String in ["root/torso/right_arm/sword", "root/torso/left_arm/shield"]:
+		var hook: Node3D = warrior.get_node(path) as Node3D
+		assert_gt(hook.find_children("*", "MeshInstance3D", true, false).size(), 0,
+			"Weapon hook must own its rendered meshes, not be an empty compatibility marker: " + path)
+	var front: Node3D = warrior.get_node("FrontMarker") as Node3D
+	assert_lt(front.global_position.z, 0.0, "Warrior face must point toward gameplay -Z")
+
+func _sample_warrior_pose(ap: AnimationPlayer, clip: String, time: float) -> void:
+	ap.play(clip)
+	ap.seek(time, true)
+	ap.advance(0)
+	ap.pause()
+
+func test_warrior_export_retains_idle_pose_and_combat_contacts() -> void:
+	var warrior: Node3D = load(WARRIOR_SCENE_PATH).instantiate()
+	add_child_autoqfree(warrior)
+	var ap: AnimationPlayer = warrior.get_node("AnimationPlayer")
+	var tip: Node3D = warrior.find_child("SwordTip", true, false)
+	_sample_warrior_pose(ap, "idle", 0.1)
+	assert_gt(tip.global_position.x, 0.65, "Constant idle arm angle must survive NLA export; sword clears the leg")
+	assert_lt(tip.global_position.z, -0.08, "Idle sword tilts slightly forward")
+	for contact: Array in [["attack", 0.06], ["special", 0.15]]:
+		_sample_warrior_pose(ap, contact[0], contact[1])
+		assert_lt(tip.global_position.z, -0.8, "Blade reaches gameplay forward at damage start: " + contact[0])
+		assert_gt(tip.global_position.y, 0.8, "Contact crosses torso height: " + contact[0])
+	_sample_warrior_pose(ap, "idle", 0.1)
+	assert_gt(tip.global_position.x, 0.65, "Returning from an attack restores the authored idle pose")
+
+func test_warrior_grip_stays_in_hand_through_all_clips() -> void:
+	var warrior: Node3D = load(WARRIOR_SCENE_PATH).instantiate()
+	add_child_autoqfree(warrior)
+	var ap: AnimationPlayer = warrior.get_node("AnimationPlayer")
+	var grip: Node3D = warrior.find_child("SwordGrip", true, false)
+	var hand: Node3D = warrior.find_child("R_Gauntlet", true, false)
+	var distance: float = grip.global_position.distance_to(hand.global_position)
+	assert_lt(distance, 0.12, "Grip is inside the gauntlet")
+	for clip: StringName in ap.get_animation_list():
+		for fraction: float in [0.0, 0.25, 0.5, 0.75, 0.99]:
+			_sample_warrior_pose(ap, clip, ap.get_animation(clip).length * fraction)
+			assert_almost_eq(grip.global_position.distance_to(hand.global_position), distance, 0.001,
+				"Sword must not detach during " + clip)
+
+func test_warrior_run_articulates_legs_and_has_no_root_motion() -> void:
+	var warrior: Node3D = load(WARRIOR_SCENE_PATH).instantiate()
+	add_child_autoqfree(warrior)
+	var ap: AnimationPlayer = warrior.get_node("AnimationPlayer")
+	var leg: Node3D = warrior.get_node("root/right_leg")
+	var knee: Node3D = warrior.get_node("root/right_leg/right_knee")
+	_sample_warrior_pose(ap, "walk", 0.0)
+	var start: Quaternion = leg.quaternion
+	_sample_warrior_pose(ap, "walk", 0.4)
+	assert_gt(start.angle_to(leg.quaternion), 0.7, "Run must swing legs, not be a renamed idle clip")
+	assert_gt(knee.quaternion.angle_to(Quaternion.IDENTITY), 0.4, "Run bends the trailing knee")
+	_sample_warrior_pose(ap, "walk", 0.7999)
+	assert_lt(start.angle_to(leg.quaternion), 0.01, "Loop boundary must be continuous")
+	var motion_root: Node3D = warrior.get_node("root")
+	assert_almost_eq(motion_root.position.x, 0.0, 0.001, "Movement remains owned by the gameplay controller")
+	assert_almost_eq(motion_root.position.z, 0.0, 0.001, "No baked forward root motion")
+
+func test_warrior_shield_board_clears_hand_and_forearm() -> void:
+	var warrior: Node3D = load(WARRIOR_SCENE_PATH).instantiate()
+	add_child_autoqfree(warrior)
+	var ap: AnimationPlayer = warrior.get_node("AnimationPlayer")
+	var board: MeshInstance3D = warrior.find_child("ShieldCore", true, false)
+	var grip: Node3D = warrior.find_child("ShieldGrip", true, false)
+	var hand: Node3D = warrior.find_child("L_Gauntlet", true, false)
+	assert_not_null(grip, "Shield needs an actual rear grip, not a board embedded in the fist")
+	for clip: StringName in ap.get_animation_list():
+		for fraction: float in [0.0, 0.25, 0.5, 0.75, 0.99]:
+			_sample_warrior_pose(ap, clip, ap.get_animation(clip).length * fraction)
+			if grip:
+				assert_lt(grip.global_position.distance_to(hand.global_position), 0.03, "Shield grip remains inside the fist: " + clip)
+			# In board mesh coordinates, the rear surface is minimum Z.
+			# Every gauntlet/forearm corner must stay behind it, with a visible gap.
+			for part: String in ["L_Gauntlet", "L_Knuckle", "L_Vambrace"]:
+				var armor: MeshInstance3D = warrior.find_child(part, true, false)
+				var nearest_z: float = -INF
+				for i: int in range(8):
+					nearest_z = maxf(nearest_z, board.to_local(armor.to_global(armor.get_aabb().get_endpoint(i))).z)
+				assert_lt(nearest_z, board.get_aabb().position.z - 0.025, "Shield board must not intersect " + part + " during " + clip)

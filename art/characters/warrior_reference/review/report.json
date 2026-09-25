@@ -1,0 +1,75 @@
+{
+  "source": "D:\\Repository\\game\\art\\characters\\warrior_reference\\warrior_reference.bbmodel",
+  "elements": 376,
+  "joints": 14,
+  "triangles": 4788,
+  "materials": 22,
+  "height_m": 2.0,
+  "ground_m": 2.9802322387695312e-08,
+  "bounds_blender": {
+    "min": [
+      -1.026339054107666,
+      -0.3172893524169922,
+      2.9802322387695312e-08
+    ],
+    "max": [
+      0.6816386580467224,
+      0.2572214603424072,
+      2.0
+    ]
+  },
+  "renders": [
+    "front",
+    "side",
+    "back",
+    "three_quarter",
+    "gameplay",
+    "rear_three_quarter"
+  ],
+  "updated_views": [
+    "front",
+    "side",
+    "back",
+    "three_quarter",
+    "gameplay",
+    "rear_three_quarter"
+  ],
+  "texture_filter": "Nearest",
+  "animations": [],
+  "status": "combat-idle static pose candidate",
+  "pose": {
+    "blade_outward_deg": 27.955694777759476,
+    "blade_back_deg": -9.006648972561196,
+    "blade_forward_deg": 9.006648972561196,
+    "elbow_bend_deg": 25.28372618462828,
+    "sword_axial_roll_deg": 8.00000038608561,
+    "blade_forearm_angle_deg": 0.0,
+    "grip_height_m": 0.822767436504364,
+    "grip_forward_m": 0.0366380549967289,
+    "tip_blender_m": [
+      -0.9042541980743408,
+      -0.14947398006916046,
+      0.1939534693956375
+    ],
+    "tip_to_boot_lateral_gap_m": 0.6197975277900696,
+    "tip_shift_outward_m": -0.0033911466598510742,
+    "tip_shift_forward_m": 0.3664068728685379,
+    "grip_shift_forward_m": 0.12250343337655067,
+    "previous": {
+      "blade_outward_deg": 29.53990749800838,
+      "blade_back_deg": 10.477165686873636,
+      "blade_forward_deg": -10.477165686873636,
+      "elbow_bend_deg": 17.999995378253757,
+      "sword_axial_roll_deg": 4.2747264445881177e-07,
+      "blade_forearm_angle_deg": 3.0000267639090508,
+      "grip_height_m": 0.8127701282501221,
+      "grip_forward_m": -0.08586537837982178,
+      "tip_blender_m": [
+        -0.9076453447341919,
+        0.21693289279937744,
+        0.1961459517478943
+      ],
+      "tip_to_boot_lateral_gap_m": 0.6231886744499207
+    }
+  }
+}

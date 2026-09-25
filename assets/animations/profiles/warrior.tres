@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="CharacterAnimationProfile" load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/character_animation_profile.gd" id="1"]
+[ext_resource type="Resource" path="res://assets/animations/locomotion/forward.tres" id="2"]
+[ext_resource type="Resource" path="res://assets/animations/locomotion/backward.tres" id="3"]
+[ext_resource type="Resource" path="res://assets/animations/locomotion/strafe_right.tres" id="4"]
+[ext_resource type="Resource" path="res://assets/animations/locomotion/strafe_left.tres" id="5"]
+
+[resource]
+script = ExtResource("1")
+forward = ExtResource("2")
+backward = ExtResource("3")
+strafe_right = ExtResource("4")
+strafe_left = ExtResource("5")
+torso_limit = 0.38
+head_limit = 0.56
+aim_response = 8.0
+left_arm_weight = 0.0
+right_arm_weight = 0.25
+leg_length = 0.86
+max_inward_leg_angle = 0.10
+stride_weight = 0.9
+gait_reference_speed = 3.4

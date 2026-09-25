@@ -1,0 +1,8 @@
+[
+  {"path":"art/characters/warrior/hero_warrior.blend","sha256":"3A40FCE30DDFB13C383487432691A7EF19B9EB2FDB006F57AFBE961945040C7A","bytes":3871139},
+  {"path":"assets/models/characters/hero_warrior.glb","sha256":"547D10D91403ECBABA62E4521366BA732B1B2CCF840D41BFB27424BDEBD539A7","bytes":1700516},
+  {"path":"art/textures/characters/warrior_material_atlas_source.png","sha256":"C4EC9FC0F00B415AA0EB33AA780BC1A9A73B0FCD95D033D0AB9EAC9C764ECBA2","bytes":1943572},
+  {"path":"assets/models/textures/warrior/hero_warrior_material_atlas.png","sha256":"8CC83A295F7EAF2335F0F2BF5EC1FB46502303B5ACB1EA1E609F4922C8648B9F","bytes":1408537},
+  {"path":"assets/models/textures/hero_archer.png","sha256":"C5144636ABB328ECA1543DC1F79D71BCCEB8EFBB48E03759CC7726832B878DFF","bytes":1511},
+  {"path":"assets/models/textures/hero_engineer.png","sha256":"C5144636ABB328ECA1543DC1F79D71BCCEB8EFBB48E03759CC7726832B878DFF","bytes":1511}
+]

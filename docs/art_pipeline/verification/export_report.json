@@ -1,0 +1,22 @@
+{
+  "output": "D:\\Repository\\game\\assets\\models\\validation\\calibration_blockout.glb",
+  "bytes": 9900,
+  "mesh_objects": [
+    "CalibrationBody",
+    "CalibrationHead",
+    "FrontMarker",
+    "GroundScaleMarker"
+  ],
+  "armatures": [
+    "CalibrationSkeleton"
+  ],
+  "materials": [
+    "CalibrationBlue",
+    "FrontMarkerOrange",
+    "GroundMarker"
+  ],
+  "animations": [
+    "calibration_idle"
+  ],
+  "scale_contract": "1 Blender unit = 1 metre; Z-up; front=-Y; glTF Y-up -> Godot front=+Z"
+}
