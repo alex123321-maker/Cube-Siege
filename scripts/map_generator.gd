@@ -307,6 +307,7 @@ func _spawn_chunk_resources(cx: int, cz: int, out_nodes: Array[Node]) -> void:
 
 			elif details["deposit_form"] == ResourceDistribution.DepositForm.FULL_DEPOSIT:
 				var node: Node3D = null
+				var rock_visual_index: int = ResourceRock.visual_variant_for_cell(cell_seed)
 				if res_type == ResourceDistribution.ResourceType.WOOD:
 					node = SCENE_TREE.instantiate()
 					if node.has_method("configure_tree"):
@@ -314,11 +315,11 @@ func _spawn_chunk_resources(cx: int, cz: int, out_nodes: Array[Node]) -> void:
 				elif res_type == ResourceDistribution.ResourceType.STONE:
 					node = SCENE_STONE.instantiate()
 					if node.has_method("configure_rock"):
-						node.configure_rock(0, details["yield_amount"], details["tier"], details["variation_index"])
+						node.configure_rock(0, details["yield_amount"], details["tier"], rock_visual_index)
 				elif res_type == ResourceDistribution.ResourceType.IRON:
 					node = SCENE_IRON.instantiate()
 					if node.has_method("configure_rock"):
-						node.configure_rock(1, details["yield_amount"], details["tier"], details["variation_index"])
+						node.configure_rock(1, details["yield_amount"], details["tier"], rock_visual_index)
 
 				if node:
 					node.position = h_pos

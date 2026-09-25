@@ -2,6 +2,8 @@ extends GutTest
 
 const RESOURCE_TREE_SCENE = preload("res://scenes/resource_tree.tscn")
 const RESOURCE_STONE_SCENE = preload("res://scenes/resource_stone.tscn")
+const RESOURCE_IRON_SCENE = preload("res://scenes/resource_iron.tscn")
+const MAP_GENERATOR_SCRIPT = preload("res://scripts/map_generator.gd")
 
 func test_all_tree_variations_use_authored_models_and_fit_bounds() -> void:
 	assert_eq(ResourceTree.TREE_VARIANTS.size(), 5)
@@ -20,6 +22,9 @@ func test_all_tree_variations_use_authored_models_and_fit_bounds() -> void:
 		assert_almost_eq(tree.tree_hurtbox_shape.shape.size.x, tree._tree_bounds.size.x, 0.01)
 		assert_almost_eq(tree.tree_hurtbox_shape.shape.size.y, tree._tree_bounds.size.y, 0.01)
 		assert_almost_eq(tree.canopy_occlusion_shape.shape.size.x, tree._get_mesh_bounds(tree.foliage_meshes, tree.foliage).size.x, 0.01)
+		var trunk_bounds: AABB = tree._get_mesh_bounds([tree.trunk], tree)
+		assert_almost_eq(tree.body_collision_shape.shape.size.y, trunk_bounds.size.y, 0.01, "Tree %d solid collision must fit its trunk height" % variation_index)
+		assert_almost_eq(tree.body_collision_shape.position.y, trunk_bounds.position.y + trunk_bounds.size.y * 0.5, 0.01)
 		assert_eq(tree.max_health, 60.0, "Visual integration must preserve tree HP")
 		assert_eq(tree.wood_yield, 4, "Visual integration must preserve configured tree yield")
 
@@ -62,3 +67,88 @@ func test_six_rock_variations_use_distinct_authored_models_and_matching_shapes()
 		assert_almost_eq(rock.hurtbox_shape.shape.size.y, expected_bounds.size.y, 0.01)
 		assert_eq(rock.max_health, 85.0, "Visual integration must preserve configured stone HP")
 		assert_eq(rock.resource_yield, 6, "Visual integration must preserve configured stone yield")
+
+func test_resource_collision_shapes_are_instance_local() -> void:
+	var small_stone: ResourceRock = RESOURCE_STONE_SCENE.instantiate() as ResourceRock
+	small_stone.configure_rock(ResourceRock.RockType.STONE, 4, 0, 1)
+	add_child_autoqfree(small_stone)
+	var original_stone_body_size: Vector3 = small_stone.body_collision_shape.shape.size
+	var original_stone_body_position: Vector3 = small_stone.body_collision_shape.position
+	var original_stone_hurt_size: Vector3 = small_stone.hurtbox_shape.shape.size
+	var original_stone_hurt_position: Vector3 = small_stone.hurtbox_shape.position
+
+	var large_stone: ResourceRock = RESOURCE_STONE_SCENE.instantiate() as ResourceRock
+	large_stone.configure_rock(ResourceRock.RockType.STONE, 8, 2, 5)
+	add_child_autoqfree(large_stone)
+	assert_ne(small_stone.body_collision_shape.shape.get_instance_id(), large_stone.body_collision_shape.shape.get_instance_id())
+	assert_ne(small_stone.hurtbox_shape.shape.get_instance_id(), large_stone.hurtbox_shape.shape.get_instance_id())
+	assert_eq(small_stone.body_collision_shape.shape.size, original_stone_body_size)
+	assert_eq(small_stone.body_collision_shape.position, original_stone_body_position)
+	assert_eq(small_stone.hurtbox_shape.shape.size, original_stone_hurt_size)
+	assert_eq(small_stone.hurtbox_shape.position, original_stone_hurt_position)
+
+	var iron: ResourceRock = RESOURCE_IRON_SCENE.instantiate() as ResourceRock
+	iron.configure_rock(ResourceRock.RockType.IRON, 2, 1, 3)
+	add_child_autoqfree(iron)
+	assert_ne(large_stone.body_collision_shape.shape.get_instance_id(), iron.body_collision_shape.shape.get_instance_id())
+	assert_ne(large_stone.hurtbox_shape.shape.get_instance_id(), iron.hurtbox_shape.shape.get_instance_id())
+	assert_eq(small_stone.body_collision_shape.shape.size, original_stone_body_size)
+	assert_eq(small_stone.hurtbox_shape.shape.size, original_stone_hurt_size)
+
+	var shrub: ResourceTree = RESOURCE_TREE_SCENE.instantiate() as ResourceTree
+	shrub.configure_tree(4)
+	add_child_autoqfree(shrub)
+	var shrub_body_size: Vector3 = shrub.body_collision_shape.shape.size
+	var shrub_body_position: Vector3 = shrub.body_collision_shape.position
+	var shrub_hurt_size: Vector3 = shrub.tree_hurtbox_shape.shape.size
+	var shrub_hurt_position: Vector3 = shrub.tree_hurtbox_shape.position
+
+	var tall_tree: ResourceTree = RESOURCE_TREE_SCENE.instantiate() as ResourceTree
+	tall_tree.configure_tree(1)
+	add_child_autoqfree(tall_tree)
+	assert_ne(shrub.body_collision_shape.shape.get_instance_id(), tall_tree.body_collision_shape.shape.get_instance_id())
+	assert_ne(shrub.tree_hurtbox_shape.shape.get_instance_id(), tall_tree.tree_hurtbox_shape.shape.get_instance_id())
+	assert_eq(shrub.body_collision_shape.shape.size, shrub_body_size)
+	assert_eq(shrub.body_collision_shape.position, shrub_body_position)
+	assert_eq(shrub.tree_hurtbox_shape.shape.size, shrub_hurt_size)
+	assert_eq(shrub.tree_hurtbox_shape.position, shrub_hurt_position)
+
+func test_generated_full_deposits_reach_all_rock_assets() -> void:
+	var generator: MapGenerator = MAP_GENERATOR_SCRIPT.new() as MapGenerator
+	generator.random_seed = false
+	generator.custom_seed = 27
+	generator.load_radius_chunks = 0
+	generator.unload_radius_chunks = 0
+	add_child_autoqfree(generator)
+	var seen_variants: Dictionary = {}
+	for spawned_node in generator.resources_container.get_children():
+		var spawned_rock: ResourceRock = spawned_node as ResourceRock
+		if spawned_rock:
+			seen_variants[spawned_rock.variation_index] = true
+			assert_not_null(spawned_rock.rock_asset, "Normally generated rocks must instantiate their authored visual")
+	for chunk_z in range(-8, 9):
+		for chunk_x in range(-8, 9):
+			var spawned_nodes: Array[Node] = []
+			generator._spawn_chunk_resources(chunk_x, chunk_z, spawned_nodes)
+			for spawned_node in spawned_nodes:
+				var rock: ResourceRock = spawned_node as ResourceRock
+				if rock:
+					seen_variants[rock.variation_index] = true
+					assert_not_null(rock.rock_asset, "Normally generated rocks must instantiate their authored visual")
+			if seen_variants.size() == ResourceRock.ROCK_VARIANTS.size():
+				break
+		if seen_variants.size() == ResourceRock.ROCK_VARIANTS.size():
+			break
+	assert_eq(seen_variants.size(), ResourceRock.ROCK_VARIANTS.size(), "Normal deterministic chunk generation must reach all six rock visuals")
+
+func test_focused_broken_rock_keeps_its_broken_scale() -> void:
+	var rock: ResourceRock = RESOURCE_STONE_SCENE.instantiate() as ResourceRock
+	rock.configure_rock(ResourceRock.RockType.STONE, 4, 1, 0)
+	add_child_autoqfree(rock)
+	rock.break_rock()
+	await get_tree().create_timer(0.2).timeout
+	assert_eq(rock.rock_mesh.scale, rock.broken_scale, "Break animation must settle on the broken scale")
+	rock.set_focused(true)
+	assert_eq(rock.rock_mesh.scale, rock.broken_scale * 1.08, "Focusing must emphasize the broken pickup scale")
+	rock.set_focused(false)
+	assert_eq(rock.rock_mesh.scale, rock.broken_scale, "Unfocusing must restore the broken pickup scale")

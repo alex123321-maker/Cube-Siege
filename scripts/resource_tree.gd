@@ -18,6 +18,7 @@ var _tree_bounds: AABB
 @onready var hurtbox: Area3D = $Hurtbox
 @onready var tree_model: Node3D = $Visuals/TreeModel
 @onready var foliage: Node3D = $Visuals/Canopy
+@onready var body_collision_shape: CollisionShape3D = $CollisionShape3D
 @onready var tree_hurtbox_shape: CollisionShape3D = $Hurtbox/CollisionShape3D
 @onready var pickup_prompt: Label3D = $PickupPrompt
 
@@ -31,6 +32,7 @@ const TREE_VARIANTS: Array[PackedScene] = [
 ]
 
 func _ready() -> void:
+	_make_collision_shapes_local()
 	current_health = max_health
 	if pickup_prompt:
 		pickup_prompt.visible = false
@@ -38,6 +40,12 @@ func _ready() -> void:
 		hurtbox.damaged.connect(_on_damaged)
 	_apply_variation()
 	_setup_canopy_occlusion()
+
+func _make_collision_shapes_local() -> void:
+	if body_collision_shape and body_collision_shape.shape:
+		body_collision_shape.shape = body_collision_shape.shape.duplicate(true)
+	if tree_hurtbox_shape and tree_hurtbox_shape.shape:
+		tree_hurtbox_shape.shape = tree_hurtbox_shape.shape.duplicate(true)
 
 func _setup_canopy_occlusion() -> void:
 	canopy_occlusion_area = Area3D.new()
@@ -99,6 +107,7 @@ func _apply_variation() -> void:
 
 	_tree_bounds = _get_mesh_bounds(all_meshes, tree_model)
 	_fit_tree_hurtbox(_tree_bounds)
+	_fit_tree_solid_collision()
 	_update_canopy_occlusion()
 	_update_hurtbox_flash_target()
 
@@ -116,6 +125,14 @@ func _fit_tree_hurtbox(bounds: AABB) -> void:
 	var box: BoxShape3D = tree_hurtbox_shape.shape as BoxShape3D
 	box.size = bounds.size
 	tree_hurtbox_shape.position = bounds.position + bounds.size * 0.5
+
+func _fit_tree_solid_collision() -> void:
+	if not trunk or not body_collision_shape or not body_collision_shape.shape is BoxShape3D:
+		return
+	var trunk_bounds: AABB = _get_mesh_bounds([trunk], self)
+	var box: BoxShape3D = body_collision_shape.shape as BoxShape3D
+	box.size = trunk_bounds.size
+	body_collision_shape.position = trunk_bounds.position + trunk_bounds.size * 0.5
 
 func _update_hurtbox_flash_target() -> void:
 	var hurtbox_controller: HurtboxArea = hurtbox as HurtboxArea

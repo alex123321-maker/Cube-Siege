@@ -14,6 +14,7 @@ var is_destroyed: bool = false
 var is_harvested: bool = false
 var degradation_stage: int = 2 # 2: full, 1: cracked, 0: heavily chipped
 var base_scale: Vector3 = Vector3.ONE
+var broken_scale: Vector3 = Vector3.ONE
 
 @onready var hurtbox: Area3D = get_node_or_null("Hurtbox")
 @onready var rock_mesh: Node3D = get_node_or_null("Visuals/RockMesh")
@@ -35,7 +36,11 @@ const ROCK_VARIANTS: Array[PackedScene] = [
 	preload("res://assets/environment/resources/rock_stage1/rock_stage1_var_5.glb")
 ]
 
+static func visual_variant_for_cell(cell_seed: int) -> int:
+	return posmod(cell_seed, ROCK_VARIANTS.size())
+
 func _ready() -> void:
+	_make_collision_shapes_local()
 	add_to_group("interactables")
 	add_to_group("resource_nodes")
 
@@ -51,6 +56,12 @@ func _ready() -> void:
 		hurtbox.damaged.connect(_on_damaged)
 
 	_apply_tier_and_variation()
+
+func _make_collision_shapes_local() -> void:
+	if body_collision_shape and body_collision_shape.shape:
+		body_collision_shape.shape = body_collision_shape.shape.duplicate(true)
+	if hurtbox_shape and hurtbox_shape.shape:
+		hurtbox_shape.shape = hurtbox_shape.shape.duplicate(true)
 
 func configure_rock(p_type: RockType, p_yield: int, p_tier: int, p_var_idx: int) -> void:
 	rock_type = p_type
@@ -206,8 +217,11 @@ func break_rock() -> void:
 		hurtbox.set_deferred("monitorable", false)
 
 	if is_inside_tree() and rock_mesh:
+		broken_scale = Vector3(base_scale.x * 1.2, 0.22, base_scale.z * 1.2)
 		var tween: Tween = create_tween()
-		tween.tween_property(rock_mesh, "scale", Vector3(base_scale.x * 1.2, 0.22, base_scale.z * 1.2), 0.15)
+		tween.tween_property(rock_mesh, "scale", broken_scale, 0.15)
+	else:
+		broken_scale = Vector3(base_scale.x * 1.2, 0.22, base_scale.z * 1.2)
 
 	if prompt_label:
 		prompt_label.visible = false
@@ -231,10 +245,13 @@ func set_focused(focused: bool) -> void:
 		prompt_label.text = "[E] HOLD (1.0s)\n(+%d %s)" % [resource_yield, res_name]
 		prompt_label.modulate = Color(1.0, 0.9, 0.2)
 		if rock_mesh:
-			rock_mesh.scale = base_scale * 1.08
+			rock_mesh.scale = _pickup_base_scale() * 1.08
 	else:
 		if rock_mesh:
-			rock_mesh.scale = base_scale
+			rock_mesh.scale = _pickup_base_scale()
+
+func _pickup_base_scale() -> Vector3:
+	return broken_scale if is_destroyed else base_scale
 
 func set_interaction_progress(progress: float) -> void:
 	if not is_ready_for_pickup() or not prompt_label:
