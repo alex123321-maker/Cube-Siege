@@ -21,6 +21,6 @@ left_arm_weight = 0.7
 right_arm_weight = 0.7
 action_aim_weight = 0.02
 stride_weight = 0.95
-leg_length = 0.66
+leg_length = 0.85
 movement_lean_limit = 0.122173048
 movement_lean_response = 10.0

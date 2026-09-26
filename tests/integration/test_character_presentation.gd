@@ -2,6 +2,58 @@ extends GutTest
 
 const PLAYER = preload("res://scenes/player.tscn")
 
+func test_directional_stance_overrides_authored_forward_knee() -> void:
+	var player: CharacterBody3D = _player()
+	for class_id: int in [0, 1, 2]:
+		player.set_class(class_id, false)
+		var profile: CharacterAnimationProfile = player.presentation.animation_profile.duplicate()
+		profile.foot_plant_enabled = false
+		player.presentation.set_active_model(player.presentation.active_model, profile)
+		var layer: CharacterPoseLayer = player.presentation.pose_layer
+		var knee: Node3D = layer.nodes[CharacterPoseLayer.Joint.RIGHT_LEG].get_node("right_knee")
+		knee.rotation.x = .65
+		layer.phase = 0.0
+		layer.move_weight = 1.0
+		layer.blend = Vector4(1, 0, 0, 0)
+		layer.update(.000001, Vector3.FORWARD, Vector3.FORWARD, Vector3.FORWARD, Vector3(0, 0, -3), 0, false, &"", false)
+		assert_lt(knee.quaternion.angle_to(Quaternion.IDENTITY), .001,
+			"A planted procedural foot must not inherit the unrelated authored swing knee")
+		layer.reset()
+		assert_lt(knee.quaternion.angle_to(Quaternion.IDENTITY), .001, "Class cleanup restores the knee")
+
+func test_missing_optional_knee_keeps_rigid_leg_animation_working() -> void:
+	var player: CharacterBody3D = _player()
+	var profile: CharacterAnimationProfile = player.presentation.animation_profile.duplicate()
+	profile.right_knee_path = ^""
+	profile.left_knee_path = ^"missing_optional_knee"
+	player.presentation.set_active_model(player.presentation.active_model, profile)
+	player.presentation.update_animations(player, false, false, .016, player.orientation)
+	assert_not_null(player.presentation.pose_layer)
+
+func test_world_space_stance_contact_does_not_slide_with_the_body() -> void:
+	var player: CharacterBody3D = _player()
+	for class_id: int in [0, 1, 2]:
+		for direction: Vector3 in [Vector3.FORWARD, Vector3.BACK, Vector3.LEFT, Vector3.RIGHT]:
+			player.set_class(class_id, false)
+			player.presentation.set_active_model(player.presentation.active_model, player.presentation.animation_profile)
+			var layer: CharacterPoseLayer = player.presentation.pose_layer
+			layer.move_weight = 1.0
+			layer.phase = .01
+			var knee: Node3D = layer.knees[0]
+			var lower_length: float = layer.profile.leg_length - layer.knee_rest[0].origin.length()
+			var planted: Vector3
+			for frame: int in 8:
+				player.position += direction * .03
+				layer.reset()
+				layer.update(.01, Vector3.FORWARD, Vector3.FORWARD, direction,
+					direction * 3, 0.0, false, &"", false)
+				var foot: Vector3 = knee.to_global(Vector3(0, -lower_length, 0))
+				if frame == 0:
+					planted = foot
+				else:
+					assert_lt(foot.distance_to(planted), .012, "World-space stance stays fixed during forward/back/strafe")
+				assert_true(layer.right_contact)
+
 func _player() -> CharacterBody3D:
 	var player: CharacterBody3D = PLAYER.instantiate()
 	add_child_autoqfree(player)

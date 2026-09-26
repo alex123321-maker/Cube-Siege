@@ -1,5 +1,7 @@
 # Warrior — Issue #8
 
+September 26 grip revision: the right fist now has four curled fingers and an opposing thumb around the hilt. The sword crosses the fist at a 60-degree angle to the forearm in a forward low guard. The hand clears the cuff and shares the sword transform, while a separate wrist joint connects it to the forearm. Original clip lengths, weapon hook and damage clocks are unchanged. `fix_warrior_sword_grip.py` documents the one-time source revision; do not reapply it to the already revised `.blend`. New runtime close-ups and gameplay are in `docs/art_pipeline/verification/hero-polish/`.
+
 `hero_warrior.blend` is the editable artistic source for the Issue #8 Warrior candidate, pending visual approval. The runtime export is `assets/models/characters/hero_warrior.glb`; `hero_warrior.tscn` is the stable Godot wrapper used by `scenes/player.tscn`. Geometry was script-assisted and revised in the Blender source; this is not a claim of manual-only production art.
 
 ## Contracts preserved

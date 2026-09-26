@@ -10,6 +10,14 @@ class_name CharacterAnimationProfile
 @export var left_arm_path: NodePath = ^"root/torso/left_arm"
 @export var right_leg_path: NodePath = ^"root/right_leg"
 @export var left_leg_path: NodePath = ^"root/left_leg"
+@export var right_knee_path: NodePath = ^"root/right_leg/right_knee"
+@export var left_knee_path: NodePath = ^"root/left_leg/left_knee"
+@export var knee_swing_angle: float = 0.55
+@export var knee_lift_reference: float = 0.1
+@export var foot_plant_enabled: bool = true
+@export var plant_stride_fraction: float = 0.42
+@export var plant_crouch: float = 0.14
+@export var plant_swing_height: float = 0.13
 @export var forward: CharacterGait
 @export var backward: CharacterGait
 @export var strafe_right: CharacterGait

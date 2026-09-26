@@ -9,6 +9,10 @@ var profile: CharacterAnimationProfile
 var nodes: Array[Node3D] = []
 var rest: Array[Transform3D] = []
 var authored: Array[Transform3D] = []
+var knees: Array[Node3D] = []
+var knee_rest: Array[Transform3D] = []
+var knee_authored: Array[Transform3D] = []
+var foot_plant: CharacterFootPlant
 var local_move: Vector2 = Vector2.ZERO
 var blend: Vector4 = Vector4(1, 0, 0, 0)
 var phase: float = 0.0
@@ -40,16 +44,30 @@ func bind(model: Node3D, animation_profile: CharacterAnimationProfile) -> void:
 		var pose: Transform3D = node.transform if node else Transform3D.IDENTITY
 		rest.append(pose)
 		authored.append(pose)
+	for path: NodePath in [profile.right_knee_path, profile.left_knee_path]:
+		var knee: Node3D = model.get_node_or_null(path) as Node3D if not path.is_empty() else null
+		knees.append(knee)
+		var pose: Transform3D = knee.transform if knee else Transform3D.IDENTITY
+		knee_rest.append(pose)
+		knee_authored.append(pose)
+	foot_plant = CharacterFootPlant.new()
+	foot_plant.bind(model, self)
 
 func restore_authored() -> void:
 	for i: int in nodes.size():
 		if is_instance_valid(nodes[i]):
 			nodes[i].transform = authored[i]
+	for i: int in knees.size():
+		if is_instance_valid(knees[i]):
+			knees[i].transform = knee_authored[i]
 
 func reset() -> void:
 	for i: int in nodes.size():
 		if is_instance_valid(nodes[i]):
 			nodes[i].transform = rest[i]
+	for i: int in knees.size():
+		if is_instance_valid(knees[i]):
+			knees[i].transform = knee_rest[i]
 
 func update(delta: float, facing: Vector3, aim: Vector3, move: Vector3,
 		actual_velocity: Vector3, angular_velocity: float, is_dashing: bool,
@@ -59,6 +77,9 @@ func update(delta: float, facing: Vector3, aim: Vector3, move: Vector3,
 	for i: int in nodes.size():
 		if is_instance_valid(nodes[i]):
 			authored[i] = nodes[i].transform
+	for i: int in knees.size():
+		if is_instance_valid(knees[i]):
+			knee_authored[i] = knees[i].transform
 	if not enabled and layer_weight < 0.0001 and aim_yaw.length_squared() < 0.000001 and _movement_lean_world.length_squared() < 0.000001:
 		layer_weight = 0.0
 		aim_yaw = Vector3.ZERO
@@ -77,7 +98,10 @@ func update(delta: float, facing: Vector3, aim: Vector3, move: Vector3,
 	if speed > 0.01:
 		blend = blend.lerp(desired_blend, response)
 	move_weight = lerpf(move_weight, clampf(speed / profile.full_stride_speed, 0, 1), response)
-	playback_rate = clampf(speed / profile.gait_reference_speed, 0, profile.max_playback_rate)
+	var reference_speed: float = profile.gait_reference_speed
+	if profile.foot_plant_enabled:
+		reference_speed = 2.0 * profile.leg_length * profile.plant_stride_fraction / (CharacterFootPlant.STANCE_FRACTION * profile.cycle_seconds)
+	playback_rate = clampf(speed / reference_speed, 0, profile.max_playback_rate)
 	phase = fposmod(phase + delta * playback_rate / profile.cycle_seconds, 1.0)
 	var turn_target: float = 0.0
 	if absf(angular_velocity) > profile.turn_deadzone:
@@ -113,6 +137,10 @@ func update(delta: float, facing: Vector3, aim: Vector3, move: Vector3,
 	var stride: float = profile.stride_weight * (profile.dash_stride_weight if is_dashing else 1.0)
 	_leg(Joint.RIGHT_LEG, phase, turn_phase, stride, idle_turn)
 	_leg(Joint.LEFT_LEG, fposmod(phase + 0.5, 1.0), fposmod(turn_phase + 0.5, 1.0), stride, idle_turn)
+	if profile.foot_plant_enabled and not is_dashing:
+		foot_plant.update(self, planar, _facing_basis)
+	else:
+		foot_plant.reset()
 
 func _rotate(joint: int, angles: Vector3) -> void:
 	var node: Node3D = nodes[joint]
@@ -150,6 +178,20 @@ func _leg(joint: int, leg_phase: float, step_phase: float, stride: float, idle_t
 	# Lower the hip by the geometric shortening, then add deliberate swing clearance.
 	node.position.y += lift * weight - profile.leg_length * (1.0 - cos(angles.x) * cos(angles.z))
 	node.position.y += swing * turn_weight * profile.turn_lift
+	# The lower segment follows the SAME blended gait phase as its hip. Letting
+	# the authored forward-walk knee run independently makes it bend on a planted
+	# backward/strafe foot, and previously changed the apparent leg length.
+	var knee_index: int = 0 if joint == Joint.RIGHT_LEG else 1
+	var knee: Node3D = knees[knee_index]
+	if is_instance_valid(knee):
+		var knee_weight: float = maxf(weight, turn_weight)
+		knee.transform = knee_authored[knee_index].interpolate_with(knee_rest[knee_index], knee_weight)
+		var bend: float = -profile.knee_swing_angle * clampf(lift / profile.knee_lift_reference, 0.0, 1.0) * weight
+		bend -= profile.knee_swing_angle * swing * turn_weight
+		var mapping: Basis = knee.get_parent_node_3d().global_basis.orthonormalized().inverse() * _facing_basis
+		knee.basis = mapping * Basis(Vector3.RIGHT, bend) * mapping.inverse() * knee.basis
+		# Additional vertical shortening introduced by a bent lower segment.
+		node.position.y -= profile.leg_length * 0.5 * (cos(angles.x) - cos(angles.x + bend)) * cos(angles.z)
 
 func debug_text() -> String:
 	return "ANIMATION | local %.2f, %.2f / %.0f deg\nF %.2f B %.2f R %.2f L %.2f | phase %.2f x%.2f\nAim %.0f | torso %.0f head %.0f | weight %.2f / %.2f\nTurn %.2f | action %s | lean side %.1f forward %.1f deg\nFeet R %.2f (%s) L %.2f (%s)" % [
