@@ -54,14 +54,30 @@ func update(_delta: float, velocity: Vector3, gait_speed: float = 3.2) -> void:
 				anim_player.play("idle", 0.2)
 			anim_player.speed_scale = 1.0
 
-func play_attack() -> void:
+func play_attack(start_time: float = -1.0) -> void:
 	if not is_instance_valid(anim_player) or is_dying:
 		return
 	if anim_player.has_animation("attack"):
 		current_action = &"attack"
 		anim_player.speed_scale = 1.0
-		anim_player.stop()
-		anim_player.play("attack", 0.08)
+		if start_time >= 0.0:
+			anim_player.play("attack", 0.04)
+			anim_player.seek(start_time, true)
+		else:
+			anim_player.stop()
+			anim_player.play("attack", 0.08)
+
+func advance_to_attack_phase(phase_time: float) -> void:
+	if not is_instance_valid(anim_player) or is_dying:
+		return
+	if anim_player.has_animation("attack"):
+		current_action = &"attack"
+		anim_player.speed_scale = 1.0
+		if anim_player.current_animation != "attack" or not anim_player.is_playing():
+			anim_player.play("attack", 0.04)
+			anim_player.seek(phase_time, true)
+		elif anim_player.current_animation_position < phase_time:
+			anim_player.seek(phase_time, true)
 
 func play_hit() -> void:
 	if not is_instance_valid(anim_player) or is_dying:

@@ -142,6 +142,8 @@ func die() -> void:
 		return
 	is_dying = true
 
+	remove_from_group("enemies")
+
 	if is_in_duel and duel_opponent and is_instance_valid(duel_opponent) and duel_opponent.has_method("end_duel"):
 		duel_opponent.end_duel()
 

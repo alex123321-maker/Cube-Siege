@@ -271,3 +271,52 @@ func test_enemy_gameplay_scenes_model_facing_direction() -> void:
 		dot = model_visual_front.dot(expected_forward)
 		assert_almost_eq(dot, 1.0, 0.05, s.name + " Visuals/Model front must point towards aim target (+X), dot: %f" % dot)
 		enemy.queue_free()
+
+func test_dead_enemy_immediately_excluded_from_tower_targeting() -> void:
+	# Verifies P2 Remark 1: Dying enemies are immediately removed from the "enemies" group
+	# and ignored by TowerTargeting.find_nearest_enemy, even while still in the scene tree playing death animation.
+	var enemy1: CharacterBody3D = load(ENEMY_DUMMY_SCENE).instantiate() as CharacterBody3D
+	var enemy2: CharacterBody3D = load(ENEMY_DUMMY_SCENE).instantiate() as CharacterBody3D
+	add_child_autoqfree(enemy1)
+	add_child_autoqfree(enemy2)
+	
+	var tower_pos: Vector3 = Vector3.ZERO
+	enemy1.global_position = Vector3(0, 0, 5) # Closer (5m)
+	enemy2.global_position = Vector3(0, 0, 10) # Farther (10m)
+	
+	# Before death, enemy1 is the nearest target
+	var target = TowerTargeting.find_nearest_enemy(get_tree(), tower_pos, 20.0)
+	assert_eq(target, enemy1, "Nearest enemy before death must be enemy1")
+	
+	# Kill enemy1
+	enemy1.die()
+	assert_true(enemy1.is_dying, "enemy1 must be dying")
+	assert_false(enemy1.is_in_group("enemies"), "Dying enemy must be immediately removed from 'enemies' group")
+	
+	# While enemy1 is still in the tree (has not been freed yet):
+	assert_true(is_instance_valid(enemy1), "enemy1 node still exists during death animation")
+	target = TowerTargeting.find_nearest_enemy(get_tree(), tower_pos, 20.0)
+	assert_eq(target, enemy2, "TowerTargeting must immediately target enemy2, ignoring dying enemy1")
+	
+	enemy1.queue_free()
+	enemy2.queue_free()
+
+func test_skirmisher_arrow_release_synchronized_with_animation_phase() -> void:
+	# Verifies P2 Remark 2: When shoot_arrow() is called, the presentation animation
+	# is at or beyond the release frame (frame 25 @ 30 FPS = ~0.833s),
+	# so arrow projectile spawn matches visual string release.
+	var skirmisher = load(RANGED_SKIRMISHER_SCENE).instantiate()
+	add_child_autoqfree(skirmisher)
+	skirmisher.global_position = Vector3.ZERO
+	
+	# Call shoot_arrow
+	skirmisher.shoot_arrow(Vector3.FORWARD)
+	
+	assert_eq(skirmisher.presentation.current_action, &"attack", "Attack action must be active")
+	assert_eq(skirmisher.presentation.anim_player.current_animation, "attack", "Attack animation clip must be playing")
+	
+	var release_time: float = 25.0 / 30.0 # 0.8333s
+	var anim_pos: float = skirmisher.presentation.anim_player.current_animation_position
+	assert_gte(anim_pos, release_time - 0.05, "Animation must be at or beyond release frame (0.833s) when arrow spawns, was: %f" % anim_pos)
+	
+	skirmisher.queue_free()

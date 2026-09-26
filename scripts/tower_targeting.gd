@@ -9,6 +9,10 @@ static func find_nearest_enemy(tree: SceneTree, from_pos: Vector3, max_range: fl
 	var min_dist: float = max_range
 	for e in enemies:
 		if e is Node3D and is_instance_valid(e):
+			if e.get("is_dying") == true:
+				continue
+			if "current_health" in e and e.current_health <= 0.0:
+				continue
 			var dist: float = from_pos.distance_to(e.global_position)
 			if dist <= min_dist:
 				min_dist = dist
