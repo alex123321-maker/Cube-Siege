@@ -1,0 +1,11 @@
+{
+  "archer": {
+    "minimum_world_y": -0.0109999775886536
+  },
+  "engineer": {
+    "minimum_world_y": 0.0
+  },
+  "warrior": {
+    "minimum_world_y": -0.0000000149011611938477
+  }
+}

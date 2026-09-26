@@ -1,0 +1,33 @@
+Godot Engine v4.6.1.stable.official.14d19694e - https://godotengine.org
+
+---  GUT  ---
+[1m[INFO]:  [0musing [C:/Users/alexa/.codex/worktrees/hero-models-animation/game/art/work/hero-polish/test-profile/Godot/app_userdata/Cube Siege] for temporary output.
+Godot version:  4.6.1
+GUT version:  9.6.1
+[4m
+
+res://tests/unit/test_support_hero_blender_contract.gd
+[0m* test_blender_exports_preserve_action_clocks_and_rigid_ownership
+* test_support_hero_textures_are_individual_and_decodable
+* test_archer_bow_and_draw_hand_remain_attached_during_shots
+* test_elf_reference_features_are_part_of_the_rig
+[1m4/4 passed.
+[0m
+
+
+
+[33m==============================================
+[0m[33m= Run Summary
+[0m[33m==============================================
+[0m
+Totals
+------
+Scripts               1
+Tests                 4
+Passing Tests         4
+Asserts             305
+Time              0.75s
+
+
+[32m---- All tests passed! ----
+[0m

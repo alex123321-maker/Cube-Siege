@@ -1,0 +1,57 @@
+{
+  "source_base": "1635895",
+  "assets": {
+    "warrior": [
+      {
+        "path": "art/characters/warrior/hero_warrior.blend",
+        "bytes": 3876250,
+        "sha256": "73ef6ede19bcb99b765e4d0369f22de090671223b00a9e92b947b20dd17e961b"
+      },
+      {
+        "path": "assets/models/characters/hero_warrior.glb",
+        "bytes": 1746376,
+        "sha256": "fd7ef1e41287e37bacdf7d311b143b165fb9344a4070741a626e11abf342bf23"
+      },
+      {
+        "path": "assets/models/textures/warrior/hero_warrior_material_atlas.png",
+        "bytes": 1408537,
+        "sha256": "8cc83a295f7eaf2335f0f2bf5ec1fb46502303b5acb1ea1e609f4922c8648b9f"
+      }
+    ],
+    "archer": [
+      {
+        "path": "art/characters/archer/hero_archer.blend",
+        "bytes": 1901867,
+        "sha256": "e04667e48b83f3a978682d5d2fcaf837299cb3f2bba95df8b8962052b71afc14"
+      },
+      {
+        "path": "assets/models/characters/hero_archer.glb",
+        "bytes": 2285540,
+        "sha256": "e214dd02eeeabad3a0ca2b3158cdc14205c81979c4d47943482e1797b8fd7a60"
+      },
+      {
+        "path": "assets/models/textures/archer/hero_archer_material_atlas.png",
+        "bytes": 1434975,
+        "sha256": "a09c3b5a60b9596ecbdf5ee0f89a2aec986e37f042090848bac6189b952e170c"
+      }
+    ],
+    "engineer": [
+      {
+        "path": "art/characters/engineer/hero_engineer.blend",
+        "bytes": 1854537,
+        "sha256": "1885c2f56f306c1a7c5bd6a7c108994b3773ad390fad0cb75cea9f2fea958147"
+      },
+      {
+        "path": "assets/models/characters/hero_engineer.glb",
+        "bytes": 2005376,
+        "sha256": "721cc62c9b8b6b602102ef2e3381515038182444920e38c77cb793d23daf2917"
+      },
+      {
+        "path": "assets/models/textures/engineer/hero_engineer_material_atlas.png",
+        "bytes": 1553965,
+        "sha256": "e847b390eeb8e2126328aeed8817ea28b5450e1ea101bd68010070b9e4473870"
+      }
+    ]
+  },
+  "review": "Actual Blender/Godot output; artistic acceptance pending"
+}
