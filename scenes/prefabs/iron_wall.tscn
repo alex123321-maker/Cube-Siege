@@ -1,7 +1,8 @@
-[gd_scene load_steps=8 format=3 uid="uid://cironwall01"]
+[gd_scene load_steps=10 format=3 uid="uid://cironwall01"]
 
 [ext_resource type="Script" path="res://scripts/iron_wall.gd" id="1_iron"]
 [ext_resource type="Script" path="res://scripts/hurtbox_area.gd" id="2_hurtbox"]
+[ext_resource type="Script" path="res://scripts/interaction/interaction_zone.gd" id="3_zone"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_wall"]
 size = Vector3(1.0, 2.0, 1.0)
@@ -18,7 +19,11 @@ size = Vector3(1.0, 2.0, 1.0)
 [sub_resource type="BoxShape3D" id="BoxShape3D_hurt"]
 size = Vector3(1.0, 2.0, 1.0)
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_interaction"]
+size = Vector3(1.2, 2.2, 1.2)
+
 [node name="IronWall" type="StaticBody3D" groups=["buildings", "walls"]]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 collision_layer = 1
 collision_mask = 0
 script = ExtResource("1_iron")
@@ -45,6 +50,17 @@ mesh_to_flash_path = NodePath("../MeshInstance3D")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Hurtbox"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, 0)
 shape = SubResource("BoxShape3D_hurt")
+
+[node name="InteractionZone" type="Area3D" parent="."]
+collision_layer = 32
+collision_mask = 0
+monitoring = false
+script = ExtResource("3_zone")
+target_node = NodePath("..")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="InteractionZone"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, 0)
+shape = SubResource("BoxShape3D_interaction")
 
 [node name="HPLabel" type="Label3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5, 0)

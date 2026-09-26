@@ -1,13 +1,18 @@
-[gd_scene load_steps=5 format=3 uid="uid://ctree001"]
+[gd_scene load_steps=7 format=3 uid="uid://ctree001"]
 
 [ext_resource type="Script" path="res://scripts/resource_tree.gd" id="1_tree"]
 [ext_resource type="Script" path="res://scripts/hurtbox_area.gd" id="2_hurtbox"]
+[ext_resource type="Script" path="res://scripts/interaction/interaction_zone.gd" id="3_zone"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_trunk"]
 size = Vector3(0.6, 2.0, 0.6)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_tree_hurt"]
 size = Vector3(2.4, 4.0, 2.4)
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_interaction"]
+height = 2.0
+radius = 1.2
 
 [node name="ResourceTree" type="StaticBody3D" groups=["interactables", "resource_nodes"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
@@ -33,6 +38,17 @@ mesh_to_flash_path = NodePath("../Visuals/TreeModel")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Hurtbox"]
 shape = SubResource("BoxShape3D_tree_hurt")
+
+[node name="InteractionZone" type="Area3D" parent="."]
+collision_layer = 32
+collision_mask = 0
+monitoring = false
+script = ExtResource("3_zone")
+target_node = NodePath("..")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="InteractionZone"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, 0)
+shape = SubResource("CylinderShape3D_interaction")
 
 [node name="PickupPrompt" type="Label3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0)

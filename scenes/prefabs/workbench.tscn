@@ -1,6 +1,7 @@
-[gd_scene load_steps=8 format=3 uid="uid://cworkbench01"]
+[gd_scene load_steps=10 format=3 uid="uid://cworkbench01"]
 
 [ext_resource type="Script" path="res://scripts/workbench.gd" id="1_bench"]
+[ext_resource type="Script" path="res://scripts/interaction/interaction_zone.gd" id="2_zone"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_bench"]
 size = Vector3(1.6, 1.2, 1.2)
@@ -22,6 +23,9 @@ roughness = 0.3
 material = SubResource("Mat_Anvil")
 size = Vector3(0.6, 0.35, 0.4)
 
+[sub_resource type="BoxShape3D" id="BoxShape3D_interaction"]
+size = Vector3(1.8, 1.4, 1.4)
+
 [node name="Workbench" type="StaticBody3D" groups=["buildings", "interactables"]]
 collision_layer = 1
 collision_mask = 0
@@ -38,6 +42,17 @@ mesh = SubResource("BoxMesh_Table")
 [node name="Anvil" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.05, 0)
 mesh = SubResource("BoxMesh_Anvil")
+
+[node name="InteractionZone" type="Area3D" parent="."]
+collision_layer = 32
+collision_mask = 0
+monitoring = false
+script = ExtResource("2_zone")
+target_node = NodePath("..")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="InteractionZone"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
+shape = SubResource("BoxShape3D_interaction")
 
 [node name="PromptLabel" type="Label3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.0, 0)

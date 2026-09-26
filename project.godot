@@ -126,3 +126,12 @@ textures/canvas_textures/default_texture_filter=0
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/godot_mcp/plugin.cfg", "res://addons/gut/plugin.cfg")
+
+[layer_names]
+
+3d_physics/layer_1="world"
+3d_physics/layer_2="player"
+3d_physics/layer_3="enemy"
+3d_physics/layer_4="combat"
+3d_physics/layer_5="canopy_occlusion"
+3d_physics/layer_6="interaction"

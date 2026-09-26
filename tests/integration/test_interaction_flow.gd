@@ -110,25 +110,47 @@ func test_tree_and_rock_harvest_retention_and_no_duplicate_harvest() -> void:
 	add_child_autoqfree(dummy_player)
 	dummy_player.position = Vector3(0, 0, 0)
 
-	# Mock wallet / inventory if needed
 	var tree = RESOURCE_TREE_SCENE.instantiate()
 	add_child_autoqfree(tree)
 	tree.position = Vector3(1, 0, 0)
 
 	tree.fell_tree()
-	assert_eq(tree.collision_layer, 8, "Felled tree collision_layer must be shifted to layer 8 for sensor detection")
+	# Verify InteractionZone exists on dedicated layer 32 rather than relying on layer 8 body shift
+	var tree_zone = tree.get_node_or_null("InteractionZone") as InteractionZone
+	assert_not_null(tree_zone, "Felled tree must have an InteractionZone")
+	if tree_zone:
+		assert_eq(tree_zone.collision_layer, InteractionZone.INTERACTION_LAYER, "Zone must be on Layer 6 (32)")
+		assert_eq(tree_zone.get_interaction_target(), tree, "Zone target must reference tree")
+
 	assert_true(tree.is_destroyed, "Tree must be destroyed/felled")
 	assert_false(tree.is_harvested, "Tree must not yet be harvested")
 	assert_true(InteractableTarget.can_interact(tree, dummy_player), "Felled tree must be interactable")
 
-	# Harvest once
-	tree.harvest(dummy_player)
+	# Harvest attempt without BuildingSystem must fail and NOT mark as harvested
+	var harvest_no_bs = tree.harvest(dummy_player)
+	assert_false(harvest_no_bs, "Harvest without BuildingSystem must return false")
+	assert_false(tree.is_harvested, "Tree must NOT be marked harvested when receiver is missing")
+	assert_true(InteractableTarget.can_interact(tree, dummy_player), "Tree must remain interactable for retry")
+
+	# Wire BuildingSystem to player
+	var bs = BuildingSystem.new()
+	bs.name = "BuildingSystem"
+	add_child_autoqfree(bs)
+	dummy_player.set("building_system", bs)
+	dummy_player.set_meta("building_system", bs)
+	var initial_wood = bs.wallet.get_wood()
+
+	# Successful harvest
+	var harvest_success = tree.harvest(dummy_player)
+	assert_true(harvest_success, "Harvest with BuildingSystem must succeed")
 	assert_true(tree.is_harvested, "Tree must be marked as harvested")
+	assert_eq(bs.wallet.get_wood(), initial_wood + tree.wood_yield, "Wood must be added to wallet")
 	assert_false(InteractableTarget.can_interact(tree, dummy_player), "Harvested tree must no longer be interactable")
 
-	# Duplicate harvest attempt must keep is_harvested true
-	tree.harvest(dummy_player)
-	assert_true(tree.is_harvested)
+	# Duplicate harvest attempt must fail and not add additional resources
+	var duplicate_harvest = tree.harvest(dummy_player)
+	assert_false(duplicate_harvest, "Duplicate harvest must return false")
+	assert_eq(bs.wallet.get_wood(), initial_wood + tree.wood_yield, "No duplicate wood granted")
 
 	# Rock test
 	var rock = ResourceRock.new()
@@ -139,17 +161,26 @@ func test_tree_and_rock_harvest_retention_and_no_duplicate_harvest() -> void:
 	rock.position = Vector3(2, 0, 0)
 
 	rock.break_rock()
-	assert_eq(rock.collision_layer, 8, "Broken rock collision_layer must be shifted to layer 8 for sensor detection")
+	var rock_zone = rock.get_node_or_null("InteractionZone") as InteractionZone
+	assert_not_null(rock_zone, "Broken rock must have an InteractionZone")
+	if rock_zone:
+		assert_eq(rock_zone.collision_layer, InteractionZone.INTERACTION_LAYER, "Zone must be on Layer 6 (32)")
+		assert_eq(rock_zone.get_interaction_target(), rock, "Zone target must reference rock")
+
 	assert_true(rock.is_destroyed, "Rock must be destroyed")
 	assert_false(rock.is_harvested, "Rock must not yet be harvested")
 	assert_true(InteractableTarget.can_interact(rock, dummy_player), "Broken rock must be interactable")
 
-	# Harvest rock once
-	rock.harvest(dummy_player)
+	# Rock harvest with BuildingSystem
+	var initial_stone = bs.wallet.get_stone()
+	var rock_harvest_ok = rock.harvest(dummy_player)
+	assert_true(rock_harvest_ok, "Rock harvest must succeed")
 	assert_true(rock.is_harvested, "Rock must be marked as harvested")
+	assert_eq(bs.wallet.get_stone(), initial_stone + rock.resource_yield, "Stone must be added to wallet")
 	assert_false(InteractableTarget.can_interact(rock, dummy_player), "Harvested rock must no longer be interactable")
 
 	# Duplicate harvest attempt on rock
-	rock.harvest(dummy_player)
-	assert_true(rock.is_harvested)
+	var rock_dup = rock.harvest(dummy_player)
+	assert_false(rock_dup, "Duplicate rock harvest must return false")
+	assert_eq(bs.wallet.get_stone(), initial_stone + rock.resource_yield, "No duplicate stone granted")
 

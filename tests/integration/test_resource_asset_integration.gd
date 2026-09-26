@@ -214,7 +214,9 @@ func test_rock_stage_swap_keeps_bottom_center_anchor_and_pickup_contract() -> vo
 	assert_eq(rock.max_health, expected_health)
 	assert_eq(rock.resource_yield, expected_yield)
 	rock._on_damaged(expected_health / 5.0, Vector3.ZERO, "test", null)
-	assert_true(rock.is_ready_for_pickup())
-	assert_eq(rock.collision_layer, 8)
-	assert_eq(rock.collision_mask, 0)
+	var rock_zone = rock.get_node_or_null("InteractionZone") as InteractionZone
+	assert_not_null(rock_zone, "Broken rock must have an InteractionZone")
+	if rock_zone:
+		assert_eq(rock_zone.collision_layer, InteractionZone.INTERACTION_LAYER)
+		assert_eq(rock_zone.get_interaction_target(), rock)
 	assert_eq(rock.visual_stage, 5)

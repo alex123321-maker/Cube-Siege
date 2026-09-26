@@ -95,6 +95,7 @@ func _ready() -> void:
 		hurtbox.damaged.connect(_on_damaged)
 
 	_apply_tier_and_variation()
+	_ensure_interaction_zone()
 
 func _make_collision_shapes_local() -> void:
 	if body_collision_shape and body_collision_shape.shape:
@@ -178,6 +179,8 @@ func _set_visual_stage(stage: int) -> void:
 	_update_hurtbox_flash_target()
 
 func _apply_iron_material_tint() -> void:
+	if DisplayServer.get_name() == "headless":
+		return
 	for mesh_instance in rock_mesh_instances:
 		if not mesh_instance.mesh:
 			continue
@@ -234,6 +237,9 @@ func _update_hurtbox_flash_target() -> void:
 	if hurtbox_controller and not rock_mesh_instances.is_empty():
 		hurtbox_controller.mesh_to_flash = rock_mesh_instances[0]
 
+func take_damage(amount: float) -> void:
+	_on_damaged(amount, Vector3.ZERO, "physical", null)
+
 func _on_damaged(amount: float, _knockback: Vector3, _type: String, _attacker: Node) -> void:
 	if is_destroyed:
 		return
@@ -268,6 +274,8 @@ func _stone_vfx_color() -> Color:
 func _stone_vfx_position() -> Vector3:
 	return global_position + Vector3.UP * maxf(0.35, rock_bounds.size.y * base_scale.y * 0.5)
 
+var _is_harvesting: bool = false
+
 func break_rock() -> void:
 	is_destroyed = true
 	var vfx = get_node_or_null("/root/VFXManager")
@@ -278,12 +286,12 @@ func break_rock() -> void:
 		if rock_mesh:
 			rock_mesh.scale = base_scale
 		_update_prompt_position(rock_bounds)
-	# Shift to collision_layer 8 (interactable items). The player (mask 1) no longer collides
-	# with the broken rock, while InteractionSensor (mask 9 = 1 | 8) continues to detect it.
-	collision_layer = 8
+	# Disable solid obstacle collision so player can walk through broken rock.
+	# InteractionZone continues to detect interaction on dedicated Layer 6 (mask 32).
+	collision_layer = 0
 	collision_mask = 0
 	if has_node("CollisionShape3D"):
-		$CollisionShape3D.set_deferred("disabled", false)
+		$CollisionShape3D.set_deferred("disabled", true)
 	if hurtbox:
 		hurtbox.set_deferred("monitoring", false)
 		hurtbox.set_deferred("monitorable", false)
@@ -331,33 +339,64 @@ func set_interaction_progress(progress: float) -> void:
 	prompt_label.text = "[E] [%s] %d%%\n(+%d %s)" % [bar_str, int(progress * 100), resource_yield, res_name]
 	prompt_label.modulate = Color(0.2, 1.0, 0.4)
 
-func harvest(player: Node) -> void:
-	if is_harvested or not is_destroyed:
-		return
+func harvest(player: Node) -> bool:
+	if is_harvested or not is_destroyed or _is_harvesting:
+		return false
 
+	if not player or not is_instance_valid(player):
+		push_warning("ResourceRock: harvest failed because player is missing or invalid.")
+		return false
+
+	var building_system: BuildingSystem = null
+	if player is BuildingSystem:
+		building_system = player
+	elif "building_system" in player and player.building_system and is_instance_valid(player.building_system):
+		building_system = player.building_system as BuildingSystem
+	elif player.get("building_system") != null and is_instance_valid(player.get("building_system")):
+		building_system = player.get("building_system") as BuildingSystem
+	elif player.has_meta("building_system"):
+		var meta_bs = player.get_meta("building_system")
+		if meta_bs is BuildingSystem:
+			building_system = meta_bs
+	elif player.has_node("BuildingSystem"):
+		var candidate = player.get_node("BuildingSystem")
+		if candidate is BuildingSystem:
+			building_system = candidate
+	elif player.is_inside_tree() and player.get_parent():
+		if player.get_parent().has_node("BuildingSystem") and player.get_parent().get_node("BuildingSystem") is BuildingSystem:
+			building_system = player.get_parent().get_node("BuildingSystem")
+		else:
+			for child in player.get_parent().get_children():
+				if child is BuildingSystem:
+					building_system = child
+					break
+
+	if not building_system:
+		push_warning("ResourceRock: harvest failed because Player.building_system is not wired.")
+		return false
+
+	_is_harvesting = true
 	is_harvested = true
-	if player and "interaction" in player and player.interaction:
-		player.interaction.remove_candidate(self)
+
 	if prompt_label:
 		prompt_label.visible = false
 
 	var mult: int = 1
-	if player and player.get("resource_multiplier") != null:
-		mult = player.resource_multiplier
+	if player.get("resource_multiplier") != null:
+		mult = maxi(1, int(player.resource_multiplier))
 	var total_yield: int = resource_yield * mult
 
-	var building_system: BuildingSystem = null
-	if player and "building_system" in player and player.building_system:
-		building_system = player.building_system as BuildingSystem
-	if building_system:
-		if rock_type == RockType.STONE:
-			building_system.add_resource(0, total_yield, 0)
-			spawn_damage_text(0, "+%d STONE" % total_yield, Color(0.7, 0.75, 0.8))
-		else:
-			building_system.add_resource(0, 0, total_yield)
-			spawn_damage_text(0, "+%d IRON" % total_yield, Color(1.0, 0.7, 0.3))
-	elif player:
-		push_warning("ResourceRock: cannot add resources because Player.building_system is not wired.")
+	var res_name: String = "STONE" if rock_type == RockType.STONE else "IRON"
+	if rock_type == RockType.STONE:
+		building_system.add_resource(0, total_yield, 0)
+		spawn_damage_text(0, "+%d STONE" % total_yield, Color(0.7, 0.75, 0.8))
+	else:
+		building_system.add_resource(0, 0, total_yield)
+		spawn_damage_text(0, "+%d IRON" % total_yield, Color(1.0, 0.7, 0.3))
+
+	var eb = get_node_or_null("/root/EventBus")
+	if eb and eb.has_signal("resource_gathered"):
+		eb.resource_gathered.emit(res_name, total_yield, player)
 
 	var map_gen = get_tree().get_first_node_in_group("map_generator") if is_inside_tree() else null
 	if map_gen and map_gen.has_method("record_harvest"):
@@ -369,6 +408,17 @@ func harvest(player: Node) -> void:
 		tween.chain().tween_callback(queue_free)
 	else:
 		queue_free()
+
+	return true
+
+func _ensure_interaction_zone() -> void:
+	for child in get_children():
+		if child is InteractionZone:
+			return
+	var zone = InteractionZone.create_zone(self, BoxShape3D.new(), Vector3(0, 0.9, 0))
+	var shape = zone.get_child(0).shape as BoxShape3D
+	shape.size = Vector3(2.6, 2.0, 2.6)
+	add_child(zone)
 
 func spawn_damage_text(amount: float, custom_text: String = "", custom_color: Color = Color.WHITE) -> void:
 	var popup: Node3D = FLOATING_TEXT_SCENE.instantiate()

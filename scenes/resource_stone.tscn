@@ -1,13 +1,17 @@
-[gd_scene load_steps=5 format=3 uid="uid://cstonerock01"]
+[gd_scene load_steps=7 format=3 uid="uid://cstonerock01"]
 
 [ext_resource type="Script" path="res://scripts/resource_rock.gd" id="1_rock"]
 [ext_resource type="Script" path="res://scripts/hurtbox_area.gd" id="2_hurtbox"]
+[ext_resource type="Script" path="res://scripts/interaction/interaction_zone.gd" id="3_zone"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_stone"]
 size = Vector3(2.4, 1.8, 2.4)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_hurt"]
 size = Vector3(2.4, 1.8, 2.4)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_interaction"]
+size = Vector3(2.6, 2.0, 2.6)
 
 [node name="ResourceStone" type="StaticBody3D" groups=["interactables", "resource_nodes"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
@@ -33,6 +37,17 @@ mesh_to_flash_path = NodePath("../Visuals/RockMesh")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Hurtbox"]
 shape = SubResource("BoxShape3D_hurt")
+
+[node name="InteractionZone" type="Area3D" parent="."]
+collision_layer = 32
+collision_mask = 0
+monitoring = false
+script = ExtResource("3_zone")
+target_node = NodePath("..")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="InteractionZone"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("BoxShape3D_interaction")
 
 [node name="PromptLabel" type="Label3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.3, 0)

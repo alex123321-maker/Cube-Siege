@@ -10,6 +10,16 @@ func _ready() -> void:
 	if prompt_label:
 		prompt_label.text = "[E] ВЕРСТАК\n(КРАФТ & РАЗБОР)"
 		prompt_label.visible = false
+	_ensure_interaction_zone()
+
+func _ensure_interaction_zone() -> void:
+	for child in get_children():
+		if child is InteractionZone:
+			return
+	var zone = InteractionZone.create_zone(self, BoxShape3D.new(), Vector3(0, 0.7, 0))
+	var shape = zone.get_child(0).shape as BoxShape3D
+	shape.size = Vector3(1.8, 1.4, 1.4)
+	add_child(zone)
 
 func is_ready_for_pickup() -> bool:
 	return true

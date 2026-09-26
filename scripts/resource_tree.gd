@@ -40,6 +40,7 @@ func _ready() -> void:
 		hurtbox.damaged.connect(_on_damaged)
 	_apply_variation()
 	_setup_canopy_occlusion()
+	_ensure_interaction_zone()
 
 func _make_collision_shapes_local() -> void:
 	if body_collision_shape and body_collision_shape.shape:
@@ -169,6 +170,9 @@ func set_transparency(alpha: float) -> void:
 			material.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
 			material.albedo_color.a = 1.0
 
+func take_damage(amount: float) -> void:
+	_on_damaged(amount, Vector3.ZERO, "physical", null)
+
 func _on_damaged(amount: float, _knockback: Vector3, _type: String, _attacker: Node) -> void:
 	if is_destroyed:
 		return
@@ -185,14 +189,16 @@ func _on_damaged(amount: float, _knockback: Vector3, _type: String, _attacker: N
 	if current_health <= 0.0:
 		fell_tree()
 
+var _is_harvesting: bool = false
+
 func fell_tree() -> void:
 	is_destroyed = true
-	# Shift to collision_layer 8 (interactable items). The player (mask 1) no longer collides
-	# with the stump, while InteractionSensor (mask 9 = 1 | 8) continues to detect it.
-	collision_layer = 8
+	# Disable solid obstacle collision so player can walk through felled tree / stump.
+	# InteractionZone continues to detect interaction on dedicated Layer 6 (mask 32).
+	collision_layer = 0
 	collision_mask = 0
 	if has_node("CollisionShape3D"):
-		$CollisionShape3D.set_deferred("disabled", false)
+		$CollisionShape3D.set_deferred("disabled", true)
 	if hurtbox:
 		hurtbox.set_deferred("monitoring", false)
 		hurtbox.set_deferred("monitorable", false)
@@ -241,29 +247,58 @@ func set_interaction_progress(progress: float) -> void:
 	pickup_prompt.text = "[E] [%s] %d%%\n(+%d WOOD)" % [bar_str, int(progress * 100), wood_yield]
 	pickup_prompt.modulate = Color(0.2, 1.0, 0.4)
 
-func harvest(player: Node) -> void:
-	if is_harvested or not is_destroyed:
-		return
+func harvest(player: Node) -> bool:
+	if is_harvested or not is_destroyed or _is_harvesting:
+		return false
 
+	if not player or not is_instance_valid(player):
+		push_warning("ResourceTree: harvest failed because player is missing or invalid.")
+		return false
+
+	var building_system: BuildingSystem = null
+	if player is BuildingSystem:
+		building_system = player
+	elif "building_system" in player and player.building_system and is_instance_valid(player.building_system):
+		building_system = player.building_system as BuildingSystem
+	elif player.get("building_system") != null and is_instance_valid(player.get("building_system")):
+		building_system = player.get("building_system") as BuildingSystem
+	elif player.has_meta("building_system"):
+		var meta_bs = player.get_meta("building_system")
+		if meta_bs is BuildingSystem:
+			building_system = meta_bs
+	elif player.has_node("BuildingSystem"):
+		var candidate = player.get_node("BuildingSystem")
+		if candidate is BuildingSystem:
+			building_system = candidate
+	elif player.is_inside_tree() and player.get_parent():
+		if player.get_parent().has_node("BuildingSystem") and player.get_parent().get_node("BuildingSystem") is BuildingSystem:
+			building_system = player.get_parent().get_node("BuildingSystem")
+		else:
+			for child in player.get_parent().get_children():
+				if child is BuildingSystem:
+					building_system = child
+					break
+
+	if not building_system:
+		push_warning("ResourceTree: harvest failed because Player.building_system is not wired.")
+		return false
+
+	_is_harvesting = true
 	is_harvested = true
-	if player and "interaction" in player and player.interaction:
-		player.interaction.remove_candidate(self)
+
 	if pickup_prompt:
 		pickup_prompt.visible = false
 
 	var mult: int = 1
-	if player and player.get("resource_multiplier") != null:
-		mult = player.resource_multiplier
+	if player.get("resource_multiplier") != null:
+		mult = maxi(1, int(player.resource_multiplier))
 	var total_yield: int = wood_yield * mult
 
-	# Add resources to inventory
-	var building_system: BuildingSystem = null
-	if player and "building_system" in player and player.building_system:
-		building_system = player.building_system as BuildingSystem
-	if building_system:
-		building_system.add_resource(total_yield, 0, 0)
-	elif player:
-		push_warning("ResourceTree: cannot add wood because Player.building_system is not wired.")
+	building_system.add_resource(total_yield, 0, 0)
+
+	var eb = get_node_or_null("/root/EventBus")
+	if eb and eb.has_signal("resource_gathered"):
+		eb.resource_gathered.emit("WOOD", total_yield, player)
 
 	spawn_damage_text(0, "+%d WOOD" % total_yield, Color.GREEN)
 
@@ -271,9 +306,24 @@ func harvest(player: Node) -> void:
 	if map_gen and map_gen.has_method("record_harvest"):
 		map_gen.record_harvest(global_position)
 
-	var tween: Tween = create_tween()
-	tween.tween_property(trunk, "scale", Vector3.ZERO, 0.2)
-	tween.chain().tween_callback(queue_free)
+	if is_inside_tree() and trunk:
+		var tween: Tween = create_tween()
+		tween.tween_property(trunk, "scale", Vector3.ZERO, 0.2)
+		tween.chain().tween_callback(queue_free)
+	else:
+		queue_free()
+
+	return true
+
+func _ensure_interaction_zone() -> void:
+	for child in get_children():
+		if child is InteractionZone:
+			return
+	var zone = InteractionZone.create_zone(self, CylinderShape3D.new(), Vector3(0, 1.0, 0))
+	var shape = zone.get_child(0).shape as CylinderShape3D
+	shape.height = 2.0
+	shape.radius = 1.2
+	add_child(zone)
 
 func spawn_damage_text(amount: float, custom_text: String = "", custom_color: Color = Color.WHITE) -> void:
 	var popup: Node3D = FLOATING_TEXT_SCENE.instantiate()

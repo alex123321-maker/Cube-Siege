@@ -7,6 +7,17 @@ func _ready() -> void:
 	add_to_group("interactables")
 	if prompt_label:
 		prompt_label.text = "👑 [E] ЗАБРАТЬ РЕЛИКВИЮ БОССА"
+	_ensure_interaction_zone()
+
+func _ensure_interaction_zone() -> void:
+	for child in get_children():
+		if child is InteractionZone:
+			return
+	var zone = InteractionZone.create_zone(self, CylinderShape3D.new(), Vector3(0, 0.8, 0))
+	var shape = zone.get_child(0).shape as CylinderShape3D
+	shape.height = 1.6
+	shape.radius = 1.2
+	add_child(zone)
 
 func is_ready_for_pickup() -> bool:
 	return true

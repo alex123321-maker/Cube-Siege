@@ -39,6 +39,16 @@ func _ready() -> void:
 	update_hp_label()
 	if hurtbox and hurtbox.has_signal("damaged"):
 		hurtbox.connect("damaged", Callable(self, "_on_damaged"))
+	_ensure_interaction_zone()
+
+func _ensure_interaction_zone() -> void:
+	for child in get_children():
+		if child is InteractionZone:
+			return
+	var zone = InteractionZone.create_zone(self, BoxShape3D.new(), Vector3(0, 1.0, 0))
+	var shape = zone.get_child(0).shape as BoxShape3D
+	shape.size = Vector3(1.4, 2.2, 1.4)
+	add_child(zone)
 
 func is_ready_for_pickup() -> bool:
 	return true

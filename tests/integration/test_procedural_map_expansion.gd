@@ -55,9 +55,11 @@ func test_free_resource_pickup_contract() -> void:
 	pickup.yield_amount = 2
 	add_child_autoqfree(pickup)
 
-	# Layer 4 in Inspector is bit 3 (value 8: 1 << 3), matches InteractionSensor mask 9 (1 | 8)
-	assert_eq(pickup.collision_layer, 8, "Pickup must have collision_layer = 8 (bit 3 / layer 4)")
-	assert_eq(pickup.collision_mask, 0, "Pickup must have collision_mask = 0 (non-solid)")
+	var zone = pickup.get_node_or_null("InteractionZone") as InteractionZone
+	assert_not_null(zone, "Pickup must have an InteractionZone")
+	if zone:
+		assert_eq(zone.collision_layer, InteractionZone.INTERACTION_LAYER, "Zone must be on Layer 6 (32)")
+		assert_eq(zone.get_interaction_target(), pickup, "Zone target must reference pickup")
 	assert_true(pickup.is_interactable(), "Pickup must be interactable initially")
 	assert_true(pickup.is_ready_for_pickup(), "Pickup must be ready for pickup initially")
 

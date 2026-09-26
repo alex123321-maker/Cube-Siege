@@ -2,6 +2,7 @@ extends RefCounted
 class_name PlayerInteraction
 
 ## Manages nearby interactable candidates, selection highlight, and hold-to-interact execution.
+## Uses physics snapshot from InteractionSensor as single source of truth (Issue #42).
 
 var focused_interactable: Node = null
 var interact_hold_timer: float = 0.0
@@ -17,12 +18,46 @@ func add_candidate(node: Node) -> void:
 func remove_candidate(node: Node) -> void:
 	candidate_nodes.erase(node)
 	if focused_interactable == node:
-		if node and is_instance_valid(node) and node.has_method("set_focused"):
+		if node and is_instance_valid(node) and not node.is_queued_for_deletion() and node.has_method("set_focused"):
 			node.set_focused(false)
 		focused_interactable = null
 		interact_hold_timer = 0.0
 
-func process_interaction(player: CharacterBody3D, delta: float) -> void:
+func process_interaction(player: CharacterBody3D, delta: float, sensor: Area3D = null) -> void:
+	if not player or not is_instance_valid(player):
+		return
+
+	if not sensor:
+		sensor = player.get_node_or_null("InteractionSensor") as Area3D
+
+	# 1. Physics snapshot from InteractionSensor
+	if sensor and is_instance_valid(sensor):
+		var overlapping: Array[Area3D] = sensor.get_overlapping_areas()
+		var discovered_targets: Array[Node] = []
+		for area in overlapping:
+			if not is_instance_valid(area) or area.is_queued_for_deletion():
+				continue
+			var target: Node = null
+			if area is InteractionZone:
+				target = area.get_interaction_target()
+			elif area.has_method("get_interaction_target"):
+				target = area.get_interaction_target()
+			elif "target_node" in area:
+				target = area.target_node
+
+			# 2. Check target validity and scene tree state
+			if target and is_instance_valid(target) and target.is_inside_tree() and not target.is_queued_for_deletion():
+				# 3. Deduplicate zones of the same target
+				if not discovered_targets.has(target):
+					discovered_targets.append(target)
+		candidate_nodes = discovered_targets
+
+	# Guard current focus against deleted/unloaded objects
+	if focused_interactable:
+		if not is_instance_valid(focused_interactable) or not focused_interactable.is_inside_tree() or focused_interactable.is_queued_for_deletion():
+			focused_interactable = null
+			interact_hold_timer = 0.0
+
 	var vp: Viewport = player.get_viewport()
 	var cam: Camera3D = vp.get_camera_3d() if vp else null
 	var mouse_world: Vector3 = player.global_position
@@ -36,14 +71,13 @@ func process_interaction(player: CharacterBody3D, delta: float) -> void:
 		if hit is Vector3:
 			mouse_world = hit as Vector3
 
-	# Filter valid candidates within 4.5m
+	# 4. Filter candidates within 4.5m and select closest to cursor
 	var best_target: Node = null
-	var best_dist: float = 999.0
+	var best_dist: float = 999999.0
 
-	# Clean up invalid candidate references
 	for i in range(candidate_nodes.size() - 1, -1, -1):
 		var obj = candidate_nodes[i]
-		if not is_instance_valid(obj) or not (obj is Node3D):
+		if not is_instance_valid(obj) or not (obj is Node3D) or not obj.is_inside_tree() or obj.is_queued_for_deletion():
 			candidate_nodes.remove_at(i)
 			continue
 
@@ -59,17 +93,17 @@ func process_interaction(player: CharacterBody3D, delta: float) -> void:
 			best_dist = dist_to_cursor
 			best_target = obj
 
-	# Manage focus & highlight
+	# 5. Manage focus & highlight without resetting hold progress if target remains the same
 	if best_target != focused_interactable:
-		if focused_interactable and is_instance_valid(focused_interactable) and focused_interactable.has_method("set_focused"):
+		if focused_interactable and is_instance_valid(focused_interactable) and not focused_interactable.is_queued_for_deletion() and focused_interactable.has_method("set_focused"):
 			focused_interactable.set_focused(false)
 		focused_interactable = best_target
 		interact_hold_timer = 0.0
-		if focused_interactable and focused_interactable.has_method("set_focused"):
+		if focused_interactable and is_instance_valid(focused_interactable) and not focused_interactable.is_queued_for_deletion() and focused_interactable.has_method("set_focused"):
 			focused_interactable.set_focused(true)
 
-	# Hold [E] for 1.0s or 2.0s for portal extraction
-	if Input.is_action_pressed("interact") and focused_interactable:
+	# Hold execution
+	if Input.is_action_pressed("interact") and focused_interactable and is_instance_valid(focused_interactable) and not focused_interactable.is_queued_for_deletion():
 		interact_hold_timer += delta
 		var hold_required: float = 1.0
 		var act_type = InteractableTarget.get_action_type(focused_interactable, player)
@@ -85,12 +119,19 @@ func process_interaction(player: CharacterBody3D, delta: float) -> void:
 		if interact_hold_timer >= hold_required:
 			interact_hold_timer = 0.0
 			var is_shift: bool = Input.is_key_pressed(KEY_SHIFT)
-			_execute_interaction(focused_interactable, player, is_shift)
-			focused_interactable = null
+			var target_to_execute = focused_interactable
+			_execute_interaction(target_to_execute, player, is_shift)
+
+			# If target was successfully consumed or is no longer interactable, clear focus
+			if not is_instance_valid(target_to_execute) or target_to_execute.is_queued_for_deletion() or not InteractableTarget.can_interact(target_to_execute, player):
+				if focused_interactable == target_to_execute:
+					if is_instance_valid(focused_interactable) and not focused_interactable.is_queued_for_deletion() and focused_interactable.has_method("set_focused"):
+						focused_interactable.set_focused(false)
+					focused_interactable = null
 	else:
 		if interact_hold_timer > 0.0:
 			interact_hold_timer = 0.0
-			if focused_interactable and is_instance_valid(focused_interactable) and focused_interactable.has_method("set_focused"):
+			if focused_interactable and is_instance_valid(focused_interactable) and not focused_interactable.is_queued_for_deletion() and focused_interactable.has_method("set_focused"):
 				focused_interactable.set_focused(true)
 
 func _execute_interaction(target: Node, player: CharacterBody3D, is_shift: bool) -> void:

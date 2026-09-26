@@ -19,14 +19,15 @@ func _ready() -> void:
 	add_to_group("interactables")
 	add_to_group("free_resources")
 
-	# Collision layer 4 (bit 3: value 8) matches InteractionSensor mask (mask 9 = 1 | 8)
-	collision_layer = 8
+	# Root area does not collide or monitor; InteractionZone handles Layer 6 detection
+	collision_layer = 0
 	collision_mask = 0
 	monitoring = false
-	monitorable = true
+	monitorable = false
 
 	_build_visuals()
 	_setup_prompt()
+	_ensure_interaction_zone()
 
 func _setup_prompt() -> void:
 	prompt_label = Label3D.new()
@@ -179,32 +180,63 @@ func set_interaction_progress(progress: float) -> void:
 func interact(player: Node, _is_shift: bool = false) -> void:
 	harvest(player)
 
-func harvest(player: Node) -> void:
-	if is_harvested:
-		return
+var _is_harvesting: bool = false
+
+func harvest(player: Node) -> bool:
+	if is_harvested or _is_harvesting:
+		return false
+
+	if not player or not is_instance_valid(player):
+		push_warning("FreeResourcePickup: harvest failed because player is missing or invalid.")
+		return false
+
+	var b_sys: BuildingSystem = null
+	if player is BuildingSystem:
+		b_sys = player
+	elif "building_system" in player and player.building_system and is_instance_valid(player.building_system):
+		b_sys = player.building_system as BuildingSystem
+	elif player.get("building_system") != null and is_instance_valid(player.get("building_system")):
+		b_sys = player.get("building_system") as BuildingSystem
+	elif player.has_meta("building_system"):
+		var meta_bs = player.get_meta("building_system")
+		if meta_bs is BuildingSystem:
+			b_sys = meta_bs
+	elif player.has_node("BuildingSystem"):
+		var candidate = player.get_node("BuildingSystem")
+		if candidate is BuildingSystem:
+			b_sys = candidate
+	elif player.is_inside_tree() and player.get_parent():
+		if player.get_parent().has_node("BuildingSystem") and player.get_parent().get_node("BuildingSystem") is BuildingSystem:
+			b_sys = player.get_parent().get_node("BuildingSystem")
+		else:
+			for child in player.get_parent().get_children():
+				if child is BuildingSystem:
+					b_sys = child
+					break
+
+	if not b_sys:
+		push_warning("FreeResourcePickup: harvest failed because Player.building_system is not wired.")
+		return false
+
+	_is_harvesting = true
 	is_harvested = true
 	if prompt_label:
 		prompt_label.visible = false
 
 	var total_yield: int = yield_amount
-	if player and player.get("resource_multiplier") != null:
+	if player.get("resource_multiplier") != null:
 		var mult: int = maxi(1, int(player.resource_multiplier))
 		total_yield *= mult
 
-	var b_sys = player.get("building_system") if player else null
-	if not b_sys and player:
-		b_sys = player.get_node_or_null("../BuildingSystem")
-
-	if b_sys and b_sys.has_method("add_resource"):
-		match resource_type:
-			ResourceDistribution.ResourceType.WOOD:
-				b_sys.add_resource(total_yield, 0, 0, 0)
-			ResourceDistribution.ResourceType.STONE:
-				b_sys.add_resource(0, total_yield, 0, 0)
-			ResourceDistribution.ResourceType.IRON:
-				b_sys.add_resource(0, 0, total_yield, 0)
-			ResourceDistribution.ResourceType.MAGIC_STONE:
-				b_sys.add_resource(0, 0, 0, total_yield)
+	match resource_type:
+		ResourceDistribution.ResourceType.WOOD:
+			b_sys.add_resource(total_yield, 0, 0, 0)
+		ResourceDistribution.ResourceType.STONE:
+			b_sys.add_resource(0, total_yield, 0, 0)
+		ResourceDistribution.ResourceType.IRON:
+			b_sys.add_resource(0, 0, total_yield, 0)
+		ResourceDistribution.ResourceType.MAGIC_STONE:
+			b_sys.add_resource(0, 0, 0, total_yield)
 
 	var eb = get_node_or_null("/root/EventBus")
 	if eb and eb.has_signal("resource_gathered"):
@@ -218,6 +250,16 @@ func harvest(player: Node) -> void:
 		map_gen.record_harvest(global_position)
 
 	queue_free()
+	return true
+
+func _ensure_interaction_zone() -> void:
+	for child in get_children():
+		if child is InteractionZone:
+			return
+	var zone = InteractionZone.create_zone(self, SphereShape3D.new(), Vector3(0, 0.3, 0))
+	var shape = zone.get_child(0).shape as SphereShape3D
+	shape.radius = 1.0
+	add_child(zone)
 
 func _spawn_popup(amount: int) -> void:
 	if not is_inside_tree():
