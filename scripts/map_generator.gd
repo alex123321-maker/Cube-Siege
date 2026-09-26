@@ -417,7 +417,7 @@ func _remove_scatter_at_cell(cell: Vector2i) -> void:
 			nodes.remove_at(node_index)
 			continue
 		var node: Node = node_value as Node
-		if not node is MultiMeshInstance3D or not String(node.name).begins_with("Scatter_"):
+		if not EnvironmentScatter.is_scatter_node(node):
 			continue
 		var scatter: MultiMeshInstance3D = node as MultiMeshInstance3D
 		var cells: Array = scatter.get_meta("scatter_cells", [])

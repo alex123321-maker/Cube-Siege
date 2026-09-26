@@ -108,7 +108,7 @@ func test_chunk_unload_cleans_batches_and_reload_is_deterministic() -> void:
 		var chunk_instances: int = 0
 		var batches: Array[Node] = []
 		for node: Node in chunk_nodes:
-			if node is MultiMeshInstance3D and String(node.name).begins_with("Scatter_"):
+			if Scatter.is_scatter_node(node):
 				batches.append(node)
 				chunk_instances += (node as MultiMeshInstance3D).multimesh.instance_count
 		if chunk_instances > 0:
@@ -125,7 +125,7 @@ func test_chunk_unload_cleans_batches_and_reload_is_deterministic() -> void:
 	var reloaded_nodes: Array[Node] = generator.chunk_resources[target_coord]
 	var reloaded_instances: int = 0
 	for node: Node in reloaded_nodes:
-		if node is MultiMeshInstance3D and String(node.name).begins_with("Scatter_"):
+		if Scatter.is_scatter_node(node):
 			reloaded_instances += (node as MultiMeshInstance3D).multimesh.instance_count
 	assert_eq(reloaded_instances, initial_instances, "Reloading the same seed and chunk must restore the same scatter")
 
@@ -143,26 +143,43 @@ func test_building_removes_scatter_and_chunk_reload_respects_building_cell() -> 
 
 	var target_chunk: Vector2i = Vector2i.ZERO
 	var pickup: FreeResourcePickup = null
+	var target_scatter: MultiMeshInstance3D = null
 	var target_cell: Vector2i = Vector2i(2147483647, 2147483647)
+	var first_chunk_by_prop: Dictionary = {}
 	for coord_value: Variant in generator.chunk_resources:
 		var candidate_pickup: FreeResourcePickup = null
+		var candidate_scatter: MultiMeshInstance3D = null
 		var candidate_cell: Vector2i = Vector2i(2147483647, 2147483647)
+		var chunk_scatter: Array[MultiMeshInstance3D] = []
 		for node: Node in generator.chunk_resources[coord_value]:
 			if node is FreeResourcePickup and is_instance_valid(node):
 				candidate_pickup = node as FreeResourcePickup
-			if node is MultiMeshInstance3D and String(node.name).begins_with("Scatter_"):
-				var cells: Array = node.get_meta("scatter_cells", [])
-				for cell_value: Vector2i in cells:
-					if building_system.is_cell_free(cell_value):
-						candidate_cell = cell_value
-						break
+			if Scatter.is_scatter_node(node):
+				var scatter: MultiMeshInstance3D = node as MultiMeshInstance3D
+				chunk_scatter.append(scatter)
+				var prop_id: StringName = StringName(scatter.get_meta("scatter_prop_id", ""))
+				if first_chunk_by_prop.has(prop_id) and first_chunk_by_prop[prop_id] != coord_value:
+					var cells: Array = scatter.get_meta("scatter_cells", [])
+					for cell_value: Vector2i in cells:
+						if building_system.is_cell_free(cell_value):
+							candidate_scatter = scatter
+							candidate_cell = cell_value
+							break
+		for scatter: MultiMeshInstance3D in chunk_scatter:
+			var prop_id: StringName = StringName(scatter.get_meta("scatter_prop_id", ""))
+			if not first_chunk_by_prop.has(prop_id):
+				first_chunk_by_prop[prop_id] = coord_value
 		if candidate_pickup and candidate_cell.x != 2147483647:
 			pickup = candidate_pickup
+			target_scatter = candidate_scatter
 			target_cell = candidate_cell
 			target_chunk = coord_value
 			break
 	assert_ne(target_cell.x, 2147483647, "Seeded map should have a decorated cell to build on")
 	assert_not_null(pickup, "Chosen chunk should also contain a collectible resource pickup")
+	assert_not_null(target_scatter, "A second chunk should contain a repeated scatter prop type")
+	target_scatter.name = "@MultiMeshInstance3D@renamed_scatter"
+	assert_false(String(target_scatter.name).begins_with("Scatter_"), "Regression setup must model Godot's renamed duplicate batch")
 	assert_true(building_system.is_cell_free(target_cell), "Scatter must not block building placement")
 	var harvested_position: Vector3 = pickup.global_position
 	var chosen_chunk_nodes: Array = generator.chunk_resources[target_chunk]
@@ -191,7 +208,7 @@ func _scatter_count_at_cell(generator: MapGenerator, cell: Vector2i) -> int:
 	var count: int = 0
 	for chunk_nodes: Array in generator.chunk_resources.values():
 		for node: Node in chunk_nodes:
-			if node is MultiMeshInstance3D and String(node.name).begins_with("Scatter_"):
+			if Scatter.is_scatter_node(node):
 				var cells: Array = node.get_meta("scatter_cells", [])
 				count += cells.count(cell)
 	return count

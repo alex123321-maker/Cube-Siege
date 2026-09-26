@@ -40,7 +40,7 @@ func _profile() -> void:
 	var scatter_instances: int = 0
 	var scatter_colliders: int = 0
 	for node: Node in map.get_node("Resources").get_children():
-		if node is MultiMeshInstance3D and String(node.name).begins_with("Scatter_"):
+		if EnvironmentScatter.is_scatter_node(node):
 			scatter_nodes += 1
 			scatter_instances += (node as MultiMeshInstance3D).multimesh.instance_count
 			scatter_colliders += node.find_children("*", "CollisionObject3D", true, false).size()

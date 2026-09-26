@@ -192,8 +192,12 @@ static func create_multimesh_nodes(instances_by_prop: Dictionary) -> Array[Node]
 		instance.multimesh = multimesh
 		instance.material_override = SHARED_DRESSING_MATERIAL
 		instance.set_meta("scatter_cells", cells)
+		instance.set_meta("scatter_prop_id", prop_id)
 		nodes.append(instance)
 	return nodes
+
+static func is_scatter_node(node: Node) -> bool:
+	return node is MultiMeshInstance3D and node.has_meta("scatter_cells")
 
 static func _get_mesh(prop_id: StringName) -> Mesh:
 	if _mesh_cache.has(prop_id):
