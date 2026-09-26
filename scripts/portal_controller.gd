@@ -31,6 +31,16 @@ func _ready() -> void:
 	if eb:
 		eb.day_started.connect(_on_day_started)
 	update_visuals()
+	_ensure_interaction_zone()
+
+func _ensure_interaction_zone() -> void:
+	for child in get_children():
+		if child is InteractionZone:
+			return
+	var zone = InteractionZone.create_zone(self, BoxShape3D.new(), Vector3(0, 1.0, 0))
+	var shape = zone.get_child(0).shape as BoxShape3D
+	shape.size = Vector3(4.0, 2.0, 4.0)
+	add_child(zone)
 
 func _exit_tree() -> void:
 	var eb = get_node_or_null("/root/EventBus")

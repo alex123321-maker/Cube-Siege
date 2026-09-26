@@ -184,7 +184,17 @@ func test_building_removes_scatter_and_chunk_reload_respects_building_cell() -> 
 	var harvested_position: Vector3 = pickup.global_position
 	var chosen_chunk_nodes: Array = generator.chunk_resources[target_chunk]
 	assert_true(chosen_chunk_nodes.has(pickup), "The pickup should be tracked by the loaded chunk")
-	pickup.harvest(null)
+	# Attempting harvest without receiver must fail and retain pickup
+	assert_false(pickup.harvest(null), "Harvest without receiver must fail")
+	assert_true(is_instance_valid(pickup), "Pickup must remain intact when harvest fails")
+	assert_false(generator.is_harvested(harvested_position), "Harvest must not be recorded without receiver")
+
+	# Harvest with valid receiver
+	var mock_player = Node.new()
+	mock_player.set_meta("building_system", building_system)
+	add_child_autoqfree(mock_player)
+	var harvest_success = pickup.harvest(mock_player)
+	assert_true(harvest_success, "Harvest with receiver must succeed")
 	await get_tree().process_frame
 	assert_false(is_instance_valid(pickup), "Harvest should queue and complete pickup removal")
 	assert_gt(_invalid_node_reference_count(chosen_chunk_nodes), 0, "The harvested node should still be a stale chunk entry before placement")

@@ -232,40 +232,10 @@ func _ready() -> void:
 	# Interaction sensor setup if present
 	var sensor = get_node_or_null("InteractionSensor") as Area3D
 	if sensor:
-		var get_interactable_node = func(col_obj: Node) -> Node:
-			if not col_obj or not is_instance_valid(col_obj):
-				return null
-			if col_obj.is_in_group("interactables") or col_obj.has_method("is_interactable"):
-				return col_obj
-			var p: Node = col_obj.get_parent()
-			if p and (p.is_in_group("interactables") or p.has_method("is_interactable")):
-				return p
-			return col_obj
-
-		sensor.area_entered.connect(func(a):
-			var node = get_interactable_node.call(a)
-			if node:
-				interaction.add_candidate(node)
-		)
-		sensor.area_exited.connect(func(a):
-			var node = get_interactable_node.call(a)
-			if node:
-				interaction.remove_candidate(node)
-		)
-		sensor.body_entered.connect(func(b):
-			var node = get_interactable_node.call(b)
-			if node:
-				interaction.add_candidate(node)
-		)
-		sensor.body_exited.connect(func(b):
-			var node = get_interactable_node.call(b)
-			if node and is_instance_valid(node):
-				# Guard against premature drop when a resource node is destroyed within sensor radius
-				if (node is ResourceTree or node is ResourceRock) and node.is_ready_for_pickup():
-					if global_position.distance_to(node.global_position) <= 4.5:
-						return
-				interaction.remove_candidate(node)
-		)
+		sensor.collision_layer = 0
+		sensor.collision_mask = InteractionZone.INTERACTION_LAYER
+		sensor.monitorable = false
+		sensor.monitoring = true
 
 	# Initialize class from RosterManager
 	apply_mastery_stats()

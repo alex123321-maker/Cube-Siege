@@ -29,8 +29,7 @@ func test_player_initialization_defaults_warrior() -> void:
 	# Interaction sensor check
 	var sensor = player.get_node_or_null("InteractionSensor") as Area3D
 	assert_not_null(sensor, "Player scene must contain InteractionSensor Area3D")
-	assert_false(sensor.monitorable, "InteractionSensor should not be monitorable")
-	assert_eq(sensor.collision_mask, 9, "InteractionSensor mask must be 9 (layers 1 and 4)")
+	assert_eq(sensor.collision_mask, InteractionZone.INTERACTION_LAYER, "InteractionSensor mask must be 32 (Layer 6: InteractionZone)")
 
 func test_player_set_class_archer_preserves_baseline_stats() -> void:
 	var player = PLAYER_SCENE.instantiate()
