@@ -58,4 +58,5 @@ docs/art_pipeline/verification/**/*_frames/
 # Review images are documentation, not runtime textures.
 docs/animation/**/*.import
 docs/terrain_capture/*.import
+docs/verification/issue29/**/*.import
 docs/concepts/*.import

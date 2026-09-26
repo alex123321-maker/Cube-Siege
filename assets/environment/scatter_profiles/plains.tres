@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="EnvironmentScatterProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/world/environment_scatter_profile.gd" id="1_profile"]
+
+[resource]
+script = ExtResource("1_profile")
+grass_rate = 0.38
+flower_rate = 0.14
+debris_rate = 0.012
+grass_props = PackedStringArray("grass_tuft_small_01", "grass_tuft_small_02", "grass_tuft_small_03", "grass_tuft_med_01", "grass_tuft_med_02", "grass_tuft_tall_01")
+flower_props = PackedStringArray("flower_white_cluster", "flower_yellow_cluster", "flower_red_cluster", "flower_mixed_accent")
+debris_props = PackedStringArray("stone_debris_single", "stone_debris_trio", "stone_debris_flat_patch")
