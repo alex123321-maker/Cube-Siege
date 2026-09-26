@@ -50,6 +50,8 @@ func _custom_physics(delta: float) -> void:
 				shoot_timer = shoot_interval
 
 func shoot_arrow(aim_dir: Vector3) -> void:
+	if presentation:
+		presentation.play_attack()
 	var arrow: Node3D = ARROW_SCENE.instantiate()
 	get_parent().add_child(arrow)
 	arrow.global_position = global_position + Vector3(0, 1.2, 0)

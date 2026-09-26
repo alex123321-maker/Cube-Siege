@@ -1,29 +1,11 @@
-[gd_scene load_steps=10 format=3 uid="uid://crangedskirm01"]
+[gd_scene load_steps=6 format=3 uid="uid://crangedskirm01"]
 
 [ext_resource type="Script" path="res://scripts/ranged_skirmisher.gd" id="1_skirm"]
 [ext_resource type="Script" path="res://scripts/hurtbox_area.gd" id="2_hurtbox"]
+[ext_resource type="PackedScene" uid="uid://cs_enemy_ranged_skirmisher_model" path="res://assets/models/enemies/ranged_skirmisher.tscn" id="3_ranged_model"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_root"]
 size = Vector3(0.6, 1.8, 0.6)
-
-[sub_resource type="StandardMaterial3D" id="Mat_BoneWhite"]
-albedo_color = Color(0.85, 0.85, 0.8, 1.0)
-roughness = 0.6
-
-[sub_resource type="BoxMesh" id="BoxMesh_Torso"]
-material = SubResource("Mat_BoneWhite")
-size = Vector3(0.5, 0.9, 0.35)
-
-[sub_resource type="BoxMesh" id="BoxMesh_Head"]
-material = SubResource("Mat_BoneWhite")
-size = Vector3(0.45, 0.45, 0.45)
-
-[sub_resource type="StandardMaterial3D" id="Mat_Bow"]
-albedo_color = Color(0.35, 0.22, 0.12, 1.0)
-
-[sub_resource type="BoxMesh" id="BoxMesh_Bow"]
-material = SubResource("Mat_Bow")
-size = Vector3(0.1, 0.2, 0.7)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_hurt"]
 size = Vector3(0.8, 2.0, 0.8)
@@ -39,16 +21,8 @@ shape = SubResource("BoxShape3D_root")
 
 [node name="Visuals" type="Node3D" parent="."]
 
-[node name="Body" type="MeshInstance3D" parent="Visuals"]
-mesh = SubResource("BoxMesh_Torso")
-
-[node name="Head" type="MeshInstance3D" parent="Visuals"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.65, 0)
-mesh = SubResource("BoxMesh_Head")
-
-[node name="Bow" type="MeshInstance3D" parent="Visuals"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.35, 0.1, -0.3)
-mesh = SubResource("BoxMesh_Bow")
+[node name="Model" parent="Visuals" instance=ExtResource("3_ranged_model")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.9, 0)
 
 [node name="HPLabel" type="Label3D" parent="Visuals"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0)
@@ -63,7 +37,7 @@ text = "60/60"
 collision_layer = 8
 collision_mask = 0
 script = ExtResource("2_hurtbox")
-mesh_to_flash_path = NodePath("../Visuals/Body")
+mesh_to_flash_path = NodePath("../Visuals/Model")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Hurtbox"]
 shape = SubResource("BoxShape3D_hurt")

@@ -8,8 +8,12 @@ var current_health: float = 60.0
 var knockback_velocity: Vector3 = Vector3.ZERO
 var target_player: Node3D = null
 
+const EnemyPresentationClass = preload("res://scripts/enemy_presentation.gd")
+
 var is_in_duel: bool = false
 var duel_opponent: Node = null
+var is_dying: bool = false
+var presentation: EnemyPresentationClass = EnemyPresentationClass.new()
 
 @onready var hurtbox: Area3D = $Hurtbox if has_node("Hurtbox") else null
 @onready var hp_label: Label3D = $Visuals/HPLabel if has_node("Visuals/HPLabel") else null
@@ -37,9 +41,13 @@ func _ready() -> void:
 		if not hurtbox.is_connected("damaged", Callable(self, "_on_damaged")):
 			hurtbox.connect("damaged", Callable(self, "_on_damaged"))
 	
+	presentation.setup(self)
 	_find_player()
 
 func _physics_process(delta: float) -> void:
+	if is_dying:
+		return
+
 	_custom_physics(delta)
 
 	if knockback_velocity.length_squared() > 0.01:
@@ -54,6 +62,7 @@ func _physics_process(delta: float) -> void:
 			velocity.y = 0.0
 			
 	move_and_slide()
+	presentation.update(delta, velocity, move_speed)
 	
 	# Voxel Step-Up Assist
 	var move_h: Vector3 = Vector3(velocity.x, 0.0, velocity.z)
@@ -75,11 +84,15 @@ func _custom_physics(_delta: float) -> void:
 	pass
 
 func _find_player() -> void:
+	if not is_inside_tree():
+		return
 	var players: Array[Node] = get_tree().get_nodes_in_group("player")
 	if not players.is_empty():
 		target_player = players[0] as Node3D
 
 func _on_damaged(amount: float, knockback: Vector3, _type: String, _attacker: Node) -> void:
+	if is_dying:
+		return
 	current_health -= amount
 	_apply_knockback(knockback)
 	update_hp_label()
@@ -87,6 +100,9 @@ func _on_damaged(amount: float, knockback: Vector3, _type: String, _attacker: No
 
 	if current_health <= 0.0:
 		die()
+	else:
+		if presentation:
+			presentation.play_hit()
 
 func _apply_knockback(knockback: Vector3) -> void:
 	knockback_velocity = knockback
@@ -122,6 +138,10 @@ func end_duel() -> void:
 	duel_opponent = null
 
 func die() -> void:
+	if is_dying:
+		return
+	is_dying = true
+
 	if is_in_duel and duel_opponent and is_instance_valid(duel_opponent) and duel_opponent.has_method("end_duel"):
 		duel_opponent.end_duel()
 
@@ -139,8 +159,25 @@ func die() -> void:
 	if eb:
 		eb.enemy_killed.emit(self, global_position)
 
+	if hurtbox:
+		hurtbox.monitoring = false
+		hurtbox.monitorable = false
+	var col = get_node_or_null("CollisionShape3D")
+	if col:
+		col.set_deferred("disabled", true)
+	if hp_label:
+		hp_label.visible = false
+
+	if presentation:
+		presentation.play_death()
+
 	var tween: Tween = create_tween()
-	tween.tween_property(self, "scale", Vector3.ZERO, 0.2)
+	var death_anim_len: float = presentation.get_animation_length(&"death") if presentation else 0.2
+	if death_anim_len > 0.3:
+		tween.tween_interval(death_anim_len * 0.75)
+		tween.tween_property(self, "scale", Vector3.ZERO, 0.2)
+	else:
+		tween.tween_property(self, "scale", Vector3.ZERO, 0.2)
 	tween.chain().tween_callback(queue_free)
 
 func _get_xp_reward() -> float:

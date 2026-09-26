@@ -92,6 +92,9 @@ func perform_attack() -> void:
 	if not target_entity or not is_instance_valid(target_entity):
 		return
 
+	if presentation:
+		presentation.play_attack()
+
 	if target_entity.is_in_group("buildings"):
 		if target_entity.has_node("Hurtbox"):
 			var h: Area3D = target_entity.get_node("Hurtbox")
