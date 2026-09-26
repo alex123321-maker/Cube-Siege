@@ -73,6 +73,7 @@ func test_free_resource_pickup_contract() -> void:
 	var mock_player = Node.new()
 	mock_player.name = "Player"
 	mock_player.set("building_system", mock_wallet)
+	mock_player.set_meta("building_system", mock_wallet)
 	add_child_autoqfree(mock_player)
 
 	pickup.harvest(mock_player)

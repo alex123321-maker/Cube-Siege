@@ -350,26 +350,14 @@ func harvest(player: Node) -> bool:
 	var building_system: BuildingSystem = null
 	if player is BuildingSystem:
 		building_system = player
-	elif "building_system" in player and player.building_system and is_instance_valid(player.building_system):
+	elif "building_system" in player and player.building_system and is_instance_valid(player.building_system) and player.building_system is BuildingSystem:
 		building_system = player.building_system as BuildingSystem
-	elif player.get("building_system") != null and is_instance_valid(player.get("building_system")):
+	elif player.get("building_system") != null and is_instance_valid(player.get("building_system")) and player.get("building_system") is BuildingSystem:
 		building_system = player.get("building_system") as BuildingSystem
 	elif player.has_meta("building_system"):
 		var meta_bs = player.get_meta("building_system")
-		if meta_bs is BuildingSystem:
+		if meta_bs and is_instance_valid(meta_bs) and meta_bs is BuildingSystem:
 			building_system = meta_bs
-	elif player.has_node("BuildingSystem"):
-		var candidate = player.get_node("BuildingSystem")
-		if candidate is BuildingSystem:
-			building_system = candidate
-	elif player.is_inside_tree() and player.get_parent():
-		if player.get_parent().has_node("BuildingSystem") and player.get_parent().get_node("BuildingSystem") is BuildingSystem:
-			building_system = player.get_parent().get_node("BuildingSystem")
-		else:
-			for child in player.get_parent().get_children():
-				if child is BuildingSystem:
-					building_system = child
-					break
 
 	if not building_system:
 		push_warning("ResourceRock: harvest failed because Player.building_system is not wired.")

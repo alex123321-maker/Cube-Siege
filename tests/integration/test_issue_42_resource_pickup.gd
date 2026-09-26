@@ -255,37 +255,216 @@ func test_multi_zone_candidate_deduplication() -> void:
 			tree_candidates += 1
 	assert_eq(tree_candidates, 1, "Duplicate zones referencing the same target must be deduplicated")
 
-func test_missing_receiver_safely_retains_harvest() -> void:
+class MockMapGen extends Node:
+	var recorded_cells: Array[Vector3] = []
+	func record_harvest(pos: Vector3) -> void:
+		recorded_cells.append(pos)
+
+func _setup_unwired_player_with_nearby_systems() -> Dictionary:
 	var player = _create_player(Vector3.ZERO)
-	# Remove building_system
-	player.building_system.queue_free()
+	var old_bs = player.building_system
 	player.building_system = null
-	await get_tree().process_frame
+	if old_bs and is_instance_valid(old_bs):
+		old_bs.queue_free()
+
+	# 1. Child BuildingSystem named "BuildingSystem", but player.building_system remains null
+	var child_bs = BuildingSystem.new()
+	child_bs.name = "BuildingSystem"
+	player.add_child(child_bs)
+
+	# 2. Sibling BuildingSystem named "BuildingSystem"
+	var sib_named_bs = BuildingSystem.new()
+	sib_named_bs.name = "BuildingSystem"
+	add_child_autoqfree(sib_named_bs)
+
+	# 3. Sibling BuildingSystem with different name
+	var sib_other_bs = BuildingSystem.new()
+	sib_other_bs.name = "OtherBuildingSystem"
+	add_child_autoqfree(sib_other_bs)
+
+	# Mock MapGenerator in group
+	var mock_map = MockMapGen.new()
+	mock_map.add_to_group("map_generator")
+	add_child_autoqfree(mock_map)
+
+	var initial_balances = {
+		"child_wood": child_bs.wallet.get_wood(),
+		"child_stone": child_bs.wallet.get_stone(),
+		"child_iron": child_bs.wallet.get_iron(),
+		"sib1_wood": sib_named_bs.wallet.get_wood(),
+		"sib1_stone": sib_named_bs.wallet.get_stone(),
+		"sib1_iron": sib_named_bs.wallet.get_iron(),
+		"sib2_wood": sib_other_bs.wallet.get_wood(),
+		"sib2_stone": sib_other_bs.wallet.get_stone(),
+		"sib2_iron": sib_other_bs.wallet.get_iron(),
+	}
+
+	return {
+		"player": player,
+		"child_bs": child_bs,
+		"sib_named_bs": sib_named_bs,
+		"sib_other_bs": sib_other_bs,
+		"mock_map": mock_map,
+		"initial_balances": initial_balances,
+	}
+
+func _assert_nearby_wallets_unchanged(ctx: Dictionary, desc: String) -> void:
+	var init_b = ctx.initial_balances
+	assert_eq(ctx.child_bs.wallet.get_wood(), init_b.child_wood, "%s: child_bs wood unchanged" % desc)
+	assert_eq(ctx.child_bs.wallet.get_stone(), init_b.child_stone, "%s: child_bs stone unchanged" % desc)
+	assert_eq(ctx.child_bs.wallet.get_iron(), init_b.child_iron, "%s: child_bs iron unchanged" % desc)
+
+	assert_eq(ctx.sib_named_bs.wallet.get_wood(), init_b.sib1_wood, "%s: sib_named_bs wood unchanged" % desc)
+	assert_eq(ctx.sib_named_bs.wallet.get_stone(), init_b.sib1_stone, "%s: sib_named_bs stone unchanged" % desc)
+	assert_eq(ctx.sib_named_bs.wallet.get_iron(), init_b.sib1_iron, "%s: sib_named_bs iron unchanged" % desc)
+
+	assert_eq(ctx.sib_other_bs.wallet.get_wood(), init_b.sib2_wood, "%s: sib_other_bs wood unchanged" % desc)
+	assert_eq(ctx.sib_other_bs.wallet.get_stone(), init_b.sib2_stone, "%s: sib_other_bs stone unchanged" % desc)
+	assert_eq(ctx.sib_other_bs.wallet.get_iron(), init_b.sib2_iron, "%s: sib_other_bs iron unchanged" % desc)
+
+func test_unassigned_receiver_tree_with_nearby_systems() -> void:
+	var ctx = _setup_unwired_player_with_nearby_systems()
+	var player = ctx.player
+	var mock_map = ctx.mock_map
 
 	var tree = TREE_SCENE.instantiate() as ResourceTree
 	add_child_autoqfree(tree)
 	tree.global_position = Vector3(1.5, 0, 0)
 	tree.fell_tree()
 
-	# Attempt direct harvest without receiver
+	# Attempt harvest without explicit receiver
 	var harvest_res = tree.harvest(player)
-	assert_false(harvest_res, "Harvest without receiver must return false")
-	assert_false(tree.is_harvested, "Object must NOT be marked harvested if receiver missing")
-	assert_true(InteractableTarget.can_interact(tree, player), "Object must remain interactable for retry")
+	assert_false(harvest_res, "Tree harvest without receiver must return false")
+	assert_false(tree.is_harvested, "Tree must NOT be marked harvested")
+	assert_true(InteractableTarget.can_interact(tree, player), "Tree must remain interactable for retry")
+	_assert_nearby_wallets_unchanged(ctx, "Tree harvest failure")
+	assert_eq(mock_map.recorded_cells.size(), 0, "No cell harvest should be recorded on failure")
 
-	# Now attach valid BuildingSystem
-	var bs = BuildingSystem.new()
-	bs.name = "BuildingSystem"
-	player.add_child(bs)
-	player.building_system = bs
+	# Assign valid receiver
+	var assigned_bs = BuildingSystem.new()
+	assigned_bs.name = "AssignedBuildingSystem"
+	player.add_child(assigned_bs)
+	player.building_system = assigned_bs
 
-	var initial_wood = bs.wallet.get_wood()
+	var initial_wood = assigned_bs.wallet.get_wood()
 	var expected_wood = _get_expected_yield(player, tree.wood_yield)
-	var harvest_retry = tree.harvest(player)
-	assert_true(harvest_retry, "Harvest must succeed after receiver is attached")
-	assert_true(tree.is_harvested, "Object must now be marked harvested")
-	assert_eq(bs.wallet.get_wood(), initial_wood + expected_wood, "Wood must be granted once")
+
+	var retry_res = tree.harvest(player)
+	assert_true(retry_res, "Tree harvest must succeed once receiver is explicitly assigned")
+	assert_true(tree.is_harvested, "Tree must now be marked harvested")
+	assert_eq(assigned_bs.wallet.get_wood(), initial_wood + expected_wood, "Wood granted to assigned receiver")
+	_assert_nearby_wallets_unchanged(ctx, "Tree harvest success")
+	assert_eq(mock_map.recorded_cells.size(), 1, "Cell harvest must be recorded exactly once")
 
 	# Duplicate attempt
 	assert_false(tree.harvest(player), "Duplicate harvest must fail")
-	assert_eq(bs.wallet.get_wood(), initial_wood + expected_wood, "No duplicate wood granted")
+	assert_eq(assigned_bs.wallet.get_wood(), initial_wood + expected_wood, "No duplicate wood granted")
+	assert_eq(mock_map.recorded_cells.size(), 1, "Cell harvest count remains 1")
+
+func test_unassigned_receiver_stone_with_nearby_systems() -> void:
+	var ctx = _setup_unwired_player_with_nearby_systems()
+	var player = ctx.player
+	var mock_map = ctx.mock_map
+
+	var stone = STONE_SCENE.instantiate() as ResourceRock
+	add_child_autoqfree(stone)
+	stone.global_position = Vector3(1.5, 0, 0)
+	stone.take_damage(200.0)
+
+	var harvest_res = stone.harvest(player)
+	assert_false(harvest_res, "Stone harvest without receiver must return false")
+	assert_false(stone.is_harvested, "Stone must NOT be marked harvested")
+	assert_true(InteractableTarget.can_interact(stone, player), "Stone must remain interactable for retry")
+	_assert_nearby_wallets_unchanged(ctx, "Stone harvest failure")
+	assert_eq(mock_map.recorded_cells.size(), 0, "No cell harvest should be recorded on failure")
+
+	var assigned_bs = BuildingSystem.new()
+	assigned_bs.name = "AssignedBuildingSystem"
+	player.add_child(assigned_bs)
+	player.building_system = assigned_bs
+
+	var initial_stone = assigned_bs.wallet.get_stone()
+	var expected_stone = _get_expected_yield(player, stone.resource_yield)
+
+	var retry_res = stone.harvest(player)
+	assert_true(retry_res, "Stone harvest must succeed once receiver is explicitly assigned")
+	assert_true(stone.is_harvested, "Stone must now be marked harvested")
+	assert_eq(assigned_bs.wallet.get_stone(), initial_stone + expected_stone, "Stone granted to assigned receiver")
+	_assert_nearby_wallets_unchanged(ctx, "Stone harvest success")
+	assert_eq(mock_map.recorded_cells.size(), 1, "Cell harvest must be recorded exactly once")
+
+	assert_false(stone.harvest(player), "Duplicate harvest must fail")
+	assert_eq(assigned_bs.wallet.get_stone(), initial_stone + expected_stone, "No duplicate stone granted")
+	assert_eq(mock_map.recorded_cells.size(), 1, "Cell harvest count remains 1")
+
+func test_unassigned_receiver_iron_with_nearby_systems() -> void:
+	var ctx = _setup_unwired_player_with_nearby_systems()
+	var player = ctx.player
+	var mock_map = ctx.mock_map
+
+	var iron = IRON_SCENE.instantiate() as ResourceRock
+	add_child_autoqfree(iron)
+	iron.global_position = Vector3(1.5, 0, 0)
+	iron.take_damage(200.0)
+
+	var harvest_res = iron.harvest(player)
+	assert_false(harvest_res, "Iron harvest without receiver must return false")
+	assert_false(iron.is_harvested, "Iron must NOT be marked harvested")
+	assert_true(InteractableTarget.can_interact(iron, player), "Iron must remain interactable for retry")
+	_assert_nearby_wallets_unchanged(ctx, "Iron harvest failure")
+	assert_eq(mock_map.recorded_cells.size(), 0, "No cell harvest should be recorded on failure")
+
+	var assigned_bs = BuildingSystem.new()
+	assigned_bs.name = "AssignedBuildingSystem"
+	player.add_child(assigned_bs)
+	player.building_system = assigned_bs
+
+	var initial_iron = assigned_bs.wallet.get_iron()
+	var expected_iron = _get_expected_yield(player, iron.resource_yield)
+
+	var retry_res = iron.harvest(player)
+	assert_true(retry_res, "Iron harvest must succeed once receiver is explicitly assigned")
+	assert_true(iron.is_harvested, "Iron must now be marked harvested")
+	assert_eq(assigned_bs.wallet.get_iron(), initial_iron + expected_iron, "Iron granted to assigned receiver")
+	_assert_nearby_wallets_unchanged(ctx, "Iron harvest success")
+	assert_eq(mock_map.recorded_cells.size(), 1, "Cell harvest must be recorded exactly once")
+
+	assert_false(iron.harvest(player), "Duplicate harvest must fail")
+	assert_eq(assigned_bs.wallet.get_iron(), initial_iron + expected_iron, "No duplicate iron granted")
+	assert_eq(mock_map.recorded_cells.size(), 1, "Cell harvest count remains 1")
+
+func test_unassigned_receiver_free_pickup_with_nearby_systems() -> void:
+	var ctx = _setup_unwired_player_with_nearby_systems()
+	var player = ctx.player
+	var mock_map = ctx.mock_map
+
+	var pickup = FreeResourcePickup.new()
+	pickup.yield_amount = 2
+	add_child_autoqfree(pickup)
+	pickup.global_position = Vector3(1.5, 0, 0)
+
+	var harvest_res = pickup.harvest(player)
+	assert_false(harvest_res, "Pickup harvest without receiver must return false")
+	assert_false(pickup.is_harvested, "Pickup must NOT be marked harvested")
+	assert_true(InteractableTarget.can_interact(pickup, player), "Pickup must remain interactable for retry")
+	_assert_nearby_wallets_unchanged(ctx, "Pickup harvest failure")
+	assert_eq(mock_map.recorded_cells.size(), 0, "No cell harvest should be recorded on failure")
+
+	var assigned_bs = BuildingSystem.new()
+	assigned_bs.name = "AssignedBuildingSystem"
+	player.add_child(assigned_bs)
+	player.building_system = assigned_bs
+
+	var initial_wood = assigned_bs.wallet.get_wood()
+	var expected_wood = _get_expected_yield(player, pickup.yield_amount)
+
+	var retry_res = pickup.harvest(player)
+	assert_true(retry_res, "Pickup harvest must succeed once receiver is explicitly assigned")
+	assert_true(pickup.is_harvested, "Pickup must now be marked harvested")
+	assert_eq(assigned_bs.wallet.get_wood(), initial_wood + expected_wood, "Wood granted to assigned receiver")
+	_assert_nearby_wallets_unchanged(ctx, "Pickup harvest success")
+	assert_eq(mock_map.recorded_cells.size(), 1, "Cell harvest must be recorded exactly once")
+
+	assert_false(pickup.harvest(player), "Duplicate harvest must fail")
+	assert_eq(assigned_bs.wallet.get_wood(), initial_wood + expected_wood, "No duplicate wood granted")
+	assert_eq(mock_map.recorded_cells.size(), 1, "Cell harvest count remains 1")

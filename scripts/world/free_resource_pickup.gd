@@ -193,26 +193,14 @@ func harvest(player: Node) -> bool:
 	var b_sys: BuildingSystem = null
 	if player is BuildingSystem:
 		b_sys = player
-	elif "building_system" in player and player.building_system and is_instance_valid(player.building_system):
+	elif "building_system" in player and player.building_system and is_instance_valid(player.building_system) and player.building_system is BuildingSystem:
 		b_sys = player.building_system as BuildingSystem
-	elif player.get("building_system") != null and is_instance_valid(player.get("building_system")):
+	elif player.get("building_system") != null and is_instance_valid(player.get("building_system")) and player.get("building_system") is BuildingSystem:
 		b_sys = player.get("building_system") as BuildingSystem
 	elif player.has_meta("building_system"):
 		var meta_bs = player.get_meta("building_system")
-		if meta_bs is BuildingSystem:
+		if meta_bs and is_instance_valid(meta_bs) and meta_bs is BuildingSystem:
 			b_sys = meta_bs
-	elif player.has_node("BuildingSystem"):
-		var candidate = player.get_node("BuildingSystem")
-		if candidate is BuildingSystem:
-			b_sys = candidate
-	elif player.is_inside_tree() and player.get_parent():
-		if player.get_parent().has_node("BuildingSystem") and player.get_parent().get_node("BuildingSystem") is BuildingSystem:
-			b_sys = player.get_parent().get_node("BuildingSystem")
-		else:
-			for child in player.get_parent().get_children():
-				if child is BuildingSystem:
-					b_sys = child
-					break
 
 	if not b_sys:
 		push_warning("FreeResourcePickup: harvest failed because Player.building_system is not wired.")
