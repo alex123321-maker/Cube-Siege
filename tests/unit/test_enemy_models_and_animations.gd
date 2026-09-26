@@ -136,6 +136,9 @@ func test_enemy_death_lifecycle() -> void:
 	assert_true(dummy.presentation.is_dying, "presentation.is_dying must be set")
 	assert_eq(dummy.presentation.current_action, &"death", "Death animation action must be active")
 	
+	await wait_physics_frames(2)
+	await wait_process_frames(1)
+
 	# Hurtbox and collision must be disabled to prevent lingering interaction
 	assert_false(dummy.hurtbox.monitoring, "Hurtbox monitoring must be disabled upon death")
 	assert_false(dummy.hurtbox.monitorable, "Hurtbox monitorable must be disabled upon death")
@@ -186,3 +189,85 @@ func test_foot_sliding_prevention_speed_scaling() -> void:
 	# When moving at half speed (e.g. slowed), animation speed scales down
 	dummy.presentation.update(0.016, Vector3(dummy.move_speed * 0.5, 0, 0), dummy.move_speed)
 	assert_almost_eq(dummy.presentation.anim_player.speed_scale, 0.5, 0.05)
+
+func test_physical_lethal_hit_deferred_safety() -> void:
+	# Verifies BLOCKER 1: When a HitboxArea triggers damage from within Godot's physics query flushing,
+	# disabling the hurtbox and collision shapes does not cause engine errors,
+	# and properly deactivates the enemy from further hits.
+	var dummy: CharacterBody3D = load(ENEMY_DUMMY_SCENE).instantiate() as CharacterBody3D
+	add_child_autoqfree(dummy)
+	dummy.global_position = Vector3(0, 0.9, 0)
+	
+	# Create a real attacking HitboxArea
+	var hitbox := HitboxArea.new()
+	hitbox.damage = 100.0
+	hitbox.terrain_mode = TerrainCombatRules.TerrainMode.TERRAIN_INDEPENDENT
+	hitbox.collision_layer = 0
+	hitbox.collision_mask = 8 # Hurtbox layer
+	var h_shape := CollisionShape3D.new()
+	var h_box := BoxShape3D.new()
+	h_box.size = Vector3(2.0, 2.0, 2.0)
+	h_shape.shape = h_box
+	hitbox.add_child(h_shape)
+	add_child_autoqfree(hitbox)
+	hitbox.global_position = dummy.global_position
+
+	# Wait for physics processing to detect overlap and process damage
+	await wait_physics_frames(3)
+	await wait_process_frames(2)
+
+	assert_true(dummy.is_dying, "Dummy must be dying after lethal physical hit")
+	assert_lte(dummy.current_health, 0.0, "Dummy health must be <= 0")
+	
+	# Verify deferred physics state has been applied cleanly
+	assert_false(dummy.hurtbox.monitorable, "Hurtbox monitorable must be false after physics flush")
+	assert_false(dummy.hurtbox.monitoring, "Hurtbox monitoring must be false after physics flush")
+	var col = dummy.get_node_or_null("CollisionShape3D") as CollisionShape3D
+	if col:
+		assert_true(col.disabled, "CollisionShape3D must be disabled after physics flush")
+
+	# Subsequent hit on dying dummy must not trigger damage again
+	var initial_hp = dummy.current_health
+	dummy.hurtbox.take_damage(50.0, Vector3.ZERO, "physical", null)
+	assert_eq(dummy.current_health, initial_hp, "Dying enemy must ignore subsequent damage")
+
+func test_enemy_gameplay_scenes_model_facing_direction() -> void:
+	# Verifies BLOCKER 2: In real gameplay scenes, the Visuals/Model must align forward (-Z)
+	# with the enemy's aim direction when look_at() is called.
+	var scenes = [
+		{"name": "EnemyDummy", "path": ENEMY_DUMMY_SCENE},
+		{"name": "RangedSkirmisher", "path": RANGED_SKIRMISHER_SCENE},
+		{"name": "SiegeBreaker", "path": SIEGE_BREAKER_SCENE}
+	]
+	for s in scenes:
+		var enemy: CharacterBody3D = load(s.path).instantiate() as CharacterBody3D
+		add_child_autoqfree(enemy)
+		enemy.global_position = Vector3(0, 0, 0)
+		
+		# In Godot, standard forward vector for look_at() is -Z.
+		# Aim north towards (0, 0, -10):
+		enemy.look_at(Vector3(0, 0, -10), Vector3.UP)
+		
+		var model: Node3D = enemy.get_node_or_null("Visuals/Model") as Node3D
+		assert_not_null(model, s.name + " must have Visuals/Model node")
+		
+		# The authored GLB models were exported facing +Z in their local mesh coordinate space.
+		# In the enemy scene, Model has a 180-deg Y rotation so that local +Z aligns with Godot's forward (-Z).
+		var model_visual_front: Vector3 = model.global_transform.basis * Vector3(0, 0, 1)
+		model_visual_front.y = 0.0
+		model_visual_front = model_visual_front.normalized()
+		
+		var expected_forward: Vector3 = Vector3(0, 0, -1)
+		var dot: float = model_visual_front.dot(expected_forward)
+		assert_almost_eq(dot, 1.0, 0.05, s.name + " Visuals/Model front must point towards aim target (-Z), dot: %f" % dot)
+		
+		# Aim east towards (10, 0, 0):
+		enemy.look_at(Vector3(10, 0, 0), Vector3.UP)
+		model_visual_front = model.global_transform.basis * Vector3(0, 0, 1)
+		model_visual_front.y = 0.0
+		model_visual_front = model_visual_front.normalized()
+		
+		expected_forward = Vector3(1, 0, 0)
+		dot = model_visual_front.dot(expected_forward)
+		assert_almost_eq(dot, 1.0, 0.05, s.name + " Visuals/Model front must point towards aim target (+X), dot: %f" % dot)
+		enemy.queue_free()

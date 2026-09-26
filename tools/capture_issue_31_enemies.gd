@@ -50,8 +50,8 @@ func _capture() -> void:
 	showcase.add_child(zombie)
 	zombie.global_position = p_pos + Vector3(0, 0, 3.5)
 	zombie.look_at(p_pos, Vector3.UP)
-	camera.position = p_pos + Vector3(0, 7.5, 11)
-	camera.look_at(p_pos + Vector3(0, 0.5, 2.0), Vector3.UP)
+	camera.position = p_pos + Vector3(1.5, 3.2, 0.5)
+	camera.look_at(zombie.global_position + Vector3(0, 0.9, 0), Vector3.UP)
 	await _snap_shot(output.path_join("zombie_gameplay_camera.png"))
 	zombie.queue_free()
 
@@ -60,14 +60,18 @@ func _capture() -> void:
 	showcase.add_child(skirmisher)
 	skirmisher.global_position = p_pos + Vector3(0, 0, 3.5)
 	skirmisher.look_at(p_pos, Vector3.UP)
+	camera.position = p_pos + Vector3(1.5, 3.2, 0.5)
+	camera.look_at(skirmisher.global_position + Vector3(0, 0.9, 0), Vector3.UP)
 	await _snap_shot(output.path_join("skirmisher_gameplay_camera.png"))
 	skirmisher.queue_free()
 
 	# 3. Siege breaker gameplay camera capture
 	var siege: CharacterBody3D = SIEGE_SCENE.instantiate() as CharacterBody3D
 	showcase.add_child(siege)
-	siege.global_position = p_pos + Vector3(0, 0, 4.0)
+	siege.global_position = p_pos + Vector3(0, 0, 4.5)
 	siege.look_at(p_pos, Vector3.UP)
+	camera.position = p_pos + Vector3(2.5, 4.5, 0.5)
+	camera.look_at(siege.global_position + Vector3(0, 1.2, 0), Vector3.UP)
 	await _snap_shot(output.path_join("siege_breaker_gameplay_camera.png"))
 	siege.queue_free()
 
@@ -78,12 +82,15 @@ func _capture() -> void:
 	showcase.add_child(z)
 	showcase.add_child(s)
 	showcase.add_child(b)
-	z.global_position = p_pos + Vector3(-2.5, 0, 3.5)
-	s.global_position = p_pos + Vector3(0, 0, 3.5)
-	b.global_position = p_pos + Vector3(3.0, 0, 4.0)
+	z.global_position = p_pos + Vector3(-2.2, 0, 4.0)
+	s.global_position = p_pos + Vector3(0, 0, 3.8)
+	b.global_position = p_pos + Vector3(2.8, 0, 4.5)
 	z.look_at(p_pos, Vector3.UP)
 	s.look_at(p_pos, Vector3.UP)
 	b.look_at(p_pos, Vector3.UP)
+
+	camera.position = p_pos + Vector3(1.0, 3.5, 0.0)
+	camera.look_at(p_pos + Vector3(0, 1.0, 4.0), Vector3.UP)
 
 	var zh: HurtboxArea = z.get_node("Hurtbox")
 	var sh: HurtboxArea = s.get_node("Hurtbox")
@@ -112,8 +119,8 @@ func _capture() -> void:
 		enemy.global_position = p_pos + cfg["offset"]
 		enemy.look_at(p_pos, Vector3.UP)
 
-	camera.position = p_pos + Vector3(0, 11, 16)
-	camera.look_at(p_pos + Vector3(0, 0, 3.5), Vector3.UP)
+	camera.position = p_pos + Vector3(4.5, 7.0, -1.0)
+	camera.look_at(p_pos + Vector3(0, 1.2, 4.0), Vector3.UP)
 	await _snap_shot(output.path_join("mixed_combat_scene.png"))
 
 	print("[SUCCESS] All Issue #31 enemy screenshots captured!")

@@ -160,8 +160,11 @@ func die() -> void:
 		eb.enemy_killed.emit(self, global_position)
 
 	if hurtbox:
-		hurtbox.monitoring = false
-		hurtbox.monitorable = false
+		hurtbox.set_deferred("monitoring", false)
+		hurtbox.set_deferred("monitorable", false)
+		for child in hurtbox.get_children():
+			if child is CollisionShape3D:
+				child.set_deferred("disabled", true)
 	var col = get_node_or_null("CollisionShape3D")
 	if col:
 		col.set_deferred("disabled", true)

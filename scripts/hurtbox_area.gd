@@ -38,6 +38,8 @@ func get_target_node() -> Node:
 	return target_node
 
 func take_damage(amount: float, knockback: Vector3, damage_type: String, attacker: Node) -> void:
+	if target_node and "is_dying" in target_node and target_node.is_dying:
+		return
 	emit_signal("damaged", amount, knockback, damage_type, attacker)
 	flash_hit()
 

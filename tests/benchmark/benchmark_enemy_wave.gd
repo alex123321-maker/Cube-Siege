@@ -33,6 +33,17 @@ func _run_benchmark() -> void:
 	player_body.position = Vector3(0.0, 0.9, 0.0)
 	world.add_child(player_body)
 
+	if DisplayServer.get_name() != "headless":
+		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
+	Engine.max_fps = 0
+
+	# Active camera to render graphical pipeline
+	var camera := Camera3D.new()
+	camera.current = true
+	camera.position = Vector3(0.0, 16.0, 20.0)
+	world.add_child(camera)
+	camera.look_at(Vector3.ZERO, Vector3.UP)
+
 	# Spawn representative wave of 50 enemies
 	var total_enemies: int = 50
 	var enemies: Array[CharacterBody3D] = []
@@ -78,6 +89,12 @@ func _run_benchmark() -> void:
 	print("Simulation Duration: 100 frames (%d ms elapsed)" % total_elapsed_ms)
 	print("Average Frametime: %.2f ms (~%.1f FPS)" % [avg_ft, fps_est])
 	print("Peak Frametime:    %.2f ms" % max_ft)
-	print("Performance Gate:  PASS (Average Frametime <= 16.6 ms for 60 FPS)")
-	print("----------------------------------------------------------------\n")
-	quit(0)
+	var target_max_avg_ft: float = 16.66 # 60 FPS
+	if avg_ft <= target_max_avg_ft:
+		print("Performance Gate:  PASS (Average Frametime %.2f ms <= 16.66 ms for 60 FPS target)" % avg_ft)
+		print("----------------------------------------------------------------\n")
+		quit(0)
+	else:
+		printerr("Performance Gate:  FAIL (Average Frametime %.2f ms > 16.66 ms threshold)" % avg_ft)
+		print("----------------------------------------------------------------\n")
+		quit(1)
