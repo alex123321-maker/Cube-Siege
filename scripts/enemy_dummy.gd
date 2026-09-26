@@ -59,11 +59,15 @@ func _custom_physics(delta: float) -> void:
 
 func perform_attack() -> void:
 	attack_timer = attack_cooldown
+	if presentation:
+		presentation.play_attack()
 	if target_player and target_player.has_method("take_damage"):
 		target_player.take_damage(attack_damage)
 
 func attack_building(b: Node) -> void:
 	attack_timer = attack_cooldown
+	if presentation:
+		presentation.play_attack()
 	if b.has_node("Hurtbox"):
 		var h: Area3D = b.get_node("Hurtbox")
 		if h.has_method("take_damage"):

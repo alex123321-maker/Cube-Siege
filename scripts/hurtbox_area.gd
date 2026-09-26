@@ -22,8 +22,12 @@ func _ready() -> void:
 		if candidate is MeshInstance3D:
 			mesh_to_flash = candidate
 		elif candidate is Node3D:
-			mesh_to_flash = candidate.find_child("*", true, false) as MeshInstance3D
-		if mesh_to_flash and mesh_to_flash.mesh and mesh_to_flash.mesh.material:
+			var meshes: Array[Node] = candidate.find_children("*", "MeshInstance3D", true, false)
+			if not meshes.is_empty():
+				mesh_to_flash = meshes[0] as MeshInstance3D
+			else:
+				mesh_to_flash = candidate.find_child("*", true, false) as MeshInstance3D
+		if mesh_to_flash and mesh_to_flash.mesh and "material" in mesh_to_flash.mesh:
 			original_material = mesh_to_flash.mesh.material
 
 	flash_material = StandardMaterial3D.new()
@@ -34,6 +38,8 @@ func get_target_node() -> Node:
 	return target_node
 
 func take_damage(amount: float, knockback: Vector3, damage_type: String, attacker: Node) -> void:
+	if target_node and "is_dying" in target_node and target_node.is_dying:
+		return
 	emit_signal("damaged", amount, knockback, damage_type, attacker)
 	flash_hit()
 

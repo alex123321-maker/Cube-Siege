@@ -14,6 +14,8 @@ func _ready() -> void:
 func _get_xp_reward() -> float:
 	return 35.0
 
+const ARROW_RELEASE_FRAME_SEC: float = 25.0 / 30.0 # Frame 25 @ 30 FPS (0.8333s per metrics.json)
+
 func _custom_physics(delta: float) -> void:
 	shoot_timer -= delta
 
@@ -45,11 +47,20 @@ func _custom_physics(delta: float) -> void:
 				velocity.x = move_toward(velocity.x, 0.0, move_speed)
 				velocity.z = move_toward(velocity.z, 0.0, move_speed)
 
-			if shoot_timer <= 0.0 and dist <= preferred_distance + 3.0:
-				shoot_arrow(aim_dir)
-				shoot_timer = shoot_interval
+			if dist <= preferred_distance + 3.0:
+				# Start attack windup ahead of release if within windup window
+				if shoot_timer <= ARROW_RELEASE_FRAME_SEC and shoot_timer > 0.0:
+					if presentation and presentation.current_action != &"attack":
+						var elapsed_windup: float = ARROW_RELEASE_FRAME_SEC - shoot_timer
+						presentation.play_attack(elapsed_windup)
+
+				if shoot_timer <= 0.0:
+					shoot_arrow(aim_dir)
+					shoot_timer = shoot_interval
 
 func shoot_arrow(aim_dir: Vector3) -> void:
+	if presentation:
+		presentation.advance_to_attack_phase(ARROW_RELEASE_FRAME_SEC)
 	var arrow: Node3D = ARROW_SCENE.instantiate()
 	get_parent().add_child(arrow)
 	arrow.global_position = global_position + Vector3(0, 1.2, 0)

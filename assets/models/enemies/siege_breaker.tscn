@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://cs_enemy_siege_breaker_model"]
+
+[ext_resource type="PackedScene" uid="uid://c0yrexoqypxc6" path="res://assets/models/enemies/siege_breaker.glb" id="1_siege_glb"]
+
+[node name="SiegeBreakerModel" instance=ExtResource("1_siege_glb")]
+transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 0, 0, 0)

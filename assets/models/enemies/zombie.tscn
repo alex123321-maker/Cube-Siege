@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://cs_enemy_zombie_model"]
+
+[ext_resource type="PackedScene" uid="uid://c7hr806d45vyo" path="res://assets/models/enemies/zombie.glb" id="1_zombie_glb"]
+
+[node name="ZombieModel" instance=ExtResource("1_zombie_glb")]
+transform = Transform3D(-1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 0, 0, 0)
