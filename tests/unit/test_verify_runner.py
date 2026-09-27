@@ -22,7 +22,9 @@ from tools.verify import (
     step_run_gut_tests,
     step_run_issue_18_verification,
     step_run_python_tests,
+    verify_gameplay_harness_output,
     verify_gut_output,
+    verify_python_test_output,
     REPO_DIR,
 )
 
@@ -152,6 +154,65 @@ class TestVerifyRunnerContracts(unittest.TestCase):
                 executed_cmd = mock_run.call_args[0][0]
                 custom_rel = str((REPO_DIR / "tests" / "smoke" / "test_custom.py").relative_to(REPO_DIR))
                 self.assertIn(custom_rel, executed_cmd, "Test file outside tests/unit must be included in execution")
+
+    def test_python_output_missing_summary_fails(self) -> None:
+        """Python output with code 0 but missing 'Ran N tests' summary must fail."""
+        passed, reason, count = verify_python_test_output(ok=True, out="Execution finished without summary")
+        self.assertFalse(passed, "Missing unittest summary must fail-closed")
+        self.assertIn("missing", reason.lower())
+
+        # Also verify step_run_python_tests fails when run_command returns output without summary
+        mock_files = [REPO_DIR / "tests" / "unit" / "test_a.py"]
+        with patch("tools.verify.discover_python_tests", return_value=mock_files):
+            with patch("tools.verify.run_command", return_value=(True, "Some output without unittest summary")):
+                result = step_run_python_tests()
+                self.assertFalse(result, "step_run_python_tests must return False on missing summary")
+
+    def test_python_output_with_traceback_fails(self) -> None:
+        """Python output containing an unhandled Traceback must fail."""
+        passed, reason, _count = verify_python_test_output(
+            ok=True,
+            out="Traceback (most recent call last):\n  File 'foo.py', line 1\nRan 1 tests\nOK"
+        )
+        self.assertFalse(passed, "Traceback in output must fail")
+        self.assertIn("traceback", reason.lower())
+
+    def test_python_output_zero_tests_fails(self) -> None:
+        """Python output reporting 'Ran 0 tests' must fail."""
+        passed, reason, _count = verify_python_test_output(ok=True, out="Ran 0 tests in 0.001s\nOK")
+        self.assertFalse(passed, "Zero tests executed must fail")
+        self.assertIn("zero", reason.lower())
+
+    def test_gameplay_harness_output_with_script_error_fails(self) -> None:
+        """Gameplay harness output with code 0 and '0 Failed' but with SCRIPT ERROR must fail."""
+        mock_out = "[GAMEPLAY SMOKE HARNESS] Summary: 24/24 Passed, 0 Failed\nSCRIPT ERROR: Nil value"
+        passed, reason = verify_gameplay_harness_output(ok=True, out=mock_out)
+        self.assertFalse(passed, "Engine SCRIPT ERROR in gameplay output must fail")
+        self.assertIn("script or parse error", reason.lower())
+
+    def test_gameplay_harness_output_missing_summary_fails(self) -> None:
+        """Gameplay harness output without completed summary must fail."""
+        passed, reason = verify_gameplay_harness_output(ok=True, out="Godot Engine initialized\nQuit.")
+        self.assertFalse(passed, "Missing summary must fail")
+        self.assertIn("missing", reason.lower())
+
+    def test_gameplay_harness_output_zero_checks_fails(self) -> None:
+        """Gameplay harness output reporting 0 checks must fail."""
+        passed, reason = verify_gameplay_harness_output(ok=True, out="[GAMEPLAY SMOKE HARNESS] Summary: 0/0 Passed, 0 Failed")
+        self.assertFalse(passed, "Zero checks executed must fail")
+        self.assertIn("zero", reason.lower())
+
+    def test_gameplay_harness_output_with_failed_checks_fails(self) -> None:
+        """Gameplay harness output reporting failed checks must fail."""
+        passed, reason = verify_gameplay_harness_output(ok=True, out="[GAMEPLAY SMOKE HARNESS] Summary: 23/24 Passed, 1 Failed")
+        self.assertFalse(passed, "Failed checks in gameplay harness must fail")
+        self.assertIn("failed", reason.lower())
+
+    def test_gameplay_harness_output_valid_passes(self) -> None:
+        """Gameplay harness output with clean pass and 0 Failed must pass."""
+        passed, reason = verify_gameplay_harness_output(ok=True, out="[GAMEPLAY SMOKE HARNESS] Summary: 24/24 Passed, 0 Failed")
+        self.assertTrue(passed, "Valid gameplay summary must pass")
+        self.assertIn("24", reason)
 
 
 if __name__ == "__main__":

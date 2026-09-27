@@ -357,6 +357,39 @@ def discover_python_tests(tests_dir: Optional[Path] = None) -> List[Path]:
     return sorted(list(base.glob("**/test_*.py")))
 
 
+def verify_python_test_output(ok: bool, out: str) -> Tuple[bool, str, int]:
+    """Fail-closed validator for Python unittest runner output (F26).
+    
+    Guarantees:
+      - Nonzero exit code is ALWAYS a failure regardless of output text.
+      - Unhandled Python tracebacks fail the step.
+      - A complete test summary with > 0 tests is strictly required (Ran N tests).
+      - 'FAILED' in output fails the step.
+      - Confirmation 'OK' must be present when tests pass.
+    """
+    if not ok:
+        return (False, "Python unittest process exited with non-zero code.", 0)
+
+    if "FAILED" in out:
+        return (False, "Failures or errors reported in python unit tests.", 0)
+
+    if "Traceback (most recent call last):" in out:
+        return (False, "Unhandled Traceback encountered in python unit tests.", 0)
+
+    ran_match = re.search(r"Ran (\d+) tests?", out)
+    if not ran_match:
+        return (False, "Incomplete or missing unittest execution summary (no 'Ran N tests' found).", 0)
+
+    test_count = int(ran_match.group(1))
+    if test_count == 0:
+        return (False, "Zero python tests were executed.", 0)
+
+    if "OK" not in out:
+        return (False, "Missing final 'OK' confirmation in python unittest output.", 0)
+
+    return (True, f"All {test_count} python unit tests passed", test_count)
+
+
 def step_run_python_tests(timeout: float = TIMEOUT_PYTHON) -> bool:
     log_header("6. Running Python Tooling & Unit Tests")
     py_test_files = discover_python_tests()
@@ -369,29 +402,15 @@ def step_run_python_tests(timeout: float = TIMEOUT_PYTHON) -> bool:
     cmd = [sys.executable, "-m", "unittest"] + test_args
     ok, out = run_command(cmd, REPO_DIR, "python unit tests", timeout=timeout)
 
-    if not ok:
-        log_step("Python Unit Tests", "FAIL", "Python unittest exited with non-zero code")
-        print("\n--- Python Unit Tests Output ---")
-        print(out)
-        return False
-
-    if "FAILED" in out:
-        log_step("Python Unit Tests", "FAIL", "Failures or errors reported in python unit tests")
-        print("\n--- Python Unit Tests Output ---")
-        print(out)
-        return False
-
-    ran_match = re.search(r"Ran (\d+) tests?", out)
-    if ran_match:
-        test_count = ran_match.group(1)
-        if int(test_count) == 0:
-            log_step("Python Unit Tests", "FAIL", "Zero python tests were executed")
-            return False
-        log_step("Python Unit Tests", "PASS", f"All {test_count} python unit tests passed ({len(py_test_files)} test files)")
+    passed, detail, _count = verify_python_test_output(ok, out)
+    if passed:
+        log_step("Python Unit Tests", "PASS", f"{detail} ({len(py_test_files)} test files)")
         return True
-
-    log_step("Python Unit Tests", "PASS", f"Python tests passed ({len(py_test_files)} test files)")
-    return True
+    else:
+        log_step("Python Unit Tests", "FAIL", detail)
+        print("\n--- Python Unit Tests Output ---")
+        print(out)
+        return False
 
 
 def step_run_issue_18_verification(godot_bin: str, timeout: float = TIMEOUT_ISSUE_18) -> bool:
@@ -439,6 +458,44 @@ def step_menu_smoke_run(godot_bin: str, timeout: float = TIMEOUT_MENU_SMOKE) -> 
         return False
 
 
+def verify_gameplay_harness_output(ok: bool, out: str) -> Tuple[bool, str]:
+    """Fail-closed validator for Gameplay Smoke Harness output (F26, F27).
+    
+    Guarantees:
+      - Nonzero returncode is ALWAYS a failure.
+      - Engine script errors, parse errors, and runtime error markers fail the step.
+      - Individual check failures ([FAIL]) fail the step.
+      - Completed harness summary with > 0 checks and 0 Failed is strictly required.
+    """
+    if not ok:
+        return (False, "Gameplay harness process exited with non-zero code.")
+
+    if "SCRIPT ERROR:" in out or "Parse Error:" in out:
+        return (False, "Godot script or parse error detected in gameplay harness log.")
+
+    if "  [FAIL]" in out:
+        return (False, "One or more individual gameplay smoke checks reported [FAIL].")
+
+    summary_match = re.search(r"\[GAMEPLAY SMOKE HARNESS\] Summary:\s+(\d+)/(\d+)\s+Passed,\s+(\d+)\s+Failed", out)
+    if not summary_match:
+        return (False, "Incomplete or missing gameplay harness summary in output.")
+
+    passed_checks = int(summary_match.group(1))
+    total_checks = int(summary_match.group(2))
+    failed_checks = int(summary_match.group(3))
+
+    if total_checks == 0:
+        return (False, "Zero checks executed in gameplay smoke harness.")
+
+    if failed_checks > 0:
+        return (False, f"{failed_checks} check(s) failed in gameplay smoke harness.")
+
+    if passed_checks != total_checks:
+        return (False, f"Not all gameplay checks passed: {passed_checks}/{total_checks}.")
+
+    return (True, f"All {passed_checks} gameplay checks passed across 3 classes")
+
+
 def step_gameplay_smoke_harness(godot_bin: str, timeout: float = TIMEOUT_GAMEPLAY_HARNESS) -> bool:
     log_header("9. Headless Gameplay Smoke Harness (F27)")
     harness = "tools/gameplay_smoke_harness.gd"
@@ -453,11 +510,12 @@ def step_gameplay_smoke_harness(godot_bin: str, timeout: float = TIMEOUT_GAMEPLA
         "-s", harness,
     ]
     ok, out = run_command(cmd, REPO_DIR, "gameplay smoke harness", timeout=timeout)
-    if ok and "0 Failed" in out:
-        log_step("Gameplay Smoke Harness", "PASS", "All 3 classes (Warrior, Archer, Engineer) validated combat hits and streaming")
+    passed, detail = verify_gameplay_harness_output(ok, out)
+    if passed:
+        log_step("Gameplay Smoke Harness", "PASS", detail)
         return True
     else:
-        log_step("Gameplay Smoke Harness", "FAIL", "Gameplay smoke harness reported failures or non-zero exit")
+        log_step("Gameplay Smoke Harness", "FAIL", detail)
         print("\n--- Gameplay Harness Output ---")
         print(out)
         return False
