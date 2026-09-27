@@ -18,6 +18,8 @@ var baseline_usec: int = 0
 var layered_usec: int = 0
 var close_feet: bool = false
 var lean_review: bool = false
+var plant_review: bool = false
+var sole_level: bool = false
 var foot_prototype: RefCounted = preload("res://tools/foot_placement_prototype.gd").new()
 
 func _arg(key: String, fallback: String) -> String:
@@ -26,6 +28,8 @@ func _arg(key: String, fallback: String) -> String:
 	return args[index + 1] if index >= 0 and index + 1 < args.size() else fallback
 
 func _initialize() -> void:
+	plant_review = "--plant" in OS.get_cmdline_user_args()
+	sole_level = "--sole-level" in OS.get_cmdline_user_args()
 	call_deferred("_setup")
 
 func _box(position: Vector3, size: Vector3, color: Color) -> void:
@@ -88,12 +92,16 @@ func _setup() -> void:
 		var separation: float = 1.2 if close_feet else 2.4
 		player.position = Vector3(-separation if i == 0 else separation, 0.91, 0)
 		player.get_node("PortalCompass").visible = false
-		player.presentation.procedural_enabled = i == 1 or foot_review or lean_review
+		player.presentation.procedural_enabled = i == 1 or foot_review or lean_review or plant_review
 		if i == 0 and not foot_review and not lean_review:
 			player.presentation.pose_layer.layer_weight = 0.0
 		if lean_review and i == 0:
 			var profile: CharacterAnimationProfile = player.presentation.animation_profile.duplicate()
 			profile.movement_lean_limit = 0.0
+			player.presentation.set_active_model(player.presentation.active_model, profile)
+		if plant_review:
+			var profile: CharacterAnimationProfile = player.presentation.animation_profile.duplicate()
+			profile.foot_plant_enabled = i == 1
 			player.presentation.set_active_model(player.presentation.active_model, profile)
 		if foot_review:
 			var profile: CharacterAnimationProfile = player.presentation.animation_profile.duplicate()
@@ -220,10 +228,18 @@ func _physics_process(_delta: float) -> bool:
 		camera.size = 3.4
 		camera.position = target + Vector3(0, 2, -8)
 		camera.look_at(target + Vector3(0, -0.5, 0))
+	if sole_level:
+		camera.projection = Camera3D.PROJECTION_ORTHOGONAL
+		camera.size = 4.0
+		camera.position = target + Vector3(0, -.4, -8)
+		camera.look_at(target + Vector3(0, -.6, 0))
+		telemetry.visible = false
 	caption.text = "%s | %s\nLEFT: %s     RIGHT: %s" % [["WARRIOR", "ARCHER", "ENGINEER"][class_id], section,
 		"normal gait" if foot_review else "procedural OFF", "foot placement prototype" if foot_review else "procedural ON"]
 	if lean_review:
 		caption.text = "%s | %s\nLEFT: movement lean OFF     RIGHT: movement lean ON" % [["WARRIOR", "ARCHER", "ENGINEER"][class_id], section]
+	if plant_review:
+		caption.text = "%s | %s\nLEFT: gait only     RIGHT: fixed world-space stance contacts" % [["WARRIOR", "ARCHER", "ENGINEER"][class_id], section]
 	telemetry.text = players[1].presentation.pose_layer.debug_text()
 	if tick % 60 == 0:
 		var layer: CharacterPoseLayer = players[1].presentation.pose_layer
@@ -231,7 +247,7 @@ func _physics_process(_delta: float) -> bool:
 			"phase": layer.phase, "aim": str(layer.aim_yaw), "action": str(players[1].presentation.anim_player.current_animation),
 			"action_time": players[1].presentation.anim_player.current_animation_position,
 			"speed": players[1].get_real_velocity().length(), "foot_right": layer.right_foot_height, "foot_left": layer.left_foot_height})
-	if tick in [120, 290, 420, 600, 729, 910, 1088, 1210, 1330, 1450, 1770, 1820, 2050]:
+	if tick in [120, 290, 420, 600, 729, 910, 1088, 1210, 1330, 1450, 1560, 1562, 1566, 1570, 1574, 1580, 1770, 1820, 2050]:
 		_capture("frame_%04d.png" % tick)
 	if tick >= max_frames * 2:
 		ready_to_run = false

@@ -1,0 +1,265 @@
+Godot Engine v4.6.1.stable.official.14d19694e - https://godotengine.org
+
+---  GUT  ---
+[1m[INFO]:  [0musing [C:/Users/alexa/.codex/worktrees/hero-models-animation/game/art/work/hero-polish/test-profile/Godot/app_userdata/Cube Siege] for temporary output.
+Godot version:  4.6.1
+GUT version:  9.6.1
+[4m
+
+res://tests/integration/test_foot_contact_geometry.gd
+[0m* test_real_boot_geometry_clears_flat_floor_through_full_directional_cycles
+[31m    [Failed]:  [0m[-0.19950656592846] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=0 speed=3.0 direction=(0.0, 0.0, -1.0)
+      at line 60
+    SOLE class=0 speed=3.0 direction=(0.0, 0.0, -1.0) min_y=-0.199507 max_stance_gap=0.000000 cycles=3
+[31m    [Failed]:  [0m[-0.19954507052898] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=0 speed=3.0 direction=(0.0, 0.0, 1.0)
+      at line 60
+    SOLE class=0 speed=3.0 direction=(0.0, 0.0, 1.0) min_y=-0.199545 max_stance_gap=0.000000 cycles=3
+[31m    [Failed]:  [0m[-0.15929636359215] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=0 speed=3.0 direction=(-1.0, 0.0, 0.0)
+      at line 60
+    SOLE class=0 speed=3.0 direction=(-1.0, 0.0, 0.0) min_y=-0.159296 max_stance_gap=0.000000 cycles=3
+[31m    [Failed]:  [0m[-0.15929636359215] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=0 speed=3.0 direction=(1.0, 0.0, 0.0)
+      at line 60
+    SOLE class=0 speed=3.0 direction=(1.0, 0.0, 0.0) min_y=-0.159296 max_stance_gap=0.000000 cycles=3
+[31m    [Failed]:  [0m[-0.19950649142265] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=0 speed=7.0 direction=(0.0, 0.0, -1.0)
+      at line 60
+    SOLE class=0 speed=7.0 direction=(0.0, 0.0, -1.0) min_y=-0.199506 max_stance_gap=0.000000 cycles=7
+[31m    [Failed]:  [0m[-0.19954507052898] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=0 speed=7.0 direction=(0.0, 0.0, 1.0)
+      at line 60
+    SOLE class=0 speed=7.0 direction=(0.0, 0.0, 1.0) min_y=-0.199545 max_stance_gap=0.000000 cycles=7
+[31m    [Failed]:  [0m[-0.15926641225815] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=0 speed=7.0 direction=(-1.0, 0.0, 0.0)
+      at line 60
+    SOLE class=0 speed=7.0 direction=(-1.0, 0.0, 0.0) min_y=-0.159266 max_stance_gap=0.000000 cycles=7
+[31m    [Failed]:  [0m[-0.15926647186279] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=0 speed=7.0 direction=(1.0, 0.0, 0.0)
+      at line 60
+    SOLE class=0 speed=7.0 direction=(1.0, 0.0, 0.0) min_y=-0.159266 max_stance_gap=0.000000 cycles=7
+[31m    [Failed]:  [0m[-0.17739388346672] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=1 speed=3.0 direction=(0.0, 0.0, -1.0)
+      at line 60
+    SOLE class=1 speed=3.0 direction=(0.0, 0.0, -1.0) min_y=-0.177394 max_stance_gap=0.000000 cycles=3
+[31m    [Failed]:  [0m[-0.17736065387726] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=1 speed=3.0 direction=(0.0, 0.0, 1.0)
+      at line 60
+    SOLE class=1 speed=3.0 direction=(0.0, 0.0, 1.0) min_y=-0.177361 max_stance_gap=0.000000 cycles=3
+[31m    [Failed]:  [0m[-0.14724308252335] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=1 speed=3.0 direction=(-1.0, 0.0, 0.0)
+      at line 60
+    SOLE class=1 speed=3.0 direction=(-1.0, 0.0, 0.0) min_y=-0.147243 max_stance_gap=0.000000 cycles=3
+[31m    [Failed]:  [0m[-0.14724230766296] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=1 speed=3.0 direction=(1.0, 0.0, 0.0)
+      at line 60
+    SOLE class=1 speed=3.0 direction=(1.0, 0.0, 0.0) min_y=-0.147242 max_stance_gap=0.000000 cycles=3
+[31m    [Failed]:  [0m[-0.17694368958473] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=1 speed=7.0 direction=(0.0, 0.0, -1.0)
+      at line 60
+    SOLE class=1 speed=7.0 direction=(0.0, 0.0, -1.0) min_y=-0.176944 max_stance_gap=0.000000 cycles=7
+[31m    [Failed]:  [0m[-0.17725029587746] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=1 speed=7.0 direction=(0.0, 0.0, 1.0)
+      at line 60
+    SOLE class=1 speed=7.0 direction=(0.0, 0.0, 1.0) min_y=-0.177250 max_stance_gap=0.000000 cycles=7
+[31m    [Failed]:  [0m[-0.14702853560448] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=1 speed=7.0 direction=(-1.0, 0.0, 0.0)
+      at line 60
+    SOLE class=1 speed=7.0 direction=(-1.0, 0.0, 0.0) min_y=-0.147029 max_stance_gap=0.000000 cycles=7
+[31m    [Failed]:  [0m[-0.14702916145325] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=1 speed=7.0 direction=(1.0, 0.0, 0.0)
+      at line 60
+    SOLE class=1 speed=7.0 direction=(1.0, 0.0, 0.0) min_y=-0.147029 max_stance_gap=0.000000 cycles=7
+[31m    [Failed]:  [0m[-0.19410532712936] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=2 speed=3.0 direction=(0.0, 0.0, -1.0)
+      at line 60
+    SOLE class=2 speed=3.0 direction=(0.0, 0.0, -1.0) min_y=-0.194105 max_stance_gap=0.000000 cycles=3
+[31m    [Failed]:  [0m[-0.19417652487755] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=2 speed=3.0 direction=(0.0, 0.0, 1.0)
+      at line 60
+    SOLE class=2 speed=3.0 direction=(0.0, 0.0, 1.0) min_y=-0.194177 max_stance_gap=0.000000 cycles=3
+[31m    [Failed]:  [0m[-0.17173436284065] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=2 speed=3.0 direction=(-1.0, 0.0, 0.0)
+      at line 60
+    SOLE class=2 speed=3.0 direction=(-1.0, 0.0, 0.0) min_y=-0.171734 max_stance_gap=0.000000 cycles=3
+[31m    [Failed]:  [0m[-0.17173275351524] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=2 speed=3.0 direction=(1.0, 0.0, 0.0)
+      at line 60
+    SOLE class=2 speed=3.0 direction=(1.0, 0.0, 0.0) min_y=-0.171733 max_stance_gap=0.000000 cycles=3
+[31m    [Failed]:  [0m[-0.19420737028122] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=2 speed=7.0 direction=(0.0, 0.0, -1.0)
+      at line 60
+    SOLE class=2 speed=7.0 direction=(0.0, 0.0, -1.0) min_y=-0.194207 max_stance_gap=0.000000 cycles=7
+[31m    [Failed]:  [0m[-0.19397643208504] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=2 speed=7.0 direction=(0.0, 0.0, 1.0)
+      at line 60
+    SOLE class=2 speed=7.0 direction=(0.0, 0.0, 1.0) min_y=-0.193976 max_stance_gap=0.000000 cycles=7
+[31m    [Failed]:  [0m[-0.17175278067589] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=2 speed=7.0 direction=(-1.0, 0.0, 0.0)
+      at line 60
+    SOLE class=2 speed=7.0 direction=(-1.0, 0.0, 0.0) min_y=-0.171753 max_stance_gap=0.000000 cycles=7
+[31m    [Failed]:  [0m[-0.17175126075745] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=2 speed=7.0 direction=(1.0, 0.0, 0.0)
+      at line 60
+    SOLE class=2 speed=7.0 direction=(1.0, 0.0, 0.0) min_y=-0.171751 max_stance_gap=0.000000 cycles=7
+* test_real_presentation_dash_boundaries_do_not_pop_root_or_knees
+[31m    [Failed]:  [0m[0.13999999687076] expected to be < than [0.025]:  Dash boundary must not add a 14 cm root pop
+      at line 100
+[31m    [Failed]:  [0m[1.3879896402359] expected to be < than [0.4]:  Knee correction must blend across dash boundaries
+      at line 101
+    DASH class=0 start_phase=0.05 max_root_delta=0.140000 max_knee_delta=1.387990 at_frame=9
+[31m    [Failed]:  [0m[0.13999999687076] expected to be < than [0.025]:  Dash boundary must not add a 14 cm root pop
+      at line 100
+[31m    [Failed]:  [0m[0.85667306184769] expected to be < than [0.4]:  Knee correction must blend across dash boundaries
+      at line 101
+    DASH class=0 start_phase=0.30 max_root_delta=0.140000 max_knee_delta=0.856673 at_frame=9
+[31m    [Failed]:  [0m[0.13999999687076] expected to be < than [0.025]:  Dash boundary must not add a 14 cm root pop
+      at line 100
+[31m    [Failed]:  [0m[1.056037068367] expected to be < than [0.4]:  Knee correction must blend across dash boundaries
+      at line 101
+    DASH class=0 start_phase=0.55 max_root_delta=0.140000 max_knee_delta=1.056037 at_frame=0
+[31m    [Failed]:  [0m[0.13999999687076] expected to be < than [0.025]:  Dash boundary must not add a 14 cm root pop
+      at line 100
+[31m    [Failed]:  [0m[1.07961058616638] expected to be < than [0.4]:  Knee correction must blend across dash boundaries
+      at line 101
+    DASH class=0 start_phase=0.80 max_root_delta=0.140000 max_knee_delta=1.079611 at_frame=0
+[31m    [Failed]:  [0m[0.14000000059605] expected to be < than [0.025]:  Dash boundary must not add a 14 cm root pop
+      at line 100
+[31m    [Failed]:  [0m[1.46618390083313] expected to be < than [0.4]:  Knee correction must blend across dash boundaries
+      at line 101
+    DASH class=1 start_phase=0.05 max_root_delta=0.140000 max_knee_delta=1.466184 at_frame=9
+[31m    [Failed]:  [0m[0.14000000059605] expected to be < than [0.025]:  Dash boundary must not add a 14 cm root pop
+      at line 100
+[31m    [Failed]:  [0m[0.99008786678314] expected to be < than [0.4]:  Knee correction must blend across dash boundaries
+      at line 101
+    DASH class=1 start_phase=0.30 max_root_delta=0.140000 max_knee_delta=0.990088 at_frame=9
+[31m    [Failed]:  [0m[0.14000000059605] expected to be < than [0.025]:  Dash boundary must not add a 14 cm root pop
+      at line 100
+[31m    [Failed]:  [0m[1.12113690376282] expected to be < than [0.4]:  Knee correction must blend across dash boundaries
+      at line 101
+    DASH class=1 start_phase=0.55 max_root_delta=0.140000 max_knee_delta=1.121137 at_frame=0
+[31m    [Failed]:  [0m[0.14000000059605] expected to be < than [0.025]:  Dash boundary must not add a 14 cm root pop
+      at line 100
+[31m    [Failed]:  [0m[1.19932675361633] expected to be < than [0.4]:  Knee correction must blend across dash boundaries
+      at line 101
+    DASH class=1 start_phase=0.80 max_root_delta=0.140000 max_knee_delta=1.199327 at_frame=9
+[31m    [Failed]:  [0m[0.14000000059605] expected to be < than [0.025]:  Dash boundary must not add a 14 cm root pop
+      at line 100
+[31m    [Failed]:  [0m[1.62115919589996] expected to be < than [0.4]:  Knee correction must blend across dash boundaries
+      at line 101
+    DASH class=2 start_phase=0.05 max_root_delta=0.140000 max_knee_delta=1.621159 at_frame=9
+[31m    [Failed]:  [0m[0.14000000059605] expected to be < than [0.025]:  Dash boundary must not add a 14 cm root pop
+      at line 100
+[31m    [Failed]:  [0m[1.09876048564911] expected to be < than [0.4]:  Knee correction must blend across dash boundaries
+      at line 101
+    DASH class=2 start_phase=0.30 max_root_delta=0.140000 max_knee_delta=1.098760 at_frame=9
+[31m    [Failed]:  [0m[0.14000000059605] expected to be < than [0.025]:  Dash boundary must not add a 14 cm root pop
+      at line 100
+[31m    [Failed]:  [0m[1.31188333034515] expected to be < than [0.4]:  Knee correction must blend across dash boundaries
+      at line 101
+    DASH class=2 start_phase=0.55 max_root_delta=0.140000 max_knee_delta=1.311883 at_frame=0
+[31m    [Failed]:  [0m[0.14000000059605] expected to be < than [0.025]:  Dash boundary must not add a 14 cm root pop
+      at line 100
+[31m    [Failed]:  [0m[1.33948338031769] expected to be < than [0.4]:  Knee correction must blend across dash boundaries
+      at line 101
+    DASH class=2 start_phase=0.80 max_root_delta=0.140000 max_knee_delta=1.339483 at_frame=9
+* test_boot_corrections_restore_when_switching_class_or_disabling_layer
+[1m1/3 passed.
+[0m
+
+
+
+[33m==============================================
+[0m[33m= Run Summary
+[0m[33m==============================================
+[0m[4m
+res://tests/integration/test_foot_contact_geometry.gd
+[0m- test_real_boot_geometry_clears_flat_floor_through_full_directional_cycles
+[31m    [Failed]:  [0m[-0.19950656592846] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=0 speed=3.0 direction=(0.0, 0.0, -1.0)
+          at line 60
+[31m    [Failed]:  [0m[-0.19954507052898] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=0 speed=3.0 direction=(0.0, 0.0, 1.0)
+          at line 60
+[31m    [Failed]:  [0m[-0.15929636359215] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=0 speed=3.0 direction=(-1.0, 0.0, 0.0)
+          at line 60
+[31m    [Failed]:  [0m[-0.15929636359215] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=0 speed=3.0 direction=(1.0, 0.0, 0.0)
+          at line 60
+[31m    [Failed]:  [0m[-0.19950649142265] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=0 speed=7.0 direction=(0.0, 0.0, -1.0)
+          at line 60
+[31m    [Failed]:  [0m[-0.19954507052898] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=0 speed=7.0 direction=(0.0, 0.0, 1.0)
+          at line 60
+[31m    [Failed]:  [0m[-0.15926641225815] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=0 speed=7.0 direction=(-1.0, 0.0, 0.0)
+          at line 60
+[31m    [Failed]:  [0m[-0.15926647186279] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=0 speed=7.0 direction=(1.0, 0.0, 0.0)
+          at line 60
+[31m    [Failed]:  [0m[-0.17739388346672] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=1 speed=3.0 direction=(0.0, 0.0, -1.0)
+          at line 60
+[31m    [Failed]:  [0m[-0.17736065387726] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=1 speed=3.0 direction=(0.0, 0.0, 1.0)
+          at line 60
+[31m    [Failed]:  [0m[-0.14724308252335] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=1 speed=3.0 direction=(-1.0, 0.0, 0.0)
+          at line 60
+[31m    [Failed]:  [0m[-0.14724230766296] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=1 speed=3.0 direction=(1.0, 0.0, 0.0)
+          at line 60
+[31m    [Failed]:  [0m[-0.17694368958473] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=1 speed=7.0 direction=(0.0, 0.0, -1.0)
+          at line 60
+[31m    [Failed]:  [0m[-0.17725029587746] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=1 speed=7.0 direction=(0.0, 0.0, 1.0)
+          at line 60
+[31m    [Failed]:  [0m[-0.14702853560448] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=1 speed=7.0 direction=(-1.0, 0.0, 0.0)
+          at line 60
+[31m    [Failed]:  [0m[-0.14702916145325] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=1 speed=7.0 direction=(1.0, 0.0, 0.0)
+          at line 60
+[31m    [Failed]:  [0m[-0.19410532712936] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=2 speed=3.0 direction=(0.0, 0.0, -1.0)
+          at line 60
+[31m    [Failed]:  [0m[-0.19417652487755] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=2 speed=3.0 direction=(0.0, 0.0, 1.0)
+          at line 60
+[31m    [Failed]:  [0m[-0.17173436284065] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=2 speed=3.0 direction=(-1.0, 0.0, 0.0)
+          at line 60
+[31m    [Failed]:  [0m[-0.17173275351524] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=2 speed=3.0 direction=(1.0, 0.0, 0.0)
+          at line 60
+[31m    [Failed]:  [0m[-0.19420737028122] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=2 speed=7.0 direction=(0.0, 0.0, -1.0)
+          at line 60
+[31m    [Failed]:  [0m[-0.19397643208504] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=2 speed=7.0 direction=(0.0, 0.0, 1.0)
+          at line 60
+[31m    [Failed]:  [0m[-0.17175278067589] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=2 speed=7.0 direction=(-1.0, 0.0, 0.0)
+          at line 60
+[31m    [Failed]:  [0m[-0.17175126075745] expected to be >= than [-0.005]:  Visible sole/toe must clear the actual floor: class=2 speed=7.0 direction=(1.0, 0.0, 0.0)
+          at line 60
+- test_real_presentation_dash_boundaries_do_not_pop_root_or_knees
+[31m    [Failed]:  [0m[0.13999999687076] expected to be < than [0.025]:  Dash boundary must not add a 14 cm root pop
+          at line 100
+[31m    [Failed]:  [0m[1.3879896402359] expected to be < than [0.4]:  Knee correction must blend across dash boundaries
+          at line 101
+[31m    [Failed]:  [0m[0.13999999687076] expected to be < than [0.025]:  Dash boundary must not add a 14 cm root pop
+          at line 100
+[31m    [Failed]:  [0m[0.85667306184769] expected to be < than [0.4]:  Knee correction must blend across dash boundaries
+          at line 101
+[31m    [Failed]:  [0m[0.13999999687076] expected to be < than [0.025]:  Dash boundary must not add a 14 cm root pop
+          at line 100
+[31m    [Failed]:  [0m[1.056037068367] expected to be < than [0.4]:  Knee correction must blend across dash boundaries
+          at line 101
+[31m    [Failed]:  [0m[0.13999999687076] expected to be < than [0.025]:  Dash boundary must not add a 14 cm root pop
+          at line 100
+[31m    [Failed]:  [0m[1.07961058616638] expected to be < than [0.4]:  Knee correction must blend across dash boundaries
+          at line 101
+[31m    [Failed]:  [0m[0.14000000059605] expected to be < than [0.025]:  Dash boundary must not add a 14 cm root pop
+          at line 100
+[31m    [Failed]:  [0m[1.46618390083313] expected to be < than [0.4]:  Knee correction must blend across dash boundaries
+          at line 101
+[31m    [Failed]:  [0m[0.14000000059605] expected to be < than [0.025]:  Dash boundary must not add a 14 cm root pop
+          at line 100
+[31m    [Failed]:  [0m[0.99008786678314] expected to be < than [0.4]:  Knee correction must blend across dash boundaries
+          at line 101
+[31m    [Failed]:  [0m[0.14000000059605] expected to be < than [0.025]:  Dash boundary must not add a 14 cm root pop
+          at line 100
+[31m    [Failed]:  [0m[1.12113690376282] expected to be < than [0.4]:  Knee correction must blend across dash boundaries
+          at line 101
+[31m    [Failed]:  [0m[0.14000000059605] expected to be < than [0.025]:  Dash boundary must not add a 14 cm root pop
+          at line 100
+[31m    [Failed]:  [0m[1.19932675361633] expected to be < than [0.4]:  Knee correction must blend across dash boundaries
+          at line 101
+[31m    [Failed]:  [0m[0.14000000059605] expected to be < than [0.025]:  Dash boundary must not add a 14 cm root pop
+          at line 100
+[31m    [Failed]:  [0m[1.62115919589996] expected to be < than [0.4]:  Knee correction must blend across dash boundaries
+          at line 101
+[31m    [Failed]:  [0m[0.14000000059605] expected to be < than [0.025]:  Dash boundary must not add a 14 cm root pop
+          at line 100
+[31m    [Failed]:  [0m[1.09876048564911] expected to be < than [0.4]:  Knee correction must blend across dash boundaries
+          at line 101
+[31m    [Failed]:  [0m[0.14000000059605] expected to be < than [0.025]:  Dash boundary must not add a 14 cm root pop
+          at line 100
+[31m    [Failed]:  [0m[1.31188333034515] expected to be < than [0.4]:  Knee correction must blend across dash boundaries
+          at line 101
+[31m    [Failed]:  [0m[0.14000000059605] expected to be < than [0.025]:  Dash boundary must not add a 14 cm root pop
+          at line 100
+[31m    [Failed]:  [0m[1.33948338031769] expected to be < than [0.4]:  Knee correction must blend across dash boundaries
+          at line 101
+
+Totals
+------
+Scripts               1
+Tests                 3
+Passing Tests         1
+Failing Tests         2
+Asserts           1172/1220
+Time              2.353s
+
+
+[31m---- 2 failing tests ----
+[0m

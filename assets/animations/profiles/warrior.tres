@@ -8,6 +8,8 @@
 
 [resource]
 script = ExtResource("1")
+right_foot_parts = Array[NodePath]([NodePath("R_Boot"), NodePath("R_BootToe")])
+left_foot_parts = Array[NodePath]([NodePath("L_Boot"), NodePath("L_BootToe")])
 forward = ExtResource("2")
 backward = ExtResource("3")
 strafe_right = ExtResource("4")

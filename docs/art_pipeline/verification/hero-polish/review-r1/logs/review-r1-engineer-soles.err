@@ -1,0 +1,2 @@
+WARNING: Current available space on disk is low (5.91 GiB). MovieWriter will fail during movie recording if the disk runs out of available space.
+   at: begin (servers/movie_writer/movie_writer.cpp:113)

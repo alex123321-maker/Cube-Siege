@@ -1,0 +1,41 @@
+{
+  "mode": "studio",
+  "observations": [
+    {
+      "action": "idle",
+      "animation": "idle",
+      "tick": 30,
+      "time": 0.200662
+    },
+    {
+      "action": "run",
+      "animation": "walk",
+      "tick": 90,
+      "time": 0.232837
+    },
+    {
+      "action": "LMB",
+      "animation": "attack",
+      "tick": 123,
+      "time": 0.008656
+    },
+    {
+      "action": "RMB",
+      "animation": "special",
+      "tick": 156,
+      "time": 0.033313
+    },
+    {
+      "action": "Q",
+      "animation": "utility",
+      "tick": 185,
+      "time": 0.024787
+    },
+    {
+      "action": "F",
+      "animation": "ultimate",
+      "tick": 220,
+      "time": 0.066898
+    }
+  ]
+}

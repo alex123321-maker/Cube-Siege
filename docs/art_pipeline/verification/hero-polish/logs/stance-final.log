@@ -1,0 +1,44 @@
+Godot Engine v4.6.1.stable.official.14d19694e - https://godotengine.org
+
+---  GUT  ---
+[1m[INFO]:  [0musing [C:/Users/alexa/.codex/worktrees/hero-models-animation/game/art/work/hero-polish/test-profile/Godot/app_userdata/Cube Siege] for temporary output.
+Godot version:  4.6.1
+GUT version:  9.6.1
+[4m
+
+res://tests/integration/test_character_presentation.gd
+[0m* test_directional_stance_overrides_authored_forward_knee
+* test_missing_optional_knee_keeps_rigid_leg_animation_working
+* test_world_space_stance_contact_does_not_slide_with_the_body
+* test_three_profiles_bind_switch_and_release_old_pose
+* test_player_physics_passes_elapsed_time_and_orientation_to_presentation
+* test_player_debug_keys_toggle_animation_diagnostics_and_layer
+* test_presentation_does_not_write_gameplay_and_action_clock_stays_unscaled
+* test_moving_action_keeps_legs_and_no_offset_accumulates
+* test_toggle_smoothly_fades_and_stationary_turn_steps
+* test_missing_optional_rig_nodes_are_safe
+* test_death_releases_pose_and_debug_helpers
+* test_sparse_idle_restores_legs_after_finished_action
+* test_torso_leans_toward_world_travel_for_each_rig_and_body_facing
+* test_lean_uses_actual_speed_and_settles_on_stop_or_disable
+* test_actions_and_block_soften_movement_lean
+[1m15/15 passed.
+[0m
+
+
+
+[33m==============================================
+[0m[33m= Run Summary
+[0m[33m==============================================
+[0m
+Totals
+------
+Scripts               1
+Tests                15
+Passing Tests        15
+Asserts             410
+Time              2.075s
+
+
+[32m---- All tests passed! ----
+[0m

@@ -146,6 +146,22 @@ func test_warrior_grip_stays_in_hand_through_all_clips() -> void:
 			assert_almost_eq(grip.global_position.distance_to(hand.global_position), distance, 0.001,
 				"Sword must not detach during " + clip)
 
+func test_warrior_has_a_closed_fist_and_transverse_sword_grip() -> void:
+	var warrior: Node3D = load(WARRIOR_SCENE_PATH).instantiate()
+	add_child_autoqfree(warrior)
+	var ap: AnimationPlayer = warrior.get_node("AnimationPlayer")
+	var sword: Node3D = warrior.get_node("root/torso/right_arm/sword")
+	var socket: Node3D = warrior.find_child("SwordPalmSocket", true, false)
+	assert_not_null(socket, "The shaped palm needs a physical grip centre")
+	assert_eq(sword.find_children("R_GripFinger*_Curl", "MeshInstance3D", true, false).size(), 4, "Four fingers close around the hilt")
+	assert_not_null(sword.find_child("R_GripThumbTip", true, false), "The thumb closes the opposing side")
+	for clip: StringName in ap.get_animation_list():
+		for index: int in 41:
+			_sample_warrior_pose(ap, clip, ap.get_animation(clip).length * index / 40.0)
+			if socket:
+				assert_lt(socket.global_position.distance_to(sword.global_position), .002, "Palm cannot drift off the hilt: " + clip)
+			assert_lt(absf(sword.basis.y.normalized().dot(Vector3.UP)), .65, "Blade must cross the fist instead of extending the forearm: " + clip)
+
 func test_warrior_run_articulates_legs_and_has_no_root_motion() -> void:
 	var warrior: Node3D = load(WARRIOR_SCENE_PATH).instantiate()
 	add_child_autoqfree(warrior)
