@@ -294,6 +294,11 @@ func test_side_materials_and_two_band_cliff_integration() -> void:
 	var mat_side_plains = StandardMaterial3D.new()
 	var mat_side_mountains = StandardMaterial3D.new()
 
+	var all_materials = [
+		mat_top_forest, mat_top_plains, mat_top_mountains, mat_cliff,
+		mat_side_forest, mat_side_plains, mat_side_mountains
+	]
+
 	var result = ChunkBuilder.build_chunk_terrain(
 		0, 0, 1337,
 		mat_top_forest, mat_top_plains, mat_top_mountains, mat_cliff,
@@ -304,13 +309,92 @@ func test_side_materials_and_two_band_cliff_integration() -> void:
 	assert_not_null(mesh, "Chunk terrain mesh must generate")
 	assert_gt(mesh.get_surface_count(), 0, "Chunk must produce visible surfaces")
 
-	# Verify every face on every committed surface has a valid, non-zero outward or upward normal
+	# Verify every committed surface has one of the 7 specified materials assigned
 	for s in range(mesh.get_surface_count()):
+		var assigned_mat = mesh.surface_get_material(s)
+		assert_not_null(assigned_mat, "Surface %d must have an assigned material" % s)
+		assert_true(all_materials.has(assigned_mat), "Surface %d material must be from the supplied 7 materials" % s)
+
 		var mdt = MeshDataTool.new()
 		mdt.create_from_surface(mesh, s)
 		for f in range(mdt.get_face_count()):
 			var norm = mdt.get_face_normal(f)
 			assert_gt(norm.length_squared(), 0.5, "Surface %d face %d normal must not be zero" % [s, f])
+
+func test_two_band_cliff_geometry_and_uv_coordinates() -> void:
+	# Simulates tall cliff (h_drop = 3m, y_top = 5.0, y_bot = 2.0)
+	var fx: float = 8.0
+	var fz: float = 2.0
+	var y_top: float = 5.0
+	var y_bot: float = 2.0
+	var y_rim: float = y_top - 1.0 # Exactly 4.0
+	var norm_north: Vector3 = Vector3(0, 0, -1)
+
+	# 1. Top rim band (height: 1.0m, y in [4.0, 5.0])
+	var st_rim = SurfaceTool.new()
+	st_rim.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var r0 = Vector3(fx, y_rim, fz)
+	var r1 = Vector3(fx, y_top, fz)
+	var r2 = Vector3(fx + 1.0, y_top, fz)
+	var r3 = Vector3(fx + 1.0, y_rim, fz)
+	ChunkBuilder._add_side_quad_uv(st_rim, r0, r1, r2, r3, norm_north, fx, fx + 1.0, -y_rim, -y_top)
+	st_rim.generate_normals()
+	var mesh_rim = st_rim.commit()
+	var mdt_rim = MeshDataTool.new()
+	mdt_rim.create_from_surface(mesh_rim, 0)
+
+	assert_eq(mdt_rim.get_face_count(), 2, "Rim band must have 2 triangles (1 quad)")
+	for f in range(2):
+		assert_gt(mdt_rim.get_face_normal(f).dot(norm_north), 0.99, "Rim face normal must point North")
+
+	var rim_y_min: float = 999.0
+	var rim_y_max: float = -999.0
+	for vi in range(mdt_rim.get_vertex_count()):
+		var vpos = mdt_rim.get_vertex(vi)
+		var vuv = mdt_rim.get_vertex_uv(vi)
+		rim_y_min = minf(rim_y_min, vpos.y)
+		rim_y_max = maxf(rim_y_max, vpos.y)
+		if is_equal_approx(vpos.y, y_top):
+			assert_true(is_equal_approx(vuv.y, -y_top), "Top rim vertex must have v = -y_top (-5.0)")
+		elif is_equal_approx(vpos.y, y_rim):
+			assert_true(is_equal_approx(vuv.y, -y_rim), "Bottom rim vertex must have v = -y_rim (-4.0)")
+
+	assert_true(is_equal_approx(rim_y_min, 4.0), "Rim band bottom Y must be exactly 4.0")
+	assert_true(is_equal_approx(rim_y_max, 5.0), "Rim band top Y must be exactly 5.0")
+	assert_true(is_equal_approx(rim_y_max - rim_y_min, 1.0), "Rim band height must be exactly 1.0m")
+
+	# 2. Cliff body band (height: 2.0m, y in [2.0, 4.0])
+	var st_cliff = SurfaceTool.new()
+	st_cliff.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var c0 = Vector3(fx, y_bot, fz)
+	var c1 = Vector3(fx, y_rim, fz)
+	var c2 = Vector3(fx + 1.0, y_rim, fz)
+	var c3 = Vector3(fx + 1.0, y_bot, fz)
+	ChunkBuilder._add_side_quad_uv(st_cliff, c0, c1, c2, c3, norm_north, fx, fx + 1.0, -y_bot, -y_rim)
+	st_cliff.generate_normals()
+	var mesh_cliff = st_cliff.commit()
+	var mdt_cliff = MeshDataTool.new()
+	mdt_cliff.create_from_surface(mesh_cliff, 0)
+
+	assert_eq(mdt_cliff.get_face_count(), 2, "Cliff body band must have 2 triangles (1 quad)")
+	for f in range(2):
+		assert_gt(mdt_cliff.get_face_normal(f).dot(norm_north), 0.99, "Cliff body normal must point North")
+
+	var cliff_y_min: float = 999.0
+	var cliff_y_max: float = -999.0
+	for vi in range(mdt_cliff.get_vertex_count()):
+		var vpos = mdt_cliff.get_vertex(vi)
+		var vuv = mdt_cliff.get_vertex_uv(vi)
+		cliff_y_min = minf(cliff_y_min, vpos.y)
+		cliff_y_max = maxf(cliff_y_max, vpos.y)
+		if is_equal_approx(vpos.y, y_rim):
+			assert_true(is_equal_approx(vuv.y, -y_rim), "Top cliff body vertex must have v = -y_rim (-4.0)")
+		elif is_equal_approx(vpos.y, y_bot):
+			assert_true(is_equal_approx(vuv.y, -y_bot), "Bottom cliff body vertex must have v = -y_bot (-2.0)")
+
+	assert_true(is_equal_approx(cliff_y_min, 2.0), "Cliff body bottom Y must be exactly 2.0")
+	assert_true(is_equal_approx(cliff_y_max, 4.0), "Cliff body top Y must be exactly 4.0")
+	assert_true(is_equal_approx(cliff_y_max - cliff_y_min, 2.0), "Cliff body height must be exactly 2.0m")
 
 func test_legacy_baseline_emulation_toggle() -> void:
 	ChunkBuilder.use_legacy_presentation = true
