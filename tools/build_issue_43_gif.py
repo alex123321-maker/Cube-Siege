@@ -4,7 +4,6 @@ tools/build_issue_43_gif.py - Assemble dynamic verification sequential captures 
 import re
 from pathlib import Path
 from typing import Union, List
-from PIL import Image
 
 def extract_frame_index(filename_or_path: Union[str, Path]) -> int:
     """Extract numeric index from frame filename (e.g. 'dyn_seq_105.png' -> 105)."""
@@ -25,6 +24,12 @@ def sort_and_select_frames(files: List[Union[str, Path]], step: int = 2) -> List
     return selected
 
 def main():
+    try:
+        from PIL import Image
+    except ImportError:
+        print("[ERROR] Pillow is required to build animated GIFs. Install via 'pip install Pillow'.")
+        return
+
     root = Path(__file__).resolve().parent.parent
     vdir = root / "docs" / "verification" / "issue43"
     
