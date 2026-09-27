@@ -19,11 +19,14 @@ from unittest.mock import patch
 from tools.verify import (
     discover_python_tests,
     run_command,
+    step_build_gdextension,
     step_run_gut_tests,
     step_run_issue_18_verification,
     step_run_python_tests,
     verify_gameplay_harness_output,
+    verify_godot_smoke_output,
     verify_gut_output,
+    verify_issue_18_output,
     verify_python_test_output,
     REPO_DIR,
 )
@@ -213,6 +216,101 @@ class TestVerifyRunnerContracts(unittest.TestCase):
         passed, reason = verify_gameplay_harness_output(ok=True, out="[GAMEPLAY SMOKE HARNESS] Summary: 24/24 Passed, 0 Failed")
         self.assertTrue(passed, "Valid gameplay summary must pass")
         self.assertIn("24", reason)
+
+    def test_missing_root_sconstruct_fails(self) -> None:
+        """When root SConstruct is missing, step_build_gdextension must FAIL (fail-closed F26)."""
+        with patch.object(Path, "is_file", return_value=False):
+            result = step_build_gdextension()
+            self.assertFalse(result, "Missing root SConstruct must return False")
+
+    def test_issue_18_output_with_nonzero_exit_code_fails(self) -> None:
+        """Issue 18 verification with non-zero exit code must fail even if summary is present."""
+        out = "[VERIFY-ISSUE-18] Summary: 10/10 Passed, 0 Failed"
+        passed, reason = verify_issue_18_output(ok=False, out=out)
+        self.assertFalse(passed, "Non-zero exit code must fail")
+        self.assertIn("non-zero", reason.lower())
+
+    def test_issue_18_output_with_script_error_fails(self) -> None:
+        """Issue 18 verification with SCRIPT ERROR in log must fail."""
+        out = "SCRIPT ERROR: Nil pointer dereference\n[VERIFY-ISSUE-18] Summary: 10/10 Passed, 0 Failed"
+        passed, reason = verify_issue_18_output(ok=True, out=out)
+        self.assertFalse(passed, "SCRIPT ERROR in log must fail")
+        self.assertIn("script or parse error", reason.lower())
+
+    def test_issue_18_output_with_parse_error_fails(self) -> None:
+        """Issue 18 verification with Parse Error in log must fail."""
+        out = "Parse Error: Unexpected token\n[VERIFY-ISSUE-18] Summary: 10/10 Passed, 0 Failed"
+        passed, reason = verify_issue_18_output(ok=True, out=out)
+        self.assertFalse(passed, "Parse Error in log must fail")
+        self.assertIn("script or parse error", reason.lower())
+
+    def test_issue_18_output_with_individual_check_fail_fails(self) -> None:
+        """Issue 18 verification with '  [FAIL]' marker must fail."""
+        out = "  [FAIL] Chunk loading failed\n[VERIFY-ISSUE-18] Summary: 9/10 Passed, 1 Failed"
+        passed, reason = verify_issue_18_output(ok=True, out=out)
+        self.assertFalse(passed, "Log with individual check [FAIL] must fail")
+        self.assertIn("[fail]", reason.lower())
+
+    def test_issue_18_output_missing_summary_fails(self) -> None:
+        """Issue 18 verification with missing or incomplete summary must fail."""
+        out = "Godot initialized.\nProcess ended."
+        passed, reason = verify_issue_18_output(ok=True, out=out)
+        self.assertFalse(passed, "Missing summary must fail")
+        self.assertIn("missing", reason.lower())
+
+    def test_issue_18_output_zero_checks_fails(self) -> None:
+        """Issue 18 verification with zero checks executed must fail."""
+        out = "[VERIFY-ISSUE-18] Summary: 0/0 Passed, 0 Failed"
+        passed, reason = verify_issue_18_output(ok=True, out=out)
+        self.assertFalse(passed, "Zero checks executed must fail")
+        self.assertIn("zero", reason.lower())
+
+    def test_issue_18_output_with_failed_checks_fails(self) -> None:
+        """Issue 18 verification with reported failed checks must fail."""
+        out = "[VERIFY-ISSUE-18] Summary: 9/10 Passed, 1 Failed"
+        passed, reason = verify_issue_18_output(ok=True, out=out)
+        self.assertFalse(passed, "Failed checks must fail")
+        self.assertIn("failed", reason.lower())
+
+    def test_issue_18_output_valid_passes(self) -> None:
+        """Issue 18 verification with all checks passing must pass."""
+        out = "[VERIFY-ISSUE-18] Summary: 12/12 Passed, 0 Failed"
+        passed, reason = verify_issue_18_output(ok=True, out=out)
+        self.assertTrue(passed, "Valid summary must pass")
+        self.assertIn("12", reason)
+
+    def test_godot_smoke_output_nonzero_exit_fails(self) -> None:
+        """Smoke run exiting with non-zero exit code must fail."""
+        passed, reason = verify_godot_smoke_output(ok=False, out="Engine start", context_name="Main menu")
+        self.assertFalse(passed, "Non-zero exit must fail")
+        self.assertIn("non-zero", reason.lower())
+
+    def test_godot_smoke_output_empty_fails(self) -> None:
+        """Smoke run producing empty or whitespace output must fail."""
+        passed, reason = verify_godot_smoke_output(ok=True, out="   \n  ", context_name="Main menu")
+        self.assertFalse(passed, "Empty output must fail")
+        self.assertIn("empty", reason.lower())
+
+    def test_godot_smoke_output_with_script_error_fails(self) -> None:
+        """Smoke run containing SCRIPT ERROR in output must fail."""
+        out = "Godot Engine v4.6.1\nSCRIPT ERROR: Invalid call\nQuit"
+        passed, reason = verify_godot_smoke_output(ok=True, out=out, context_name="Main menu")
+        self.assertFalse(passed, "SCRIPT ERROR in smoke output must fail")
+        self.assertIn("script or parse error", reason.lower())
+
+    def test_godot_smoke_output_with_parse_error_fails(self) -> None:
+        """Smoke run containing Parse Error in output must fail."""
+        out = "Godot Engine v4.6.1\nParse Error: Unexpected indent\nQuit"
+        passed, reason = verify_godot_smoke_output(ok=True, out=out, context_name="Main menu")
+        self.assertFalse(passed, "Parse Error in smoke output must fail")
+        self.assertIn("script or parse error", reason.lower())
+
+    def test_godot_smoke_output_valid_passes(self) -> None:
+        """Smoke run with clean Godot logs must pass."""
+        out = "Godot Engine v4.6.1.stable\nOpenGL API 3.3\nQuit"
+        passed, reason = verify_godot_smoke_output(ok=True, out=out, context_name="Main menu")
+        self.assertTrue(passed, "Clean smoke output must pass")
+        self.assertIn("cleanly", reason)
 
 
 if __name__ == "__main__":

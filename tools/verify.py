@@ -232,8 +232,8 @@ def step_build_gdextension(timeout: float = TIMEOUT_SCONS) -> bool:
     log_header("3. Building C++ GDExtension (Debug)")
     sconstruct_path = REPO_DIR / "SConstruct"
     if not sconstruct_path.is_file():
-        log_step("C++ GDExtension", "INFO", "No root SConstruct found. Skipping native build.")
-        return True
+        log_step("C++ GDExtension", "FAIL", "Root SConstruct file missing in repository (required for native build)")
+        return False
 
     plat = "windows" if sys.platform.startswith("win") else ("linux" if sys.platform.startswith("linux") else "macos")
     jobs = str(os.cpu_count() or 2)
@@ -413,6 +413,44 @@ def step_run_python_tests(timeout: float = TIMEOUT_PYTHON) -> bool:
         return False
 
 
+def verify_issue_18_output(ok: bool, out: str) -> Tuple[bool, str]:
+    """Fail-closed validator for Issue #18 verification output (F26).
+    
+    Guarantees:
+      - Nonzero returncode is ALWAYS a failure.
+      - Engine script errors, parse errors, and runtime error markers fail the step.
+      - Individual check failures ([FAIL]) fail the step.
+      - Completed summary with > 0 checks and 0 Failed is strictly required.
+    """
+    if not ok:
+        return (False, "Issue #18 verification process exited with non-zero code.")
+
+    if "SCRIPT ERROR:" in out or "Parse Error:" in out:
+        return (False, "Godot script or parse error detected in Issue #18 log.")
+
+    if "  [FAIL]" in out:
+        return (False, "One or more individual Issue #18 checks reported [FAIL].")
+
+    summary_match = re.search(r"(?:\[VERIFY-ISSUE-18\]\s+)?Summary:\s+(\d+)/(\d+)\s+Passed,\s+(\d+)\s+Failed", out)
+    if not summary_match:
+        return (False, "Incomplete or missing Issue #18 summary in output.")
+
+    passed_checks = int(summary_match.group(1))
+    total_checks = int(summary_match.group(2))
+    failed_checks = int(summary_match.group(3))
+
+    if total_checks == 0:
+        return (False, "Zero checks executed in Issue #18 verification.")
+
+    if failed_checks > 0:
+        return (False, f"{failed_checks} check(s) failed in Issue #18 verification.")
+
+    if passed_checks != total_checks:
+        return (False, f"Not all Issue #18 checks passed: {passed_checks}/{total_checks}.")
+
+    return (True, f"All {passed_checks} procedural world, combat, and streaming checks passed")
+
+
 def step_run_issue_18_verification(godot_bin: str, timeout: float = TIMEOUT_ISSUE_18) -> bool:
     log_header("7. Running Issue #18 Procedural World & Combat Verification")
     verifier = "tools/verify_issue_18.gd"
@@ -428,14 +466,35 @@ def step_run_issue_18_verification(godot_bin: str, timeout: float = TIMEOUT_ISSU
         "-s", verifier,
     ]
     ok, out = run_command(cmd, REPO_DIR, "issue 18 verification", timeout=timeout)
-    if ok and "Summary:" in out and "0 Failed" in out:
-        log_step("Issue #18 Verification", "PASS", "All procedural world, vertical combat, and streaming checks passed")
+    passed, detail = verify_issue_18_output(ok, out)
+    if passed:
+        log_step("Issue #18 Verification", "PASS", detail)
         return True
     else:
-        log_step("Issue #18 Verification", "FAIL", "Verification failed or exited non-zero")
+        log_step("Issue #18 Verification", "FAIL", detail)
         print("\n--- Issue #18 Output ---")
         print(out)
         return False
+
+
+def verify_godot_smoke_output(ok: bool, out: str, context_name: str = "Main menu") -> Tuple[bool, str]:
+    """Fail-closed validator for headless Godot smoke execution (F26, F27).
+    
+    Guarantees:
+      - Nonzero exit code is ALWAYS a failure.
+      - Engine script errors and parse errors fail the step.
+      - Empty or non-started Godot output fails the step.
+    """
+    if not ok:
+        return (False, f"{context_name} smoke process exited with non-zero code.")
+
+    if not out or not out.strip():
+        return (False, f"{context_name} smoke run produced empty output (engine failed to start).")
+
+    if "SCRIPT ERROR:" in out or "Parse Error:" in out:
+        return (False, f"Godot script or parse error detected during {context_name} smoke run.")
+
+    return (True, f"{context_name} initialized and ran cleanly")
 
 
 def step_menu_smoke_run(godot_bin: str, timeout: float = TIMEOUT_MENU_SMOKE) -> bool:
@@ -448,11 +507,12 @@ def step_menu_smoke_run(godot_bin: str, timeout: float = TIMEOUT_MENU_SMOKE) -> 
         "--quit-after", "60",
     ]
     ok, out = run_command(cmd, REPO_DIR, "menu smoke run", timeout=timeout)
-    if ok and "SCRIPT ERROR:" not in out:
-        log_step("Menu Smoke Run", "PASS", "Main menu initialized and ran 60 frames cleanly")
+    passed, detail = verify_godot_smoke_output(ok, out, "Main menu")
+    if passed:
+        log_step("Menu Smoke Run", "PASS", f"{detail} (60 frames)")
         return True
     else:
-        log_step("Menu Smoke Run", "FAIL", "Runtime error during menu simulation")
+        log_step("Menu Smoke Run", "FAIL", detail)
         print("\n--- Menu Smoke Output ---")
         print(out[-2000:])
         return False
