@@ -87,23 +87,6 @@ class AgentResumer:
             "agentapi.exe"
         )
         if agentapi_which:
-            # On Windows, agentapi may resolve to a .bat wrapper (e.g. .gemini/antigravity/bin/agentapi.bat).
-            # Invoking a batch script via subprocess routes through cmd.exe /c, which has a strict
-            # 8191-character command line limit.
-            # Bypassing the batch wrapper to run language_server.exe directly enables native CreateProcessW.
-            if agentapi_which.lower().endswith((".bat", ".cmd")):
-                lang_server = (
-                    Path.home()
-                    / "AppData"
-                    / "Local"
-                    / "Programs"
-                    / "antigravity"
-                    / "resources"
-                    / "bin"
-                    / "language_server.exe"
-                )
-                if lang_server.is_file():
-                    return [str(lang_server), "agentapi"], BACKEND_AGENTAPI
             return [agentapi_which], BACKEND_AGENTAPI
 
         # 2. Standalone CLI fallback for CLI-native conversations.
@@ -138,7 +121,7 @@ class AgentResumer:
             return prompt
 
         blocks: List[str] = []
-        remaining = 4000
+        remaining = 24000
         for event in feedback_events:
             body = str(event.get("body") or "").strip()
             if not body:
@@ -149,7 +132,7 @@ class AgentResumer:
             )
             block = f"{header}\n{body}"
             if len(block) > remaining:
-                block = block[:remaining] + "\n[truncated by watcher; see PR for full text]"
+                block = block[:remaining] + "\n[truncated by watcher]"
             blocks.append(block)
             remaining -= len(block)
             if remaining <= 0:
