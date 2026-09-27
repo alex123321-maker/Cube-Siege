@@ -165,11 +165,17 @@ def step_check_tools(timeout: float = TIMEOUT_TOOLS) -> Tuple[bool, Optional[str
                     break
             log_step("GitHub CLI (gh)", "PASS", f"{first_line} ({acct})")
         else:
-            log_step("GitHub CLI (gh)", "FAIL", f"{first_line} (Not logged in. Run 'gh auth login' to enable Issue-Driven workflow)")
-            all_ok = False
+            if os.environ.get("CI") or os.environ.get("GITHUB_ACTIONS"):
+                log_step("GitHub CLI (gh)", "PASS", f"{first_line} (CI runner)")
+            else:
+                log_step("GitHub CLI (gh)", "FAIL", f"{first_line} (Not logged in. Run 'gh auth login' to enable Issue-Driven workflow)")
+                all_ok = False
     else:
-        log_step("GitHub CLI (gh)", "FAIL", "gh not found in PATH. Required for Issue-Driven workflow.")
-        all_ok = False
+        if os.environ.get("CI") or os.environ.get("GITHUB_ACTIONS"):
+            log_step("GitHub CLI (gh)", "PASS", "Not installed (CI runner)")
+        else:
+            log_step("GitHub CLI (gh)", "FAIL", "gh not found in PATH. Required for Issue-Driven workflow.")
+            all_ok = False
 
     # SCons
     scons_path = shutil.which("scons")
@@ -230,11 +236,13 @@ def step_build_gdextension(timeout: float = TIMEOUT_SCONS) -> bool:
         return True
 
     plat = "windows" if sys.platform.startswith("win") else ("linux" if sys.platform.startswith("linux") else "macos")
+    jobs = str(os.cpu_count() or 2)
     cmd = [
         "scons",
         "custom_api_file=extension_api.json",
         f"platform={plat}",
         "target=template_debug",
+        f"-j{jobs}",
     ]
     print(f"  Executing: {' '.join(cmd)}")
     ok, out = run_command(cmd, REPO_DIR, "scons build", timeout=timeout)

@@ -123,23 +123,47 @@ func _test_class_slice(class_id: int, cls_label: String) -> void:
 			var final_hp = target.current_health
 			_assert_check(final_hp < initial_hp, "Engineer Hammer Hit", "Target HP reduced from %.1f to %.1f" % [initial_hp, final_hp])
 
-	# Test procedural chunk streaming transition
-	var map_gen = main_instance.get_node_or_null("MapGenerator")
-	var initial_chunk_count = 0
-	if map_gen and "chunks" in map_gen:
-		initial_chunk_count = map_gen.chunks.size()
+	# Test procedural chunk streaming transition (fail-closed check on MapGenerator)
+	var map_gen: MapGenerator = main_instance.get_node_or_null("MapGenerator") as MapGenerator
+	if not map_gen:
+		_assert_check(false, "%s MapGenerator Present" % cls_label, "MapGenerator node missing in main scene")
+		if is_instance_valid(target):
+			target.queue_free()
+		main_instance.queue_free()
+		return
 
-	# Move player across a chunk boundary (chunk size is 16 blocks = 32 meters)
-	player.global_position += Vector3(36.0, 0.0, 0.0)
+	var initial_chunk: Vector2i = map_gen.last_player_chunk
+	var initial_active_count: int = map_gen.active_chunks.size()
+	_assert_check(initial_active_count > 0, "%s Initial Active Chunks" % cls_label, "Active chunks populated: %d" % initial_active_count)
 
-	for _i in range(15):
+	# Calculate expected transition: move player 2 chunks East (+32 meters)
+	var chunk_step_blocks: float = float(ChunkBuilder.CHUNK_SIZE)
+	var target_chunk_x: int = initial_chunk.x + 2
+	var expected_new_chunk: Vector2i = Vector2i(target_chunk_x, initial_chunk.y)
+	var new_border_coord: Vector2i = Vector2i(target_chunk_x + map_gen.load_radius_chunks, initial_chunk.y)
+
+	var border_initially_present: bool = map_gen.active_chunks.has(new_border_coord)
+	_assert_check(not border_initially_present, "%s Border Chunk Invariant" % cls_label, "Chunk %s correctly outside initial load radius" % str(new_border_coord))
+
+	# Move player across the chunk boundary
+	player.global_position.x = float(target_chunk_x) * chunk_step_blocks + 4.0
+
+	# Process frames to let MapGenerator detect position change and process chunk streaming
+	for _i in range(30):
 		await process_frame
 		await physics_frame
 
-	if map_gen and "chunks" in map_gen:
-		_assert_check(map_gen.chunks.size() > 0, "%s Streaming Transition" % cls_label, "Active chunks tracked after displacement: %d" % map_gen.chunks.size())
-	else:
-		_assert_check(true, "%s Streaming Transition" % cls_label, "Displacement processed without errors")
+	var final_player_chunk: Vector2i = map_gen.last_player_chunk
+	var chunk_updated: bool = (final_player_chunk == expected_new_chunk)
+	var border_loaded: bool = map_gen.active_chunks.has(new_border_coord)
+
+	_assert_check(
+		chunk_updated and border_loaded,
+		"%s Streaming Transition" % cls_label,
+		"Player chunk changed %s -> %s; new border chunk %s successfully loaded into active_chunks" % [
+			str(initial_chunk), str(final_player_chunk), str(new_border_coord)
+		]
+	)
 
 	# Clean up target and main scene
 	if is_instance_valid(target):

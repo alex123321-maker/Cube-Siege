@@ -13,6 +13,7 @@ concurrency:
 env:
   GODOT_VERSION: "4.6.1"
   GODOT_RELEASE_URL: "https://github.com/godotengine/godot/releases/download/4.6.1-stable/Godot_v4.6.1-stable_linux.x86_64.zip"
+  GODOT_BIN: "/usr/local/bin/godot"
   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 jobs:
@@ -55,26 +56,6 @@ jobs:
       - name: Verify Godot Installation
         run: godot --version
 
-      - name: Build C++ GDExtension (Debug)
+      - name: Run Authoritative Verification Runner (tools/verify.py)
         run: |
-          scons custom_api_file=extension_api.json platform=linux target=template_debug -j$(nproc)
-
-      - name: Godot Headless Project Import & Validation
-        run: |
-          godot --headless --editor --quit --path .
-
-      - name: Run GUT Automated Tests
-        run: |
-          godot --headless --path . -s addons/gut/gut_cmdln.gd -gconfig=res://.gutconfig.json
-
-      - name: Run Python Review Loop Tests
-        run: |
-          python -m unittest discover -s tests/unit -p "test_*.py"
-
-      - name: Run Issue #18 Verification
-        run: |
-          godot --headless --path . -s tools/verify_issue_18.gd
-
-      - name: Headless Runtime Smoke Run (100 frames)
-        run: |
-          godot --headless --path . --quit-after 100
+          python tools/verify.py
