@@ -300,6 +300,7 @@ func _check_multi_hit_foliage_occlusion() -> void:
 	print("\n--- 6. Testing Multi-Hit Foliage Occlusion & Bounded Targets ---")
 	var camera: CameraFollow = CameraFollow.new()
 	root.add_child(camera)
+	camera.set_process(false)
 	camera.global_position = Vector3(15.0, 20.0, 15.0)
 
 	var player_node: Node3D = Node3D.new()

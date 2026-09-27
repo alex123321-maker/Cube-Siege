@@ -31,6 +31,9 @@ var mat_forest: StandardMaterial3D
 var mat_plains: StandardMaterial3D
 var mat_mountains: StandardMaterial3D
 var mat_cliff: StandardMaterial3D
+var mat_side_forest: StandardMaterial3D
+var mat_side_plains: StandardMaterial3D
+var mat_side_mountains: StandardMaterial3D
 
 # Preloaded scenes
 const SCENE_TREE = preload("res://scenes/resource_tree.tscn")
@@ -77,6 +80,9 @@ func setup_materials() -> void:
 	mat_plains = load("res://assets/environment/terrain_materials/textures/material_plains.tres")
 	mat_mountains = load("res://assets/environment/terrain_materials/textures/material_mountains.tres")
 	mat_cliff = load("res://assets/environment/terrain_materials/textures/material_cliff.tres")
+	mat_side_forest = load("res://assets/environment/terrain_materials/textures/material_forest_side.tres")
+	mat_side_plains = load("res://assets/environment/terrain_materials/textures/material_plains_side.tres")
+	mat_side_mountains = load("res://assets/environment/terrain_materials/textures/material_mountains_side.tres")
 
 
 func generate_world() -> void:
@@ -192,7 +198,10 @@ func load_chunk(cx: int, cz: int) -> void:
 		mat_forest,
 		mat_plains,
 		mat_mountains,
-		mat_cliff
+		mat_cliff,
+		mat_side_forest,
+		mat_side_plains,
+		mat_side_mountains
 	)
 
 	var mesh: ArrayMesh = terrain_data["mesh"]

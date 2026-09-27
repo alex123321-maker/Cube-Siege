@@ -22,11 +22,36 @@ static func build_chunk_terrain(
 	mat_forest: Material,
 	mat_plains: Material,
 	mat_mountains: Material,
-	mat_cliff: Material
+	mat_cliff: Material,
+	mat_side_forest: Material = null,
+	mat_side_plains: Material = null,
+	mat_side_mountains: Material = null
 ) -> Dictionary:
+	var side_forest: Material = mat_side_forest
+	if not side_forest and ResourceLoader.exists("res://assets/environment/terrain_materials/textures/material_forest_side.tres"):
+		side_forest = load("res://assets/environment/terrain_materials/textures/material_forest_side.tres")
+	if not side_forest:
+		side_forest = mat_forest
+
+	var side_plains: Material = mat_side_plains
+	if not side_plains and ResourceLoader.exists("res://assets/environment/terrain_materials/textures/material_plains_side.tres"):
+		side_plains = load("res://assets/environment/terrain_materials/textures/material_plains_side.tres")
+	if not side_plains:
+		side_plains = mat_plains
+
+	var side_mountains: Material = mat_side_mountains
+	if not side_mountains and ResourceLoader.exists("res://assets/environment/terrain_materials/textures/material_mountains_side.tres"):
+		side_mountains = load("res://assets/environment/terrain_materials/textures/material_mountains_side.tres")
+	if not side_mountains:
+		side_mountains = mat_mountains
+
 	if use_legacy_presentation:
 		return _build_chunk_terrain_legacy(cx, cz, seed_val, mat_forest, mat_plains, mat_mountains, mat_cliff)
-	return _build_chunk_terrain_modern(cx, cz, seed_val, mat_forest, mat_plains, mat_mountains, mat_cliff)
+	return _build_chunk_terrain_modern(
+		cx, cz, seed_val,
+		mat_forest, mat_plains, mat_mountains, mat_cliff,
+		side_forest, side_plains, side_mountains
+	)
 
 # =============================================================================
 # Modern Visual Presentation Pass (Issue #25)
@@ -38,12 +63,18 @@ static func _build_chunk_terrain_modern(
 	mat_forest: Material,
 	mat_plains: Material,
 	mat_mountains: Material,
-	mat_cliff: Material
+	mat_cliff: Material,
+	mat_side_forest: Material = null,
+	mat_side_plains: Material = null,
+	mat_side_mountains: Material = null
 ) -> Dictionary:
 	var st_forest: SurfaceTool = SurfaceTool.new()
 	var st_plains: SurfaceTool = SurfaceTool.new()
 	var st_mountains: SurfaceTool = SurfaceTool.new()
 	var st_cliff: SurfaceTool = SurfaceTool.new()
+	var st_side_forest: SurfaceTool = SurfaceTool.new()
+	var st_side_plains: SurfaceTool = SurfaceTool.new()
+	var st_side_mountains: SurfaceTool = SurfaceTool.new()
 	var st_col: SurfaceTool = SurfaceTool.new()
 
 	st_forest.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -58,10 +89,19 @@ static func _build_chunk_terrain_modern(
 	st_cliff.begin(Mesh.PRIMITIVE_TRIANGLES)
 	st_cliff.set_material(mat_cliff)
 
+	st_side_forest.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st_side_forest.set_material(mat_side_forest if mat_side_forest else mat_forest)
+
+	st_side_plains.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st_side_plains.set_material(mat_side_plains if mat_side_plains else mat_plains)
+
+	st_side_mountains.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st_side_mountains.set_material(mat_side_mountains if mat_side_mountains else mat_mountains)
+
 	st_col.begin(Mesh.PRIMITIVE_TRIANGLES)
 
-	# Surface counts array: [0: Forest, 1: Plains, 2: Mountains, 3: Cliff]
-	var counts: Array[int] = [0, 0, 0, 0]
+	# Surface counts array: [0: Forest, 1: Plains, 2: Mountains, 3: Cliff, 4: SideForest, 5: SidePlains, 6: SideMountains]
+	var counts: Array[int] = [0, 0, 0, 0, 0, 0, 0]
 
 	var origin_x: int = cx * CHUNK_SIZE
 	var origin_z: int = cz * CHUNK_SIZE
@@ -119,19 +159,37 @@ static func _build_chunk_terrain_modern(
 				var s2: Vector3 = Vector3(fx + 1.0, y_top, fz)
 				var s3: Vector3 = Vector3(fx + 1.0, y_bot, fz)
 
-				# Collision quad (authoritative, strictly unchanged)
-				_add_quad_col(st_col, s0, s1, s2, s3)
+				# Collision quad (authoritative, outward-facing)
+				_add_side_quad_col(st_col, s0, s1, s2, s3)
 
 				# Visual presentation & material classification
 				var visual_res: Dictionary = _resolve_side_presentation(
 					wx, wz, wx, wz - 1, y, yn, cell_biome, seed_val,
-					st_forest, st_plains, st_mountains, st_cliff,
-					Vector3(0, 0, -1)
+					st_cliff, Vector3(0, 0, -1),
+					st_side_forest, st_side_plains, st_side_mountains
 				)
 				var st_side: SurfaceTool = visual_res["surface_tool"]
 				var norm_side: Vector3 = visual_res["normal"]
-				_add_side_quad_uv(st_side, s0, s1, s2, s3, norm_side, fx, fx + 1.0, y_bot, y_top)
-				counts[visual_res["type"]] += 1
+				var h_drop: int = y - yn
+
+				if h_drop <= 1:
+					_add_side_quad_uv(st_side, s0, s1, s2, s3, norm_side, fx, fx + 1.0, -y_bot, -y_top)
+					counts[visual_res["type"]] += 1
+				else:
+					var y_rim: float = y_top - 1.0
+					var r0: Vector3 = Vector3(fx, y_rim, fz)
+					var r1: Vector3 = Vector3(fx, y_top, fz)
+					var r2: Vector3 = Vector3(fx + 1.0, y_top, fz)
+					var r3: Vector3 = Vector3(fx + 1.0, y_rim, fz)
+					_add_side_quad_uv(st_side, r0, r1, r2, r3, norm_side, fx, fx + 1.0, -y_rim, -y_top)
+					counts[visual_res["type"]] += 1
+
+					var c0: Vector3 = Vector3(fx, y_bot, fz)
+					var c1: Vector3 = Vector3(fx, y_rim, fz)
+					var c2: Vector3 = Vector3(fx + 1.0, y_rim, fz)
+					var c3: Vector3 = Vector3(fx + 1.0, y_bot, fz)
+					_add_side_quad_uv(st_cliff, c0, c1, c2, c3, norm_side, fx, fx + 1.0, -y_bot, -y_rim)
+					counts[3] += 1
 
 				# Ledge dressing & rock buttresses on prominent cliffs
 				if visual_res["has_dressing"]:
@@ -149,7 +207,7 @@ static func _build_chunk_terrain_modern(
 				var k1: Vector3 = Vector3(fx, skirt_top, fz)
 				var k2: Vector3 = Vector3(fx + 1.0, skirt_top, fz)
 				var k3: Vector3 = Vector3(fx + 1.0, skirt_bot, fz)
-				_add_side_quad_uv(st_cliff, k0, k1, k2, k3, Vector3(0, 0, -1), fx, fx + 1.0, skirt_bot, skirt_top)
+				_add_side_quad_uv(st_cliff, k0, k1, k2, k3, Vector3(0, 0, -1), fx, fx + 1.0, -skirt_bot, -skirt_top)
 				counts[3] += 1
 
 			# South (+Z)
@@ -161,17 +219,35 @@ static func _build_chunk_terrain_modern(
 				var s2: Vector3 = Vector3(fx, y_top, fz + 1.0)
 				var s3: Vector3 = Vector3(fx, y_bot, fz + 1.0)
 
-				_add_quad_col(st_col, s0, s1, s2, s3)
+				_add_side_quad_col(st_col, s0, s1, s2, s3)
 
 				var visual_res: Dictionary = _resolve_side_presentation(
 					wx, wz, wx, wz + 1, y, ys, cell_biome, seed_val,
-					st_forest, st_plains, st_mountains, st_cliff,
-					Vector3(0, 0, 1)
+					st_cliff, Vector3(0, 0, 1),
+					st_side_forest, st_side_plains, st_side_mountains
 				)
 				var st_side: SurfaceTool = visual_res["surface_tool"]
 				var norm_side: Vector3 = visual_res["normal"]
-				_add_side_quad_uv(st_side, s0, s1, s2, s3, norm_side, fx + 1.0, fx, y_bot, y_top)
-				counts[visual_res["type"]] += 1
+				var h_drop: int = y - ys
+
+				if h_drop <= 1:
+					_add_side_quad_uv(st_side, s0, s1, s2, s3, norm_side, fx + 1.0, fx, -y_bot, -y_top)
+					counts[visual_res["type"]] += 1
+				else:
+					var y_rim: float = y_top - 1.0
+					var r0: Vector3 = Vector3(fx + 1.0, y_rim, fz + 1.0)
+					var r1: Vector3 = Vector3(fx + 1.0, y_top, fz + 1.0)
+					var r2: Vector3 = Vector3(fx, y_top, fz + 1.0)
+					var r3: Vector3 = Vector3(fx, y_rim, fz + 1.0)
+					_add_side_quad_uv(st_side, r0, r1, r2, r3, norm_side, fx + 1.0, fx, -y_rim, -y_top)
+					counts[visual_res["type"]] += 1
+
+					var c0: Vector3 = Vector3(fx + 1.0, y_bot, fz + 1.0)
+					var c1: Vector3 = Vector3(fx + 1.0, y_rim, fz + 1.0)
+					var c2: Vector3 = Vector3(fx, y_rim, fz + 1.0)
+					var c3: Vector3 = Vector3(fx, y_bot, fz + 1.0)
+					_add_side_quad_uv(st_cliff, c0, c1, c2, c3, norm_side, fx + 1.0, fx, -y_bot, -y_rim)
+					counts[3] += 1
 
 				if visual_res["has_dressing"]:
 					_add_ledge_dressing_south(st_cliff, fx, y_top, fz)
@@ -188,7 +264,7 @@ static func _build_chunk_terrain_modern(
 				var k1: Vector3 = Vector3(fx + 1.0, skirt_top, fz + 1.0)
 				var k2: Vector3 = Vector3(fx, skirt_top, fz + 1.0)
 				var k3: Vector3 = Vector3(fx, skirt_bot, fz + 1.0)
-				_add_side_quad_uv(st_cliff, k0, k1, k2, k3, Vector3(0, 0, 1), fx + 1.0, fx, skirt_bot, skirt_top)
+				_add_side_quad_uv(st_cliff, k0, k1, k2, k3, Vector3(0, 0, 1), fx + 1.0, fx, -skirt_bot, -skirt_top)
 				counts[3] += 1
 
 			# West (-X)
@@ -200,17 +276,35 @@ static func _build_chunk_terrain_modern(
 				var s2: Vector3 = Vector3(fx, y_top, fz)
 				var s3: Vector3 = Vector3(fx, y_bot, fz)
 
-				_add_quad_col(st_col, s0, s1, s2, s3)
+				_add_side_quad_col(st_col, s0, s1, s2, s3)
 
 				var visual_res: Dictionary = _resolve_side_presentation(
 					wx, wz, wx - 1, wz, y, yw, cell_biome, seed_val,
-					st_forest, st_plains, st_mountains, st_cliff,
-					Vector3(-1, 0, 0)
+					st_cliff, Vector3(-1, 0, 0),
+					st_side_forest, st_side_plains, st_side_mountains
 				)
 				var st_side: SurfaceTool = visual_res["surface_tool"]
 				var norm_side: Vector3 = visual_res["normal"]
-				_add_side_quad_uv(st_side, s0, s1, s2, s3, norm_side, fz + 1.0, fz, y_bot, y_top)
-				counts[visual_res["type"]] += 1
+				var h_drop: int = y - yw
+
+				if h_drop <= 1:
+					_add_side_quad_uv(st_side, s0, s1, s2, s3, norm_side, fz + 1.0, fz, -y_bot, -y_top)
+					counts[visual_res["type"]] += 1
+				else:
+					var y_rim: float = y_top - 1.0
+					var r0: Vector3 = Vector3(fx, y_rim, fz + 1.0)
+					var r1: Vector3 = Vector3(fx, y_top, fz + 1.0)
+					var r2: Vector3 = Vector3(fx, y_top, fz)
+					var r3: Vector3 = Vector3(fx, y_rim, fz)
+					_add_side_quad_uv(st_side, r0, r1, r2, r3, norm_side, fz + 1.0, fz, -y_rim, -y_top)
+					counts[visual_res["type"]] += 1
+
+					var c0: Vector3 = Vector3(fx, y_bot, fz + 1.0)
+					var c1: Vector3 = Vector3(fx, y_rim, fz + 1.0)
+					var c2: Vector3 = Vector3(fx, y_rim, fz)
+					var c3: Vector3 = Vector3(fx, y_bot, fz)
+					_add_side_quad_uv(st_cliff, c0, c1, c2, c3, norm_side, fz + 1.0, fz, -y_bot, -y_rim)
+					counts[3] += 1
 
 				if visual_res["has_dressing"]:
 					_add_ledge_dressing_west(st_cliff, fx, y_top, fz)
@@ -227,7 +321,7 @@ static func _build_chunk_terrain_modern(
 				var k1: Vector3 = Vector3(fx, skirt_top, fz + 1.0)
 				var k2: Vector3 = Vector3(fx, skirt_top, fz)
 				var k3: Vector3 = Vector3(fx, skirt_bot, fz)
-				_add_side_quad_uv(st_cliff, k0, k1, k2, k3, Vector3(-1, 0, 0), fz + 1.0, fz, skirt_bot, skirt_top)
+				_add_side_quad_uv(st_cliff, k0, k1, k2, k3, Vector3(-1, 0, 0), fz + 1.0, fz, -skirt_bot, -skirt_top)
 				counts[3] += 1
 
 			# East (+X)
@@ -239,17 +333,35 @@ static func _build_chunk_terrain_modern(
 				var s2: Vector3 = Vector3(fx + 1.0, y_top, fz + 1.0)
 				var s3: Vector3 = Vector3(fx + 1.0, y_bot, fz + 1.0)
 
-				_add_quad_col(st_col, s0, s1, s2, s3)
+				_add_side_quad_col(st_col, s0, s1, s2, s3)
 
 				var visual_res: Dictionary = _resolve_side_presentation(
 					wx, wz, wx + 1, wz, y, ye, cell_biome, seed_val,
-					st_forest, st_plains, st_mountains, st_cliff,
-					Vector3(1, 0, 0)
+					st_cliff, Vector3(1, 0, 0),
+					st_side_forest, st_side_plains, st_side_mountains
 				)
 				var st_side: SurfaceTool = visual_res["surface_tool"]
 				var norm_side: Vector3 = visual_res["normal"]
-				_add_side_quad_uv(st_side, s0, s1, s2, s3, norm_side, fz, fz + 1.0, y_bot, y_top)
-				counts[visual_res["type"]] += 1
+				var h_drop: int = y - ye
+
+				if h_drop <= 1:
+					_add_side_quad_uv(st_side, s0, s1, s2, s3, norm_side, fz, fz + 1.0, -y_bot, -y_top)
+					counts[visual_res["type"]] += 1
+				else:
+					var y_rim: float = y_top - 1.0
+					var r0: Vector3 = Vector3(fx + 1.0, y_rim, fz)
+					var r1: Vector3 = Vector3(fx + 1.0, y_top, fz)
+					var r2: Vector3 = Vector3(fx + 1.0, y_top, fz + 1.0)
+					var r3: Vector3 = Vector3(fx + 1.0, y_rim, fz + 1.0)
+					_add_side_quad_uv(st_side, r0, r1, r2, r3, norm_side, fz, fz + 1.0, -y_rim, -y_top)
+					counts[visual_res["type"]] += 1
+
+					var c0: Vector3 = Vector3(fx + 1.0, y_bot, fz)
+					var c1: Vector3 = Vector3(fx + 1.0, y_rim, fz)
+					var c2: Vector3 = Vector3(fx + 1.0, y_rim, fz + 1.0)
+					var c3: Vector3 = Vector3(fx + 1.0, y_bot, fz + 1.0)
+					_add_side_quad_uv(st_cliff, c0, c1, c2, c3, norm_side, fz, fz + 1.0, -y_bot, -y_rim)
+					counts[3] += 1
 
 				if visual_res["has_dressing"]:
 					_add_ledge_dressing_east(st_cliff, fx, y_top, fz)
@@ -266,7 +378,7 @@ static func _build_chunk_terrain_modern(
 				var k1: Vector3 = Vector3(fx + 1.0, skirt_top, fz)
 				var k2: Vector3 = Vector3(fx + 1.0, skirt_top, fz + 1.0)
 				var k3: Vector3 = Vector3(fx + 1.0, skirt_bot, fz + 1.0)
-				_add_side_quad_uv(st_cliff, k0, k1, k2, k3, Vector3(1, 0, 0), fz, fz + 1.0, skirt_bot, skirt_top)
+				_add_side_quad_uv(st_cliff, k0, k1, k2, k3, Vector3(1, 0, 0), fz, fz + 1.0, -skirt_bot, -skirt_top)
 				counts[3] += 1
 
 	var mesh: ArrayMesh = ArrayMesh.new()
@@ -278,6 +390,12 @@ static func _build_chunk_terrain_modern(
 		st_mountains.commit(mesh)
 	if counts[3] > 0:
 		st_cliff.commit(mesh)
+	if counts[4] > 0:
+		st_side_forest.commit(mesh)
+	if counts[5] > 0:
+		st_side_plains.commit(mesh)
+	if counts[6] > 0:
+		st_side_mountains.commit(mesh)
 
 	# Collision Shape3D: generated strictly from authoritative voxel quads
 	var shape: Shape3D = null
@@ -303,47 +421,35 @@ static func _resolve_side_presentation(
 	y_to: int,
 	from_biome: int,
 	seed_val: int,
-	st_forest: SurfaceTool,
-	st_plains: SurfaceTool,
-	st_mountains: SurfaceTool,
-	st_cliff: SurfaceTool,
-	dir: Vector3
+	_st_cliff: SurfaceTool,
+	dir: Vector3,
+	st_side_forest: SurfaceTool,
+	st_side_plains: SurfaceTool,
+	st_side_mountains: SurfaceTool
 ) -> Dictionary:
 	var h_drop: int = y_from - y_to
 
-	# BLOCKER 1 FIX:
-	# Gameplay traversal contract is strictly |Δheight| <= 1.
-	# Only walkable drops (h_drop <= 1) receive gentle visual treatment (softened upward normal).
-	# Any drop >= 2 is an impassable vertical barrier and MUST be visually presented
-	# as an impassable rock cliff with perpendicular normal and cliff material.
+	var st_side: SurfaceTool
+	var side_type: int
+	if from_biome == BiomeSystem.BiomeType.MOUNTAINS or BiomeSystem.is_mountain_trail(wx, wz, seed_val):
+		st_side = st_side_mountains
+		side_type = 6
+	elif from_biome == BiomeSystem.BiomeType.PLAINS:
+		st_side = st_side_plains
+		side_type = 5
+	else: # FOREST
+		st_side = st_side_forest
+		side_type = 4
+
 	if h_drop <= 1:
 		var softened_normal: Vector3 = Vector3(dir.x * 0.4, 0.9, dir.z * 0.4).normalized()
-
-		# Mountain trail steps and mountain biome terraces
-		if from_biome == BiomeSystem.BiomeType.MOUNTAINS or BiomeSystem.is_mountain_trail(wx, wz, seed_val):
-			return {
-				"surface_tool": st_mountains,
-				"normal": softened_normal,
-				"type": 2,
-				"has_dressing": false,
-				"has_buttress": false
-			}
-		elif from_biome == BiomeSystem.BiomeType.PLAINS:
-			return {
-				"surface_tool": st_plains,
-				"normal": softened_normal,
-				"type": 1,
-				"has_dressing": false,
-				"has_buttress": false
-			}
-		else: # FOREST
-			return {
-				"surface_tool": st_forest,
-				"normal": softened_normal,
-				"type": 0,
-				"has_dressing": false,
-				"has_buttress": false
-			}
+		return {
+			"surface_tool": st_side,
+			"normal": softened_normal,
+			"type": side_type,
+			"has_dressing": false,
+			"has_buttress": false
+		}
 
 	# High cliffs / impassable drops (h_drop >= 2)
 	# Crisp perpendicular normal for bold stylized shadow contrast and unmistakable impassable reading
@@ -352,9 +458,9 @@ static func _resolve_side_presentation(
 	var has_buttress: bool = (h_drop >= 3) and ((_hash2d(wx, wz) % 3) == 0)
 
 	return {
-		"surface_tool": st_cliff,
+		"surface_tool": st_side,
 		"normal": norm_cliff,
-		"type": 3,
+		"type": side_type,
 		"has_dressing": has_dressing,
 		"has_buttress": has_buttress
 	}
@@ -409,18 +515,18 @@ static func _add_side_quad_uv(
 	st.set_normal(norm)
 	st.set_uv(Vector2(u_start, v_bot))
 	st.add_vertex(p0)
-	st.set_uv(Vector2(u_start, v_top))
-	st.add_vertex(p1)
 	st.set_uv(Vector2(u_end, v_top))
 	st.add_vertex(p2)
+	st.set_uv(Vector2(u_start, v_top))
+	st.add_vertex(p1)
 
 	st.set_normal(norm)
 	st.set_uv(Vector2(u_start, v_bot))
 	st.add_vertex(p0)
-	st.set_uv(Vector2(u_end, v_top))
-	st.add_vertex(p2)
 	st.set_uv(Vector2(u_end, v_bot))
 	st.add_vertex(p3)
+	st.set_uv(Vector2(u_end, v_top))
+	st.add_vertex(p2)
 
 static func _add_quad_col(st: SurfaceTool, p0: Vector3, p1: Vector3, p2: Vector3, p3: Vector3) -> void:
 	st.add_vertex(p0)
@@ -431,6 +537,15 @@ static func _add_quad_col(st: SurfaceTool, p0: Vector3, p1: Vector3, p2: Vector3
 	st.add_vertex(p2)
 	st.add_vertex(p3)
 
+static func _add_side_quad_col(st: SurfaceTool, p0: Vector3, p1: Vector3, p2: Vector3, p3: Vector3) -> void:
+	st.add_vertex(p0)
+	st.add_vertex(p2)
+	st.add_vertex(p1)
+
+	st.add_vertex(p0)
+	st.add_vertex(p3)
+	st.add_vertex(p2)
+
 # -----------------------------------------------------------------------------
 # Visual Ledge Dressing (Overhanging stone lip along cliff tops)
 # -----------------------------------------------------------------------------
@@ -438,70 +553,76 @@ static func _add_ledge_dressing_north(st: SurfaceTool, fx: float, y_top: float, 
 	var z_over: float = fz - LEDGE_OVERHANG
 	var y_lip: float = y_top - LEDGE_THICKNESS
 
-	# Top face of overhanging ledge
-	var t0: Vector3 = Vector3(fx, y_top, fz)
-	var t1: Vector3 = Vector3(fx + 1.0, y_top, fz)
-	var t2: Vector3 = Vector3(fx + 1.0, y_top, z_over)
-	var t3: Vector3 = Vector3(fx, y_top, z_over)
-	_add_quad_world_uv(st, t0, t1, t2, t3, Vector3.UP, Vector2(fx, fz), Vector2(fx + 1.0, z_over))
+	# Top face of overhanging ledge (pointing UP)
+	var t0: Vector3 = Vector3(fx, y_top, z_over)
+	var t1: Vector3 = Vector3(fx + 1.0, y_top, z_over)
+	var t2: Vector3 = Vector3(fx + 1.0, y_top, fz)
+	var t3: Vector3 = Vector3(fx, y_top, fz)
+	_add_quad_world_uv(st, t0, t1, t2, t3, Vector3.UP, Vector2(fx, z_over), Vector2(fx + 1.0, fz))
 
-	# Front face of overhanging ledge
+	# Front face of overhanging ledge (pointing OUTWARD: 0, 0, -1)
 	var f0: Vector3 = Vector3(fx, y_lip, z_over)
 	var f1: Vector3 = Vector3(fx, y_top, z_over)
 	var f2: Vector3 = Vector3(fx + 1.0, y_top, z_over)
 	var f3: Vector3 = Vector3(fx + 1.0, y_lip, z_over)
-	_add_side_quad_uv(st, f0, f1, f2, f3, Vector3(0, 0, -1), fx, fx + 1.0, y_lip, y_top)
+	_add_side_quad_uv(st, f0, f1, f2, f3, Vector3(0, 0, -1), fx, fx + 1.0, -y_lip, -y_top)
 
-	# Bottom undercut of overhanging ledge
-	var b0: Vector3 = Vector3(fx, y_lip, z_over)
-	var b1: Vector3 = Vector3(fx + 1.0, y_lip, z_over)
-	var b2: Vector3 = Vector3(fx + 1.0, y_lip, fz)
-	var b3: Vector3 = Vector3(fx, y_lip, fz)
-	_add_quad_world_uv(st, b0, b1, b2, b3, Vector3.DOWN, Vector2(fx, z_over), Vector2(fx + 1.0, fz))
+	# Bottom undercut of overhanging ledge (pointing DOWN)
+	var b0: Vector3 = Vector3(fx, y_lip, fz)
+	var b1: Vector3 = Vector3(fx + 1.0, y_lip, fz)
+	var b2: Vector3 = Vector3(fx + 1.0, y_lip, z_over)
+	var b3: Vector3 = Vector3(fx, y_lip, z_over)
+	_add_quad_world_uv(st, b0, b1, b2, b3, Vector3.DOWN, Vector2(fx, fz), Vector2(fx + 1.0, z_over))
 
 static func _add_ledge_dressing_south(st: SurfaceTool, fx: float, y_top: float, fz: float) -> void:
 	var z_boundary: float = fz + 1.0
 	var z_over: float = z_boundary + LEDGE_OVERHANG
 	var y_lip: float = y_top - LEDGE_THICKNESS
 
-	var t0: Vector3 = Vector3(fx + 1.0, y_top, z_boundary)
-	var t1: Vector3 = Vector3(fx, y_top, z_boundary)
-	var t2: Vector3 = Vector3(fx, y_top, z_over)
-	var t3: Vector3 = Vector3(fx + 1.0, y_top, z_over)
-	_add_quad_world_uv(st, t0, t1, t2, t3, Vector3.UP, Vector2(fx + 1.0, z_boundary), Vector2(fx, z_over))
+	# Top face (pointing UP)
+	var t0: Vector3 = Vector3(fx, y_top, z_boundary)
+	var t1: Vector3 = Vector3(fx + 1.0, y_top, z_boundary)
+	var t2: Vector3 = Vector3(fx + 1.0, y_top, z_over)
+	var t3: Vector3 = Vector3(fx, y_top, z_over)
+	_add_quad_world_uv(st, t0, t1, t2, t3, Vector3.UP, Vector2(fx, z_boundary), Vector2(fx + 1.0, z_over))
 
+	# Front face (pointing OUTWARD: 0, 0, 1)
 	var f0: Vector3 = Vector3(fx + 1.0, y_lip, z_over)
 	var f1: Vector3 = Vector3(fx + 1.0, y_top, z_over)
 	var f2: Vector3 = Vector3(fx, y_top, z_over)
 	var f3: Vector3 = Vector3(fx, y_lip, z_over)
-	_add_side_quad_uv(st, f0, f1, f2, f3, Vector3(0, 0, 1), fx + 1.0, fx, y_lip, y_top)
+	_add_side_quad_uv(st, f0, f1, f2, f3, Vector3(0, 0, 1), fx + 1.0, fx, -y_lip, -y_top)
 
-	var b0: Vector3 = Vector3(fx + 1.0, y_lip, z_over)
-	var b1: Vector3 = Vector3(fx, y_lip, z_over)
-	var b2: Vector3 = Vector3(fx, y_lip, z_boundary)
-	var b3: Vector3 = Vector3(fx + 1.0, y_lip, z_boundary)
-	_add_quad_world_uv(st, b0, b1, b2, b3, Vector3.DOWN, Vector2(fx + 1.0, z_over), Vector2(fx, z_boundary))
+	# Bottom undercut (pointing DOWN)
+	var b0: Vector3 = Vector3(fx, y_lip, z_over)
+	var b1: Vector3 = Vector3(fx + 1.0, y_lip, z_over)
+	var b2: Vector3 = Vector3(fx + 1.0, y_lip, z_boundary)
+	var b3: Vector3 = Vector3(fx, y_lip, z_boundary)
+	_add_quad_world_uv(st, b0, b1, b2, b3, Vector3.DOWN, Vector2(fx, z_over), Vector2(fx + 1.0, z_boundary))
 
 static func _add_ledge_dressing_west(st: SurfaceTool, fx: float, y_top: float, fz: float) -> void:
 	var x_over: float = fx - LEDGE_OVERHANG
 	var y_lip: float = y_top - LEDGE_THICKNESS
 
-	var t0: Vector3 = Vector3(fx, y_top, fz + 1.0)
+	# Top face (pointing UP)
+	var t0: Vector3 = Vector3(x_over, y_top, fz)
 	var t1: Vector3 = Vector3(fx, y_top, fz)
-	var t2: Vector3 = Vector3(x_over, y_top, fz)
+	var t2: Vector3 = Vector3(fx, y_top, fz + 1.0)
 	var t3: Vector3 = Vector3(x_over, y_top, fz + 1.0)
-	_add_quad_world_uv(st, t0, t1, t2, t3, Vector3.UP, Vector2(fx, fz + 1.0), Vector2(x_over, fz))
+	_add_quad_world_uv(st, t0, t1, t2, t3, Vector3.UP, Vector2(x_over, fz), Vector2(fx, fz + 1.0))
 
+	# Front face (pointing OUTWARD: -1, 0, 0)
 	var f0: Vector3 = Vector3(x_over, y_lip, fz + 1.0)
 	var f1: Vector3 = Vector3(x_over, y_top, fz + 1.0)
 	var f2: Vector3 = Vector3(x_over, y_top, fz)
 	var f3: Vector3 = Vector3(x_over, y_lip, fz)
-	_add_side_quad_uv(st, f0, f1, f2, f3, Vector3(-1, 0, 0), fz + 1.0, fz, y_lip, y_top)
+	_add_side_quad_uv(st, f0, f1, f2, f3, Vector3(-1, 0, 0), fz + 1.0, fz, -y_lip, -y_top)
 
+	# Bottom undercut (pointing DOWN)
 	var b0: Vector3 = Vector3(x_over, y_lip, fz + 1.0)
-	var b1: Vector3 = Vector3(x_over, y_lip, fz)
+	var b1: Vector3 = Vector3(fx, y_lip, fz + 1.0)
 	var b2: Vector3 = Vector3(fx, y_lip, fz)
-	var b3: Vector3 = Vector3(fx, y_lip, fz + 1.0)
+	var b3: Vector3 = Vector3(x_over, y_lip, fz)
 	_add_quad_world_uv(st, b0, b1, b2, b3, Vector3.DOWN, Vector2(x_over, fz + 1.0), Vector2(fx, fz))
 
 static func _add_ledge_dressing_east(st: SurfaceTool, fx: float, y_top: float, fz: float) -> void:
@@ -509,23 +630,26 @@ static func _add_ledge_dressing_east(st: SurfaceTool, fx: float, y_top: float, f
 	var x_over: float = x_boundary + LEDGE_OVERHANG
 	var y_lip: float = y_top - LEDGE_THICKNESS
 
+	# Top face (pointing UP)
 	var t0: Vector3 = Vector3(x_boundary, y_top, fz)
-	var t1: Vector3 = Vector3(x_boundary, y_top, fz + 1.0)
+	var t1: Vector3 = Vector3(x_over, y_top, fz)
 	var t2: Vector3 = Vector3(x_over, y_top, fz + 1.0)
-	var t3: Vector3 = Vector3(x_over, y_top, fz)
+	var t3: Vector3 = Vector3(x_boundary, y_top, fz + 1.0)
 	_add_quad_world_uv(st, t0, t1, t2, t3, Vector3.UP, Vector2(x_boundary, fz), Vector2(x_over, fz + 1.0))
 
+	# Front face (pointing OUTWARD: 1, 0, 0)
 	var f0: Vector3 = Vector3(x_over, y_lip, fz)
 	var f1: Vector3 = Vector3(x_over, y_top, fz)
 	var f2: Vector3 = Vector3(x_over, y_top, fz + 1.0)
 	var f3: Vector3 = Vector3(x_over, y_lip, fz + 1.0)
-	_add_side_quad_uv(st, f0, f1, f2, f3, Vector3(1, 0, 0), fz, fz + 1.0, y_lip, y_top)
+	_add_side_quad_uv(st, f0, f1, f2, f3, Vector3(1, 0, 0), fz, fz + 1.0, -y_lip, -y_top)
 
-	var b0: Vector3 = Vector3(x_over, y_lip, fz)
+	# Bottom undercut (pointing DOWN)
+	var b0: Vector3 = Vector3(x_boundary, y_lip, fz + 1.0)
 	var b1: Vector3 = Vector3(x_over, y_lip, fz + 1.0)
-	var b2: Vector3 = Vector3(x_boundary, y_lip, fz + 1.0)
+	var b2: Vector3 = Vector3(x_over, y_lip, fz)
 	var b3: Vector3 = Vector3(x_boundary, y_lip, fz)
-	_add_quad_world_uv(st, b0, b1, b2, b3, Vector3.DOWN, Vector2(x_over, fz), Vector2(x_boundary, fz + 1.0))
+	_add_quad_world_uv(st, b0, b1, b2, b3, Vector3.DOWN, Vector2(x_boundary, fz + 1.0), Vector2(x_over, fz))
 
 # -----------------------------------------------------------------------------
 # Visual Rock Buttresses (3D faceted rock-face clusters on tall cliffs)
@@ -539,19 +663,19 @@ static func _add_buttress_north(st: SurfaceTool, fx: float, y_bot: float, y_top:
 	var b1: Vector3 = Vector3(fx + 0.15, y_high, z_b)
 	var b2: Vector3 = Vector3(fx + 0.85, y_high, z_b)
 	var b3: Vector3 = Vector3(fx + 0.85, y_bot, z_b)
-	_add_side_quad_uv(st, b0, b1, b2, b3, Vector3(0, 0, -1), fx + 0.15, fx + 0.85, y_bot, y_high)
+	_add_side_quad_uv(st, b0, b1, b2, b3, Vector3(0, 0, -1), fx + 0.15, fx + 0.85, -y_bot, -y_high)
 
 	var s_w0: Vector3 = Vector3(fx + 0.15, y_bot, fz)
 	var s_w1: Vector3 = Vector3(fx + 0.15, y_high, fz)
 	var s_w2: Vector3 = Vector3(fx + 0.15, y_high, z_b)
 	var s_w3: Vector3 = Vector3(fx + 0.15, y_bot, z_b)
-	_add_side_quad_uv(st, s_w0, s_w1, s_w2, s_w3, Vector3(-1, 0, 0), fz, z_b, y_bot, y_high)
+	_add_side_quad_uv(st, s_w0, s_w1, s_w2, s_w3, Vector3(-1, 0, 0), fz, z_b, -y_bot, -y_high)
 
 	var s_e0: Vector3 = Vector3(fx + 0.85, y_bot, z_b)
 	var s_e1: Vector3 = Vector3(fx + 0.85, y_high, z_b)
 	var s_e2: Vector3 = Vector3(fx + 0.85, y_high, fz)
 	var s_e3: Vector3 = Vector3(fx + 0.85, y_bot, fz)
-	_add_side_quad_uv(st, s_e0, s_e1, s_e2, s_e3, Vector3(1, 0, 0), z_b, fz, y_bot, y_high)
+	_add_side_quad_uv(st, s_e0, s_e1, s_e2, s_e3, Vector3(1, 0, 0), z_b, fz, -y_bot, -y_high)
 
 static func _add_buttress_south(st: SurfaceTool, fx: float, y_bot: float, y_top: float, fz: float) -> void:
 	var z_boundary: float = fz + 1.0
@@ -563,19 +687,19 @@ static func _add_buttress_south(st: SurfaceTool, fx: float, y_bot: float, y_top:
 	var b1: Vector3 = Vector3(fx + 0.85, y_high, z_b)
 	var b2: Vector3 = Vector3(fx + 0.15, y_high, z_b)
 	var b3: Vector3 = Vector3(fx + 0.15, y_bot, z_b)
-	_add_side_quad_uv(st, b0, b1, b2, b3, Vector3(0, 0, 1), fx + 0.85, fx + 0.15, y_bot, y_high)
+	_add_side_quad_uv(st, b0, b1, b2, b3, Vector3(0, 0, 1), fx + 0.85, fx + 0.15, -y_bot, -y_high)
 
 	var s_e0: Vector3 = Vector3(fx + 0.85, y_bot, z_boundary)
 	var s_e1: Vector3 = Vector3(fx + 0.85, y_high, z_boundary)
 	var s_e2: Vector3 = Vector3(fx + 0.85, y_high, z_b)
 	var s_e3: Vector3 = Vector3(fx + 0.85, y_bot, z_b)
-	_add_side_quad_uv(st, s_e0, s_e1, s_e2, s_e3, Vector3(1, 0, 0), z_boundary, z_b, y_bot, y_high)
+	_add_side_quad_uv(st, s_e0, s_e1, s_e2, s_e3, Vector3(1, 0, 0), z_boundary, z_b, -y_bot, -y_high)
 
 	var s_w0: Vector3 = Vector3(fx + 0.15, y_bot, z_b)
 	var s_w1: Vector3 = Vector3(fx + 0.15, y_high, z_b)
 	var s_w2: Vector3 = Vector3(fx + 0.15, y_high, z_boundary)
 	var s_w3: Vector3 = Vector3(fx + 0.15, y_bot, z_boundary)
-	_add_side_quad_uv(st, s_w0, s_w1, s_w2, s_w3, Vector3(-1, 0, 0), z_b, z_boundary, y_bot, y_high)
+	_add_side_quad_uv(st, s_w0, s_w1, s_w2, s_w3, Vector3(-1, 0, 0), z_b, z_boundary, -y_bot, -y_high)
 
 static func _add_buttress_west(st: SurfaceTool, fx: float, y_bot: float, y_top: float, fz: float) -> void:
 	var x_b: float = fx - BUTTRESS_EXTRUSION
@@ -586,19 +710,19 @@ static func _add_buttress_west(st: SurfaceTool, fx: float, y_bot: float, y_top: 
 	var b1: Vector3 = Vector3(x_b, y_high, fz + 0.85)
 	var b2: Vector3 = Vector3(x_b, y_high, fz + 0.15)
 	var b3: Vector3 = Vector3(x_b, y_bot, fz + 0.15)
-	_add_side_quad_uv(st, b0, b1, b2, b3, Vector3(-1, 0, 0), fz + 0.85, fz + 0.15, y_bot, y_high)
+	_add_side_quad_uv(st, b0, b1, b2, b3, Vector3(-1, 0, 0), fz + 0.85, fz + 0.15, -y_bot, -y_high)
 
 	var s_s0: Vector3 = Vector3(fx, y_bot, fz + 0.85)
 	var s_s1: Vector3 = Vector3(fx, y_high, fz + 0.85)
 	var s_s2: Vector3 = Vector3(x_b, y_high, fz + 0.85)
 	var s_s3: Vector3 = Vector3(x_b, y_bot, fz + 0.85)
-	_add_side_quad_uv(st, s_s0, s_s1, s_s2, s_s3, Vector3(0, 0, 1), fx, x_b, y_bot, y_high)
+	_add_side_quad_uv(st, s_s0, s_s1, s_s2, s_s3, Vector3(0, 0, 1), fx, x_b, -y_bot, -y_high)
 
 	var s_n0: Vector3 = Vector3(x_b, y_bot, fz + 0.15)
 	var s_n1: Vector3 = Vector3(x_b, y_high, fz + 0.15)
 	var s_n2: Vector3 = Vector3(fx, y_high, fz + 0.15)
 	var s_n3: Vector3 = Vector3(fx, y_bot, fz + 0.15)
-	_add_side_quad_uv(st, s_n0, s_n1, s_n2, s_n3, Vector3(0, 0, -1), x_b, fx, y_bot, y_high)
+	_add_side_quad_uv(st, s_n0, s_n1, s_n2, s_n3, Vector3(0, 0, -1), x_b, fx, -y_bot, -y_high)
 
 static func _add_buttress_east(st: SurfaceTool, fx: float, y_bot: float, y_top: float, fz: float) -> void:
 	var x_boundary: float = fx + 1.0
@@ -610,19 +734,19 @@ static func _add_buttress_east(st: SurfaceTool, fx: float, y_bot: float, y_top: 
 	var b1: Vector3 = Vector3(x_b, y_high, fz + 0.15)
 	var b2: Vector3 = Vector3(x_b, y_high, fz + 0.85)
 	var b3: Vector3 = Vector3(x_b, y_bot, fz + 0.85)
-	_add_side_quad_uv(st, b0, b1, b2, b3, Vector3(1, 0, 0), fz + 0.15, fz + 0.85, y_bot, y_high)
+	_add_side_quad_uv(st, b0, b1, b2, b3, Vector3(1, 0, 0), fz + 0.15, fz + 0.85, -y_bot, -y_high)
 
 	var s_n0: Vector3 = Vector3(x_boundary, y_bot, fz + 0.15)
 	var s_n1: Vector3 = Vector3(x_boundary, y_high, fz + 0.15)
 	var s_n2: Vector3 = Vector3(x_b, y_high, fz + 0.15)
 	var s_n3: Vector3 = Vector3(x_b, y_bot, fz + 0.15)
-	_add_side_quad_uv(st, s_n0, s_n1, s_n2, s_n3, Vector3(0, 0, -1), x_boundary, x_b, y_bot, y_high)
+	_add_side_quad_uv(st, s_n0, s_n1, s_n2, s_n3, Vector3(0, 0, -1), x_boundary, x_b, -y_bot, -y_high)
 
 	var s_s0: Vector3 = Vector3(x_b, y_bot, fz + 0.85)
 	var s_s1: Vector3 = Vector3(x_b, y_high, fz + 0.85)
 	var s_s2: Vector3 = Vector3(x_boundary, y_high, fz + 0.85)
 	var s_s3: Vector3 = Vector3(x_boundary, y_bot, fz + 0.85)
-	_add_side_quad_uv(st, s_s0, s_s1, s_s2, s_s3, Vector3(0, 0, 1), x_b, x_boundary, y_bot, y_high)
+	_add_side_quad_uv(st, s_s0, s_s1, s_s2, s_s3, Vector3(0, 0, 1), x_b, x_boundary, -y_bot, -y_high)
 
 # =============================================================================
 # Legacy Baseline Generation (1:1 emulation of base SHA f09d1c4)
