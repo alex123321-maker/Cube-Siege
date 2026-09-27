@@ -18,6 +18,10 @@ class_name CharacterAnimationProfile
 @export var plant_stride_fraction: float = 0.42
 @export var plant_crouch: float = 0.14
 @export var plant_swing_height: float = 0.13
+@export var plant_transition_response: float = 10.0
+## Rigid boot pieces relative to each knee. Resolved once; no runtime tree scans.
+@export var right_foot_parts: Array[NodePath] = [^"right_boot", ^"right_sole"]
+@export var left_foot_parts: Array[NodePath] = [^"left_boot", ^"left_sole"]
 @export var forward: CharacterGait
 @export var backward: CharacterGait
 @export var strafe_right: CharacterGait

@@ -1,5 +1,7 @@
 # Hero models and animation review — #8, #9, #10, #12
 
+**Current animation review:** [review-r1](review-r1/README.md) fixes real sole contact and dash transitions raised in PR #41. The original movement/foot-plant recordings below document `4681332`; use the new recordings to assess current locomotion. Studio models, textures and grip remain unchanged.
+
 All character pictures here are actual Blender or Godot renders. The user reference remains under `art/references/issue-9/`; it is not passed off as an exported model. Source `.blend` files are in `art/characters/{warrior,archer,engineer}`. The neighboring `game_assets` project's Blender → GLB workflow and class-family review conventions informed this work.
 
 ## Changes

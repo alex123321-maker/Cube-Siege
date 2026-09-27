@@ -13,6 +13,8 @@ var knees: Array[Node3D] = []
 var knee_rest: Array[Transform3D] = []
 var knee_authored: Array[Transform3D] = []
 var foot_plant: CharacterFootPlant
+var dash_weight: float = 0.0
+var plant_weight: float = 1.0
 var local_move: Vector2 = Vector2.ZERO
 var blend: Vector4 = Vector4(1, 0, 0, 0)
 var phase: float = 0.0
@@ -36,6 +38,7 @@ var _movement_lean_world: Vector3 = Vector3.ZERO
 
 func bind(model: Node3D, animation_profile: CharacterAnimationProfile) -> void:
 	profile = animation_profile
+	plant_weight = 1.0 if profile.foot_plant_enabled else 0.0
 	var paths: Array[NodePath] = [profile.root_path, profile.torso_path, profile.head_path,
 		profile.right_arm_path, profile.left_arm_path, profile.right_leg_path, profile.left_leg_path]
 	for path: NodePath in paths:
@@ -54,6 +57,7 @@ func bind(model: Node3D, animation_profile: CharacterAnimationProfile) -> void:
 	foot_plant.bind(model, self)
 
 func restore_authored() -> void:
+	foot_plant.restore_feet()
 	for i: int in nodes.size():
 		if is_instance_valid(nodes[i]):
 			nodes[i].transform = authored[i]
@@ -62,6 +66,7 @@ func restore_authored() -> void:
 			knees[i].transform = knee_authored[i]
 
 func reset() -> void:
+	foot_plant.restore_feet()
 	for i: int in nodes.size():
 		if is_instance_valid(nodes[i]):
 			nodes[i].transform = rest[i]
@@ -134,13 +139,13 @@ func update(delta: float, facing: Vector3, aim: Vector3, move: Vector3,
 	_rotate(Joint.HEAD, Vector3(0, aim_yaw.y, 0))
 	_rotate(Joint.RIGHT_ARM, Vector3(0, aim_yaw.z * profile.right_arm_weight, 0))
 	_rotate(Joint.LEFT_ARM, Vector3(0, aim_yaw.z * profile.left_arm_weight, 0))
-	var stride: float = profile.stride_weight * (profile.dash_stride_weight if is_dashing else 1.0)
+	var transition: float = 1.0 - exp(-profile.plant_transition_response * delta)
+	dash_weight = lerpf(dash_weight, 1.0 if is_dashing else 0.0, transition)
+	plant_weight = lerpf(plant_weight, 1.0 if profile.foot_plant_enabled and not is_dashing else 0.0, transition)
+	var stride: float = profile.stride_weight * lerpf(1.0, profile.dash_stride_weight, dash_weight)
 	_leg(Joint.RIGHT_LEG, phase, turn_phase, stride, idle_turn)
 	_leg(Joint.LEFT_LEG, fposmod(phase + 0.5, 1.0), fposmod(turn_phase + 0.5, 1.0), stride, idle_turn)
-	if profile.foot_plant_enabled and not is_dashing:
-		foot_plant.update(self, planar, _facing_basis)
-	else:
-		foot_plant.reset()
+	foot_plant.update(self, planar, _facing_basis, plant_weight, is_dashing, delta)
 
 func _rotate(joint: int, angles: Vector3) -> void:
 	var node: Node3D = nodes[joint]

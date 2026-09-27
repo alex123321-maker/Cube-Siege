@@ -14,6 +14,56 @@ var anchors: PackedVector3Array = PackedVector3Array([Vector3.ZERO, Vector3.ZERO
 var swing_starts: PackedVector3Array = PackedVector3Array([Vector3.ZERO, Vector3.ZERO])
 var contacts: Array[bool] = [false, false]
 var initialized: bool = false
+var previous_model_position: Vector3 = Vector3.ZERO
+var feet: Array[Foot] = []
+
+class Foot extends RefCounted:
+	var parts: Array[MeshInstance3D] = []
+	var rest: Array[Transform3D] = []
+	var model_basis: Basis = Basis.IDENTITY
+	var ankle: Vector3
+	var contact_offset: Vector3
+	var last_leg: Transform3D
+	var last_knee: Transform3D
+	var pose_valid: bool = false
+
+	func bind(active_model: Node3D, knee: Node3D, paths: Array[NodePath], lower: float) -> void:
+		ankle = Vector3.DOWN * lower
+		if not is_instance_valid(knee):
+			return
+		model_basis = active_model.global_basis.inverse() * knee.global_basis
+		var minimum: Vector3 = Vector3(INF, INF, INF)
+		var maximum: Vector3 = Vector3(-INF, -INF, -INF)
+		for path: NodePath in paths:
+			var part: MeshInstance3D = knee.get_node_or_null(path) as MeshInstance3D
+			if not part or not part.mesh:
+				continue
+			parts.append(part)
+			rest.append(part.transform)
+			for surface: int in part.mesh.get_surface_count():
+				for vertex: Vector3 in part.mesh.surface_get_arrays(surface)[Mesh.ARRAY_VERTEX]:
+					var point: Vector3 = part.transform * vertex
+					minimum = minimum.min(point)
+					maximum = maximum.max(point)
+		if not parts.is_empty():
+			contact_offset = Vector3((minimum.x + maximum.x) * .5, minimum.y, (minimum.z + maximum.z) * .5) - ankle
+
+	func restore() -> void:
+		for index: int in parts.size():
+			if is_instance_valid(parts[index]):
+				parts[index].transform = rest[index]
+
+	func orient(knee: Node3D, flat_basis: Basis, weight: float) -> void:
+		# A virtual ankle rotates the existing rigid boot pieces together. Geometry
+		# and leg lengths stay unchanged; no helper nodes or gameplay state are added.
+		var flat: Transform3D = Transform3D(flat_basis, knee.to_global(ankle))
+		var local_flat: Transform3D = knee.global_transform.affine_inverse() * flat
+		for index: int in parts.size():
+			if not is_instance_valid(parts[index]):
+				continue
+			var relative: Transform3D = rest[index]
+			relative.origin -= ankle
+			parts[index].transform = rest[index].interpolate_with(local_flat * relative, weight)
 
 func bind(active_model: Node3D, pose: CharacterPoseLayer) -> void:
 	model = active_model
@@ -22,21 +72,42 @@ func bind(active_model: Node3D, pose: CharacterPoseLayer) -> void:
 	knees.assign(pose.knees)
 	leg_rest.assign([pose.rest[CharacterPoseLayer.Joint.RIGHT_LEG], pose.rest[CharacterPoseLayer.Joint.LEFT_LEG]])
 	knee_rest.assign(pose.knee_rest)
+	for i: int in 2:
+		var foot := Foot.new()
+		foot.bind(model, knees[i], pose.profile.right_foot_parts if i == 0 else pose.profile.left_foot_parts,
+			maxf(.05, pose.profile.leg_length - knee_rest[i].origin.length()))
+		feet.append(foot)
+
+func restore_feet() -> void:
+	for foot: Foot in feet:
+		foot.restore()
 
 func reset() -> void:
 	initialized = false
 	contacts[0] = false
 	contacts[1] = false
+	for foot: Foot in feet:
+		foot.pose_valid = false
 
-func update(pose: CharacterPoseLayer, velocity: Vector3, facing: Basis) -> void:
-	var weight: float = pose.move_weight * pose.layer_weight
+func update(pose: CharacterPoseLayer, velocity: Vector3, facing: Basis, influence: float = 1.0,
+		release_contacts: bool = false, delta: float = 1.0 / 60) -> void:
+	var weight: float = pose.move_weight * pose.layer_weight * influence
 	if weight < .001 or not is_instance_valid(root) or not is_instance_valid(model):
 		reset()
 		return
 	for i: int in 2:
-		if not is_instance_valid(legs[i]) or not is_instance_valid(knees[i]):
+		if not is_instance_valid(legs[i]) or not is_instance_valid(knees[i]) or feet[i].parts.is_empty():
 			return
 	var profile: CharacterAnimationProfile = pose.profile
+	# During the fade into dash, release world anchoring without discarding the
+	# pose. Carry the targets with the body so a rapid dash cannot pull the knees
+	# straight before their visual contribution has faded out.
+	if initialized and release_contacts:
+		var travel: Vector3 = model.global_position - previous_model_position
+		for i: int in 2:
+			anchors[i] += travel
+			swing_starts[i] += travel
+	previous_model_position = model.global_position
 	var direction: Vector3 = Vector3(velocity.x, 0, velocity.z).normalized()
 	if direction.is_zero_approx():
 		direction = -facing.z
@@ -72,7 +143,13 @@ func update(pose: CharacterPoseLayer, velocity: Vector3, facing: Basis) -> void:
 		# A terrain step follows the body's actual new floor height, without a ray
 		# claiming that an untested surface contact exists.
 		target.y = maxf(target.y, floor_y - profile.foot_placement_max_height)
-		_solve(i, target, hip_rest, -facing.z, profile, weight)
+		var flat_basis: Basis = model.global_basis.orthonormalized() * feet[i].model_basis
+		# The target is the REAL sole centre, not an imaginary end of the shin.
+		var ankle_target: Vector3 = target - flat_basis * feet[i].contact_offset
+		var transition_strength: float = 1.0 if release_contacts else 1.0 - influence
+		var follow: float = lerpf(1.0, 1.0 - exp(-profile.plant_transition_response * 2.0 * delta), transition_strength)
+		_solve(i, ankle_target, hip_rest, -facing.z, profile, weight, follow)
+		feet[i].orient(knee, flat_basis, weight)
 		if i == 0:
 			pose.right_contact = contact
 			pose.right_foot_height = target.y
@@ -82,7 +159,7 @@ func update(pose: CharacterPoseLayer, velocity: Vector3, facing: Basis) -> void:
 	initialized = true
 
 func _solve(i: int, target: Vector3, hip: Vector3, pole: Vector3,
-		profile: CharacterAnimationProfile, weight: float) -> void:
+		profile: CharacterAnimationProfile, weight: float, follow: float) -> void:
 	var leg: Node3D = legs[i]
 	var knee: Node3D = knees[i]
 	var upper: float = knee_rest[i].origin.length()
@@ -107,3 +184,12 @@ func _solve(i: int, target: Vector3, hip: Vector3, pole: Vector3,
 		(hip + direction * distance - middle).normalized())) * lower_basis
 	var local_lower: Basis = leg.global_basis.orthonormalized().inverse() * desired_lower
 	knee.transform = knee.transform.interpolate_with(Transform3D(local_lower, knee_rest[i].origin), weight)
+	# Root height near maximum reach can amplify a small weight change into a
+	# large knee-angle change. Inertialize the rigid joint poses during release;
+	# return continuously to the exact contact solve as influence reaches one.
+	if feet[i].pose_valid:
+		leg.transform = feet[i].last_leg.interpolate_with(leg.transform, follow)
+		knee.transform = feet[i].last_knee.interpolate_with(knee.transform, follow)
+	feet[i].last_leg = leg.transform
+	feet[i].last_knee = knee.transform
+	feet[i].pose_valid = true

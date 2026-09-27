@@ -8,6 +8,8 @@
 
 [resource]
 script = ExtResource("1")
+right_foot_parts = Array[NodePath]([NodePath("right_boot"), NodePath("right_boot_toecap"), NodePath("right_boot_sole"), NodePath("right_boot_gold_toe")])
+left_foot_parts = Array[NodePath]([NodePath("left_boot"), NodePath("left_boot_toecap"), NodePath("left_boot_sole"), NodePath("left_boot_gold_toe")])
 forward = ExtResource("2")
 backward = ExtResource("3")
 strafe_right = ExtResource("4")

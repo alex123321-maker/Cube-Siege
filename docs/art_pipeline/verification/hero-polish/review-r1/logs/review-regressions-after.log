@@ -1,0 +1,68 @@
+Godot Engine v4.6.1.stable.official.14d19694e - https://godotengine.org
+
+---  GUT  ---
+[1m[INFO]:  [0musing [C:/Users/alexa/.codex/worktrees/hero-models-animation/game/art/work/hero-polish/test-profile/Godot/app_userdata/Cube Siege] for temporary output.
+Godot version:  4.6.1
+GUT version:  9.6.1
+[4m
+
+res://tests/integration/test_foot_contact_geometry.gd
+[0m* test_real_boot_geometry_clears_flat_floor_through_full_directional_cycles
+    SOLE class=0 speed=3.0 direction=(0.0, 0.0, -1.0) min_y=-0.000001 max_stance_gap=0.000000 cycles=3
+    SOLE class=0 speed=3.0 direction=(0.0, 0.0, 1.0) min_y=-0.000000 max_stance_gap=0.000001 cycles=3
+    SOLE class=0 speed=3.0 direction=(-1.0, 0.0, 0.0) min_y=-0.000000 max_stance_gap=0.000000 cycles=3
+    SOLE class=0 speed=3.0 direction=(1.0, 0.0, 0.0) min_y=-0.000000 max_stance_gap=0.000000 cycles=3
+    SOLE class=0 speed=7.0 direction=(0.0, 0.0, -1.0) min_y=-0.000001 max_stance_gap=0.000001 cycles=7
+    SOLE class=0 speed=7.0 direction=(0.0, 0.0, 1.0) min_y=-0.000001 max_stance_gap=0.000001 cycles=7
+    SOLE class=0 speed=7.0 direction=(-1.0, 0.0, 0.0) min_y=-0.000000 max_stance_gap=0.000001 cycles=7
+    SOLE class=0 speed=7.0 direction=(1.0, 0.0, 0.0) min_y=-0.000001 max_stance_gap=0.000001 cycles=7
+    SOLE class=1 speed=3.0 direction=(0.0, 0.0, -1.0) min_y=-0.000000 max_stance_gap=0.000001 cycles=3
+    SOLE class=1 speed=3.0 direction=(0.0, 0.0, 1.0) min_y=-0.000001 max_stance_gap=0.000001 cycles=3
+    SOLE class=1 speed=3.0 direction=(-1.0, 0.0, 0.0) min_y=-0.000000 max_stance_gap=0.000000 cycles=3
+    SOLE class=1 speed=3.0 direction=(1.0, 0.0, 0.0) min_y=-0.000000 max_stance_gap=0.000000 cycles=3
+    SOLE class=1 speed=7.0 direction=(0.0, 0.0, -1.0) min_y=-0.000001 max_stance_gap=0.000002 cycles=7
+    SOLE class=1 speed=7.0 direction=(0.0, 0.0, 1.0) min_y=-0.000001 max_stance_gap=0.000002 cycles=7
+    SOLE class=1 speed=7.0 direction=(-1.0, 0.0, 0.0) min_y=-0.000001 max_stance_gap=0.000001 cycles=7
+    SOLE class=1 speed=7.0 direction=(1.0, 0.0, 0.0) min_y=-0.000001 max_stance_gap=0.000001 cycles=7
+    SOLE class=2 speed=3.0 direction=(0.0, 0.0, -1.0) min_y=-0.000001 max_stance_gap=0.000001 cycles=3
+    SOLE class=2 speed=3.0 direction=(0.0, 0.0, 1.0) min_y=-0.000000 max_stance_gap=0.000001 cycles=3
+    SOLE class=2 speed=3.0 direction=(-1.0, 0.0, 0.0) min_y=-0.000000 max_stance_gap=0.000000 cycles=3
+    SOLE class=2 speed=3.0 direction=(1.0, 0.0, 0.0) min_y=-0.000000 max_stance_gap=0.000000 cycles=3
+    SOLE class=2 speed=7.0 direction=(0.0, 0.0, -1.0) min_y=-0.000001 max_stance_gap=0.017895 cycles=7
+    SOLE class=2 speed=7.0 direction=(0.0, 0.0, 1.0) min_y=-0.000001 max_stance_gap=0.000001 cycles=7
+    SOLE class=2 speed=7.0 direction=(-1.0, 0.0, 0.0) min_y=-0.000001 max_stance_gap=0.000001 cycles=7
+    SOLE class=2 speed=7.0 direction=(1.0, 0.0, 0.0) min_y=-0.000001 max_stance_gap=0.000001 cycles=7
+* test_real_presentation_dash_boundaries_do_not_pop_root_or_knees
+    DASH class=0 start_phase=0.05 max_root_delta=0.021493 max_knee_delta=0.142899 at_frame=1
+    DASH class=0 start_phase=0.30 max_root_delta=0.021493 max_knee_delta=0.116655 at_frame=0
+    DASH class=0 start_phase=0.55 max_root_delta=0.021493 max_knee_delta=0.149548 at_frame=19
+    DASH class=0 start_phase=0.80 max_root_delta=0.021493 max_knee_delta=0.223978 at_frame=2
+    DASH class=1 start_phase=0.05 max_root_delta=0.021493 max_knee_delta=0.151713 at_frame=2
+    DASH class=1 start_phase=0.30 max_root_delta=0.021493 max_knee_delta=0.105630 at_frame=0
+    DASH class=1 start_phase=0.55 max_root_delta=0.021493 max_knee_delta=0.157985 at_frame=5
+    DASH class=1 start_phase=0.80 max_root_delta=0.021493 max_knee_delta=0.214113 at_frame=2
+    DASH class=2 start_phase=0.05 max_root_delta=0.021493 max_knee_delta=0.161670 at_frame=2
+    DASH class=2 start_phase=0.30 max_root_delta=0.021493 max_knee_delta=0.123354 at_frame=25
+    DASH class=2 start_phase=0.55 max_root_delta=0.021493 max_knee_delta=0.176353 at_frame=4
+    DASH class=2 start_phase=0.80 max_root_delta=0.021493 max_knee_delta=0.231628 at_frame=2
+* test_boot_corrections_restore_when_switching_class_or_disabling_layer
+[1m3/3 passed.
+[0m
+
+
+
+[33m==============================================
+[0m[33m= Run Summary
+[0m[33m==============================================
+[0m
+Totals
+------
+Scripts               1
+Tests                 3
+Passing Tests         3
+Asserts            1220
+Time              2.453s
+
+
+[32m---- All tests passed! ----
+[0m
