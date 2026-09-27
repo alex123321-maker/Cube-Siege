@@ -1,9 +1,20 @@
 extends Node
 
+const SAVE_FILE_NAME = "cube_siege_save.json"
+const LEGACY_ROSTER_NAME = "character_roster.json"
+const LEGACY_MASTERY_NAME = "mastery_save.json"
+const DEFAULT_TEST_PROFILE_DIR = "user://test_profile/"
+
+# Backwards compatibility constants
 const SAVE_FILE_PATH = "user://cube_siege_save.json"
 const LEGACY_ROSTER_PATH = "user://character_roster.json"
 const LEGACY_MASTERY_PATH = "user://mastery_save.json"
 const SAVE_VERSION = 2
+
+var storage_dir: String = "user://"
+var save_file_path: String = "user://cube_siege_save.json"
+var legacy_roster_path: String = "user://character_roster.json"
+var legacy_mastery_path: String = "user://mastery_save.json"
 
 var meta_xp: int = 0
 var survived_runs: int = 0
@@ -16,6 +27,80 @@ var mastery: Dictionary = {}
 var run_history: Array = []
 
 @export var auto_load: bool = true
+
+func _init() -> void:
+	_init_storage_paths()
+
+func _init_storage_paths() -> void:
+	var env_test = OS.get_environment("CUBE_SIEGE_TEST_PROFILE")
+	if env_test != "":
+		set_storage_dir(env_test)
+		return
+	var env_save_dir = OS.get_environment("CUBE_SIEGE_SAVE_DIR")
+	if env_save_dir != "":
+		set_storage_dir(env_save_dir)
+		return
+
+	var all_args: Array = OS.get_cmdline_args() + OS.get_cmdline_user_args()
+	for arg in all_args:
+		var s_arg: String = str(arg)
+		if s_arg.begins_with("--test-profile="):
+			set_storage_dir(s_arg.substr("--test-profile=".length()))
+			return
+		if s_arg == "--test-profile":
+			set_storage_dir(DEFAULT_TEST_PROFILE_DIR)
+			return
+		if s_arg.contains("gut_cmdln.gd") or s_arg.begins_with("-gconfig") or s_arg.begins_with("-gtest") or s_arg.contains("gameplay_smoke_harness"):
+			set_storage_dir(DEFAULT_TEST_PROFILE_DIR)
+			return
+
+	set_storage_dir("user://")
+
+func set_storage_dir(new_dir: String) -> void:
+	var dir = new_dir.replace("\\", "/")
+	if not dir.ends_with("/"):
+		dir += "/"
+	storage_dir = dir
+	save_file_path = storage_dir + SAVE_FILE_NAME
+	legacy_roster_path = storage_dir + LEGACY_ROSTER_NAME
+	legacy_mastery_path = storage_dir + LEGACY_MASTERY_NAME
+	if not DirAccess.dir_exists_absolute(storage_dir):
+		DirAccess.make_dir_recursive_absolute(storage_dir)
+
+func is_test_environment() -> bool:
+	return storage_dir != "user://"
+
+func snapshot_state() -> Dictionary:
+	return {
+		"meta_xp": meta_xp,
+		"survived_runs": survived_runs,
+		"heroes_roster": heroes_roster.duplicate(true),
+		"unlocked_classes": unlocked_classes.duplicate(true),
+		"selected_slot_index": selected_slot_index,
+		"roster_slots": roster_slots.duplicate(true),
+		"mastery": mastery.duplicate(true),
+		"run_history": run_history.duplicate(true)
+	}
+
+func restore_state(snapshot: Dictionary) -> void:
+	meta_xp = snapshot.get("meta_xp", 0)
+	survived_runs = snapshot.get("survived_runs", 0)
+	heroes_roster = snapshot.get("heroes_roster", []).duplicate(true)
+	unlocked_classes = snapshot.get("unlocked_classes", ["warrior", "archer"]).duplicate(true)
+	selected_slot_index = snapshot.get("selected_slot_index", 0)
+	roster_slots = snapshot.get("roster_slots", get_default_roster_slots()).duplicate(true)
+	mastery = snapshot.get("mastery", get_default_mastery()).duplicate(true)
+	run_history = snapshot.get("run_history", []).duplicate(true)
+
+func reset_to_defaults() -> void:
+	meta_xp = 0
+	survived_runs = 0
+	heroes_roster = []
+	unlocked_classes = ["warrior", "archer"]
+	selected_slot_index = 0
+	roster_slots = get_default_roster_slots()
+	mastery = get_default_mastery()
+	run_history = []
 
 func _ready() -> void:
 	if roster_slots.is_empty():
@@ -155,7 +240,7 @@ func serialize_to_dict() -> Dictionary:
 	}
 
 func save_to_disk(custom_path: String = "") -> bool:
-	var path: String = custom_path if custom_path != "" else SAVE_FILE_PATH
+	var path: String = custom_path if custom_path != "" else save_file_path
 	var data: Dictionary = serialize_to_dict()
 	var file: FileAccess = FileAccess.open(path, FileAccess.WRITE)
 	if file:
@@ -167,7 +252,7 @@ func save_to_disk(custom_path: String = "") -> bool:
 		return false
 
 func load_from_disk(custom_path: String = "") -> bool:
-	var path: String = custom_path if custom_path != "" else SAVE_FILE_PATH
+	var path: String = custom_path if custom_path != "" else save_file_path
 	if not FileAccess.file_exists(path):
 		# If primary save file is missing, migrate from legacy files if present
 		if custom_path == "":
@@ -232,8 +317,8 @@ func _migrate_v1_to_v2(d: Dictionary) -> void:
 
 func _check_and_migrate_legacy_files() -> void:
 	# Migrate legacy character_roster.json if exists
-	if FileAccess.file_exists(LEGACY_ROSTER_PATH):
-		var file = FileAccess.open(LEGACY_ROSTER_PATH, FileAccess.READ)
+	if FileAccess.file_exists(legacy_roster_path):
+		var file = FileAccess.open(legacy_roster_path, FileAccess.READ)
 		if file:
 			var parsed = JSON.parse_string(file.get_as_text())
 			file.close()
@@ -244,8 +329,8 @@ func _check_and_migrate_legacy_files() -> void:
 				selected_slot_index = parsed.get("selected_slot", 0)
 
 	# Migrate legacy mastery_save.json if exists
-	if FileAccess.file_exists(LEGACY_MASTERY_PATH):
-		var file = FileAccess.open(LEGACY_MASTERY_PATH, FileAccess.READ)
+	if FileAccess.file_exists(legacy_mastery_path):
+		var file = FileAccess.open(legacy_mastery_path, FileAccess.READ)
 		if file:
 			var parsed = JSON.parse_string(file.get_as_text())
 			file.close()

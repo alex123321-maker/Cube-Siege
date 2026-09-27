@@ -2,27 +2,42 @@
 """
 tools/verify.py - Comprehensive verification runner for Cube Siege.
 
-Performs complete health audit of the project:
-  1. Toolchain discovery (python, git, scons, c++ compiler, godot)
+Performs complete, fail-closed health audit of the project:
+  1. Toolchain discovery (python, git, gh, scons, c++ compiler, godot)
   2. Git submodule status (godot-cpp)
   3. C++ GDExtension debug build (via scons)
   4. Godot headless project import and script validation
-  5. GUT automated smoke and unit tests
-  6. Short headless game runtime run (--quit-after 100)
+  5. GUT automated smoke, unit, and integration tests (fail-closed, report verified)
+  6. Python tooling and review loop unit tests (independent discovery)
+  7. Procedural world, vertical combat, and streaming verification (Issue #18)
+  8. Headless menu smoke run (scenes/main_menu.tscn)
+  9. Headless gameplay smoke harness (all 3 classes, combat hits, chunk streaming)
 
+Enforces timeouts on all subprocess commands to prevent hangs.
 Returns non-zero exit code on any failure.
 """
 
 import os
 import platform
+import re
 import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 REPO_DIR = Path(__file__).resolve().parent.parent
 LOCAL_GODOT_PATH_FILE = REPO_DIR / ".godot_path"
+
+# Default timeouts in seconds for distinct verification phases (configurable via env vars)
+TIMEOUT_TOOLS: float = float(os.environ.get("VERIFY_TIMEOUT_TOOLS", "30.0"))
+TIMEOUT_SCONS: float = float(os.environ.get("VERIFY_TIMEOUT_SCONS", "600.0"))
+TIMEOUT_IMPORT: float = float(os.environ.get("VERIFY_TIMEOUT_IMPORT", "180.0"))
+TIMEOUT_GUT: float = float(os.environ.get("VERIFY_TIMEOUT_GUT", "300.0"))
+TIMEOUT_PYTHON: float = float(os.environ.get("VERIFY_TIMEOUT_PYTHON", "120.0"))
+TIMEOUT_ISSUE_18: float = float(os.environ.get("VERIFY_TIMEOUT_ISSUE_18", "180.0"))
+TIMEOUT_MENU_SMOKE: float = float(os.environ.get("VERIFY_TIMEOUT_MENU_SMOKE", "60.0"))
+TIMEOUT_GAMEPLAY_HARNESS: float = float(os.environ.get("VERIFY_TIMEOUT_GAMEPLAY_HARNESS", "180.0"))
 
 if hasattr(sys.stdout, "reconfigure"):
     try:
@@ -30,16 +45,32 @@ if hasattr(sys.stdout, "reconfigure"):
     except Exception:
         pass
 
+
 def log_header(title: str) -> None:
     print("\n" + "=" * 70)
     print(f" [VERIFY] {title}")
     print("=" * 70)
 
+
 def log_step(name: str, status: str, detail: str = "") -> None:
     marker = "[PASS]" if status == "PASS" else ("[FAIL]" if status == "FAIL" else "[INFO]")
     print(f"  {marker:7s} | {name:<35s} | {detail}")
 
-def run_command(cmd: List[str], cwd: Path, desc: str) -> Tuple[bool, str]:
+
+def run_command(
+    cmd: List[str],
+    cwd: Path,
+    desc: str,
+    timeout: Optional[float] = 120.0,
+    env: Optional[Dict[str, str]] = None,
+) -> Tuple[bool, str]:
+    """Execute a subprocess command with guaranteed timeout and test storage isolation."""
+    full_env = os.environ.copy()
+    # Always enforce isolated test storage profile for verification runs (F01)
+    full_env["CUBE_SIEGE_TEST_PROFILE"] = "user://test_profile/"
+    if env:
+        full_env.update(env)
+
     try:
         proc = subprocess.run(
             cmd,
@@ -48,11 +79,18 @@ def run_command(cmd: List[str], cwd: Path, desc: str) -> Tuple[bool, str]:
             stderr=subprocess.STDOUT,
             text=True,
             encoding="utf-8",
-            errors="replace"
+            errors="replace",
+            timeout=timeout,
+            env=full_env,
         )
         return (proc.returncode == 0, proc.stdout)
+    except subprocess.TimeoutExpired as te:
+        raw_out = te.stdout or ""
+        out_str = raw_out if isinstance(raw_out, str) else raw_out.decode("utf-8", "replace")
+        return (False, f"[TIMEOUT] Command '{desc}' timed out after {timeout} seconds.\nOutput before timeout:\n{out_str}")
     except Exception as e:
-        return (False, str(e))
+        return (False, f"[ERROR] Execution failed for '{desc}': {e}")
+
 
 def find_godot_binary() -> Optional[str]:
     # 1. Environment variable
@@ -78,11 +116,10 @@ def find_godot_binary() -> Optional[str]:
             r"D:\ProgramFiles\godot\Godot_v4.6.1-stable_win64_console.exe",
             r"D:\ProgramFiles\godot\godot.exe",
             r"C:\Program Files\Godot\godot.exe",
-            r"C:\Godot\godot.exe"
+            r"C:\Godot\godot.exe",
         ]
         for c in candidates:
             if Path(c).is_file():
-                # Cache to .godot_path for next time
                 try:
                     LOCAL_GODOT_PATH_FILE.write_text(c, encoding="utf-8")
                 except Exception:
@@ -91,7 +128,8 @@ def find_godot_binary() -> Optional[str]:
 
     return None
 
-def step_check_tools() -> Tuple[bool, Optional[str]]:
+
+def step_check_tools(timeout: float = TIMEOUT_TOOLS) -> Tuple[bool, Optional[str]]:
     log_header("1. Checking Development Toolchain")
     all_ok = True
 
@@ -102,18 +140,22 @@ def step_check_tools() -> Tuple[bool, Optional[str]]:
     # Git
     git_path = shutil.which("git")
     if git_path:
-        ok, out = run_command(["git", "--version"], REPO_DIR, "git version")
-        log_step("Git CLI", "PASS", out.strip())
+        ok, out = run_command(["git", "--version"], REPO_DIR, "git version", timeout=timeout)
+        if ok:
+            log_step("Git CLI", "PASS", out.strip())
+        else:
+            log_step("Git CLI", "FAIL", "git --version failed")
+            all_ok = False
     else:
         log_step("Git CLI", "FAIL", "git not found in PATH")
         all_ok = False
 
-    # GitHub CLI (gh) - Mandatory for Issue-Driven Development
+    # GitHub CLI (gh)
     gh_path = shutil.which("gh")
     if gh_path:
-        ok, out = run_command(["gh", "--version"], REPO_DIR, "gh version")
+        ok, out = run_command(["gh", "--version"], REPO_DIR, "gh version", timeout=timeout)
         first_line = out.splitlines()[0] if out else "installed"
-        auth_ok, auth_out = run_command(["gh", "auth", "status"], REPO_DIR, "gh auth status")
+        auth_ok, auth_out = run_command(["gh", "auth", "status"], REPO_DIR, "gh auth status", timeout=timeout)
         if auth_ok:
             acct = "Authenticated"
             for line in (auth_out or "").splitlines():
@@ -123,18 +165,28 @@ def step_check_tools() -> Tuple[bool, Optional[str]]:
                     break
             log_step("GitHub CLI (gh)", "PASS", f"{first_line} ({acct})")
         else:
-            log_step("GitHub CLI (gh)", "FAIL", f"{first_line} (Not logged in. Run 'gh auth login' to enable Issue-Driven workflow)")
-            all_ok = False
+            if os.environ.get("CI") or os.environ.get("GITHUB_ACTIONS"):
+                log_step("GitHub CLI (gh)", "PASS", f"{first_line} (CI runner)")
+            else:
+                log_step("GitHub CLI (gh)", "FAIL", f"{first_line} (Not logged in. Run 'gh auth login' to enable Issue-Driven workflow)")
+                all_ok = False
     else:
-        log_step("GitHub CLI (gh)", "FAIL", "gh not found in PATH. Required for Issue-Driven workflow. Run 'winget install GitHub.cli' or 'sudo apt install gh'")
-        all_ok = False
+        if os.environ.get("CI") or os.environ.get("GITHUB_ACTIONS"):
+            log_step("GitHub CLI (gh)", "PASS", "Not installed (CI runner)")
+        else:
+            log_step("GitHub CLI (gh)", "FAIL", "gh not found in PATH. Required for Issue-Driven workflow.")
+            all_ok = False
 
     # SCons
     scons_path = shutil.which("scons")
     if scons_path:
-        ok, out = run_command(["scons", "--version"], REPO_DIR, "scons version")
+        ok, out = run_command(["scons", "--version"], REPO_DIR, "scons version", timeout=timeout)
         first_line = out.splitlines()[0] if out else ""
-        log_step("SCons Build System", "PASS", first_line)
+        if ok:
+            log_step("SCons Build System", "PASS", first_line)
+        else:
+            log_step("SCons Build System", "FAIL", "scons --version failed")
+            all_ok = False
     else:
         log_step("SCons Build System", "FAIL", "scons not found in PATH")
         all_ok = False
@@ -142,9 +194,13 @@ def step_check_tools() -> Tuple[bool, Optional[str]]:
     # C++ Compiler
     cc_path = shutil.which("gcc") or shutil.which("clang") or shutil.which("cl")
     if cc_path:
-        ok, out = run_command([cc_path, "--version"], REPO_DIR, "compiler version")
+        ok, out = run_command([cc_path, "--version"], REPO_DIR, "compiler version", timeout=timeout)
         first_line = out.splitlines()[0] if out else Path(cc_path).name
-        log_step("C++ Compiler", "PASS", first_line)
+        if ok:
+            log_step("C++ Compiler", "PASS", first_line)
+        else:
+            log_step("C++ Compiler", "FAIL", f"{cc_path} --version failed")
+            all_ok = False
     else:
         log_step("C++ Compiler", "FAIL", "No C++ compiler (gcc/clang/cl) found in PATH")
         all_ok = False
@@ -159,6 +215,7 @@ def step_check_tools() -> Tuple[bool, Optional[str]]:
 
     return all_ok, godot_path
 
+
 def step_check_submodules() -> bool:
     log_header("2. Checking Git Submodules")
     godot_cpp_dir = REPO_DIR / "godot-cpp"
@@ -170,45 +227,105 @@ def step_check_submodules() -> bool:
     log_step("godot-cpp submodule", "PASS", "Initialized and present")
     return True
 
-def step_build_gdextension() -> bool:
+
+def step_build_gdextension(timeout: float = TIMEOUT_SCONS) -> bool:
     log_header("3. Building C++ GDExtension (Debug)")
     sconstruct_path = REPO_DIR / "SConstruct"
     if not sconstruct_path.is_file():
-        log_step("C++ GDExtension", "INFO", "No root SConstruct found. Skipping native build.")
-        return True
+        log_step("C++ GDExtension", "FAIL", "Root SConstruct file missing in repository (required for native build)")
+        return False
 
     plat = "windows" if sys.platform.startswith("win") else ("linux" if sys.platform.startswith("linux") else "macos")
+    jobs = str(os.cpu_count() or 2)
     cmd = [
         "scons",
         "custom_api_file=extension_api.json",
         f"platform={plat}",
-        "target=template_debug"
+        "target=template_debug",
+        f"-j{jobs}",
     ]
     print(f"  Executing: {' '.join(cmd)}")
-    ok, out = run_command(cmd, REPO_DIR, "scons build")
+    ok, out = run_command(cmd, REPO_DIR, "scons build", timeout=timeout)
     if ok:
         log_step("SCons Compilation", "PASS", "Built successfully")
         return True
     else:
         log_step("SCons Compilation", "FAIL", "Build failed")
         print("\n--- SCons Build Output ---")
+        if "[TIMEOUT]" in out:
+            for line in out.splitlines()[:5]:
+                print(line)
         print(out[-2000:])
         return False
 
-def step_headless_import(godot_bin: str) -> bool:
+
+def step_headless_import(godot_bin: str, timeout: float = TIMEOUT_IMPORT) -> bool:
     log_header("4. Headless Godot Editor Import & Validation")
     cmd = [godot_bin, "--headless", "--editor", "--quit", "--path", str(REPO_DIR)]
-    ok, out = run_command(cmd, REPO_DIR, "headless import")
-    if ok:
-        log_step("Project Import", "PASS", "Assets and scripts validated cleanly")
-        return True
-    else:
-        log_step("Project Import", "FAIL", f"Exit code non-zero")
+    ok, out = run_command(cmd, REPO_DIR, "headless import", timeout=timeout)
+    if not ok:
+        log_step("Project Import", "FAIL", "Exit code non-zero or import failed")
         print("\n--- Godot Import Output ---")
         print(out[-2000:])
         return False
 
-def step_run_gut_tests(godot_bin: str) -> bool:
+    # Check for parse errors or script errors in import log
+    if "SCRIPT ERROR:" in out or "Parse Error:" in out:
+        log_step("Project Import", "FAIL", "Script or parse errors detected during import")
+        print("\n--- Godot Import Output ---")
+        print(out[-2000:])
+        return False
+
+    log_step("Project Import", "PASS", "Assets and scripts validated cleanly")
+    return True
+
+
+def verify_gut_output(ok: bool, out: str) -> Tuple[bool, str]:
+    """Fail-closed validator for GUT test runner output (F26).
+    
+    Guarantees:
+      - Nonzero returncode is ALWAYS a failure regardless of output text.
+      - Engine script errors and parse errors fail the step.
+      - A complete test summary with > 0 tests is required.
+      - Failing tests or GUT errors result in failure.
+    """
+    if not ok:
+        return (False, "GUT process returned non-zero exit code.")
+
+    if "SCRIPT ERROR:" in out or "Parse Error:" in out:
+        return (False, "Godot script or parse error detected in GUT test log.")
+
+    # Search for GUT summary table
+    tests_match = re.search(r"Tests\s+(\d+)", out)
+    passing_match = re.search(r"Passing Tests\s+(\d+)", out)
+    failing_match = re.search(r"Failing Tests\s+(\d+)", out)
+    errors_match = re.search(r"Errors\s+(\d+)", out)
+
+    if not tests_match:
+        return (False, "Incomplete or empty GUT report: no test summary found.")
+
+    total_tests = int(tests_match.group(1))
+    if total_tests == 0:
+        return (False, "Zero GUT tests were executed.")
+
+    if failing_match and int(failing_match.group(1)) > 0:
+        return (False, f"{failing_match.group(1)} test(s) failed in GUT suite.")
+
+    if errors_match and int(errors_match.group(1)) > 0:
+        return (False, f"{errors_match.group(1)} GUT runtime error(s) occurred.")
+
+    if passing_match and int(passing_match.group(1)) != total_tests:
+        return (False, f"Not all tests passed: {passing_match.group(1)}/{total_tests} passing.")
+
+    if "---- All tests passed! ----" not in out and not (passing_match and int(passing_match.group(1)) == total_tests):
+        return (False, "GUT test suite did not confirm clean pass.")
+
+    scripts_match = re.search(r"Scripts\s+(\d+)", out)
+    scripts_info = f" across {scripts_match.group(1)} scripts" if scripts_match else ""
+    return (True, f"All {total_tests} tests passed{scripts_info}")
+
+
+def step_run_gut_tests(godot_bin: str, timeout: float = TIMEOUT_GUT) -> bool:
     log_header("5. Running GUT Automated Tests")
     gut_script = "addons/gut/gut_cmdln.gd"
     if not (REPO_DIR / gut_script).is_file():
@@ -220,79 +337,254 @@ def step_run_gut_tests(godot_bin: str) -> bool:
         "--headless",
         "--path", str(REPO_DIR),
         "-s", gut_script,
-        "-gconfig=res://.gutconfig.json"
+        "-gconfig=res://.gutconfig.json",
     ]
-    ok, out = run_command(cmd, REPO_DIR, "gut full test suite")
-    
-    # Check if out contains "All tests passed"
-    if "All tests passed" in out or ok:
-        log_step("GUT Test Suite", "PASS", "Smoke tests passed via .gutconfig.json (harness active for smoke/unit/integration)")
+    ok, out = run_command(cmd, REPO_DIR, "gut full test suite", timeout=timeout)
+    passed, detail = verify_gut_output(ok, out)
+
+    if passed:
+        log_step("GUT Test Suite", "PASS", detail)
         return True
     else:
-        log_step("GUT Test Suite", "FAIL", "Tests failed")
+        log_step("GUT Test Suite", "FAIL", detail)
         print("\n--- GUT Output ---")
-        print(out)
+        print(out[-3000:])
         return False
 
-def step_run_python_tests() -> bool:
-    log_header("6. Running Python Tooling & Review Loop Tests")
-    test_file = REPO_DIR / "tests" / "unit" / "test_review_loop.py"
-    if not test_file.is_file():
-        log_step("Python Unit Tests", "PASS", "No python tests found")
-        return True
 
-    cmd = [sys.executable, "-m", "unittest", "discover", "-s", "tests/unit", "-p", "test_*.py"]
-    ok, out = run_command(cmd, REPO_DIR, "python unit tests")
-    if ok:
-        log_step("Python Unit Tests", "PASS", "All review loop and tooling unit tests passed")
+def discover_python_tests(tests_dir: Optional[Path] = None) -> List[Path]:
+    """Discover all python unit test files in the repository (F26)."""
+    base = tests_dir or (REPO_DIR / "tests")
+    if not base.is_dir():
+        return []
+    return sorted(list(base.glob("**/test_*.py")))
+
+
+def verify_python_test_output(ok: bool, out: str) -> Tuple[bool, str, int]:
+    """Fail-closed validator for Python unittest runner output (F26).
+    
+    Guarantees:
+      - Nonzero exit code is ALWAYS a failure regardless of output text.
+      - Unhandled Python tracebacks fail the step.
+      - A complete test summary with > 0 tests is strictly required (Ran N tests).
+      - 'FAILED' in output fails the step.
+      - Confirmation 'OK' must be present when tests pass.
+    """
+    if not ok:
+        return (False, "Python unittest process exited with non-zero code.", 0)
+
+    if "FAILED" in out:
+        return (False, "Failures or errors reported in python unit tests.", 0)
+
+    if "Traceback (most recent call last):" in out:
+        return (False, "Unhandled Traceback encountered in python unit tests.", 0)
+
+    ran_match = re.search(r"Ran (\d+) tests?", out)
+    if not ran_match:
+        return (False, "Incomplete or missing unittest execution summary (no 'Ran N tests' found).", 0)
+
+    test_count = int(ran_match.group(1))
+    if test_count == 0:
+        return (False, "Zero python tests were executed.", 0)
+
+    if "OK" not in out:
+        return (False, "Missing final 'OK' confirmation in python unittest output.", 0)
+
+    return (True, f"All {test_count} python unit tests passed", test_count)
+
+
+def step_run_python_tests(timeout: float = TIMEOUT_PYTHON) -> bool:
+    log_header("6. Running Python Tooling & Unit Tests")
+    py_test_files = discover_python_tests()
+    if not py_test_files:
+        log_step("Python Unit Tests", "FAIL", "No python test files found in tests/ (required suite missing)")
+        return False
+
+    # Explicitly pass all discovered files so discovery and execution match 1:1 across all subdirectories
+    test_args = [str(p.relative_to(REPO_DIR)) for p in py_test_files]
+    cmd = [sys.executable, "-m", "unittest"] + test_args
+    ok, out = run_command(cmd, REPO_DIR, "python unit tests", timeout=timeout)
+
+    passed, detail, _count = verify_python_test_output(ok, out)
+    if passed:
+        log_step("Python Unit Tests", "PASS", f"{detail} ({len(py_test_files)} test files)")
         return True
     else:
-        log_step("Python Unit Tests", "FAIL", "Python unit tests failed")
+        log_step("Python Unit Tests", "FAIL", detail)
         print("\n--- Python Unit Tests Output ---")
         print(out)
         return False
 
-def step_headless_smoke_run(godot_bin: str) -> bool:
-    log_header("7. Headless Game Runtime Smoke Run (100 frames)")
-    cmd = [
-        godot_bin,
-        "--headless",
-        "--path", str(REPO_DIR),
-        "--quit-after", "100"
-    ]
-    ok, out = run_command(cmd, REPO_DIR, "smoke run")
-    if ok:
-        log_step("100-Frame Smoke Run", "PASS", "Game started and exited normally (100 frames simulated)")
-        return True
-    else:
-        log_step("100-Frame Smoke Run", "FAIL", "Runtime error during simulation")
-        print("\n--- Smoke Run Output ---")
-        print(out[-2000:])
+
+def verify_issue_18_output(ok: bool, out: str) -> Tuple[bool, str]:
+    """Fail-closed validator for Issue #18 verification output (F26).
+    
+    Guarantees:
+      - Nonzero returncode is ALWAYS a failure.
+      - Engine script errors, parse errors, and runtime error markers fail the step.
+      - Individual check failures ([FAIL]) fail the step.
+      - Completed summary with > 0 checks and 0 Failed is strictly required.
+    """
+    if not ok:
+        return (False, "Issue #18 verification process exited with non-zero code.")
+
+    if "SCRIPT ERROR:" in out or "Parse Error:" in out:
+        return (False, "Godot script or parse error detected in Issue #18 log.")
+
+    if "  [FAIL]" in out:
+        return (False, "One or more individual Issue #18 checks reported [FAIL].")
+
+    summary_match = re.search(r"(?:\[VERIFY-ISSUE-18\]\s+)?Summary:\s+(\d+)/(\d+)\s+Passed,\s+(\d+)\s+Failed", out)
+    if not summary_match:
+        return (False, "Incomplete or missing Issue #18 summary in output.")
+
+    passed_checks = int(summary_match.group(1))
+    total_checks = int(summary_match.group(2))
+    failed_checks = int(summary_match.group(3))
+
+    if total_checks == 0:
+        return (False, "Zero checks executed in Issue #18 verification.")
+
+    if failed_checks > 0:
+        return (False, f"{failed_checks} check(s) failed in Issue #18 verification.")
+
+    if passed_checks != total_checks:
+        return (False, f"Not all Issue #18 checks passed: {passed_checks}/{total_checks}.")
+
+    return (True, f"All {passed_checks} procedural world, combat, and streaming checks passed")
+
+
+def step_run_issue_18_verification(godot_bin: str, timeout: float = TIMEOUT_ISSUE_18) -> bool:
+    log_header("7. Running Issue #18 Procedural World & Combat Verification")
+    verifier = "tools/verify_issue_18.gd"
+    verifier_path = REPO_DIR / verifier
+    if not verifier_path.is_file():
+        log_step("Issue #18 Verification", "FAIL", f"Required verifier script {verifier} missing in repository")
         return False
 
-def step_run_issue_18_verification(godot_bin: str) -> bool:
-    log_header("8. Running Issue #18 Procedural World & Combat Verification")
-    verifier = "tools/verify_issue_18.gd"
-    if not (REPO_DIR / verifier).is_file():
-        return True
-
     cmd = [
         godot_bin,
         "--headless",
         "--path", str(REPO_DIR),
-        "-s", verifier
+        "-s", verifier,
     ]
-    ok, out = run_command(cmd, REPO_DIR, "issue 18 verification")
-    if ok:
-        log_step("Issue #18 Verification", "PASS", "All procedural world, vertical combat, and streaming checks passed")
+    ok, out = run_command(cmd, REPO_DIR, "issue 18 verification", timeout=timeout)
+    passed, detail = verify_issue_18_output(ok, out)
+    if passed:
+        log_step("Issue #18 Verification", "PASS", detail)
         return True
     else:
-        log_step("Issue #18 Verification", "FAIL", "Verification failed")
+        log_step("Issue #18 Verification", "FAIL", detail)
         print("\n--- Issue #18 Output ---")
         print(out)
         return False
 
-def main():
+
+def verify_godot_smoke_output(ok: bool, out: str, context_name: str = "Main menu") -> Tuple[bool, str]:
+    """Fail-closed validator for headless Godot smoke execution (F26, F27).
+    
+    Guarantees:
+      - Nonzero exit code is ALWAYS a failure.
+      - Engine script errors and parse errors fail the step.
+      - Empty or non-started Godot output fails the step.
+    """
+    if not ok:
+        return (False, f"{context_name} smoke process exited with non-zero code.")
+
+    if not out or not out.strip():
+        return (False, f"{context_name} smoke run produced empty output (engine failed to start).")
+
+    if "SCRIPT ERROR:" in out or "Parse Error:" in out:
+        return (False, f"Godot script or parse error detected during {context_name} smoke run.")
+
+    return (True, f"{context_name} initialized and ran cleanly")
+
+
+def step_menu_smoke_run(godot_bin: str, timeout: float = TIMEOUT_MENU_SMOKE) -> bool:
+    log_header("8. Headless Main Menu Smoke Run (60 frames)")
+    cmd = [
+        godot_bin,
+        "--headless",
+        "--path", str(REPO_DIR),
+        "res://scenes/main_menu.tscn",
+        "--quit-after", "60",
+    ]
+    ok, out = run_command(cmd, REPO_DIR, "menu smoke run", timeout=timeout)
+    passed, detail = verify_godot_smoke_output(ok, out, "Main menu")
+    if passed:
+        log_step("Menu Smoke Run", "PASS", f"{detail} (60 frames)")
+        return True
+    else:
+        log_step("Menu Smoke Run", "FAIL", detail)
+        print("\n--- Menu Smoke Output ---")
+        print(out[-2000:])
+        return False
+
+
+def verify_gameplay_harness_output(ok: bool, out: str) -> Tuple[bool, str]:
+    """Fail-closed validator for Gameplay Smoke Harness output (F26, F27).
+    
+    Guarantees:
+      - Nonzero returncode is ALWAYS a failure.
+      - Engine script errors, parse errors, and runtime error markers fail the step.
+      - Individual check failures ([FAIL]) fail the step.
+      - Completed harness summary with > 0 checks and 0 Failed is strictly required.
+    """
+    if not ok:
+        return (False, "Gameplay harness process exited with non-zero code.")
+
+    if "SCRIPT ERROR:" in out or "Parse Error:" in out:
+        return (False, "Godot script or parse error detected in gameplay harness log.")
+
+    if "  [FAIL]" in out:
+        return (False, "One or more individual gameplay smoke checks reported [FAIL].")
+
+    summary_match = re.search(r"\[GAMEPLAY SMOKE HARNESS\] Summary:\s+(\d+)/(\d+)\s+Passed,\s+(\d+)\s+Failed", out)
+    if not summary_match:
+        return (False, "Incomplete or missing gameplay harness summary in output.")
+
+    passed_checks = int(summary_match.group(1))
+    total_checks = int(summary_match.group(2))
+    failed_checks = int(summary_match.group(3))
+
+    if total_checks == 0:
+        return (False, "Zero checks executed in gameplay smoke harness.")
+
+    if failed_checks > 0:
+        return (False, f"{failed_checks} check(s) failed in gameplay smoke harness.")
+
+    if passed_checks != total_checks:
+        return (False, f"Not all gameplay checks passed: {passed_checks}/{total_checks}.")
+
+    return (True, f"All {passed_checks} gameplay checks passed across 3 classes")
+
+
+def step_gameplay_smoke_harness(godot_bin: str, timeout: float = TIMEOUT_GAMEPLAY_HARNESS) -> bool:
+    log_header("9. Headless Gameplay Smoke Harness (F27)")
+    harness = "tools/gameplay_smoke_harness.gd"
+    if not (REPO_DIR / harness).is_file():
+        log_step("Gameplay Smoke Harness", "FAIL", f"{harness} not found in repository")
+        return False
+
+    cmd = [
+        godot_bin,
+        "--headless",
+        "--path", str(REPO_DIR),
+        "-s", harness,
+    ]
+    ok, out = run_command(cmd, REPO_DIR, "gameplay smoke harness", timeout=timeout)
+    passed, detail = verify_gameplay_harness_output(ok, out)
+    if passed:
+        log_step("Gameplay Smoke Harness", "PASS", detail)
+        return True
+    else:
+        log_step("Gameplay Smoke Harness", "FAIL", detail)
+        print("\n--- Gameplay Harness Output ---")
+        print(out)
+        return False
+
+
+def main() -> None:
     print("\n" + "#" * 70)
     print(" CUBE SIEGE - AUTOMATED ENVIRONMENT & CODEBASE AUDIT")
     print("#" * 70)
@@ -332,15 +624,21 @@ def main():
         print("\n[ERROR] Issue #18 verification failed. Audit aborted.")
         sys.exit(1)
 
-    run_ok = step_headless_smoke_run(godot_bin)
-    if not run_ok:
-        print("\n[ERROR] Game headless smoke run failed. Verification aborted.")
+    menu_ok = step_menu_smoke_run(godot_bin)
+    if not menu_ok:
+        print("\n[ERROR] Menu smoke run failed. Verification aborted.")
+        sys.exit(1)
+
+    gameplay_ok = step_gameplay_smoke_harness(godot_bin)
+    if not gameplay_ok:
+        print("\n[ERROR] Gameplay smoke harness failed. Verification aborted.")
         sys.exit(1)
 
     log_header("SUMMARY")
     print("  All verification stages completed successfully! Project is healthy.")
     print("=" * 70 + "\n")
     sys.exit(0)
+
 
 if __name__ == "__main__":
     main()

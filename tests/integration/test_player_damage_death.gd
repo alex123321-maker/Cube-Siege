@@ -2,6 +2,21 @@ extends GutTest
 
 const PLAYER_SCENE = preload("res://scenes/player.tscn")
 
+var _save_snapshot: Dictionary = {}
+
+func before_each() -> void:
+	var save_mgr = get_node_or_null("/root/SaveManager")
+	if save_mgr:
+		_save_snapshot = save_mgr.snapshot_state()
+
+func after_each() -> void:
+	var save_mgr = get_node_or_null("/root/SaveManager")
+	if save_mgr and not _save_snapshot.is_empty():
+		save_mgr.restore_state(_save_snapshot)
+		if save_mgr.is_test_environment():
+			if FileAccess.file_exists(save_mgr.save_file_path):
+				DirAccess.remove_absolute(save_mgr.save_file_path)
+
 func test_player_takes_damage() -> void:
 	var player = PLAYER_SCENE.instantiate()
 	add_child_autoqfree(player)

@@ -313,12 +313,14 @@ func _check_multi_hit_foliage_occlusion() -> void:
 	for i in range(3):
 		var tree: Node3D = tree_scene.instantiate() as Node3D
 		root.add_child(tree)
-		var t_val: float = 0.25 + float(i) * 0.20
+		var t_val: float = 0.20 + float(i) * 0.15
 		tree.global_position = player_node.global_position.lerp(camera.global_position, t_val)
 		trees.append(tree)
 
-	for frame in range(4):
+	camera.pan_enabled = false
+	for frame in range(6):
 		await process_frame
+		await physics_frame
 
 	camera.check_occlusion()
 
@@ -333,8 +335,9 @@ func _check_multi_hit_foliage_occlusion() -> void:
 	for t in trees:
 		(t as Node3D).global_position = Vector3(500.0, 0.0, 500.0)
 
-	for frame in range(4):
+	for frame in range(6):
 		await process_frame
+		await physics_frame
 
 	camera.check_occlusion()
 	_assert_check(camera.occluding_buildings.is_empty(), "Occlusion Restoration", "All occluders restored to opaque when out of line-of-sight")
@@ -357,8 +360,9 @@ func _check_multi_hit_foliage_occlusion() -> void:
 	root.add_child(tree4)
 	tree4.global_position = enemies[4].global_position.lerp(camera.global_position, 0.3)
 
-	for frame in range(4):
+	for frame in range(6):
 		await process_frame
+		await physics_frame
 
 	camera.check_occlusion()
 	_assert_check(
