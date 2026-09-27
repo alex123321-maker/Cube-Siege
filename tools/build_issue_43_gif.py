@@ -13,20 +13,26 @@ def main():
     
     if seq_files:
         print(f"[GIF] Found {len(seq_files)} sequential transition frames.")
+        # If there are many frames, take every 2nd frame to keep GIF compact while maintaining smooth playback
+        selected_files = seq_files[::2]
+        if seq_files[-1] not in selected_files:
+            selected_files.append(seq_files[-1])
+        print(f"[GIF] Selected {len(selected_files)} frames for final animation.")
+        
         frames = []
         durations = []
-        for i, fpath in enumerate(seq_files):
+        for i, fpath in enumerate(selected_files):
             img = Image.open(fpath)
-            # Resize to 640x360 for clean 16:9 presentation and compact GIF size (~3-4 MB)
-            img_resized = img.resize((640, 360), Image.Resampling.BILINEAR)
-            img_p = img_resized.convert("P", palette=Image.Palette.ADAPTIVE, colors=128)
+            # Resize to 512x288 for crisp 16:9 presentation and compact GIF size (< 5 MB)
+            img_resized = img.resize((512, 288), Image.Resampling.BILINEAR)
+            img_p = img_resized.convert("P", palette=Image.Palette.ADAPTIVE, colors=96)
             frames.append(img_p)
             
-            # Normal frame duration ~90ms (~11 fps); pause slightly on key milestones
-            if i == 0 or i == len(seq_files) - 1:
-                durations.append(500)
+            # Normal frame duration ~120ms; pause slightly on key milestones
+            if i == 0 or i == len(selected_files) - 1:
+                durations.append(600)
             else:
-                durations.append(90)
+                durations.append(120)
     else:
         frame_names = [
             "dyn_01_step_approach.png",

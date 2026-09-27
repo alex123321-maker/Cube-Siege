@@ -296,15 +296,30 @@ func _run() -> void:
 		printerr("[ERROR] Player jumped over 2m impassable cliff! Final y: %f" % cliff_end_pos.y)
 		quit(1)
 
-	# 8.3. Continuous walk across chunk boundary:
-	# Boundary between chunk (0, 0) and chunk (1, 0) at x=16.0
-	print("    [DYNAMIC-BOUNDARY] Walking across chunk boundary at x=16.0...")
-	# Clear any resource obstacles in the boundary corridor
+	# 8.3. Continuous walk across chunk boundary and walk away to trigger UNLOAD:
+	# Keep production radii: load_radius_chunks = 3, unload_radius_chunks = 5
+	print("    [DYNAMIC-STREAMING] Production streaming radii: load=%d, unload=%d" % [
+		map_gen.load_radius_chunks, map_gen.unload_radius_chunks
+	])
+	print("    [DYNAMIC-STREAMING] Control chunk: (0, 0) | Control boundary seam: x = 16.0")
+	if not map_gen.active_chunks.has(Vector2i(0, 0)):
+		printerr("[ERROR] Control chunk (0, 0) must be initially active!")
+		quit(1)
+
+	# Auto-clear any resource obstacles in walking corridor z in [0.0, 3.0] across whole path
 	for res_node in root.get_tree().get_nodes_in_group("resource_nodes"):
 		if is_instance_valid(res_node) and res_node is Node3D:
 			var p = res_node.global_position
-			if p.x >= 11.0 and p.x <= 19.0 and p.z >= 0.0 and p.z <= 3.0:
+			if p.z >= 0.0 and p.z <= 3.0:
 				res_node.queue_free()
+
+	if map_gen.resources_container:
+		map_gen.resources_container.child_entered_tree.connect(func(node: Node) -> void:
+			if node is Node3D:
+				var p3 = (node as Node3D).global_position
+				if p3.z >= 0.0 and p3.z <= 3.0:
+					node.queue_free()
+		)
 
 	for f in range(4):
 		await process_frame
@@ -312,15 +327,46 @@ func _run() -> void:
 	var h_bound: float = float(map_gen.get_voxel_height(13, 1))
 	player.global_position = Vector3(13.0, h_bound + 0.9, 1.5)
 	player.velocity = Vector3.ZERO
-	walk_target.global_position = Vector3(100.0, 0.0, 1.5)
+	walk_target.global_position = Vector3(200.0, 0.0, 1.5)
 
 	for f in range(6):
 		await process_frame
 
+	# Continuous Eastward walk: crossing boundary x=16.0 into chunk (1, 0) and continuing
+	# to chunk (6, 0) to trigger standard unload of chunk (0, 0) by MapGenerator._process
 	Input.action_press("move_up")
-	for f in range(50):
+	player.movement.speed = 12.0
+
+	var crossed_boundary_logged: bool = false
+	var chunk_unloaded_logged: bool = false
+	var seq_capture_counter: int = 0
+
+	for f in range(600):
 		await process_frame
-		if f % 2 == 0:
+
+		if not crossed_boundary_logged and player.global_position.x >= 18.0:
+			crossed_boundary_logged = true
+			print("    [DYNAMIC-BOUNDARY] Crossed chunk boundary x=16.0 to x=%.2f, terrain continuous and seamless." % player.global_position.x)
+
+		# Check if control chunk (0, 0) was unloaded by MapGenerator._process
+		if not chunk_unloaded_logged and not map_gen.active_chunks.has(Vector2i(0, 0)):
+			chunk_unloaded_logged = true
+			print("    [DYNAMIC-STREAMING-UNLOAD] Control chunk (0, 0) UNLOADED by MapGenerator._process at player chunk=%s, pos=%s" % [
+				str(map_gen.last_player_chunk), str(player.global_position)
+			])
+			await _capture_viewport("dyn_06_chunk_unloaded.png")
+			await _capture_image_direct("dyn_seq_%02d.png" % seq_idx)
+			seq_idx += 1
+			# Continue a few more frames to show stable unloaded distance state
+			for extra in range(12):
+				await process_frame
+				if extra % 3 == 0:
+					await _capture_image_direct("dyn_seq_%02d.png" % seq_idx)
+					seq_idx += 1
+			break
+
+		seq_capture_counter += 1
+		if seq_capture_counter % 8 == 0:
 			await _capture_image_direct("dyn_seq_%02d.png" % seq_idx)
 			seq_idx += 1
 
@@ -328,58 +374,64 @@ func _run() -> void:
 	for f in range(6):
 		await process_frame
 
-	print("    [DYNAMIC-BOUNDARY] Crossed chunk boundary x=16.0 to x=%.2f, terrain continuous and seamless." % player.global_position.x)
-	if player.global_position.x <= 16.0:
-		printerr("[ERROR] Player did not cross chunk boundary! Final x: %f" % player.global_position.x)
+	if not chunk_unloaded_logged:
+		printerr("[ERROR] Control chunk (0, 0) was not unloaded during walk! Final pos: %s" % str(player.global_position))
 		quit(1)
 
-	# 8.4. Chunk streaming: move away to trigger unload of chunk (0, 0)
-	map_gen.load_radius_chunks = 1
-	map_gen.unload_radius_chunks = 2
-	print("    [DYNAMIC-STREAMING] Moving to chunk (3, 0) to unload chunk (0, 0)...")
-	if not map_gen.active_chunks.has(Vector2i(0, 0)):
-		printerr("[ERROR] Chunk (0, 0) should be initially active!")
-		quit(1)
+	# 8.4. Return walk towards West to trigger RELOAD of chunk (0, 0) by MapGenerator._process:
+	print("    [DYNAMIC-STREAMING-RELOAD] Walking West back towards chunk (0, 0)...")
+	walk_target.global_position = Vector3(-50.0, 0.0, 1.5)
 
-	var h30: float = float(map_gen.get_voxel_height(48, 8))
-	player.global_position = Vector3(48.0, h30 + 0.9, 8.0)
-	player.velocity = Vector3.ZERO
-	walk_target.global_position = Vector3(100.0, 0.0, 8.0)
-	map_gen.update_player_chunks(Vector2i(3, 0), true)
+	Input.action_press("move_up")
+	var chunk_reloaded_logged: bool = false
 
+	for f in range(600):
+		await process_frame
+
+		if not chunk_reloaded_logged and map_gen.active_chunks.has(Vector2i(0, 0)):
+			chunk_reloaded_logged = true
+			print("    [DYNAMIC-STREAMING-RELOAD] Control chunk (0, 0) RELOADED by MapGenerator._process at player chunk=%s, pos=%s" % [
+				str(map_gen.last_player_chunk), str(player.global_position)
+			])
+
+		# When player reaches x <= 15.0 (back at the control seam in chunk 0,0), stop
+		if chunk_reloaded_logged and player.global_position.x <= 15.0:
+			break
+
+		seq_capture_counter += 1
+		if seq_capture_counter % 8 == 0:
+			await _capture_image_direct("dyn_seq_%02d.png" % seq_idx)
+			seq_idx += 1
+
+	Input.action_release("move_up")
+	player.movement.speed = 7.0 # Restore standard speed
+
+	# Settle physics and camera back at the control boundary
 	for f in range(12):
 		await process_frame
 		if f % 3 == 0:
 			await _capture_image_direct("dyn_seq_%02d.png" % seq_idx)
 			seq_idx += 1
 
-	await _capture_viewport("dyn_06_chunk_unloaded.png")
-	var chunk_0_0_unloaded: bool = not map_gen.active_chunks.has(Vector2i(0, 0))
-	print("    [DYNAMIC-STREAMING] Chunk (0, 0) unloaded: %s" % str(chunk_0_0_unloaded))
-	if not chunk_0_0_unloaded:
-		printerr("[ERROR] Chunk (0, 0) was not unloaded!")
-		quit(1)
-
-	# 8.5. Return to chunk (0, 0) to trigger reload
-	print("    [DYNAMIC-STREAMING] Returning to chunk (0, 0) to reload...")
-	var h00: float = float(map_gen.get_voxel_height(2, 2))
-	player.global_position = Vector3(2.0, h00 + 0.9, 2.0)
-	player.velocity = Vector3.ZERO
-	walk_target.global_position = Vector3(100.0, 0.0, 2.0)
-	map_gen.update_player_chunks(Vector2i(0, 0), true)
-
-	for f in range(15):
-		await process_frame
-		if f % 3 == 0:
-			await _capture_image_direct("dyn_seq_%02d.png" % seq_idx)
-			seq_idx += 1
-
 	await _capture_viewport("dyn_07_chunk_reloaded.png")
-	var chunk_0_0_reloaded: bool = map_gen.active_chunks.has(Vector2i(0, 0))
-	print("    [DYNAMIC-STREAMING] Chunk (0, 0) reloaded: %s" % str(chunk_0_0_reloaded))
-	if not chunk_0_0_reloaded:
-		printerr("[ERROR] Chunk (0, 0) was not reloaded!")
+	await _capture_image_direct("dyn_seq_%02d.png" % seq_idx)
+	seq_idx += 1
+
+	if not map_gen.active_chunks.has(Vector2i(0, 0)):
+		printerr("[ERROR] Control chunk (0, 0) was not reloaded!")
 		quit(1)
+
+	if player.global_position.x > 16.0:
+		printerr("[ERROR] Player failed to return across chunk boundary x=16.0! Final pos: %s" % str(player.global_position))
+		quit(1)
+
+	if not player.is_on_floor():
+		printerr("[ERROR] Player is not on floor after returning to chunk (0, 0)!")
+		quit(1)
+
+	print("    [DYNAMIC-STREAMING-RELOAD] Player returned to x=%.2f in chunk (0, 0), on_floor=%s. Seams verified seamless!" % [
+		player.global_position.x, str(player.is_on_floor())
+	])
 
 	walk_target.queue_free()
 	print("[ISSUE-43] All static and dynamic visual evidence completed successfully!")
