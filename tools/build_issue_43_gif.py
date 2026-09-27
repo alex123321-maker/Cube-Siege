@@ -1,23 +1,41 @@
 """
 tools/build_issue_43_gif.py - Assemble dynamic verification sequential captures into an animated GIF.
 """
+import re
 from pathlib import Path
+from typing import Union, List
 from PIL import Image
+
+def extract_frame_index(filename_or_path: Union[str, Path]) -> int:
+    """Extract numeric index from frame filename (e.g. 'dyn_seq_105.png' -> 105)."""
+    name = Path(filename_or_path).stem
+    m = re.search(r"(\d+)", name)
+    return int(m.group(1)) if m else -1
+
+def sort_and_select_frames(files: List[Union[str, Path]], step: int = 2) -> List[Union[str, Path]]:
+    """Numerically sort frame paths and select every `step`-th frame,
+    guaranteeing strictly ascending order and preserving the exact final frame.
+    """
+    sorted_files = sorted(files, key=extract_frame_index)
+    if not sorted_files:
+        return []
+    selected = sorted_files[::step]
+    if sorted_files[-1] not in selected:
+        selected.append(sorted_files[-1])
+    return selected
 
 def main():
     root = Path(__file__).resolve().parent.parent
     vdir = root / "docs" / "verification" / "issue43"
     
     # Collect all sequential recorded transition frames
-    seq_files = sorted(vdir.glob("dyn_seq_*.png"))
+    raw_files = list(vdir.glob("dyn_seq_*.png"))
     
-    if seq_files:
-        print(f"[GIF] Found {len(seq_files)} sequential transition frames.")
-        # If there are many frames, take every 2nd frame to keep GIF compact while maintaining smooth playback
-        selected_files = seq_files[::2]
-        if seq_files[-1] not in selected_files:
-            selected_files.append(seq_files[-1])
-        print(f"[GIF] Selected {len(selected_files)} frames for final animation.")
+    if raw_files:
+        print(f"[GIF] Found {len(raw_files)} sequential transition frames.")
+        # Numerically sort and step through frames to maintain strictly ascending chronological order
+        selected_files = sort_and_select_frames(raw_files, step=2)
+        print(f"[GIF] Selected {len(selected_files)} frames for final animation (first: {selected_files[0].name}, last: {selected_files[-1].name}).")
         
         frames = []
         durations = []

@@ -218,7 +218,7 @@ func _run() -> void:
 		await process_frame
 
 	await _capture_viewport("dyn_01_step_approach.png")
-	await _capture_image_direct("dyn_seq_%02d.png" % seq_idx)
+	await _capture_image_direct("dyn_seq_%04d.png" % seq_idx)
 	seq_idx += 1
 
 	# Command player to walk East (+X) via standard Input
@@ -228,7 +228,7 @@ func _run() -> void:
 		if f == 24:
 			await _capture_image_direct("dyn_02_step_climb.png")
 		if f % 2 == 0:
-			await _capture_image_direct("dyn_seq_%02d.png" % seq_idx)
+			await _capture_image_direct("dyn_seq_%04d.png" % seq_idx)
 			seq_idx += 1
 
 	Input.action_release("move_up")
@@ -236,7 +236,7 @@ func _run() -> void:
 		await process_frame
 
 	await _capture_viewport("dyn_03_step_success_on_top.png")
-	await _capture_image_direct("dyn_seq_%02d.png" % seq_idx)
+	await _capture_image_direct("dyn_seq_%04d.png" % seq_idx)
 	seq_idx += 1
 
 	var step_end_pos: Vector3 = player.global_position
@@ -265,7 +265,7 @@ func _run() -> void:
 		await process_frame
 
 	await _capture_viewport("dyn_04_cliff_approach.png")
-	await _capture_image_direct("dyn_seq_%02d.png" % seq_idx)
+	await _capture_image_direct("dyn_seq_%04d.png" % seq_idx)
 	seq_idx += 1
 
 	# Command player to walk East into 2m cliff
@@ -273,7 +273,7 @@ func _run() -> void:
 	for f in range(35):
 		await process_frame
 		if f % 2 == 0:
-			await _capture_image_direct("dyn_seq_%02d.png" % seq_idx)
+			await _capture_image_direct("dyn_seq_%04d.png" % seq_idx)
 			seq_idx += 1
 
 	Input.action_release("move_up")
@@ -281,7 +281,7 @@ func _run() -> void:
 		await process_frame
 
 	await _capture_viewport("dyn_05_cliff_blocked.png")
-	await _capture_image_direct("dyn_seq_%02d.png" % seq_idx)
+	await _capture_image_direct("dyn_seq_%04d.png" % seq_idx)
 	seq_idx += 1
 
 	var cliff_end_pos: Vector3 = player.global_position
@@ -355,19 +355,19 @@ func _run() -> void:
 				str(map_gen.last_player_chunk), str(player.global_position)
 			])
 			await _capture_viewport("dyn_06_chunk_unloaded.png")
-			await _capture_image_direct("dyn_seq_%02d.png" % seq_idx)
+			await _capture_image_direct("dyn_seq_%04d.png" % seq_idx)
 			seq_idx += 1
 			# Continue a few more frames to show stable unloaded distance state
 			for extra in range(12):
 				await process_frame
 				if extra % 3 == 0:
-					await _capture_image_direct("dyn_seq_%02d.png" % seq_idx)
+					await _capture_image_direct("dyn_seq_%04d.png" % seq_idx)
 					seq_idx += 1
 			break
 
 		seq_capture_counter += 1
 		if seq_capture_counter % 8 == 0:
-			await _capture_image_direct("dyn_seq_%02d.png" % seq_idx)
+			await _capture_image_direct("dyn_seq_%04d.png" % seq_idx)
 			seq_idx += 1
 
 	Input.action_release("move_up")
@@ -400,7 +400,7 @@ func _run() -> void:
 
 		seq_capture_counter += 1
 		if seq_capture_counter % 8 == 0:
-			await _capture_image_direct("dyn_seq_%02d.png" % seq_idx)
+			await _capture_image_direct("dyn_seq_%04d.png" % seq_idx)
 			seq_idx += 1
 
 	Input.action_release("move_up")
@@ -410,11 +410,11 @@ func _run() -> void:
 	for f in range(12):
 		await process_frame
 		if f % 3 == 0:
-			await _capture_image_direct("dyn_seq_%02d.png" % seq_idx)
+			await _capture_image_direct("dyn_seq_%04d.png" % seq_idx)
 			seq_idx += 1
 
 	await _capture_viewport("dyn_07_chunk_reloaded.png")
-	await _capture_image_direct("dyn_seq_%02d.png" % seq_idx)
+	await _capture_image_direct("dyn_seq_%04d.png" % seq_idx)
 	seq_idx += 1
 
 	if not map_gen.active_chunks.has(Vector2i(0, 0)):
