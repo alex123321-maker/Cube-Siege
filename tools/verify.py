@@ -349,23 +349,24 @@ def step_run_gut_tests(godot_bin: str, timeout: float = TIMEOUT_GUT) -> bool:
         return False
 
 
-def discover_python_tests() -> List[Path]:
+def discover_python_tests(tests_dir: Optional[Path] = None) -> List[Path]:
     """Discover all python unit test files in the repository (F26)."""
-    tests_dir = REPO_DIR / "tests"
-    if not tests_dir.is_dir():
+    base = tests_dir or (REPO_DIR / "tests")
+    if not base.is_dir():
         return []
-    return sorted(list(tests_dir.glob("**/test_*.py")))
+    return sorted(list(base.glob("**/test_*.py")))
 
 
 def step_run_python_tests(timeout: float = TIMEOUT_PYTHON) -> bool:
     log_header("6. Running Python Tooling & Unit Tests")
     py_test_files = discover_python_tests()
     if not py_test_files:
-        log_step("Python Unit Tests", "INFO", "No python test files found")
-        return True
+        log_step("Python Unit Tests", "FAIL", "No python test files found in tests/ (required suite missing)")
+        return False
 
-    target_dir = "tests/unit" if (REPO_DIR / "tests" / "unit").is_dir() else "tests"
-    cmd = [sys.executable, "-m", "unittest", "discover", "-s", target_dir, "-p", "test_*.py"]
+    # Explicitly pass all discovered files so discovery and execution match 1:1 across all subdirectories
+    test_args = [str(p.relative_to(REPO_DIR)) for p in py_test_files]
+    cmd = [sys.executable, "-m", "unittest"] + test_args
     ok, out = run_command(cmd, REPO_DIR, "python unit tests", timeout=timeout)
 
     if not ok:
@@ -396,8 +397,10 @@ def step_run_python_tests(timeout: float = TIMEOUT_PYTHON) -> bool:
 def step_run_issue_18_verification(godot_bin: str, timeout: float = TIMEOUT_ISSUE_18) -> bool:
     log_header("7. Running Issue #18 Procedural World & Combat Verification")
     verifier = "tools/verify_issue_18.gd"
-    if not (REPO_DIR / verifier).is_file():
-        return True
+    verifier_path = REPO_DIR / verifier
+    if not verifier_path.is_file():
+        log_step("Issue #18 Verification", "FAIL", f"Required verifier script {verifier} missing in repository")
+        return False
 
     cmd = [
         godot_bin,

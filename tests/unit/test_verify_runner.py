@@ -20,6 +20,8 @@ from tools.verify import (
     discover_python_tests,
     run_command,
     step_run_gut_tests,
+    step_run_issue_18_verification,
+    step_run_python_tests,
     verify_gut_output,
     REPO_DIR,
 )
@@ -121,10 +123,35 @@ class TestVerifyRunnerContracts(unittest.TestCase):
         """Python test discovery must find all test_*.py files across tests/."""
         discovered = discover_python_tests()
         self.assertIsInstance(discovered, list)
-        self.assertGreater(len(discovered), 0, "Must discover python unit test files in repo")
-        # Verify that discovery finds test files regardless of test_review_loop.py
         file_names = [f.name for f in discovered]
         self.assertIn("test_verify_runner.py", file_names)
+
+    def test_missing_python_tests_fails(self) -> None:
+        """When zero python test files are discovered, step_run_python_tests must FAIL (fail-closed)."""
+        with patch("tools.verify.discover_python_tests", return_value=[]):
+            result = step_run_python_tests()
+            self.assertFalse(result, "Missing python test suite must fail-closed with False")
+
+    def test_missing_issue_18_verifier_fails(self) -> None:
+        """When tools/verify_issue_18.gd is absent, step_run_issue_18_verification must FAIL."""
+        with patch.object(Path, "is_file", return_value=False):
+            result = step_run_issue_18_verification("dummy_godot_bin")
+            self.assertFalse(result, "Missing verify_issue_18.gd script must fail-closed with False")
+
+    def test_python_tests_outside_tests_unit_are_executed(self) -> None:
+        """Python tests outside tests/unit/ (e.g. tests/smoke/test_custom.py) must be passed to unittest."""
+        mock_files = [
+            REPO_DIR / "tests" / "unit" / "test_a.py",
+            REPO_DIR / "tests" / "smoke" / "test_custom.py",
+        ]
+        with patch("tools.verify.discover_python_tests", return_value=mock_files):
+            with patch("tools.verify.run_command", return_value=(True, "Ran 5 tests\nOK")) as mock_run:
+                result = step_run_python_tests()
+                self.assertTrue(result)
+                mock_run.assert_called_once()
+                executed_cmd = mock_run.call_args[0][0]
+                custom_rel = str((REPO_DIR / "tests" / "smoke" / "test_custom.py").relative_to(REPO_DIR))
+                self.assertIn(custom_rel, executed_cmd, "Test file outside tests/unit must be included in execution")
 
 
 if __name__ == "__main__":
