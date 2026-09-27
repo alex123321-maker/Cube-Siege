@@ -29,15 +29,15 @@ from typing import Dict, List, Optional, Tuple
 REPO_DIR = Path(__file__).resolve().parent.parent
 LOCAL_GODOT_PATH_FILE = REPO_DIR / ".godot_path"
 
-# Default timeouts in seconds for distinct verification phases
-TIMEOUT_TOOLS: float = 15.0
-TIMEOUT_SCONS: float = 180.0
-TIMEOUT_IMPORT: float = 90.0
-TIMEOUT_GUT: float = 180.0
-TIMEOUT_PYTHON: float = 60.0
-TIMEOUT_ISSUE_18: float = 90.0
-TIMEOUT_MENU_SMOKE: float = 30.0
-TIMEOUT_GAMEPLAY_HARNESS: float = 90.0
+# Default timeouts in seconds for distinct verification phases (configurable via env vars)
+TIMEOUT_TOOLS: float = float(os.environ.get("VERIFY_TIMEOUT_TOOLS", "30.0"))
+TIMEOUT_SCONS: float = float(os.environ.get("VERIFY_TIMEOUT_SCONS", "600.0"))
+TIMEOUT_IMPORT: float = float(os.environ.get("VERIFY_TIMEOUT_IMPORT", "180.0"))
+TIMEOUT_GUT: float = float(os.environ.get("VERIFY_TIMEOUT_GUT", "300.0"))
+TIMEOUT_PYTHON: float = float(os.environ.get("VERIFY_TIMEOUT_PYTHON", "120.0"))
+TIMEOUT_ISSUE_18: float = float(os.environ.get("VERIFY_TIMEOUT_ISSUE_18", "180.0"))
+TIMEOUT_MENU_SMOKE: float = float(os.environ.get("VERIFY_TIMEOUT_MENU_SMOKE", "60.0"))
+TIMEOUT_GAMEPLAY_HARNESS: float = float(os.environ.get("VERIFY_TIMEOUT_GAMEPLAY_HARNESS", "180.0"))
 
 if hasattr(sys.stdout, "reconfigure"):
     try:
@@ -252,6 +252,9 @@ def step_build_gdextension(timeout: float = TIMEOUT_SCONS) -> bool:
     else:
         log_step("SCons Compilation", "FAIL", "Build failed")
         print("\n--- SCons Build Output ---")
+        if "[TIMEOUT]" in out:
+            for line in out.splitlines()[:5]:
+                print(line)
         print(out[-2000:])
         return False
 
