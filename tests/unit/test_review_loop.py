@@ -258,6 +258,31 @@ class TestAgentResumer(unittest.TestCase):
             BACKEND_AGY,
         )
 
+    def test_build_prompt_bounds_feedback_length(self):
+        """Prompt feedback must be capped at 4000 chars to avoid exceeding shell/OS limits."""
+        resumer = AgentResumer(agentapi_cmd=["agentapi"], backend_type=BACKEND_AGENTAPI)
+        huge_event = {
+            "id": "huge-1",
+            "type": "REVIEW_COMMENT",
+            "author": "reviewer",
+            "body": "A" * 10000,
+        }
+        prompt = resumer.build_prompt(pr_number=46, feedback_events=[huge_event])
+        self.assertIn("[truncated by watcher; see PR for full text]", prompt)
+        self.assertLessEqual(len(prompt), 6000)
+
+    @patch("shutil.which")
+    @patch("pathlib.Path.is_file")
+    def test_discover_command_unwraps_windows_batch_wrapper(self, mock_is_file, mock_which):
+        """On Windows, agentapi.bat wrapper should be unwrapped to language_server.exe agentapi."""
+        mock_which.side_effect = lambda cmd: r"C:\Users\alexa\.gemini\antigravity\bin\agentapi.bat" if "agentapi" in cmd else None
+        mock_is_file.return_value = True
+        resumer = AgentResumer()
+        cmd_list, backend = resumer._discover_command()
+        self.assertEqual(backend, BACKEND_AGENTAPI)
+        self.assertTrue(cmd_list[0].lower().endswith("language_server.exe"))
+        self.assertEqual(cmd_list[1], "agentapi")
+
     @patch("subprocess.run")
     def test_agentapi_backend_sends_message_to_gui_conversation(self, mock_run):
         mock_run.return_value = MagicMock(returncode=0, stdout="sent", stderr="")

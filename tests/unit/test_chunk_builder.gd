@@ -406,3 +406,229 @@ func test_legacy_baseline_emulation_toggle() -> void:
 	var res_modern = ChunkBuilder.build_chunk_terrain(0, 0, 1337, dummy_mat, dummy_mat, dummy_mat, dummy_mat)
 	assert_not_null(res_modern["mesh"], "Modern mesh must generate")
 	assert_not_null(res_modern["shape"], "Modern shape must generate")
+
+func test_chunk_terrain_physics_direct_space_state_raycasts_and_collision() -> void:
+	# 1. Build chunk terrain (cx=0, cz=0, seed=1337) with standard materials
+	var mat_top_forest = StandardMaterial3D.new()
+	var mat_top_plains = StandardMaterial3D.new()
+	var mat_top_mountains = StandardMaterial3D.new()
+	var mat_cliff = StandardMaterial3D.new()
+	var mat_side_forest = StandardMaterial3D.new()
+	var mat_side_plains = StandardMaterial3D.new()
+	var mat_side_mountains = StandardMaterial3D.new()
+
+	var result = ChunkBuilder.build_chunk_terrain(
+		0, 0, 1337,
+		mat_top_forest, mat_top_plains, mat_top_mountains, mat_cliff,
+		mat_side_forest, mat_side_plains, mat_side_mountains
+	)
+
+	var shape: Shape3D = result["shape"]
+	assert_not_null(shape, "ChunkBuilder must produce Shape3D from authoritative voxel quads")
+
+	# 2. Put into a StaticBody3D in active SceneTree World3D
+	var static_body: StaticBody3D = StaticBody3D.new()
+	var col_shape: CollisionShape3D = CollisionShape3D.new()
+	col_shape.shape = shape
+	static_body.add_child(col_shape)
+	add_child_autoqfree(static_body)
+
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+
+	var space_state = get_viewport().world_3d.direct_space_state
+	assert_not_null(space_state, "DirectSpaceState3D must be available")
+
+	# 3. Raycast 1: Top Ground Surface Hit from above
+	var h00: float = float(BiomeSystem.get_voxel_height(0, 0, 1337))
+	var top_ray_from: Vector3 = Vector3(0.5, h00 + 3.0, 0.5)
+	var top_ray_to: Vector3 = Vector3(0.5, h00 - 3.0, 0.5)
+	var top_query := PhysicsRayQueryParameters3D.create(top_ray_from, top_ray_to)
+	var top_hit: Dictionary = space_state.intersect_ray(top_query)
+
+	assert_false(top_hit.is_empty(), "Top raycast must hit the ground surface")
+	assert_eq(top_hit.get("collider"), static_body, "Top raycast collider must be the terrain StaticBody3D")
+	assert_true(is_equal_approx(top_hit.get("position", Vector3.ZERO).y, h00), "Top hit position Y must match voxel height %f" % h00)
+	var top_norm: Vector3 = top_hit.get("normal", Vector3.ZERO)
+	assert_gt(top_norm.dot(Vector3.UP), 0.99, "Top hit normal must point UP")
+
+	# 4. Raycasts 2-5: Directional Side Walls from outside looking inward
+	var north_drop_found: bool = false
+	var south_drop_found: bool = false
+	var east_drop_found: bool = false
+	var west_drop_found: bool = false
+
+	for lz in range(ChunkBuilder.CHUNK_SIZE):
+		for lx in range(ChunkBuilder.CHUNK_SIZE):
+			var wx: int = lx
+			var wz: int = lz
+			var y: int = BiomeSystem.get_voxel_height(wx, wz, 1337)
+
+			# Test North (-Z) drop
+			if not north_drop_found:
+				var yn: int = BiomeSystem.get_voxel_height(wx, wz - 1, 1337)
+				if yn < y:
+					north_drop_found = true
+					var mid_y: float = (float(y) + float(yn)) * 0.5
+					var wall_center: Vector3 = Vector3(float(wx) + 0.5, mid_y, float(wz))
+					var from_outside: Vector3 = wall_center + Vector3(0.0, 0.0, -0.6)
+					var to_inside: Vector3 = wall_center + Vector3(0.0, 0.0, 0.6)
+					var query := PhysicsRayQueryParameters3D.create(from_outside, to_inside)
+					var hit: Dictionary = space_state.intersect_ray(query)
+					assert_false(hit.is_empty(), "North wall at (%d, %d) must be hit from outside" % [wx, wz])
+					assert_eq(hit.get("collider"), static_body)
+					var n: Vector3 = hit.get("normal", Vector3.ZERO)
+					assert_gt(n.dot(Vector3(0, 0, -1)), 0.99, "North wall normal must point North (0, 0, -1)")
+
+			# Test South (+Z) drop
+			if not south_drop_found:
+				var ys: int = BiomeSystem.get_voxel_height(wx, wz + 1, 1337)
+				if ys < y:
+					south_drop_found = true
+					var mid_y: float = (float(y) + float(ys)) * 0.5
+					var wall_center: Vector3 = Vector3(float(wx) + 0.5, mid_y, float(wz + 1))
+					var from_outside: Vector3 = wall_center + Vector3(0.0, 0.0, 0.6)
+					var to_inside: Vector3 = wall_center + Vector3(0.0, 0.0, -0.6)
+					var query := PhysicsRayQueryParameters3D.create(from_outside, to_inside)
+					var hit: Dictionary = space_state.intersect_ray(query)
+					assert_false(hit.is_empty(), "South wall at (%d, %d) must be hit from outside" % [wx, wz])
+					assert_eq(hit.get("collider"), static_body)
+					var n: Vector3 = hit.get("normal", Vector3.ZERO)
+					assert_gt(n.dot(Vector3(0, 0, 1)), 0.99, "South wall normal must point South (0, 0, 1)")
+
+			# Test West (-X) drop
+			if not west_drop_found:
+				var yw: int = BiomeSystem.get_voxel_height(wx - 1, wz, 1337)
+				if yw < y:
+					west_drop_found = true
+					var mid_y: float = (float(y) + float(yw)) * 0.5
+					var wall_center: Vector3 = Vector3(float(wx), mid_y, float(wz) + 0.5)
+					var from_outside: Vector3 = wall_center + Vector3(-0.6, 0.0, 0.0)
+					var to_inside: Vector3 = wall_center + Vector3(0.6, 0.0, 0.0)
+					var query := PhysicsRayQueryParameters3D.create(from_outside, to_inside)
+					var hit: Dictionary = space_state.intersect_ray(query)
+					assert_false(hit.is_empty(), "West wall at (%d, %d) must be hit from outside" % [wx, wz])
+					assert_eq(hit.get("collider"), static_body)
+					var n: Vector3 = hit.get("normal", Vector3.ZERO)
+					assert_gt(n.dot(Vector3(-1, 0, 0)), 0.99, "West wall normal must point West (-1, 0, 0)")
+
+			# Test East (+X) drop
+			if not east_drop_found:
+				var ye: int = BiomeSystem.get_voxel_height(wx + 1, wz, 1337)
+				if ye < y:
+					east_drop_found = true
+					var mid_y: float = (float(y) + float(ye)) * 0.5
+					var wall_center: Vector3 = Vector3(float(wx + 1), mid_y, float(wz) + 0.5)
+					var from_outside: Vector3 = wall_center + Vector3(0.6, 0.0, 0.0)
+					var to_inside: Vector3 = wall_center + Vector3(-0.6, 0.0, 0.0)
+					var query := PhysicsRayQueryParameters3D.create(from_outside, to_inside)
+					var hit: Dictionary = space_state.intersect_ray(query)
+					assert_false(hit.is_empty(), "East wall at (%d, %d) must be hit from outside" % [wx, wz])
+					assert_eq(hit.get("collider"), static_body)
+					var n: Vector3 = hit.get("normal", Vector3.ZERO)
+					assert_gt(n.dot(Vector3(1, 0, 0)), 0.99, "East wall normal must point East (1, 0, 0)")
+
+	assert_true(north_drop_found, "Must find at least one North drop in chunk")
+	assert_true(south_drop_found, "Must find at least one South drop in chunk")
+	assert_true(west_drop_found, "Must find at least one West drop in chunk")
+	assert_true(east_drop_found, "Must find at least one East drop in chunk")
+
+	# 5. Collision rule verification: 1m step vs >= 2m impassable cliff
+	# Cell (7, 1) y=1 vs West (6, 1) y=0 (1m step):
+	# Horizontal ray at y = 0.5 (below step top) hits the step wall
+	var ray_step_blocked := PhysicsRayQueryParameters3D.create(Vector3(6.5, 0.5, 1.5), Vector3(7.5, 0.5, 1.5))
+	var hit_step_blocked: Dictionary = space_state.intersect_ray(ray_step_blocked)
+	assert_false(hit_step_blocked.is_empty(), "Ray below 1m step must hit the step wall")
+	assert_gt(hit_step_blocked.get("normal", Vector3.ZERO).dot(Vector3(-1, 0, 0)), 0.99)
+
+	# Ray at y = 1.1 (above the 1m step top) passes over and does not hit the vertical side wall
+	var ray_step_pass := PhysicsRayQueryParameters3D.create(Vector3(6.5, 1.1, 1.5), Vector3(7.5, 1.1, 1.5))
+	var hit_step_pass: Dictionary = space_state.intersect_ray(ray_step_pass)
+	assert_true(hit_step_pass.is_empty(), "Ray above 1m step must pass freely without colliding with side wall")
+
+	# Cell (8, 2) y=3 vs West (7, 2) y=1 (2m cliff):
+	# Ray at y = 1.5 (1st meter above ground) hits the wall
+	var ray_cliff_1 := PhysicsRayQueryParameters3D.create(Vector3(7.5, 1.5, 2.5), Vector3(8.5, 1.5, 2.5))
+	var hit_cliff_1: Dictionary = space_state.intersect_ray(ray_cliff_1)
+	assert_false(hit_cliff_1.is_empty(), "Ray at 1st meter of 2m cliff must hit the wall")
+	assert_gt(hit_cliff_1.get("normal", Vector3.ZERO).dot(Vector3(-1, 0, 0)), 0.99)
+
+	# Ray at y = 2.5 (2nd meter above ground, impassable) ALSO hits the wall
+	var ray_cliff_2 := PhysicsRayQueryParameters3D.create(Vector3(7.5, 2.5, 2.5), Vector3(8.5, 2.5, 2.5))
+	var hit_cliff_2: Dictionary = space_state.intersect_ray(ray_cliff_2)
+	assert_false(hit_cliff_2.is_empty(), "Ray at 2nd meter of 2m cliff must hit the wall (impassable cliff)")
+	assert_gt(hit_cliff_2.get("normal", Vector3.ZERO).dot(Vector3(-1, 0, 0)), 0.99)
+
+func test_chunk_builder_build_chunk_terrain_tall_cliff_splits_two_band_surfaces() -> void:
+	var mat_top_forest = StandardMaterial3D.new()
+	var mat_top_plains = StandardMaterial3D.new()
+	var mat_top_mountains = StandardMaterial3D.new()
+	var mat_cliff = StandardMaterial3D.new()
+	var mat_side_forest = StandardMaterial3D.new()
+	var mat_side_plains = StandardMaterial3D.new()
+	var mat_side_mountains = StandardMaterial3D.new()
+
+	var result = ChunkBuilder.build_chunk_terrain(
+		0, 0, 1337,
+		mat_top_forest, mat_top_plains, mat_top_mountains, mat_cliff,
+		mat_side_forest, mat_side_plains, mat_side_mountains
+	)
+
+	var mesh: ArrayMesh = result["mesh"]
+	assert_not_null(mesh, "Mesh must be generated")
+
+	# Find surface indices for mat_cliff and biome side materials
+	var cliff_surf_idx: int = -1
+	var biome_side_surf_indices: Array[int] = []
+	for s in range(mesh.get_surface_count()):
+		var m = mesh.surface_get_material(s)
+		if m == mat_cliff:
+			cliff_surf_idx = s
+		elif m in [mat_side_forest, mat_side_plains, mat_side_mountains]:
+			biome_side_surf_indices.append(s)
+
+	assert_gt(cliff_surf_idx, -1, "Mesh must contain a surface with mat_cliff")
+	assert_gt(biome_side_surf_indices.size(), 0, "Mesh must contain at least one biome side surface")
+
+	# Cell (8, 2) has y=3, west neighbor (7, 2) has y=1 (2m drop, West face at x=8.0, z in [2, 3]).
+	# 1. Top rim band must be in biome side surface: x=8.0, z in [2.0, 3.0], y in [2.0, 3.0], normal (-1, 0, 0), UV v in [-3.0, -2.0]
+	var found_rim_quad: bool = false
+	for s_idx in biome_side_surf_indices:
+		var mdt = MeshDataTool.new()
+		mdt.create_from_surface(mesh, s_idx)
+		for f in range(mdt.get_face_count()):
+			var p0 = mdt.get_vertex(mdt.get_face_vertex(f, 0))
+			var p1 = mdt.get_vertex(mdt.get_face_vertex(f, 1))
+			var p2 = mdt.get_vertex(mdt.get_face_vertex(f, 2))
+			var norm = mdt.get_face_normal(f)
+			if is_equal_approx(p0.x, 8.0) and is_equal_approx(p1.x, 8.0) and is_equal_approx(p2.x, 8.0):
+				if p0.z >= 1.99 and p0.z <= 3.01 and p1.z >= 1.99 and p1.z <= 3.01 and p2.z >= 1.99 and p2.z <= 3.01:
+					if norm.dot(Vector3(-1, 0, 0)) > 0.95:
+						assert_true(p0.y >= 1.99 and p1.y >= 1.99 and p2.y >= 1.99, "Top rim vertex Y must be >= 2.0")
+						assert_true(p0.y <= 3.01 and p1.y <= 3.01 and p2.y <= 3.01, "Top rim vertex Y must be <= 3.0")
+						var uv0 = mdt.get_vertex_uv(mdt.get_face_vertex(f, 0))
+						assert_true(uv0.y <= -1.99 and uv0.y >= -3.01, "Top rim UV v must be in [-3.0, -2.0]")
+						found_rim_quad = true
+
+	assert_true(found_rim_quad, "build_chunk_terrain must produce top rim quad in biome side material surface for cell (8, 2)")
+
+	# 2. Cliff body band must be in cliff material surface: x=8.0, z in [2.0, 3.0], y in [1.0, 2.0], normal (-1, 0, 0), UV v in [-2.0, -1.0]
+	var found_cliff_quad: bool = false
+	var mdt_cliff = MeshDataTool.new()
+	mdt_cliff.create_from_surface(mesh, cliff_surf_idx)
+	for f in range(mdt_cliff.get_face_count()):
+		var p0 = mdt_cliff.get_vertex(mdt_cliff.get_face_vertex(f, 0))
+		var p1 = mdt_cliff.get_vertex(mdt_cliff.get_face_vertex(f, 1))
+		var p2 = mdt_cliff.get_vertex(mdt_cliff.get_face_vertex(f, 2))
+		var norm = mdt_cliff.get_face_normal(f)
+		if is_equal_approx(p0.x, 8.0) and is_equal_approx(p1.x, 8.0) and is_equal_approx(p2.x, 8.0):
+			if p0.z >= 1.99 and p0.z <= 3.01 and p1.z >= 1.99 and p1.z <= 3.01 and p2.z >= 1.99 and p2.z <= 3.01:
+				if norm.dot(Vector3(-1, 0, 0)) > 0.95:
+					if p0.y <= 2.01 and p1.y <= 2.01 and p2.y <= 2.01:
+						assert_true(p0.y >= 0.99 and p1.y >= 0.99 and p2.y >= 0.99, "Cliff body vertex Y must be >= 1.0")
+						var uv0 = mdt_cliff.get_vertex_uv(mdt_cliff.get_face_vertex(f, 0))
+						assert_true(uv0.y <= -0.99 and uv0.y >= -2.01, "Cliff body UV v must be in [-2.0, -1.0]")
+						found_cliff_quad = true
+
+	assert_true(found_cliff_quad, "build_chunk_terrain must produce lower cliff quad in cliff material surface for cell (8, 2)")
+

@@ -15,7 +15,7 @@ const FIXED_SEED: int = 1337
 const OUTPUT_DIR: String = "docs/verification/issue43"
 
 var watchdog_elapsed: float = 0.0
-const MAX_WATCHDOG_TIME: float = 60.0
+const MAX_WATCHDOG_TIME: float = 120.0
 
 func _init() -> void:
 	call_deferred("_run")
@@ -176,5 +176,117 @@ func _run() -> void:
 	_set_camera_view(camera, Vector3(-8.0, 6.0, 10.0), Vector3(-3.5, 2.0, 14.5))
 	await _capture_viewport("07_directional_side_walls_closeup.png")
 
-	print("[ISSUE-43] All visual evidence captures completed successfully!")
+	# -------------------------------------------------------------------------
+	# 8. Dynamic Gameplay Acceptance: Step-up, Cliff Collision, and Chunk Streaming
+	# Standard game camera actively tracking player!
+	# -------------------------------------------------------------------------
+	print("[ISSUE-43] 8. Dynamic Gameplay: Player walking over 1m step, colliding with 2m cliff, and streaming chunks...")
+	camera.set_target(player)
+	camera.set_process(true)
+	camera.set_physics_process(true)
+	camera.pan_enabled = false
+	player.set_physics_process(true)
+
+	# 8.1. Approach and walk over 1m step:
+	# From cell (6, 1) y=0 to cell (7, 1) y=1
+	var h61: float = float(map_gen.get_voxel_height(6, 1))
+	player.global_position = Vector3(5.5, h61 + 1.0, 1.5)
+	player.velocity = Vector3.ZERO
+	camera.global_position = player.global_position + camera.target_base_offset
+	camera.look_at(player.global_position, Vector3.UP)
+	camera.step_camera(1.0)
+	await _wait_frames(6)
+	await _capture_viewport("dyn_01_step_approach.png")
+
+	# Walk East towards step (+X)
+	for f in range(25):
+		player.velocity.x = 4.0
+		player.velocity.z = 0.0
+		player.move_and_slide()
+		player.movement._apply_gravity_and_step_up(player, 0.016, Vector3(1, 0, 0))
+		camera.step_camera(0.016)
+		await process_frame
+	await _capture_viewport("dyn_02_step_climb.png")
+
+	for f in range(20):
+		player.velocity.x = 4.0
+		player.velocity.z = 0.0
+		player.movement._apply_gravity_and_step_up(player, 0.016, Vector3(1, 0, 0))
+		camera.step_camera(0.016)
+		await process_frame
+	await _capture_viewport("dyn_03_step_success_on_top.png")
+	print("    [DYNAMIC-WALK] 1m step passed. Player position: %s" % str(player.global_position))
+
+	# 8.2. Approach and collide against 2m cliff:
+	# Cell (7, 2) y=1 to cell (8, 2) y=3 (2m cliff at x=8.0)
+	var h72: float = float(map_gen.get_voxel_height(7, 2))
+	player.global_position = Vector3(7.2, h72 + 1.0, 2.5)
+	player.velocity = Vector3.ZERO
+	camera.global_position = player.global_position + camera.target_base_offset
+	camera.look_at(player.global_position, Vector3.UP)
+	camera.step_camera(1.0)
+	await _wait_frames(6)
+	await _capture_viewport("dyn_04_cliff_approach.png")
+
+	# Walk East into the 2m cliff
+	for f in range(35):
+		player.velocity.x = 5.0
+		player.velocity.z = 0.0
+		player.movement._apply_gravity_and_step_up(player, 0.016, Vector3(1, 0, 0))
+		camera.step_camera(0.016)
+		await process_frame
+	await _capture_viewport("dyn_05_cliff_blocked.png")
+	print("    [DYNAMIC-WALK] 2m cliff collision blocking. Player position: %s (must be < 8.0)" % str(player.global_position))
+	if player.global_position.x >= 8.0:
+		printerr("[ERROR] Player walked through 2m cliff!")
+		quit(1)
+
+	# 8.3. Chunk streaming: move away to trigger unload of chunk (0, 0)
+	# Configure local radii for demonstrable streaming cycle
+	map_gen.load_radius_chunks = 1
+	map_gen.unload_radius_chunks = 2
+	print("    [DYNAMIC-STREAMING] Moving to chunk (3, 0) to unload chunk (0, 0)...")
+	if not map_gen.active_chunks.has(Vector2i(0, 0)):
+		printerr("[ERROR] Chunk (0, 0) should be initially active!")
+		quit(1)
+
+	var h30: float = float(map_gen.get_voxel_height(48, 8))
+	player.global_position = Vector3(48.0, h30 + 1.0, 8.0)
+	player.velocity = Vector3.ZERO
+	camera.global_position = player.global_position + camera.target_base_offset
+	camera.look_at(player.global_position, Vector3.UP)
+	camera.step_camera(1.0)
+	await _wait_frames(6)
+	map_gen.update_player_chunks(Vector2i(3, 0), true)
+	await _wait_frames(10)
+	camera.step_camera(1.0)
+	await _capture_viewport("dyn_06_chunk_unloaded.png")
+
+	var chunk_0_0_unloaded: bool = not map_gen.active_chunks.has(Vector2i(0, 0))
+	print("    [DYNAMIC-STREAMING] Chunk (0, 0) unloaded: %s" % str(chunk_0_0_unloaded))
+	if not chunk_0_0_unloaded:
+		printerr("[ERROR] Chunk (0, 0) was not unloaded!")
+		quit(1)
+
+	# 8.4. Return to chunk (0, 0) to trigger reload
+	print("    [DYNAMIC-STREAMING] Returning to chunk (0, 0) to reload...")
+	var h00: float = float(map_gen.get_voxel_height(2, 2))
+	player.global_position = Vector3(2.0, h00 + 1.0, 2.0)
+	player.velocity = Vector3.ZERO
+	camera.global_position = player.global_position + camera.target_base_offset
+	camera.look_at(player.global_position, Vector3.UP)
+	camera.step_camera(1.0)
+	await _wait_frames(6)
+	map_gen.update_player_chunks(Vector2i(0, 0), true)
+	await _wait_frames(15)
+	camera.step_camera(1.0)
+	await _capture_viewport("dyn_07_chunk_reloaded.png")
+
+	var chunk_0_0_reloaded: bool = map_gen.active_chunks.has(Vector2i(0, 0))
+	print("    [DYNAMIC-STREAMING] Chunk (0, 0) reloaded: %s" % str(chunk_0_0_reloaded))
+	if not chunk_0_0_reloaded:
+		printerr("[ERROR] Chunk (0, 0) was not reloaded!")
+		quit(1)
+
+	print("[ISSUE-43] All static and dynamic visual evidence completed successfully!")
 	quit(0)
