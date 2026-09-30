@@ -89,7 +89,7 @@ scons custom_api_file=extension_api.json platform=linux target=template_debug -j
 
 В текущем Antigravity сервер `chatgpt-project-bridge` зарегистрирован глобально; он предоставляет `ask_mentor`, `generate_image`, `get_job`, `bridge_status`. Условия обращения заданы в [GEMINI.md](../GEMINI.md), аргументы и обработка результатов — в [MCP_BRIDGE.md](MCP_BRIDGE.md).
 
-Перед использованием вызови `bridge_status`: проверь подключение браузера, проекты Mentor/Imgen и `inputRoots`. Настройка MCP находится в `~/.gemini/config/mcp_config.json`; локальный конфиг bridge и секрет подключения не копируются в репозиторий. Не создавай вторую регистрацию уже настроенного сервера. Этот bridge отличается от Godot MCP и Blockbench MCP ниже.
+Перед использованием вызови `bridge_status`: проверь подключение браузера, проекты Mentor/Imgen и `inputRoots`. Настройка Antigravity находится в `~/.gemini/config/mcp_config.json`, Codex — в `~/.codex/config.toml`; локальный конфиг bridge и секрет подключения не копируются в репозиторий. Подключение существующей установки к Codex описано в [MCP_BRIDGE.md](MCP_BRIDGE.md#подключение-в-codex). Одновременно сервер поддерживает один MCP-клиент. Этот bridge отличается от Godot MCP и Blockbench MCP ниже.
 
 ## 5. Подключение Godot MCP Native
 
