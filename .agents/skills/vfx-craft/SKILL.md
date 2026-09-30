@@ -7,6 +7,8 @@ description: Design, implement, and refine real-time gameplay VFX for abilities,
 
 Build a distinctive effect that feels native to the game and communicates the action from the player's actual camera. Treat "perfect" as the best demonstrated solution for the current brief and constraints, with honest remaining limitations.
 
+If the active project provides `docs/vfx/START_HERE.md` and `tools/vfx_workbench.py`, read that entry point first. Use its known presets, bounded capture cases, rig report and asset-factory handoff instead of recreating the harness. An art-profile trial remains a proposal until it has current engine evidence and explicit observations; a file-integrity gate does not establish artistic quality.
+
 ## Establish the effect's job
 
 Read the active project contract and inspect the actual ability, its basic-attack counterpart, animation, camera, lighting, and existing effects. Identify the source transform, cast and hit events, damage geometry, interruption rules, repetition rate, target hardware, and concurrent effect count. Separate an authorized gameplay change from a presentation change; this skill does not expand the user's scope or external-action permissions.

@@ -28,7 +28,9 @@ func _initialize() -> void:
 	root.content_scale_mode = Window.CONTENT_SCALE_MODE_VIEWPORT
 	root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_KEEP
 	for argument: String in OS.get_cmdline_user_args():
-		if argument.begins_with("--label="):
+		if argument.begins_with("--output="):
+			_output = argument.trim_prefix("--output=").trim_suffix("/") + "/"
+		elif argument.begins_with("--label="):
 			_label = argument.trim_prefix("--label=")
 		elif argument.begins_with("--profile="):
 			_profile_path = argument.trim_prefix("--profile=")

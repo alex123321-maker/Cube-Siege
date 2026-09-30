@@ -4,7 +4,7 @@ extends SceneTree
 ## --fixed-fps 60 --write-movie screenshots_debug/cleave.avi -s tools/capture_cleave.gd
 const MAIN: PackedScene = preload("res://scenes/main.tscn")
 const ENEMY: PackedScene = preload("res://scenes/enemy_dummy.tscn")
-const OUTPUT: String = "res://docs/verification/vfx_cleave_ability/"
+var _output: String = "res://docs/verification/vfx_cleave_ability/"
 var _world: Node3D
 var _player: CharacterBody3D
 var _camera: CameraFollow
@@ -23,13 +23,18 @@ var _profile_real_time: bool = false
 var _basic: bool = false
 var _target_offsets: Array[Vector3] = []
 var _pose_only: bool = false
+var _profile_path: String = ""
 
 func _initialize() -> void:
 	root.content_scale_size = Vector2i(1280, 720)
 	root.content_scale_mode = Window.CONTENT_SCALE_MODE_VIEWPORT
 	root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_KEEP
 	for argument: String in OS.get_cmdline_user_args():
-		if argument.begins_with("--only-phase="):
+		if argument.begins_with("--output="):
+			_output = argument.trim_prefix("--output=").trim_suffix("/") + "/"
+		elif argument.begins_with("--profile="):
+			_profile_path = argument.trim_prefix("--profile=")
+		elif argument.begins_with("--only-phase="):
 			_only_phase = int(argument.trim_prefix("--only-phase="))
 		elif argument.begins_with("--label="):
 			_label = argument.trim_prefix("--label=")
@@ -55,8 +60,19 @@ func _process(delta: float) -> bool:
 	return false
 
 func _capture() -> void:
+	if not _profile_path.is_empty():
+		var candidate: CleaveVFXProfile = load(_profile_path) as CleaveVFXProfile
+		var shared: CleaveVFXProfile = root.get_node("VFXManager").CLEAVE_PROFILE as CleaveVFXProfile
+		if not candidate or not candidate.ability or not is_equal_approx(candidate.radius, shared.radius) or not is_equal_approx(candidate.ability.arc_degrees, shared.ability.arc_degrees):
+			push_error("A capture profile must preserve the real cleave damage footprint")
+			quit(2)
+			return
+		# Art-only override. Keep the authoritative ability resource untouched.
+		for property: Dictionary in candidate.get_property_list():
+			if property.usage & PROPERTY_USAGE_SCRIPT_VARIABLE and property.name not in ["ability", "radius"]:
+				shared.set(property.name, candidate.get(property.name))
 	seed(271828)
-	DirAccess.make_dir_recursive_absolute(OUTPUT)
+	DirAccess.make_dir_recursive_absolute(_output)
 	_world = MAIN.instantiate() as Node3D
 	var map: MapGenerator = _world.get_node("MapGenerator") as MapGenerator
 	map.random_seed = false
@@ -130,7 +146,7 @@ func _capture() -> void:
 					_failed = true
 		if local_frame in [0, 9, 16, 19, 22, 25, 29, 35, 45, 65, 90]:
 			await RenderingServer.frame_post_draw
-			root.get_texture().get_image().save_png(OUTPUT + "%s_%d_%03d.png" % [_label, phase, local_frame])
+			root.get_texture().get_image().save_png(_output + "%s_%d_%03d.png" % [_label, phase, local_frame])
 		await process_frame
 	await create_timer(0.9).timeout
 	var active: int = root.get_node("VFXManager").get_active_effect_count()

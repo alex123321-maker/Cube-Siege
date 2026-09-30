@@ -2,11 +2,14 @@ extends SceneTree
 
 ## Inspect all playable rigs using their real class binding and imported clips.
 const PLAYER: PackedScene = preload("res://scenes/player.tscn")
-const OUTPUT: String = "res://docs/verification/vfx_cleave_ability/"
+var _output: String = "res://docs/verification/vfx_cleave_ability/"
 var _player: CharacterBody3D
 var _caption: Label
 
 func _initialize() -> void:
+	for argument: String in OS.get_cmdline_user_args():
+		if argument.begins_with("--output="):
+			_output = argument.trim_prefix("--output=").trim_suffix("/") + "/"
 	call_deferred("_capture")
 
 func _capture() -> void:
@@ -44,7 +47,7 @@ func _capture() -> void:
 	_caption.position = Vector2(28, 24)
 	_caption.add_theme_font_size_override("font_size", 22)
 	label_layer.add_child(_caption)
-	DirAccess.make_dir_recursive_absolute(OUTPUT)
+	DirAccess.make_dir_recursive_absolute(_output)
 	for class_id in range(3):
 		_player.set_class(class_id, false)
 		if is_instance_valid(_player.presentation.blade_trail):
@@ -57,7 +60,7 @@ func _capture() -> void:
 				_caption.text = "%s / %s / FRONT IS TOWARD CAMERA (-Z)" % [_player.presentation.active_model.name, action]
 				if frame in [0, 6, 12, 18, 30]:
 					await RenderingServer.frame_post_draw
-					root.get_texture().get_image().save_png(OUTPUT + "model_%d_%s_%02d.png" % [class_id, action, frame])
+					root.get_texture().get_image().save_png(_output + "model_%d_%s_%02d.png" % [class_id, action, frame])
 				await process_frame
 	_player.hide()
 	var enemy_scenes: Array[PackedScene] = [preload("res://scenes/enemy_dummy.tscn"),
@@ -71,7 +74,7 @@ func _capture() -> void:
 		for frame in range(20):
 			if frame == 6:
 				await RenderingServer.frame_post_draw
-				root.get_texture().get_image().save_png(OUTPUT + "enemy_%d_idle.png" % index)
+				root.get_texture().get_image().save_png(_output + "enemy_%d_idle.png" % index)
 			await process_frame
 		enemy.queue_free()
 		await process_frame

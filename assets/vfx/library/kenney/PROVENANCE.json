@@ -1,0 +1,39 @@
+{
+  "source": "https://kenney.nl/assets/particle-pack",
+  "download": "https://kenney.nl/media/pages/assets/particle-pack/f8fe0f8cb8-1677578741/kenney_particle-pack.zip",
+  "retrieved": "2026-09-30",
+  "license": "CC0-1.0",
+  "archive_sha256": "b631d4b07f7002549fdcf155f01141ad482f79f3440e4e301eed49ce5f1d8958",
+  "files": [
+    {
+      "file": "smoke_01.png",
+      "archive_path": "PNG (Transparent)/smoke_01.png",
+      "sha256": "e8724c219e8d35859167fc0a7e207e13c72ccf0c29704909b9bb3d3dc71c6cf7"
+    },
+    {
+      "file": "spark_06.png",
+      "archive_path": "PNG (Transparent)/spark_06.png",
+      "sha256": "fe6d473393d3b9350c7a654b7cb5fbd343766b5b5b11d3e4aba476832d4a6d3f"
+    },
+    {
+      "file": "flare_01.png",
+      "archive_path": "PNG (Transparent)/flare_01.png",
+      "sha256": "254f5bd4f0548612bf29305d27899efdee8cb8d8306292761ebbddebd3e57935"
+    },
+    {
+      "file": "slash_02.png",
+      "archive_path": "PNG (Transparent)/slash_02.png",
+      "sha256": "a79a9e297790e6126b78d41015a3045cda3f1863b421c88321d2442ed6f9032e"
+    },
+    {
+      "file": "circle_05.png",
+      "archive_path": "PNG (Transparent)/circle_05.png",
+      "sha256": "925b8ac284436f74f9cadf0ecd058da1c08fba65c098e4e34fd220603022f02e"
+    },
+    {
+      "file": "muzzle_01.png",
+      "archive_path": "PNG (Transparent)/muzzle_01.png",
+      "sha256": "08f650f6a615b65024b48d8da32178158d74307d7c235f214f0c075b7aa688b9"
+    }
+  ]
+}

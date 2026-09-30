@@ -1,0 +1,8 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/vfx/library/vfx_stamp_3d.gd" id="1"]
+[ext_resource type="Resource" path="res://assets/vfx/library/presets/soft_dust.tres" id="2"]
+
+[node name="SoftDust" type="Node3D"]
+script = ExtResource("1")
+profile = ExtResource("2")
