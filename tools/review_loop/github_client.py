@@ -61,7 +61,8 @@ class GitHubClient:
                 text=True,
                 encoding="utf-8",
                 errors="replace",
-                timeout=timeout
+                timeout=timeout,
+                creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
             )
             if res.returncode != 0 and args != ["auth", "status"]:
                 err_msg = f"{res.stderr}\n{res.stdout}".strip()

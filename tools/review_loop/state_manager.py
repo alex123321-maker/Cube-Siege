@@ -34,6 +34,7 @@ from tools.review_loop.config import (
     DEFAULT_STATE_FILE,
     DEFAULT_STATE_LOCK_FILE,
 )
+from tools.review_loop.agent_target import validate_target
 
 logger = logging.getLogger(__name__)
 
@@ -203,18 +204,54 @@ class StateManager:
         return self.state.get("prs", {}).get(str(pr_number))
 
     def remember_branch_conversation(
-        self, branch: str, conversation_id: str
+        self, branch: str, conversation_id: str, agent_provider: str = "antigravity",
+        preserve_provider: bool = False,
     ) -> None:
         """Remember the active agent conversation before a PR exists."""
         branch = str(branch or "").strip()
         conversation_id = str(conversation_id or "").strip()
         if not branch or not conversation_id:
             raise ValueError("Branch and conversation ID are required.")
+        conversation_id, agent_provider = validate_target(conversation_id, agent_provider)
         with self._transact():
+            if preserve_provider:
+                self._check_branch_provider(branch, agent_provider)
+            for entry in self.state.get("prs", {}).values():
+                if entry.get("branch") == branch:
+                    self._check_target_change(entry, conversation_id, agent_provider, branch)
             self.state.setdefault("branch_conversations", {})[branch] = {
                 "conversation_id": conversation_id,
+                "agent_provider": agent_provider,
                 "updated_at": time.time(),
             }
+
+    def _check_branch_provider(self, branch, agent_provider):
+        """Check hook ownership inside the same transaction as its write."""
+        mapping = self.state.get("branch_conversations", {}).get(branch)
+        if mapping:
+            previous = mapping.get("agent_provider", "antigravity") if isinstance(mapping, dict) else "antigravity"
+            if previous != agent_provider:
+                raise ValueError("Automatic registration cannot replace another agent provider.")
+        for entry in self.state.get("prs", {}).values():
+            if entry.get("branch") == branch and entry.get("agent_provider", "antigravity") != agent_provider:
+                raise ValueError("Automatic registration cannot replace another agent provider.")
+
+    @staticmethod
+    def _check_target_change(entry, conversation_id, agent_provider, branch):
+        previous_provider = entry.get("agent_provider", "antigravity")
+        if entry.get("status") == "processing" and "codex" in (previous_provider, agent_provider):
+            if (entry.get("conversation_id"), previous_provider, entry.get("branch")) != (conversation_id, agent_provider, branch):
+                raise ValueError("Cannot reassign an active Codex review run. Finish or stop it first.")
+
+    def get_branch_target(self, branch: str):
+        """Old string/dict mappings retain their Antigravity identity."""
+        self._load_no_lock()
+        entry = self.state.get("branch_conversations", {}).get(str(branch or "").strip())
+        if isinstance(entry, str) and entry:
+            return entry, "antigravity"
+        if isinstance(entry, dict) and entry.get("conversation_id"):
+            return entry["conversation_id"], entry.get("agent_provider", "antigravity")
+        return None
 
     def get_branch_conversation(self, branch: str) -> Optional[str]:
         self._load_no_lock()
@@ -243,7 +280,8 @@ class StateManager:
     # ------------- PR Registration & Lifecycle ------------- #
 
     def register_pr(
-        self, pr_number: int, conversation_id: str, branch: str
+        self, pr_number: int, conversation_id: str, branch: str, agent_provider: str = "antigravity",
+        preserve_provider: bool = False,
     ) -> None:
         """
         Register or update a PR mapping (transactional).
@@ -252,18 +290,28 @@ class StateManager:
         in_flight_events, pending_events, retry_count) so hook calls do not
         destroy active processing state.
         """
+        conversation_id, agent_provider = validate_target(conversation_id, agent_provider)
         with self._transact():
+            existing = self.state["prs"].get(str(pr_number), {})
+            if preserve_provider:
+                self._check_branch_provider(branch, agent_provider)
+                if existing and existing.get("agent_provider", "antigravity") != agent_provider:
+                    raise ValueError("Automatic registration cannot replace another agent provider.")
+            self._check_target_change(existing, conversation_id, agent_provider, branch)
             self.state.setdefault("branch_conversations", {})[branch] = {
                 "conversation_id": conversation_id,
+                "agent_provider": agent_provider,
                 "updated_at": time.time(),
             }
             key = str(pr_number)
             if key in self.state["prs"]:
                 self.state["prs"][key]["conversation_id"] = conversation_id
+                self.state["prs"][key]["agent_provider"] = agent_provider
                 self.state["prs"][key]["branch"] = branch
             else:
                 self.state["prs"][key] = {
                     "conversation_id": conversation_id,
+                    "agent_provider": agent_provider,
                     "branch": branch,
                     "status": "watching",
                     "last_head_sha": "",
@@ -320,6 +368,50 @@ class StateManager:
         if not pr:
             return 0
         return pr.get("current_run_id", 0)
+
+    def complete_codex_run(self, pr_number: int, run_id: int, status: str = "completed") -> None:
+        """Record an acknowledgement for this exact run; watcher finalizes its events."""
+        if status not in ("completed", "awaiting_design_decision"):
+            raise ValueError("Invalid Codex completion status.")
+        with self._transact():
+            pr = self.state["prs"].get(str(pr_number), {})
+            if (pr.get("agent_provider") != "codex" or pr.get("status") != "processing"
+                    or run_id <= 0 or pr.get("current_run_id") != run_id):
+                raise ValueError("Completion does not match an active Codex review run.")
+            pr["completed_run_id"] = run_id
+            pr["completed_run_status"] = status
+
+    def finish_codex_run(self, pr_number: int, run_id: int, head_sha: str = "", error: Optional[str] = None) -> bool:
+        """Atomically finish only the observed run, even with competing watcher cycles."""
+        with self._transact():
+            pr = self.state["prs"].get(str(pr_number), {})
+            if (pr.get("agent_provider") != "codex" or pr.get("status") != "processing"
+                    or pr.get("current_run_id") != run_id):
+                return False
+            if error is None and pr.get("completed_run_id") != run_id:
+                return False
+            # An acknowledgement may arrive after the watcher's timeout snapshot.
+            # A valid completion takes precedence over that stale error.
+            acknowledged = pr.get("completed_run_id") == run_id
+            outcome = pr.get("completed_run_status") if acknowledged else "error"
+            if outcome not in ("completed", "awaiting_design_decision", "error"):
+                return False
+            events = pr.get("in_flight_events", [])
+            if outcome == "completed":
+                processed = pr.setdefault("processed_event_ids", [])
+                for event in events:
+                    if event.get("id") and event["id"] not in processed:
+                        processed.append(event["id"])
+                pr.update(status="watching", last_head_sha=head_sha, retry_count=0)
+            else:
+                pending = pr.setdefault("pending_events", [])
+                for event in reversed(events):
+                    if not any(item.get("id") == event.get("id") for item in pending):
+                        pending.insert(0, event)
+                pr["status"] = outcome
+            pr.update(in_flight_events=[], active_agent_pid=None, processing_started_at=0.0,
+                      dispatch_mode="", last_dispatch_error=(error or "") if outcome == "error" else "")
+            return True
 
     def reactivate_pr(self, pr_number: int) -> bool:
         """
@@ -555,6 +647,8 @@ class StateManager:
         if not pr:
             return False
         if pr.get("status") == "processing":
+            if pr.get("agent_provider") == "codex":
+                return True  # Only the watcher/completion protocol can resolve queued delivery.
             pid = pr.get("active_agent_pid")
             if pid and is_pid_alive(pid):
                 return True
@@ -595,6 +689,8 @@ class StateManager:
                 return False
 
             if pr.get("status") == "processing":
+                if pr.get("agent_provider") == "codex":
+                    return False  # An expired lease does not prove a queued message was cancelled.
                 tracked_pid = pr.get("active_agent_pid")
                 if tracked_pid and is_pid_alive(tracked_pid):
                     return False
@@ -631,6 +727,12 @@ class StateManager:
                     pr["in_flight_events"] = []
 
             # Claim lock atomically within this transaction
+            if pr.get("agent_provider") == "codex":
+                # Reserve the new ID with the lock. A late old acknowledgement
+                # must not match the gap between lock acquisition and dispatch.
+                pr["current_run_id"] = pr.get("current_run_id", 0) + 1
+                pr.pop("completed_run_id", None)
+                pr.pop("completed_run_status", None)
             pr["status"] = "processing"
             pr["processing_started_at"] = time.time()
             pr["active_agent_pid"] = pid

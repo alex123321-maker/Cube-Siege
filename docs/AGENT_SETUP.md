@@ -1,6 +1,8 @@
 # 🛠️ Руководство по развёртыванию окружения Cube Siege
 
-Данное руководство описывает воспроизведение рабочего окружения разработчика и агента (Gemini / Antigravity) на чистой машине с нуля.
+Данное руководство описывает воспроизведение рабочего окружения разработчика и агента (Gemini / Antigravity или Codex) на чистой машине с нуля.
+
+Для Codex точка входа — [AGENTS.md](../AGENTS.md); подключение к watcher и завершение review runs описаны в [CODEX_REVIEW_LOOP.md](CODEX_REVIEW_LOOP.md).
 
 ---
 
@@ -82,6 +84,12 @@ scons custom_api_file=extension_api.json platform=linux target=template_debug -j
 ```
 
 ---
+
+## ChatGPT Project Bridge: ментор и изображения
+
+В текущем Antigravity сервер `chatgpt-project-bridge` зарегистрирован глобально; он предоставляет `ask_mentor`, `generate_image`, `get_job`, `bridge_status`. Условия обращения заданы в [GEMINI.md](../GEMINI.md), аргументы и обработка результатов — в [MCP_BRIDGE.md](MCP_BRIDGE.md).
+
+Перед использованием вызови `bridge_status`: проверь подключение браузера, проекты Mentor/Imgen и `inputRoots`. Настройка MCP находится в `~/.gemini/config/mcp_config.json`; локальный конфиг bridge и секрет подключения не копируются в репозиторий. Не создавай вторую регистрацию уже настроенного сервера. Этот bridge отличается от Godot MCP и Blockbench MCP ниже.
 
 ## 5. Подключение Godot MCP Native
 

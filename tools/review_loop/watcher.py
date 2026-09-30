@@ -20,6 +20,7 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 from tools.review_loop.agent_resumer import AgentResumer, AgentResumerError
+from tools.review_loop.codex_resumer import CodexResumer
 from tools.review_loop.config import (
     AGENTAPI_COMPLETION_TIMEOUT_SECONDS,
     AGENT_COMMENT_MARKER,
@@ -203,11 +204,15 @@ class ReviewWatcher:
         state_manager: Optional[StateManager] = None,
         agent_resumer: Optional[AgentResumer] = None,
         poll_interval: int = DEFAULT_POLL_INTERVAL_SECONDS,
-        run_once: bool = False
+        run_once: bool = False,
+        codex_resumer: Optional[CodexResumer] = None,
+        agent_provider: Optional[str] = None,
     ):
         self.github = github_client or GitHubClient(cwd=REPO_ROOT)
         self.state = state_manager or StateManager()
         self.resumer = agent_resumer or AgentResumer(cwd=REPO_ROOT)
+        self.codex_resumer = codex_resumer or CodexResumer(cwd=REPO_ROOT)
+        self.agent_provider = agent_provider
         self.poll_interval = poll_interval
         self.run_once = run_once
         self._running = False
@@ -249,7 +254,10 @@ class ReviewWatcher:
             conversation_id = unmatched.get(branch)
             if not pr_number or not conversation_id or str(pr_number) in registered:
                 continue
-            self.state.register_pr(int(pr_number), conversation_id, branch)
+            target = self.state.get_branch_target(branch)
+            if not target:
+                continue
+            self.state.register_pr(int(pr_number), target[0], branch, agent_provider=target[1])
             logger.info(
                 "Recovered registration for PR #%s on branch '%s' from hook state.",
                 pr_number, branch,
@@ -276,6 +284,31 @@ class ReviewWatcher:
             if created_ts >= started_at:
                 return True
         return False
+
+    def has_local_completion_marker(self, pr_number: int) -> bool:
+        """Detect local turn-completion marker file created by the agent or helper."""
+        run_id = self.state.get_current_run_id(pr_number)
+        markers = [
+            REVIEW_LOOP_DIR / f"pr_{pr_number}.done",
+            REVIEW_LOOP_DIR / f"pr_{pr_number}_run_{run_id}.done",
+            REVIEW_LOOP_DIR / f"pr_{pr_number}_completed",
+        ]
+        return any(m.is_file() for m in markers)
+
+    def clear_local_completion_marker(self, pr_number: int) -> None:
+        """Clean up local completion marker files after processing."""
+        run_id = self.state.get_current_run_id(pr_number)
+        markers = [
+            REVIEW_LOOP_DIR / f"pr_{pr_number}.done",
+            REVIEW_LOOP_DIR / f"pr_{pr_number}_run_{run_id}.done",
+            REVIEW_LOOP_DIR / f"pr_{pr_number}_completed",
+        ]
+        for m in markers:
+            try:
+                if m.is_file():
+                    m.unlink()
+            except OSError:
+                pass
 
     def ignore_agent_report(
         self, pr_number: int, event_id: Any, author: str, body: str
@@ -510,11 +543,32 @@ class ReviewWatcher:
             self.state.release_lock(pr_number)
             raise
 
+    def _process_codex_run(self, pr_number: int, entry: Dict[str, Any], pr_info: Dict[str, Any]) -> None:
+        """Queue delivery is not completion; acknowledge the exact run without blind retries."""
+        run_id = entry.get("current_run_id", 0)
+        completed = run_id > 0 and entry.get("completed_run_id") == run_id
+        if completed:
+            self.state.finish_codex_run(pr_number, run_id, head_sha=pr_info.get("headRefOid", ""))
+            return
+        # New feedback remains pending until this queued task explicitly completes.
+        for event in self.check_pr_events(pr_number, pr_info):
+            self.state.queue_pending_event(pr_number, event)
+        if time.time() - entry.get("processing_started_at", 0) >= AGENTAPI_COMPLETION_TIMEOUT_SECONDS:
+            logger.error("Codex run %s for PR #%s has no completion acknowledgement; inspect the chat before reactivation.", run_id, pr_number)
+            self.state.finish_codex_run(pr_number, run_id, error="Codex completion timeout; delivery may still be queued.")
+
     def _process_registered_pr_impl(self, pr_number: int, pr_entry: Optional[Dict[str, Any]] = None) -> None:
         authoritative_pr = self.state.get_pr(pr_number)
         if not authoritative_pr:
             return
         pr_entry = authoritative_pr
+        agent_provider = pr_entry.get("agent_provider", "antigravity")
+        if self.agent_provider and agent_provider != self.agent_provider:
+            return
+        if agent_provider not in ("antigravity", "codex"):
+            logger.error("Unknown agent provider for PR #%s: %s", pr_number, agent_provider)
+            self.state.mark_pr_status(pr_number, "error")
+            return
 
         conversation_id = pr_entry.get("conversation_id")
         if not conversation_id:
@@ -544,6 +598,10 @@ class ReviewWatcher:
 
         pr_status = pr_entry.get("status", "watching")
         if pr_status in ["closed", "error", "awaiting_design_decision"]:
+            if agent_provider == "codex" and pr_status == "error":
+                # A queued message can still execute after a transport/completion timeout.
+                # Never infer permission to resend it from a changed GitHub head.
+                return
             # If developer pushed a new commit, reactivate the PR back to watching!
             if current_head_sha and last_head_sha and current_head_sha != last_head_sha:
                 logger.info(
@@ -557,6 +615,9 @@ class ReviewWatcher:
                 return
 
         # ---------------- 1. Active Processing Check & Completion ----------------
+        if pr_status == "processing" and agent_provider == "codex":
+            self._process_codex_run(pr_number, pr_entry, pr_info)
+            return
         if pr_status == "processing":
             pid = pr_entry.get("active_agent_pid")
             dispatch_mode = pr_entry.get("dispatch_mode", "")
@@ -599,6 +660,26 @@ class ReviewWatcher:
                 self.state.release_lock(pr_number)
                 return
 
+            if (
+                dispatch_mode == "agentapi"
+                and self.has_local_completion_marker(pr_number)
+            ):
+                in_flight = self.state.get_in_flight_events(pr_number)
+                logger.info(
+                    "Agentapi run completed for PR #%s with local completion marker and "
+                    "no required head change. Finalizing %d in-flight event(s).",
+                    pr_number, len(in_flight),
+                )
+                self.state.reset_retry_count(pr_number)
+                self.state.finalize_in_flight_events(pr_number)
+                if current_head_sha:
+                    self.state.update_pr_fields(
+                        pr_number, last_head_sha=current_head_sha
+                    )
+                self.clear_local_completion_marker(pr_number)
+                self.state.release_lock(pr_number)
+                return
+
             if pid and is_pid_alive(pid):
                 # Agent process is actively running. Queue any new incoming review events.
                 new_events = self.check_pr_events(pr_number, pr_info)
@@ -638,7 +719,6 @@ class ReviewWatcher:
                             "Could not forward new feedback for PR #%s: %s",
                             pr_number, out,
                         )
-                return
 
             # If launch is in progress (pid is None) and within startup grace period, do not intervene
             completion_grace = (
@@ -789,25 +869,35 @@ class ReviewWatcher:
         # Record events as in-flight BEFORE launch. They are NOT marked processed yet!
         self.state.set_in_flight_events(pr_number, all_events)
 
-        run_id = self.state.start_new_run(pr_number)
+        run_id = (self.state.get_current_run_id(pr_number) if agent_provider == "codex"
+                  else self.state.start_new_run(pr_number))
         logger.info(
-            "Waking Antigravity conversation %s for PR #%s (run %d) with %d in-flight event(s)...",
-            conversation_id, pr_number, run_id, len(all_events)
+            "Waking %s conversation %s for PR #%s (run %d) with %d in-flight event(s)...",
+            agent_provider, conversation_id, pr_number, run_id, len(all_events)
         )
         try:
-            success, out, active_pid = self.resumer.resume_conversation(
-                conversation_id,
-                pr_number,
-                run_id=run_id,
-                feedback_events=all_events,
-            )
+            if agent_provider == "codex":
+                # Persist before dispatch so a watcher crash cannot silently resend.
+                self.state.update_pr_fields(pr_number, dispatch_mode="codex")
+                success, out, active_pid = self.codex_resumer.resume_conversation(
+                    conversation_id, pr_number, run_id=run_id,
+                    feedback_events=all_events, expected_branch=pr_entry.get("branch"),
+                )
+            else:
+                success, out, active_pid = self.resumer.resume_conversation(
+                    conversation_id, pr_number, run_id=run_id, feedback_events=all_events,
+                )
         except AgentResumerError as e:
             success = False
             out = f"Missing resume capability: {e}"
             active_pid = None
 
         if not success:
-            if "Missing resume capability" in out or "AgentResumerError" in out:
+            if agent_provider == "codex":
+                self.state.finish_codex_run(pr_number, run_id, error=out)
+                logger.error("Codex dispatch failed or is uncertain for PR #%s: %s. No automatic resend.", pr_number, out)
+                return
+            elif "Missing resume capability" in out or "AgentResumerError" in out:
                 logger.error(
                     "Missing Antigravity resume capability for PR #%s: %s. Transitioning to terminal 'error' state.",
                     pr_number, out
@@ -832,7 +922,7 @@ class ReviewWatcher:
             logger.info("Agent successfully initiated for PR #%s (run %d, PID: %s).", pr_number, run_id, active_pid)
             if active_pid:
                 self.state.update_pr_fields(pr_number, active_agent_pid=active_pid)
-            else:
+            elif agent_provider != "codex":
                 self.state.update_pr_fields(pr_number, dispatch_mode="agentapi")
 
     def run_cycle(self) -> None:
@@ -886,7 +976,9 @@ class ReviewWatcher:
                         "Halting review watcher.", e
                     )
                     prs = self.state.get_registered_prs()
-                    for pr_str in prs:
+                    for pr_str, entry in prs.items():
+                        if self.agent_provider and entry.get("agent_provider", "antigravity") != self.agent_provider:
+                            continue
                         try:
                             num = int(pr_str)
                             if self.state.get_pr_status(num) != "closed":
@@ -985,14 +1077,23 @@ def setup_logging(log_file: Optional[Path] = None, verbose: bool = False) -> Non
     root.addHandler(console_handler)
 
 def main() -> None:
+    global DEFAULT_PID_FILE
     parser = argparse.ArgumentParser(description="Autonomous PR review feedback watcher.")
+    parser.add_argument("--agent", choices=["antigravity", "codex"], default="antigravity",
+                        help="Provider owned by this process; Antigravity sidecars keep the legacy default.")
     parser.add_argument("--run-once", action="store_true", help="Run a single check cycle and exit.")
     parser.add_argument("--interval", type=int, default=DEFAULT_POLL_INTERVAL_SECONDS, help="Polling interval in seconds.")
     parser.add_argument("--verbose", "-v", action="store_true", help="Enable verbose debug logging.")
     args = parser.parse_args()
 
-    setup_logging(verbose=args.verbose)
-    watcher = ReviewWatcher(poll_interval=args.interval, run_once=args.run_once)
+    if args.interval < 1:
+        parser.error("--interval must be positive")
+    log_file = DEFAULT_LOG_FILE
+    if args.agent == "codex":
+        DEFAULT_PID_FILE = REVIEW_LOOP_DIR / "watcher_codex.pid"
+        log_file = REVIEW_LOOP_DIR / "watcher_codex.log"
+    setup_logging(log_file=log_file, verbose=args.verbose)
+    watcher = ReviewWatcher(poll_interval=args.interval, run_once=args.run_once, agent_provider=args.agent)
 
     def handle_signal(sig, frame):
         logger.info("Received termination signal %s. Exiting gracefully...", sig)

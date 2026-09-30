@@ -20,6 +20,7 @@ import os
 import shutil
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -435,6 +436,73 @@ class TestReviewWatcher(unittest.TestCase):
         self.assertEqual(pr["status"], "watching")
         self.assertTrue(self.state_mgr.is_event_processed(123, "review-123"))
         self.assertEqual(self.mock_resumer.resume_conversation.call_count, 1)
+
+    def test_agentapi_local_marker_completes_no_code_run(self):
+        self.state_mgr.register_pr(125, "gui-conv", "feat/125")
+        review = {
+            "id": "review-125", "state": "REQUEST_CHANGES",
+            "author": {"login": "alex123321-maker"}, "body": "Confirm CI",
+        }
+        self._setup_pr_mocks(125, reviews=[review], head="same-sha")
+        self.mock_resumer.resume_conversation.return_value = (
+            True, "message delivered", None
+        )
+        self.watcher.run_cycle()
+
+        marker = REVIEW_LOOP_DIR / "pr_125.done"
+        try:
+            marker.parent.mkdir(parents=True, exist_ok=True)
+            marker.write_text("done", encoding="utf-8")
+            self.watcher.run_cycle()
+
+            pr = self.state_mgr.get_pr(125)
+            self.assertEqual(pr["status"], "watching")
+            self.assertTrue(self.state_mgr.is_event_processed(125, "review-125"))
+            self.assertFalse(marker.exists())
+        finally:
+            if marker.exists():
+                marker.unlink()
+
+    def test_agentapi_times_out_after_completion_grace(self):
+        self.state_mgr.register_pr(126, "gui-conv", "feat/126")
+        review = {
+            "id": "review-126", "state": "REQUEST_CHANGES",
+            "author": {"login": "alex123321-maker"}, "body": "Fix timeout bug",
+        }
+        self._setup_pr_mocks(126, reviews=[review], head="same-sha")
+        self.mock_resumer.resume_conversation.return_value = (
+            True, "message delivered", None
+        )
+        self.watcher.run_cycle()
+
+        pr = self.state_mgr.get_pr(126)
+        self.assertEqual(pr["status"], "processing")
+
+        # Simulate elapsed time exceeding AGENTAPI_COMPLETION_TIMEOUT_SECONDS
+        self.state_mgr.update_pr_fields(
+            126, processing_started_at=time.time() - 3600.0
+        )
+        self.watcher.run_cycle()
+
+        pr = self.state_mgr.get_pr(126)
+        # Should not hang in processing forever; should have attempted retry / released lock
+        self.assertEqual(pr["retry_count"], 1)
+        self.assertEqual(pr["status"], "watching")
+
+    def test_complete_run_script_releases_lock(self):
+        from tools.review_loop.complete_run import mark_run_completed
+        self.state_mgr.register_pr(127, "gui-conv", "feat/127")
+        self.state_mgr.acquire_lock(127)
+        self.state_mgr.set_in_flight_events(127, [{"id": "ev-127"}])
+
+        marker_dir = self.test_dir / "review_loop"
+        mark_run_completed(127, state_manager=self.state_mgr, review_loop_dir=marker_dir)
+
+        marker = marker_dir / "pr_127.done"
+        self.assertTrue(marker.exists())
+        pr = self.state_mgr.get_pr(127)
+        self.assertEqual(pr["status"], "watching")
+        self.assertTrue(self.state_mgr.is_event_processed(127, "ev-127"))
 
     def test_new_feedback_is_forwarded_while_agentapi_run_is_active(self):
         self.state_mgr.register_pr(124, "gui-conv", "feat/124")

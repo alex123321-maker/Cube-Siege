@@ -1,7 +1,7 @@
 """
-tools/review_loop/register.py - Automatic PR ↔ Antigravity conversation registration CLI.
+tools/review_loop/register.py - Automatic PR ↔ agent conversation registration CLI.
 
-Associates an open Pull Request with the Antigravity conversation/session ID.
+Associates an open Pull Request with an Antigravity conversation or Codex thread.
 Supports official Antigravity Hook payload via stdin (`--from-hook`).
 Correctly handles PostToolUse (output: {}) and Stop (output: {"decision":"stop"}) contracts.
 """
@@ -20,6 +20,7 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 from tools.review_loop.config import DEFAULT_HOOK_LOG_FILE, REPO_ROOT
+from tools.review_loop.agent_target import AGENT_PROVIDERS, resolve_agent_target
 from tools.review_loop.github_client import GitHubClient, GitHubError
 from tools.review_loop.state_manager import StateManager
 
@@ -91,11 +92,15 @@ def register_from_hook(is_stop: bool = False) -> None:
                 branch = get_current_git_branch()
                 if branch and branch not in ("main", "master", "develop", "HEAD"):
                     state_mgr = StateManager()
-                    state_mgr.remember_branch_conversation(branch, conv_id)
+                    target = state_mgr.get_branch_target(branch)
+                    if target and target[1] != "antigravity":
+                        log_hook_event("Antigravity hook skipped a branch owned by another agent.")
+                        return
+                    state_mgr.remember_branch_conversation(branch, conv_id, preserve_provider=True)
                     github = GitHubClient(cwd=REPO_ROOT)
                     pr_number = github.find_pr_for_branch(branch)
                     if pr_number:
-                        state_mgr.register_pr(pr_number, conv_id, branch)
+                        state_mgr.register_pr(pr_number, conv_id, branch, preserve_provider=True)
                         log_hook_event(
                             f"Registered PR #{pr_number} on branch '{branch}' "
                             f"to conversation '{conv_id}'."
@@ -127,6 +132,7 @@ def register(
     pr_number: Optional[int] = None,
     conversation_id: Optional[str] = None,
     branch: Optional[str] = None,
+    agent_provider: Optional[str] = None,
 ) -> bool:
     state_mgr = StateManager()
     github = GitHubClient(cwd=REPO_ROOT)
@@ -157,27 +163,19 @@ def register(
         return False
 
     # 3. Resolve conversation ID
-    resolved_conv = (
-        conversation_id
-        or get_current_conversation_id()
-        or state_mgr.get_branch_conversation(resolved_branch)
-    )
-    if not resolved_conv:
-        print(
-            "[ERROR] No Antigravity conversation ID was provided, found in "
-            "the environment, or remembered by the hook for this branch."
+    try:
+        resolved_conv, resolved_provider = resolve_agent_target(
+            conversation_id, agent_provider, state_mgr, resolved_branch
         )
-        print(
-            "Please provide --conversation-id explicitly, or trigger via "
-            "Antigravity Hook (--from-hook)."
-        )
+        state_mgr.register_pr(resolved_pr, resolved_conv, resolved_branch, agent_provider=resolved_provider)
+    except ValueError as exc:
+        print(f"[ERROR] {exc}")
         return False
 
     # 4. Save registration
-    state_mgr.register_pr(resolved_pr, resolved_conv, resolved_branch)
     print(
         f"[SUCCESS] Registered PR #{resolved_pr} (branch: "
-        f"'{resolved_branch}') to Antigravity conversation '{resolved_conv}'."
+        f"'{resolved_branch}') to {resolved_provider} conversation '{resolved_conv}'."
     )
     return True
 
@@ -201,19 +199,20 @@ def list_registered() -> None:
     for pr_num, entry in prs.items():
         status = entry.get("status", "unknown")
         conv = entry.get("conversation_id", "")
+        provider = entry.get("agent_provider", "antigravity")
         branch = entry.get("branch", "")
         events_cnt = len(entry.get("processed_event_ids", []))
         pending_cnt = len(entry.get("pending_events", []))
         print(
             f"PR #{pr_num:4s} | status: {status:<10s} | branch: "
-            f"{branch:<30s} | conversation: {conv} | processed: "
+            f"{branch:<30s} | agent: {provider} | conversation: {conv} | processed: "
             f"{events_cnt} | pending: {pending_cnt}"
         )
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Register a PR with Antigravity review feedback loop."
+        description="Register a PR with the Antigravity/Codex review feedback loop."
     )
     parser.add_argument(
         "--from-hook",
@@ -229,12 +228,13 @@ def main() -> None:
         "--pr", type=int, help="Pull Request number (default: auto-detect)."
     )
     parser.add_argument(
-        "--conversation-id",
-        help="Antigravity conversation ID (default: $ANTIGRAVITY_CONVERSATION_ID).",
+        "--conversation-id", "--thread-id",
+        help="Exact conversation ID (Codex: thread UUID).",
     )
     parser.add_argument(
         "--branch", help="Git branch name (default: current git branch)."
     )
+    parser.add_argument("--agent", choices=AGENT_PROVIDERS, help="Provider; inferred only from a matching environment or saved branch.")
     parser.add_argument(
         "--list",
         action="store_true",
@@ -282,7 +282,7 @@ def main() -> None:
         list_registered()
         return
 
-    success = register(args.pr, args.conversation_id, args.branch)
+    success = register(args.pr, args.conversation_id, args.branch, agent_provider=args.agent)
     sys.exit(0 if success else 1)
 
 

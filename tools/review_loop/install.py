@@ -338,11 +338,16 @@ def uninstall_linux() -> bool:
 
 # ================= Common dispatch =================
 
-def ensure_service() -> bool:
+def ensure_service(agent_provider: str = "antigravity") -> bool:
     """Ensure the sidecar watcher is alive before creating/registering a PR."""
+    if agent_provider == "codex":
+        from tools.review_loop.persistent_service import manage
+        return manage("ensure", WINDOWS_TASK_NAME + "Codex")
     pid = get_current_pid()
     if pid and is_pid_running(pid):
         return True
+    if agent_provider != "antigravity":
+        raise ValueError(f"Unknown agent provider: {agent_provider}")
     if is_antigravity_sidecar_enabled():
         if wait_for_watcher():
             return True
@@ -408,7 +413,11 @@ def print_status() -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Manage the PR review watcher.")
     parser.add_argument("action", choices=["install", "ensure", "uninstall", "start", "stop", "status"])
+    parser.add_argument("--agent", choices=["antigravity", "codex"], default="antigravity")
     args = parser.parse_args()
+    if args.agent == "codex":
+        from tools.review_loop.persistent_service import manage
+        raise SystemExit(0 if manage(args.action, WINDOWS_TASK_NAME + "Codex") else 1)
     actions = {
         "install": install_service,
         "ensure": ensure_service,

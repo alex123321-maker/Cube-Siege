@@ -38,6 +38,7 @@ DESIGN_DECISION_MARKER = "DESIGN DECISION REQUIRED"
 RESUME_PROMPT_TEMPLATE = """New GitHub review feedback was received for PR #{pr_number}.
 
 Read the authoritative Issue, current PR description, latest head, all current reviews, and all unresolved review threads.
+Read AGENTS.md when present and GEMINI.md; a direct user request is the contract when no Issue exists.
 Address valid feedback only within the Issue scope.
 This is an autonomous remediation run, not a planning request.
 Do not create or update an implementation plan, do not request plan approval, and do not wait for user confirmation.
@@ -50,8 +51,8 @@ Run the repository verification workflow.
 Commit and push the fixes to the existing PR branch.
 Do not merge the PR.
 
-SILENT PR MODE: Never post a PR comment or submit a review. Report results only in this Antigravity chat.
-If you changed code, the pushed commit is the completion signal. If no code change is required, finish silently in chat.
+SILENT PR MODE: Never submit a review or post status comments. For visual PRs, the only permitted comment is the current visual evidence packet after push, following docs/PR_VISUAL_MEDIA.md with the full HEAD SHA and agent marker. Report all other results only in this agent chat.
+Follow provider-specific completion instructions if present. Otherwise, the pushed commit is the completion signal; when no changes are required, run `python tools/review_loop/complete_run.py {pr_number}` and finish in chat.
 
 DEFENSE IN DEPTH: If a tool nevertheless forces you to post a Pull Request comment,
 you MUST include the exact marker `""" + AGENT_COMMENT_MARKER + """` at the END of the body.

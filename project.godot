@@ -34,6 +34,10 @@ window/size/viewport_height=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/godot_mcp/plugin.cfg", "res://addons/gut/plugin.cfg")
+
 [input]
 
 move_left={
@@ -115,18 +119,6 @@ aim_down={
 ]
 }
 
-[physics]
-
-common/physics_interpolation=true
-
-[rendering]
-
-textures/canvas_textures/default_texture_filter=0
-
-[editor_plugins]
-
-enabled=PackedStringArray("res://addons/godot_mcp/plugin.cfg", "res://addons/gut/plugin.cfg")
-
 [layer_names]
 
 3d_physics/layer_1="world"
@@ -135,3 +127,11 @@ enabled=PackedStringArray("res://addons/godot_mcp/plugin.cfg", "res://addons/gut
 3d_physics/layer_4="combat"
 3d_physics/layer_5="canopy_occlusion"
 3d_physics/layer_6="interaction"
+
+[physics]
+
+common/physics_interpolation=true
+
+[rendering]
+
+textures/canvas_textures/default_texture_filter=0

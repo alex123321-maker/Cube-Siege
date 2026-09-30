@@ -1,3 +1,9 @@
+---
+trigger: glob
+globs: "**/*.gd"
+description: "Типизация, зависимости, разделение UI/gameplay и горячие циклы GDScript."
+---
+
 # GDScript Architecture & Quality Rules
 
 Правила для разработки и изменения скриптов (`scripts/**/*.gd`):

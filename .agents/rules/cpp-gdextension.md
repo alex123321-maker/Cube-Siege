@@ -1,3 +1,9 @@
+---
+trigger: glob
+globs: "src/**/*.cpp, src/**/*.h, src/**/*.hpp, SConstruct, bin/cube_siege.gdextension"
+description: "Границы C++ GDExtension, владение памятью, ABI и проверка нативной сборки."
+---
+
 # C++ GDExtension Rules
 
 Правила для разработки и изменения нативного C++ ядра (`src/**/*.cpp`, `src/**/*.h`):
