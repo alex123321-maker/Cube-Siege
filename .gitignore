@@ -60,3 +60,7 @@ docs/animation/**/*.import
 docs/terrain_capture/*.import
 docs/verification/issue29/**/*.import
 docs/concepts/*.import
+
+# Verification captures are documentation, not runtime textures.
+docs/verification/issue42/*.import
+docs/verification/vfx_*/*.import
