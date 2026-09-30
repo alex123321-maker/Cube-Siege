@@ -17,22 +17,22 @@ var _light: OmniLight3D
 var _charge_owner: Node3D
 var _charge: bool = false
 var _contact: bool = false
+var _weapon_tip: Node3D
+var _weapon_glint: MeshInstance3D
+var _contact_direction: Vector3 = Vector3.FORWARD
 
 func setup_release(profile: CleaveVFXProfile, visual_duration: float) -> void:
 	_profile = profile
 	_lifetime = maxf(profile.lifetime, visual_duration) + 0.12
-	# A solid bevel and translucent wake, rather than a filled semicircle.
-	_add_blade(profile.radius, profile.blade_width, 180.0, 0.0, 0.48, 0, 0.92)
-	_add_blade(profile.radius + 0.12, 0.10, 172.0, 0.018, 0.40, 1, 0.9)
-	_add_blade(profile.radius - 0.45, 0.07, 160.0, 0.038, 0.36, 1, 0.55)
-	_add_blade(profile.radius - 0.20, 1.6, 180.0, 0.025, 0.56, 2, 0.65)
-	_blades[1].position.y = 0.10
-	_blades[2].position.y = -0.12
-	_blades[3].position.y = 0.15
-	_blades[3].rotation.z = 0.12
+	# Painted torn steel; the bright head travels and the tail dies locally.
+	_add_blade(profile.radius, profile.blade_width, 180.0, 0.0, 0.29, 0, 0.98)
+	_add_blade(profile.radius - 0.28, 1.9, 175.0, 0.036, 0.36, 2, 0.35)
+	_blades[0].position = Vector3(0.0, 0.40, -0.15)
+	_blades[1].position.y = 0.08
+	_blades[1].rotation.z = 0.10
 	_create_fragments(profile.fragment_count + profile.spark_count, profile.radius)
 	_ground_cuts()
-	_add_glint(Vector3(0.65, 0.30, -0.7), 2.4, 0.11)
+	_add_glint(Vector3(0.45, 0.40, -0.75), 1.5, 0.08)
 	_add_light(4.5)
 	if profile.release_sound and DisplayServer.get_name() != "headless":
 		var audio := AudioStreamPlayer3D.new()
@@ -46,25 +46,27 @@ func setup_release(profile: CleaveVFXProfile, visual_duration: float) -> void:
 	if camera:
 		camera.add_combat_impulse(-global_basis.z, 0.075)
 
-func setup_charge(profile: CleaveVFXProfile, owner_node: Node3D, duration: float) -> void:
+func setup_charge(profile: CleaveVFXProfile, owner_node: Node3D, duration: float,
+		weapon_tip: Node3D = null) -> void:
 	_profile = profile
 	_charge = true
 	_charge_owner = owner_node
+	_weapon_tip = weapon_tip
 	_lifetime = duration
-	_add_blade(1.30, 0.09, 110.0, 0.0, duration, 1, 0.8)
-	_add_blade(1.05, 0.035, 90.0, 0.0, duration, 2, 0.7)
-	_blades[0].rotation.z = -0.55
-	_blades[1].rotation.x = 0.65
+	_add_blade(0.90, 0.045, 85.0, 0.0, duration, 1, 0.55)
+	_blades[0].rotation.z = -0.75
+	_weapon_glint = _add_glint(Vector3.ZERO, 0.65, duration, true)
 	_add_light(1.8)
 
 func setup_contact(profile: CleaveVFXProfile, direction: Vector3) -> void:
 	_profile = profile
 	_contact = true
+	_contact_direction = global_basis.inverse() * direction.normalized()
 	_lifetime = 0.46
 	# Pull the flash onto the struck surface, with normal depth occlusion.
-	_add_glint(-direction.normalized() * 0.30, 1.85, 0.13)
-	_create_fragments(14, 0.0)
-	_add_light(2.5)
+	_add_glint(-direction.normalized() * 0.30, 1.30, 0.085)
+	_create_fragments(10, 0.0)
+	_add_light(1.8)
 
 func _material(layer: int, delay: float, life: float, opacity: float) -> ShaderMaterial:
 	var material := ShaderMaterial.new()
@@ -72,6 +74,8 @@ func _material(layer: int, delay: float, life: float, opacity: float) -> ShaderM
 	material.set_shader_parameter("steel_color", _profile.steel_color)
 	material.set_shader_parameter("edge_color", _profile.edge_color)
 	material.set_shader_parameter("gold_color", _profile.gold_color)
+	material.set_shader_parameter("artwork", _profile.ribbon_texture)
+	material.set_shader_parameter("traveling_head", _profile.traveling_head)
 	material.set_shader_parameter("intensity", _profile.emission)
 	material.set_shader_parameter("sweep_time", _profile.sweep_time)
 	material.set_shader_parameter("delay", delay)
@@ -90,12 +94,15 @@ func _add_blade(radius: float, width: float, arc: float, delay: float,
 		var angle: float = deg_to_rad(lerpf(-arc * 0.5, arc * 0.5, u))
 		var radial := Vector3(sin(angle), 0.0, -cos(angle))
 		# The blade narrows at the tips and lifts off the ground at its heart.
-		var taper: float = pow(maxf(0.0, sin(u * PI)), 0.65)
-		var rise: float = sin(u * PI) * 0.14
+		var taper: float = pow(maxf(0.0, sin(u * PI)), 0.45) * lerpf(0.5, 1.25, u)
+		var rise: float = sin(u * PI) * 0.45 + (u - 0.5) * 0.55
+		# Compress the sides to the existing frontal hitbox's footprint.
+		radial.x *= 0.62
+		radial.z *= 0.84
 		mesh.surface_set_uv(Vector2(u, 0.0))
 		mesh.surface_add_vertex(radial * radius + Vector3.UP * rise)
 		mesh.surface_set_uv(Vector2(u, 1.0))
-		mesh.surface_add_vertex(radial * (radius - width * taper) + Vector3.UP * (rise - 0.16 * taper))
+		mesh.surface_add_vertex(radial * (radius - width * taper) + Vector3.UP * (rise - 0.55 * taper))
 	mesh.surface_end()
 	var blade := MeshInstance3D.new()
 	blade.mesh = mesh
@@ -104,12 +111,12 @@ func _add_blade(radius: float, width: float, arc: float, delay: float,
 	add_child(blade)
 	_blades.append(blade)
 
-func _add_glint(at: Vector3, size: float, life: float) -> void:
+func _add_glint(at: Vector3, size: float, life: float, buildup: bool = false) -> MeshInstance3D:
 	var glint := MeshInstance3D.new()
 	var quad := QuadMesh.new()
 	quad.size = Vector2(size, size * 0.75)
 	glint.mesh = quad
-	glint.material_override = _material(4, 0.0, life, 0.95)
+	glint.material_override = _material(5 if buildup else 4, 0.0, life, 0.95)
 	glint.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(glint)
 	glint.position = at
@@ -117,6 +124,7 @@ func _add_glint(at: Vector3, size: float, life: float) -> void:
 	if camera:
 		glint.look_at(camera.global_position)
 		glint.rotate_object_local(Vector3.FORWARD, -0.4)
+	return glint
 
 func _add_light(reach: float) -> void:
 	_light = OmniLight3D.new()
@@ -152,17 +160,21 @@ func _create_fragments(count: int, radius: float) -> void:
 		var f: float = (float(index) + 0.5) / maxf(float(count), 1.0)
 		var angle: float = lerpf(-PI * 0.50, PI * 0.50, f)
 		var radial := Vector3(sin(angle), 0.0, -cos(angle))
+		radial.x *= 0.62
+		radial.z *= 0.84
 		var tangent := Vector3(-radial.z, 0.0, radial.x)
 		var noise: float = 0.5 + 0.5 * sin(float(index) * 17.73)
 		var origin: Vector3 = radial * radius * (0.70 + noise * 0.28)
 		var velocity: Vector3 = radial * (0.8 + noise * 1.4) + tangent * (1.0 + noise * 2.5)
-		velocity.y = 0.3 + noise * 2.4
+		velocity.y = 0.1 + noise * 1.4
 		if _contact:
 			var turn: float = float(index) * 2.39996
-			velocity = Vector3(cos(turn), sin(turn * 1.6) * 0.7 + 0.5, sin(turn)) * (3.0 + noise * 4.0)
+			var sideways: Vector3 = _contact_direction.cross(Vector3.UP).normalized()
+			velocity = _contact_direction * (2.0 + noise * 2.2) + sideways * cos(turn) * 3.5
+			velocity.y = sin(turn) * 1.6 + 0.7
 		_origins.append(origin)
 		_velocities.append(velocity)
-		_sizes.append(0.028 + noise * 0.080)
+		_sizes.append(0.018 + noise * 0.055)
 		_fragments.set_instance_transform(index, Transform3D(Basis().scaled(Vector3.ZERO), Vector3.ZERO))
 
 func _ground_cuts() -> void:
@@ -173,6 +185,8 @@ func _ground_cuts() -> void:
 		var u: float = (float(index) + 0.5) / 22.0
 		var angle: float = lerpf(-PI * 0.46, PI * 0.46, u)
 		var radial := Vector3(sin(angle), 0.0, -cos(angle))
+		radial.x *= 0.62
+		radial.z *= 0.84
 		var at: Vector3 = to_global(radial * (_profile.radius - 0.25))
 		var query := PhysicsRayQueryParameters3D.create(at + Vector3.UP * 1.0, at + Vector3.DOWN * 2.2, 1)
 		var hit: Dictionary = get_world_3d().direct_space_state.intersect_ray(query)
@@ -222,13 +236,18 @@ func _process(delta: float) -> void:
 		for blade: MeshInstance3D in _blades:
 			blade.scale = Vector3.ONE * lerpf(1.15, 0.55, buildup)
 			blade.rotation.y = -0.7 + buildup * 1.6
+		if is_instance_valid(_weapon_tip):
+			_weapon_glint.global_position = _weapon_tip.get_global_transform_interpolated().origin
+			_light.global_position = _weapon_glint.global_position
+		_weapon_glint.scale = Vector3.ONE * lerpf(0.25, 1.0, buildup)
 		_light.light_energy = buildup * 0.55
 		return
-	var expansion: float = 1.0 - pow(1.0 - clampf(_age / 0.13, 0.0, 1.0), 3.0)
+	var expansion: float = 1.0 - pow(1.0 - clampf(_age / 0.09, 0.0, 1.0), 3.0)
 	for index in range(_blades.size()):
-		_blades[index].scale = Vector3.ONE * lerpf(0.70, 1.0, expansion)
-		_blades[index].rotation.y = lerpf(-0.16, 0.05, expansion) - float(index) * 0.025
-	_light.light_energy = (2.4 if _contact else 3.4) * pow(maxf(0.0, 1.0 - _age / 0.16), 2.0)
+		_blades[index].scale = Vector3.ONE * lerpf(0.78, 1.0, expansion)
+		_blades[index].rotation.y = lerpf(-0.12, 0.025, expansion) - float(index) * 0.025
+		_blades[index].visible = _age < 0.40
+	_light.light_energy = (1.0 if _contact else 3.4) * pow(maxf(0.0, 1.0 - _age / 0.16), 2.0)
 	if not _fragments:
 		return
 	for index in range(_fragments.instance_count):
@@ -245,7 +264,7 @@ func _process(delta: float) -> void:
 		var orientation := Basis.from_euler(Vector3(t * 4.0, float(index) + t * 3.0, t * 2.0))
 		if spark:
 			orientation = Basis.looking_at(_velocities[index].normalized(), Vector3.UP)
-		var dimensions := Vector3(size, size, size * (4.5 if spark else 1.0))
+		var dimensions := Vector3(size * (0.5 if spark else 1.0), size * (0.5 if spark else 1.0), size * (3.0 if spark else 1.0))
 		_fragments.set_instance_transform(index, Transform3D(orientation.scaled(dimensions), at))
 		var color: Color = _profile.gold_color if spark else _profile.edge_color.lerp(_profile.steel_color, t / life)
 		color.a = fade

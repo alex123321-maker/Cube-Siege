@@ -56,6 +56,23 @@ func test_windup_does_not_survive_owner_removal() -> void:
 	await wait_seconds(0.06)
 	assert_false(is_instance_valid(windup))
 
+func test_windup_glint_tracks_weapon_tip_while_owner_moves() -> void:
+	var manager: Node = get_node("/root/VFXManager")
+	var owner_node := Node3D.new()
+	add_child_autoqfree(owner_node)
+	var weapon_tip := Node3D.new()
+	owner_node.add_child(weapon_tip)
+	weapon_tip.position = Vector3(0.3, 1.4, -0.8)
+	var windup: CleaveVFX = manager.spawn_cleave_charge(owner_node, 0.25, weapon_tip) as CleaveVFX
+	await wait_frames(2)
+	owner_node.position += Vector3(2.0, 0.0, 1.0)
+	weapon_tip.position += Vector3(-0.2, 0.4, 0.6)
+	await wait_frames(2)
+	assert_lt(windup._weapon_glint.global_position.distance_to(weapon_tip.global_position), 0.001)
+	owner_node.queue_free()
+	await wait_frames(2)
+	assert_false(is_instance_valid(windup))
+
 func test_contact_budget_never_limits_gameplay_damage() -> void:
 	var manager: Node = get_node("/root/VFXManager")
 	await wait_seconds(0.9)

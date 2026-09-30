@@ -18,6 +18,7 @@ var debug_enabled: bool = false
 var _debug_label: Label3D = null
 var _debug_elapsed: float = 0.0
 var blade_trail: SwordBladeTrail = null
+var blade_tip_anchor: Node3D = null
 
 const WARRIOR_PROFILE = preload("res://assets/animations/profiles/warrior.tres")
 const ARCHER_PROFILE = preload("res://assets/animations/profiles/archer.tres")
@@ -36,6 +37,7 @@ func set_active_model(model: Node3D, profile: CharacterAnimationProfile = null) 
 		blade_trail.reset_trail()
 		blade_trail.queue_free()
 	blade_trail = null
+	blade_tip_anchor = null
 	if pose_layer:
 		pose_layer.reset()
 	if is_instance_valid(anim_player):
@@ -60,6 +62,7 @@ func set_active_model(model: Node3D, profile: CharacterAnimationProfile = null) 
 		var blade_base: Node3D = model.get_node_or_null(animation_profile.blade_base_path) as Node3D
 		var blade_tip: Node3D = model.get_node_or_null(animation_profile.blade_tip_path) as Node3D
 		if blade_base and blade_tip:
+			blade_tip_anchor = blade_tip
 			blade_trail = SwordBladeTrail.new()
 			blade_trail.name = "SwordBladeTrail"
 			model.add_child(blade_trail)

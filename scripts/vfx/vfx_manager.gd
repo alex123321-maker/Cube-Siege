@@ -165,11 +165,11 @@ func spawn_cleave_wave(pos: Vector3, aim_dir: Vector3, duration: float = 0.28) -
 	effect.setup_release(CLEAVE_PROFILE, duration)
 	return register_effect(effect) as Node3D
 
-func spawn_cleave_charge(player: Node3D, duration: float) -> Node3D:
+func spawn_cleave_charge(player: Node3D, duration: float, weapon_tip: Node3D = null) -> Node3D:
 	var effect: CleaveVFX = CLEAVE_EFFECT.new()
 	effect.name = "CleaveWindup"
 	_ensure_container().add_child(effect)
-	effect.setup_charge(CLEAVE_PROFILE, player, duration)
+	effect.setup_charge(CLEAVE_PROFILE, player, duration, weapon_tip)
 	return register_effect(effect) as Node3D
 
 func spawn_cleave_contact(pos: Vector3, direction: Vector3) -> Node3D:

@@ -72,7 +72,7 @@ func perform_special_attack(player: CharacterBody3D, current_class: int, is_dash
 				player.presentation.play_special_animation()
 			var vfx: Node = player.get_node_or_null("/root/VFXManager")
 			if vfx:
-				vfx.spawn_cleave_charge(player, 0.15)
+				vfx.spawn_cleave_charge(player, 0.15, player.presentation.blade_tip_anchor)
 			if not player.is_inside_tree():
 				trigger_slash(player, special_damage, 12.0, 180.0, is_dueling)
 				return

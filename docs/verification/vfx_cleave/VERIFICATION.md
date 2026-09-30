@@ -1,5 +1,8 @@
 # Warrior cleave verification — 2026-09-30
 
+This is the first implementation's historical report. The subsequent refinement
+and latest fully passing audit are documented in [POLISH.md](POLISH.md).
+
 Base revision: `722bac40e1f4ba8f4619501dcc579a7d290ed1f1`.
 Godot 4.6.1, Windows, Forward+, Intel Arc Graphics. Art direction delegated
 explicitly by the user: expressive VFX suitable for the existing voxel game,

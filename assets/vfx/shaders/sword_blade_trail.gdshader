@@ -6,10 +6,11 @@ uniform vec4 body_color : source_color;
 uniform vec4 edge_color : source_color;
 uniform float intensity = 1.6;
 uniform float opacity = 0.9;
+uniform vec4 artwork_rect = vec4(0.16, 0.28, 0.74, 0.46);
 
 void fragment() {
 	// Keep the painting's bright cutting edge at the sword tip.
-	vec4 ink = texture(artwork, vec2(mix(0.16, 0.90, UV.x), mix(0.28, 0.74, UV.y)));
+	vec4 ink = texture(artwork, artwork_rect.xy + UV * artwork_rect.zw);
 	float value = dot(ink.rgb, vec3(0.299, 0.587, 0.114));
 	float freshness = COLOR.a;
 	float dissolve = smoothstep((1.0 - freshness) * 0.85 - 0.1, (1.0 - freshness) * 0.85 + 0.1, value);
