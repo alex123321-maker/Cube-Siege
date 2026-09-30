@@ -98,7 +98,8 @@ func update_animations(body: CharacterBody3D, is_parrying: bool, is_dashing: boo
 	pose_layer.update(delta, facing, aim, move, actual_velocity, turn, is_dashing,
 		cur if action_active else &"", is_parrying)
 	if is_instance_valid(blade_trail):
-		blade_trail.set_attack_phase(action_active and cur == &"attack", anim_player.current_animation_position)
+		blade_trail.set_attack_phase(action_active and cur in [&"attack", &"special"],
+			anim_player.current_animation_position, cur == &"special")
 	_update_debug(delta)
 
 func _play_action(animation: StringName, fallback: StringName = &"") -> void:

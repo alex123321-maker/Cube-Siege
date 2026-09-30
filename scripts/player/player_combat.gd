@@ -8,6 +8,7 @@ var special_damage: float = 60.0
 var attack_cooldown_timer: float = 0.0
 var special_cooldown_timer: float = 0.0
 var _sword_contacts_remaining: int = 0
+var _cleave_contacts_remaining: int = 0
 
 const ARROW_PROJECTILE_SCENE = preload("res://scenes/prefabs/arrow_projectile.tscn")
 
@@ -69,11 +70,14 @@ func perform_special_attack(player: CharacterBody3D, current_class: int, is_dash
 			special_cooldown_timer = 4.0
 			if player.presentation:
 				player.presentation.play_special_animation()
+			var vfx: Node = player.get_node_or_null("/root/VFXManager")
+			if vfx:
+				vfx.spawn_cleave_charge(player, 0.15)
 			if not player.is_inside_tree():
 				trigger_slash(player, special_damage, 12.0, 180.0, is_dueling)
 				return
 			await player.get_tree().create_timer(0.15).timeout
-			if _is_actor_alive(player):
+			if _is_actor_alive(player) and player.current_class == 0:
 				trigger_slash(player, special_damage, 12.0, 180.0, is_dueling)
 		1: # CharacterClass.ARCHER
 			special_cooldown_timer = 5.0
@@ -115,6 +119,7 @@ func trigger_slash(player: CharacterBody3D, dmg: float, knockback: float, arc_de
 	slash_area.knockback_force = knockback
 	slash_area.hit_entities.clear()
 	_sword_contacts_remaining = 3 if player.current_class == 0 and arc_degrees <= 120.0 else 0
+	_cleave_contacts_remaining = 6 if player.current_class == 0 and arc_degrees > 120.0 else 0
 	var on_hit: Callable = _on_sword_hit.bind(player)
 	if not slash_area.hit_confirmed.is_connected(on_hit):
 		slash_area.hit_confirmed.connect(on_hit)
@@ -130,21 +135,25 @@ func trigger_slash(player: CharacterBody3D, dmg: float, knockback: float, arc_de
 		else:
 			vfx.spawn_slash_arc(player.global_position, aim_dir, 2.4, arc_degrees, Color(0.35, 0.7, 1.0), 0.18)
 
-	await_slash_hit(player, slash_area, player.current_class == 0 and arc_degrees <= 120.0)
+	await_slash_hit(player, slash_area, player.current_class == 0, player.current_class == 0 and arc_degrees > 120.0)
 	play_slash_animation(player, arc_degrees)
 	finish_slash(player, slash_area)
 
 func _on_sword_hit(target: Node, direction: Vector3, player: CharacterBody3D) -> void:
-	if _sword_contacts_remaining <= 0 or not is_instance_valid(target) or not target is Node3D:
+	if (_sword_contacts_remaining <= 0 and _cleave_contacts_remaining <= 0) or not is_instance_valid(target) or not target is Node3D:
 		return
 	if not is_instance_valid(player) or not player.is_inside_tree():
 		return
 	var vfx: Node = player.get_node_or_null("/root/VFXManager")
 	if vfx:
-		vfx.spawn_sword_contact((target as Node3D).global_position + Vector3(0, 0.35, 0), direction)
-		_sword_contacts_remaining -= 1
+		if _cleave_contacts_remaining > 0:
+			vfx.spawn_cleave_contact((target as Node3D).global_position + Vector3(0, 0.35, 0), direction)
+			_cleave_contacts_remaining -= 1
+		else:
+			vfx.spawn_sword_contact((target as Node3D).global_position + Vector3(0, 0.35, 0), direction)
+			_sword_contacts_remaining -= 1
 
-func await_slash_hit(player: CharacterBody3D, slash_area: Area3D, sword_contact: bool = false) -> void:
+func await_slash_hit(player: CharacterBody3D, slash_area: Area3D, sword_contact: bool = false, cleave: bool = false) -> void:
 	if not player.is_inside_tree():
 		return
 	await player.get_tree().physics_frame
@@ -160,7 +169,7 @@ func await_slash_hit(player: CharacterBody3D, slash_area: Area3D, sword_contact:
 				var hit_pos = player.global_position - player.global_transform.basis.z * 1.5 + Vector3(0, 0.8, 0)
 				if not sword_contact:
 					vfx.spawn_sparks(hit_pos, -player.global_transform.basis.z, Color(1.0, 0.85, 0.3), 10, 4.5)
-				if hit_count >= 2:
+				if hit_count >= 2 and not cleave:
 					vfx.spawn_shockwave(hit_pos, 2.2, Color(1.0, 0.9, 0.2), 0.2)
 
 		if player.vampirism_heal > 0.0 and hit_count > 0:

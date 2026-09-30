@@ -38,9 +38,11 @@ func setup(profile: SwordVFXProfile, base_anchor: Node3D, tip_anchor: Node3D) ->
 	_base_anchor.get_global_transform_interpolated()
 	_tip_anchor.get_global_transform_interpolated()
 
-func set_attack_phase(active: bool, animation_time: float) -> void:
-	_emitting = active and animation_time >= _profile.blade_trail_start \
-		and animation_time <= _profile.blade_trail_end
+func set_attack_phase(active: bool, animation_time: float, cleave: bool = false) -> void:
+	var start: float = 0.12 if cleave else _profile.blade_trail_start
+	var end: float = 0.30 if cleave else _profile.blade_trail_end
+	_emitting = active and animation_time >= start and animation_time <= end
+	(material_override as ShaderMaterial).set_shader_parameter("intensity", _profile.emission * (1.45 if cleave else 1.0))
 
 func reset_trail() -> void:
 	_emitting = false

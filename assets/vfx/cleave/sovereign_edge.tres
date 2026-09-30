@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="CleaveVFXProfile" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/vfx/cleave_vfx_profile.gd" id="1"]
+[ext_resource type="AudioStream" path="res://assets/vfx/cleave/cleave_release.wav" id="2"]
+
+[resource]
+script = ExtResource("1")
+release_sound = ExtResource("2")

@@ -12,6 +12,8 @@ enum StoneBreakStrength { HIT, STAGE_TRANSITION, FINAL_BREAK }
 
 const SWORD_EFFECT = preload("res://scripts/vfx/sword_vfx.gd")
 const SWORD_PROFILE = preload("res://assets/vfx/sword/steel_slash.tres")
+const CLEAVE_EFFECT = preload("res://scripts/vfx/cleave_vfx.gd")
+const CLEAVE_PROFILE = preload("res://assets/vfx/cleave/sovereign_edge.tres")
 const MINE_EFFECT = preload("res://scripts/vfx/mine_explosion_vfx.gd")
 var mine_profile: MineVFXProfile = preload("res://assets/vfx/mine/ember_burst.tres")
 const ARROW_IMPACT_EFFECT = preload("res://scripts/vfx/arrow_impact_vfx.gd")
@@ -151,15 +153,32 @@ func spawn_slash_arc(pos: Vector3, aim_dir: Vector3, radius: float = 2.2, arc_de
 	register_effect(arc_root, duration + 0.1)
 	return arc_root
 
-## Spawns a massive 180-degree cleave wave with secondary dust and embers
+## Layered steel blade, gilded edge and voxel fragments, on one bounded clock.
 func spawn_cleave_wave(pos: Vector3, aim_dir: Vector3, duration: float = 0.28) -> Node3D:
-	var col = Color(1.0, 0.45, 0.15)
-	var arc = spawn_slash_arc(pos, aim_dir, 3.4, 180.0, col, duration)
+	var effect: CleaveVFX = CLEAVE_EFFECT.new()
+	effect.name = "SovereignCleave"
+	_ensure_container().add_child(effect)
+	effect.global_position = pos + Vector3.UP * 0.25
+	var forward := Vector3(aim_dir.x, 0.0, aim_dir.z).normalized()
+	if not forward.is_zero_approx():
+		effect.look_at(effect.global_position + forward, Vector3.UP)
+	effect.setup_release(CLEAVE_PROFILE, duration)
+	return register_effect(effect) as Node3D
 
-	# Add secondary particle burst
-	var sparks = spawn_sparks(pos + aim_dir * 1.5 + Vector3(0, 0.4, 0), aim_dir, Color(1.0, 0.6, 0.1), 16, 6.0)
-	spawn_shockwave(pos + aim_dir * 1.0 + Vector3(0, 0.1, 0), 2.5, Color(1.0, 0.5, 0.2), 0.25)
-	return arc
+func spawn_cleave_charge(player: Node3D, duration: float) -> Node3D:
+	var effect: CleaveVFX = CLEAVE_EFFECT.new()
+	effect.name = "CleaveWindup"
+	_ensure_container().add_child(effect)
+	effect.setup_charge(CLEAVE_PROFILE, player, duration)
+	return register_effect(effect) as Node3D
+
+func spawn_cleave_contact(pos: Vector3, direction: Vector3) -> Node3D:
+	var effect: CleaveVFX = CLEAVE_EFFECT.new()
+	effect.name = "CleaveContact"
+	_ensure_container().add_child(effect)
+	effect.global_position = pos
+	effect.setup_contact(CLEAVE_PROFILE, direction)
+	return register_effect(effect) as Node3D
 
 ## Spawns directional voxel sparks on hit, with bonus multi-hit flash
 func spawn_sparks(pos: Vector3, normal: Vector3, col: Color = Color(1.0, 0.85, 0.3), count: int = 8, spread_speed: float = 4.5) -> Node3D:

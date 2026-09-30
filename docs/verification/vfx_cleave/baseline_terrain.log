@@ -1,0 +1,65 @@
+Godot Engine v4.6.1.stable.official.14d19694e - https://godotengine.org
+
+WARNING: Godot 3.x SpatialMaterial remapped parameter not found: specular
+   at: _set (scene/resources/material.cpp:4116)
+======================================================================
+ [VERIFY-ISSUE-18] Starting Comprehensive Runtime Verification
+======================================================================
+
+--- 1. Testing Biome Distribution & Continuous Blending ---
+  [PASS] | Plains Sector Placement                       | Plains sector primary biome is PLAINS (weight: 1.00)
+  [PASS] | Forest Sector Placement                       | Forest sector primary biome is FOREST (weight: 1.00)
+  [PASS] | Mountains Sector Placement                    | Mountains sector primary biome is MOUNTAINS (weight: 1.00)
+  [PASS] | Biome Weight Normalization                    | Weights sum strictly to 1.0 (actual: 1.0000)
+
+--- 2. Testing Mountain Trail Verticality & Lateral Slope ---
+  [PASS] | Mountain Trail Climb >= 50                    | Continuous BFS walking reaches low mountain elevation (reached 100)
+  [PASS] | Mountain Trail Climb >= 100                   | Continuous BFS walking reaches high mountain peak (reached 100)
+  [PASS] | Lateral Valley Smoothness                     | Max lateral step across valley corridor is <= 1 (actual: 1)
+
+--- 3. Testing Resource Distribution & Yield Contracts ---
+  [PASS] | Plains Magic Stone Spawning                   | Magic stone spawned in Plains probability window (2%)
+  [PASS] | High Mountains Iron Spawning                  | Iron spawned in High Mountains (h=55 >= 50, 15%)
+  [PASS] | Loose vs Deposit Yield Contract               | All FREE_PICKUP yields are in [1, 3] and all FULL_DEPOSIT yields strictly > 3 (300 tested)
+
+--- 4. Testing Vertical Combat & Fractional Cell Boundary Alignment ---
+  [PASS] | Authoritative World-to-Voxel Mapping          | x=0.75 maps to cell 0, x=1.05 maps to cell 1 (strictly matches ChunkBuilder)
+  [PASS] | Fractional In-Cell Melee Hit                  | Melee connects within cell [0.0, 1.0) at fractional coords
+  [PASS] | Fractional Cell Edge Step Blocked             | Melee blocked across x=1.0 boundary into +2 wall
+  [PASS] | Projectile Over-Canyon High Flight            | Projectile at Y=10.8 does not collide when canyon floor rises 2 -> 4
+  [PASS] | Projectile High Flight Altitude Invariance    | Projectile preserves horizontal altitude over chasm (Y=10.80)
+  [PASS] | WaveDirector Fractional Spawn Height Alignment | x=0.75 maps to cell 0 (height 0.0), x=1.05 maps to cell 1 (height 3.0)
+
+--- 5. Testing Warrior Duel Aiming on High Mountain Terrain ---
+  [PASS] | High Mountain Duel Target Acquisition         | Warrior duel aiming successfully selects target on high mountain (Y=60.9)
+
+--- 6. Testing Multi-Hit Foliage Occlusion & Bounded Targets ---
+  [PASS] | Multi-Hit Canopy Transparency                 | All 3 stacked canopies pierced and set semi-transparent
+  [PASS] | Occlusion Restoration                         | All occluders restored to opaque when out of line-of-sight
+  [PASS] | Foliage Occlusion Bounded Spatial Selection (>3 enemies) | Occluder for 5th combat enemy (>3) correctly pierced and set semi-transparent
+
+--- 7. Testing Starting Enemies Alignment ---
+  [PASS] | Starting Enemies Floor Snapping               | All 3 debug enemies snapped to y_floor + 0.9
+
+--- 8. Testing Chunk Streaming & O(1) Bounded Working Set ---
+  [PASS] | Initial Chunk Window Size (7x7)               | Active chunks matches 7x7 window (49 chunks, load_radius=3)
+  [PASS] | Initial StaticBody3D Physics Count            | Exactly 49 StaticBody3D collision bodies in active initial working set
+  [PASS] | Hysteresis Bounded Working Set                | Working set bounded by unload_radius=5: max observed 63, final 63 (exactly 9x7 = 63, <= 121)
+  [PASS] | Bounded Static Memory Growth                  | Static memory growth after 20 chunks of movement: 85.66 MB (bounded heap allocation)
+  [FAIL] | O(1) Generation Cost Across World Distance    | Near Portal: 296.20 ms, Far (X=320m): 329.35 ms, Total Avg: 309.85 ms (ratio: 1.11, O(1) invariant)
+
+  ================ RUNTIME & PERFORMANCE EVIDENCE ================
+  Active Chunks (Initial):       49 (7x7 window, load_radius=3)
+  StaticBody3D Chunks (Initial): 49
+  Max Active Chunks (Movement):  63 (bounded <= 121 by unload_radius=5)
+  Final Active Chunks (Step 20): 63
+  Final StaticBody3D Chunks:     63
+  Average Transition Step Time:  309.85 ms
+  Near-Portal Avg Gen Time:      296.20 ms
+  Far-Portal (320m) Avg Gen Time:329.35 ms
+  Static Memory Before Movement: 192.93 MB
+  Static Memory After Movement:  278.59 MB (delta: 85.66 MB)
+  ================================================================
+======================================================================
+ [VERIFY-ISSUE-18] Summary: 25/26 Passed, 1 Failed
+======================================================================
