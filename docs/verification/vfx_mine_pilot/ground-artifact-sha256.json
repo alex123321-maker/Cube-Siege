@@ -1,0 +1,16 @@
+{
+  "docs/verification/vfx_mine_pilot/REPORT.md": "2da2baec3c3dccd4e9f15ee4e987d7ce89a65a42bdeb80be9d7c6bb7a555cf60",
+  "scripts/vfx/mine_explosion_vfx.gd": "e8f7013c34fd7db6e96755e1c3add0274bedf6b2e9e5b5633e0baf57b9f1bb24",
+  "tools/capture_mine_pilot.gd": "1d3b998d71fe7d1b7e863e689e164da6db948e6d983d26ff6eb45e6b17e78f08",
+  "assets/vfx/mine/README.md": "0cb4d355301b4a3a32da9f4433c50c2fc7f3abfb035a713adffe211b6af96ca1",
+  "scripts/vfx/mine_vfx_profile.gd": "883105cd0991e25700a88286c64e690c012088a3ac063445b0b9f62e53d9e531",
+  "assets/vfx/mine/ember_burst.tres": "d98c8b7b746b2abb58369f7ca22a1de6095cf454558ec2280858ae9fb852b051",
+  "tests/integration/test_mine_vfx.gd": "4ef642ba9cb50418e9ce52b8ee454b69b6ea2af389af248e37a695b55c08cf0c",
+  "assets/vfx/shaders/mine_ground_imprint.gdshader": "a7750595b3027dc4a23efc39f0fcbfafc280b58cdde045a859c578cf1dcf05bb",
+  "docs/verification/vfx_mine_pilot/GROUND_REPORT.md": "9039510f25a77241601141b84ae3345906bae22ecf7ebc17d1c526eb63699934",
+  "docs/verification/vfx_mine_pilot/ground_steps.mp4": "03c81ba20234807f88eebd75bc99ce8c96550fa553c7f101db8ae35eed01b8ea",
+  "docs/verification/vfx_mine_pilot/ground-and-slopes.mp4": "6be5394ad000e056deb320e80ec510cec8c36228786ed5050556fe70d0d2cb77",
+  "docs/verification/vfx_mine_pilot/ground-gut.log": "6c5349e49affd88a875f67297ef90c5d61dc7e2c8ee2782000eb0e450ae42381",
+  "docs/verification/vfx_mine_pilot/ground_steps-render.log": "960400f02d963964e03bac315b5ba9e3351e9d712962c44155ebf7751a99ec62",
+  "docs/verification/vfx_mine_pilot/ground-media-validation.json": "d3ba5c4a0aa5d9e125a44ecd175a54b793ab9db7b7146672c2b606be240571f1"
+}

@@ -1,0 +1,21 @@
+Godot Engine v4.6.1.stable.official.14d19694e - https://godotengine.org
+Vulkan 1.4.325 - Forward+ - Using Device #0: Intel - Intel(R) Arc(TM) Graphics
+
+WARNING: Godot 3.x SpatialMaterial remapped parameter not found: specular
+   at: _set (scene/resources/material.cpp:4116)
+Movie Maker mode enabled, recording movie in 1280×720 @ 60 FPS...
+WARNING: Current available space on disk is low (213.7 MiB). MovieWriter will fail during movie recording if the disk runs out of available space.
+   at: begin (servers/movie_writer/movie_writer.cpp:113)
+ARCHER_WALL low=12.0 high=14.0 at=(-27.0, 12.8, -8.3)
+ARCHER_WALL_IMPACT frame=19
+ARCHER_WALL_IMPACT frame=79
+ARCHER_WALL_IMPACT frame=139
+ARCHER_PILOT shots=6 damage_events=0 target_health=10000.0 impacts=3 active_effects=0
+ARCHER_SURFACE wall_impacts=3 miss_impacts=0 pass=true
+--------------------------------------------------------------------------------
+Done recording movie at path: D:/Temp/codex-archer-impact-01a0eb73/surface.avi
+620 frames at 60 FPS (movie length: 00:00:10:20), recorded in 00:00:16 (62% of real-time speed).
+CPU render time: 1.04 seconds (average: 1.68 ms/frame)
+GPU render time: 2.78 seconds (average: 4.49 ms/frame)
+Encoding time: 5.36 seconds (average: 8.65 ms/frame)
+--------------------------------------------------------------------------------

@@ -17,10 +17,12 @@ var procedural_enabled: bool = true
 var debug_enabled: bool = false
 var _debug_label: Label3D = null
 var _debug_elapsed: float = 0.0
+var blade_trail: SwordBladeTrail = null
 
 const WARRIOR_PROFILE = preload("res://assets/animations/profiles/warrior.tres")
 const ARCHER_PROFILE = preload("res://assets/animations/profiles/archer.tres")
 const ENGINEER_PROFILE = preload("res://assets/animations/profiles/engineer.tres")
+const SWORD_VFX_PROFILE = preload("res://assets/vfx/sword/steel_slash.tres")
 const ACTIONS: Array[StringName] = [&"attack", &"special", &"utility", &"ultimate"]
 
 func setup(player_node: CharacterBody3D) -> void:
@@ -30,6 +32,10 @@ func setup(player_node: CharacterBody3D) -> void:
 	set_active_model(player_node.get_node_or_null("Visuals/HeroWarrior") as Node3D, WARRIOR_PROFILE)
 
 func set_active_model(model: Node3D, profile: CharacterAnimationProfile = null) -> void:
+	if is_instance_valid(blade_trail):
+		blade_trail.reset_trail()
+		blade_trail.queue_free()
+	blade_trail = null
 	if pose_layer:
 		pose_layer.reset()
 	if is_instance_valid(anim_player):
@@ -50,6 +56,14 @@ func set_active_model(model: Node3D, profile: CharacterAnimationProfile = null) 
 	pose_layer = CharacterPoseLayer.new()
 	pose_layer.bind(model, animation_profile)
 	anim_player.play("idle")
+	if not animation_profile.blade_base_path.is_empty() and not animation_profile.blade_tip_path.is_empty():
+		var blade_base: Node3D = model.get_node_or_null(animation_profile.blade_base_path) as Node3D
+		var blade_tip: Node3D = model.get_node_or_null(animation_profile.blade_tip_path) as Node3D
+		if blade_base and blade_tip:
+			blade_trail = SwordBladeTrail.new()
+			blade_trail.name = "SwordBladeTrail"
+			model.add_child(blade_trail)
+			blade_trail.setup(SWORD_VFX_PROFILE, blade_base, blade_tip)
 
 func update_animations(body: CharacterBody3D, is_parrying: bool, is_dashing: bool,
 		delta: float = 1.0 / 60.0, orientation: PlayerOrientation = null) -> void:
@@ -83,6 +97,8 @@ func update_animations(body: CharacterBody3D, is_parrying: bool, is_dashing: boo
 	pose_layer.enabled = procedural_enabled
 	pose_layer.update(delta, facing, aim, move, actual_velocity, turn, is_dashing,
 		cur if action_active else &"", is_parrying)
+	if is_instance_valid(blade_trail):
+		blade_trail.set_attack_phase(action_active and cur == &"attack", anim_player.current_animation_position)
 	_update_debug(delta)
 
 func _play_action(animation: StringName, fallback: StringName = &"") -> void:
@@ -91,6 +107,8 @@ func _play_action(animation: StringName, fallback: StringName = &"") -> void:
 	var selected: StringName = animation if anim_player.has_animation(animation) else fallback
 	if selected.is_empty() or not anim_player.has_animation(selected):
 		return
+	if is_instance_valid(blade_trail):
+		blade_trail.reset_trail()
 	if pose_layer:
 		pose_layer.restore_authored()
 	anim_player.speed_scale = 1.0

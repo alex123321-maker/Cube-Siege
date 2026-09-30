@@ -12,6 +12,9 @@ class_name CharacterAnimationProfile
 @export var left_leg_path: NodePath = ^"root/left_leg"
 @export var right_knee_path: NodePath = ^"root/right_leg/right_knee"
 @export var left_knee_path: NodePath = ^"root/left_leg/left_knee"
+## Optional visual anchors, resolved once when binding a character model.
+@export var blade_base_path: NodePath
+@export var blade_tip_path: NodePath
 @export var knee_swing_angle: float = 0.55
 @export var knee_lift_reference: float = 0.1
 @export var foot_plant_enabled: bool = true

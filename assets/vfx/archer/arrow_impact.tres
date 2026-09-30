@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="ArrowImpactProfile" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/vfx/arrow_impact_profile.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/vfx/sword/sword_contact.png" id="2"]
+[ext_resource type="Texture2D" path="res://assets/vfx/mine/smoke_puff.png" id="3"]
+
+[resource]
+script = ExtResource("1")
+contact_texture = ExtResource("2")
+dust_texture = ExtResource("3")
+contact_color = Color(0.90, 0.67, 0.31, 1)
+dust_color = Color(0.48, 0.43, 0.32, 1)
+contact_size = 1.5
+contact_lifetime = 0.16
+emission = 0.75
+shard_count = 9
+shard_speed = 3.7
+shard_lifetime = 0.32
+dust_size = 0.8
+dust_lifetime = 0.34
+dust_opacity = 0.22

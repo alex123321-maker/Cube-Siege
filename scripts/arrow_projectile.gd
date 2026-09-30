@@ -9,6 +9,7 @@ var lifetime: float = 2.5
 var shooter_entity: Node = null
 var hit_targets: Array[Node] = []
 var is_flying_over_drop: bool = false
+var _uses_archer_impact: bool = false
 
 @onready var hitbox: Area3D = $Hitbox
 
@@ -17,6 +18,7 @@ func setup(p_direction: Vector3, p_damage: float, p_owner: Node, p_pierce: int =
 	damage = p_damage
 	shooter_entity = p_owner
 	pierce_count = p_pierce
+	_uses_archer_impact = p_pierce == 1 and is_instance_valid(p_owner) and p_owner.is_in_group("player")
 	if direction.length_squared() > 0.01:
 		look_at(global_position + direction, Vector3.UP)
 	if has_node("Hitbox"):
@@ -77,7 +79,12 @@ func _get_terrain_height(x: int, z: int) -> float:
 func _on_terrain_collision(hit_pos: Vector3) -> void:
 	var vfx = get_node_or_null("/root/VFXManager")
 	if vfx:
-		vfx.spawn_sparks(hit_pos, -direction, Color(0.8, 0.8, 0.8), 6, 3.0)
+		if _uses_archer_impact:
+			# The proposed next position is inside the blocked step. Keep the
+			# visual on the last reachable side of the surface.
+			vfx.spawn_arrow_impact(global_position, direction, true)
+		else:
+			vfx.spawn_sparks(hit_pos, -direction, Color(0.8, 0.8, 0.8), 6, 3.0)
 	queue_free()
 
 
@@ -104,7 +111,9 @@ func _on_hitbox_area_entered(area: Area3D) -> void:
 	# Hit feedback VFX
 	var vfx = get_node_or_null("/root/VFXManager")
 	if vfx:
-		if pierce_count > 1:
+		if _uses_archer_impact:
+			vfx.spawn_arrow_impact(global_position, direction)
+		elif pierce_count > 1:
 			vfx.spawn_pierce_ripple(global_position, direction)
 		else:
 			vfx.spawn_sparks(global_position, -direction, Color(1.0, 0.9, 0.4), 8, 4.0)

@@ -10,6 +10,13 @@ var _container: Node3D = null
 
 enum StoneBreakStrength { HIT, STAGE_TRANSITION, FINAL_BREAK }
 
+const SWORD_EFFECT = preload("res://scripts/vfx/sword_vfx.gd")
+const SWORD_PROFILE = preload("res://assets/vfx/sword/steel_slash.tres")
+const MINE_EFFECT = preload("res://scripts/vfx/mine_explosion_vfx.gd")
+var mine_profile: MineVFXProfile = preload("res://assets/vfx/mine/ember_burst.tres")
+const ARROW_IMPACT_EFFECT = preload("res://scripts/vfx/arrow_impact_vfx.gd")
+var arrow_impact_profile: ArrowImpactProfile = preload("res://assets/vfx/archer/arrow_impact.tres")
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_ensure_container()
@@ -75,6 +82,26 @@ func register_effect(node: Node, auto_free_time: float = 0.0) -> Node:
 # =========================================================================
 # 1. WARRIOR VFX
 # =========================================================================
+
+func spawn_warrior_slash(pos: Vector3, aim_dir: Vector3, radius: float, arc_deg: float) -> Node3D:
+	var effect: SwordVFX = SWORD_EFFECT.new()
+	effect.name = "SteelSwordSlash"
+	_ensure_container().add_child(effect)
+	effect.global_position = pos + Vector3(0.0, 0.45, 0.0)
+	var forward := Vector3(aim_dir.x, 0.0, aim_dir.z).normalized()
+	if not forward.is_zero_approx():
+		effect.look_at(effect.global_position + forward, Vector3.UP)
+	effect.setup_slash(SWORD_PROFILE, radius, arc_deg)
+	# The effect owns its animation clock, including cleanup in fixed-FPS captures.
+	return register_effect(effect) as Node3D
+
+func spawn_sword_contact(pos: Vector3, direction: Vector3) -> Node3D:
+	var effect: SwordVFX = SWORD_EFFECT.new()
+	effect.name = "SteelSwordContact"
+	_ensure_container().add_child(effect)
+	effect.global_position = pos
+	effect.setup_contact(SWORD_PROFILE, direction)
+	return register_effect(effect) as Node3D
 
 ## Spawns a stylized crescent blade slash arc
 func spawn_slash_arc(pos: Vector3, aim_dir: Vector3, radius: float = 2.2, arc_deg: float = 90.0, col: Color = Color(0.3, 0.7, 1.0), duration: float = 0.18) -> Node3D:
@@ -434,6 +461,14 @@ func spawn_arrow_charge(player: CharacterBody3D, duration: float = 0.28) -> Node
 # 2. ARCHER VFX
 # =========================================================================
 
+func spawn_arrow_impact(pos: Vector3, incoming: Vector3, terrain: bool = false) -> Node3D:
+	var effect: ArrowImpactVFX = ARROW_IMPACT_EFFECT.new()
+	effect.name = "ArrowImpact"
+	_ensure_container().add_child(effect)
+	effect.global_position = pos
+	effect.setup(arrow_impact_profile, incoming, terrain)
+	return register_effect(effect) as Node3D
+
 ## Standard arrow contrail attached to projectile
 func attach_arrow_trail(arrow_node: Node3D, col: Color = Color(0.9, 0.9, 0.9, 0.6)) -> CPUParticles3D:
 	var parts = CPUParticles3D.new()
@@ -578,13 +613,12 @@ func spawn_turret_muzzle_flash(pos: Vector3, aim_dir: Vector3) -> void:
 
 ## Remote Mine explosion sequence
 func spawn_mine_explosion(pos: Vector3, radius: float = 4.5) -> void:
-	# 1. Blinding flash
-	spawn_parry_clash(pos)
-	# 2. Expanding shockwave
-	spawn_shockwave(pos, radius, Color(1.0, 0.4, 0.1), 0.35)
-	# 3. Fireball & dark smoke chunks
-	spawn_puff(pos + Vector3(0, 0.5, 0), Color(1.0, 0.45, 0.1), 24, 7.0)
-	spawn_puff(pos + Vector3(0, 1.2, 0), Color(0.2, 0.2, 0.2), 16, 4.0)
+	var effect: MineExplosionVFX = MINE_EFFECT.new()
+	effect.name = "MineEmberBurst"
+	_ensure_container().add_child(effect)
+	effect.global_position = pos
+	effect.setup(mine_profile, radius)
+	register_effect(effect)
 
 ## Tactical Nuke Telegraph: warning zone and falling missile
 func spawn_tactical_nuke_telegraph(target_pos: Vector3, duration: float = 1.2) -> Node3D:

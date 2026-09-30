@@ -111,7 +111,8 @@ func test_hurtbox_and_damage_flash_resolution() -> void:
 		
 		# Test triggering damage flash
 		hurtbox.flash_hit()
-		assert_not_null(hurtbox.mesh_to_flash.material_override, s.name + " flash_hit must apply material_override")
+		assert_eq(hurtbox.mesh_to_flash.material_overlay, hurtbox.flash_material,
+			s.name + " flash_hit must apply a translucent overlay")
 
 func test_enemy_animation_actions_do_not_block_gameplay() -> void:
 	var dummy: CharacterBody3D = load(ENEMY_DUMMY_SCENE).instantiate() as CharacterBody3D

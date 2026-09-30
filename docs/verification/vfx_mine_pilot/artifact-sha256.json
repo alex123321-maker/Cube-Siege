@@ -1,0 +1,13 @@
+{
+  "scripts/vfx/mine_explosion_vfx.gd": "cfb64cd93380c4d332db495eaaba097b11aa2cd7c9ab5825df9c1ec234372930",
+  "scripts/vfx/mine_vfx_profile.gd": "bf22f1369bae7dabe8b40a4d5359c779fa05c90b7552138953d5742c492f226f",
+  "assets/vfx/shaders/mine_plume.gdshader": "604b2d9e443f64c8debff7daf0e11d3d69860842e97521a0c2b01a22f9b3f6bc",
+  "assets/vfx/shaders/mine_ring.gdshader": "f10a79f8d5acf47e3db52f4101d00a53e7acb9139f4e23361faa9c9428eeb9fd",
+  "assets/vfx/mine/ember_burst.tres": "de00b0d5b0f04271fa58a3a89038ef88ab5a74b7fe5f4e77972f74ec8997fad6",
+  "assets/vfx/mine/fire_burst.png": "7c4f2fc58b119fc44e537f8ea7b0887f81fc55a357e21b409f92e051d43c9acd",
+  "assets/vfx/mine/smoke_puff.png": "69804aff984da12abf66622d955491f693801dee234c31bffe05bd5574613680",
+  "assets/vfx/mine/trials/luna_clear.tres": "50cdd50fff285df36bbc8160aa47deea52f08a03055e6095a061c134ebeaf510",
+  "assets/vfx/mine/trials/luna_weighty.tres": "7a1710fc3693740fde2445cb9d30dcb702706ccb478576205172949c4a3f1113",
+  "assets/vfx/sword/trials/luna_soft.tres": "3754fc0dfad25dbc1b92bc8639c656d6848b6b2ccdffc3509cdd82841a7395e4",
+  "assets/vfx/sword/trials/luna_soft_tail.tres": "1d5e28870780bebe702ad0ea7094c25fb4a1a52de0b9d3088dd8dfe7420e4c00"
+}

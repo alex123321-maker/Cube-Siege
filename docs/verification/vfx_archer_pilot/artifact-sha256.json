@@ -1,0 +1,41 @@
+{
+  "date": "2026-09-29",
+  "sources": {
+    "scripts/arrow_projectile.gd": {
+      "after": "c8578ca7720ae014a26ef6a4ac203fc26ec633552dde6e894a21153a56da7855",
+      "before": "0a5957f4019f089597dd165d5074d45a3e6fb431cbb610704bd49410d1fdb355"
+    },
+    "scripts/vfx/vfx_manager.gd": {
+      "after": "8dd9688c42aeba34e036e3cd3bde114a9422e7ce9f0a3dcb1c4f2f10ae925cba",
+      "before": "782f4181aa1dd94fa4af789f3b3bd55b67a126c92dcd141c18822d87df42bab2"
+    },
+    "scripts/vfx/arrow_impact_profile.gd": {
+      "after": "e47cccf3695b2ce799994fe8cc1ff6f4285cfcfbb30422eb53b97a2e669e0f83"
+    },
+    "scripts/vfx/arrow_impact_vfx.gd": {
+      "after": "357b6361fc47926b43a51b8e90cd458d9f41b2326936e59549ab8e17c6d02449"
+    },
+    "assets/vfx/archer/arrow_impact.tres": {
+      "after": "80eecfe97041579207a3f65adab0a419a3d76c60d5d047167cec6478769182d5"
+    },
+    "assets/vfx/shaders/arrow_impact.gdshader": {
+      "after": "84c3054d036388820ad4beb37283f724fb17c7a4f78fd75c494f03a47a539b6c"
+    },
+    "tests/integration/test_arrow_impact_vfx.gd": {
+      "after": "1a6363eed4674acdf939a296ede938d0f0aeac6e4aa00725fd6d704b1fdefee8"
+    },
+    "tools/capture_archer_pilot.gd": {
+      "after": "23765e570b68c8bbdc2b932eaa9cb321a775c7a5113d631f41905543e51480c0"
+    }
+  },
+  "reused_art": {
+    "assets/vfx/sword/sword_contact.png": "cc2c0c5d9393b3f39819aa3faa1fc5f1dac2d8bce99e1a800cc851fc9a84a2fb",
+    "assets/vfx/mine/smoke_puff.png": "69804aff984da12abf66622d955491f693801dee234c31bffe05bd5574613680"
+  },
+  "media": {
+    "after.mp4": "67d835bf73798edd72e30006ef91d629b6b04e86e6c0b98e1ee98e92de7f0b93",
+    "archer-impact-before-after.mp4": "e0e2c37c2d3218af2bc7ddba50de7b193e9365a9e7abd75e7c16f21efc853ee0",
+    "before.mp4": "ab944d85db5923a65900cacb0adac5c2790901d4050e234eeeabfba10bafc030",
+    "surface.mp4": "5e3c08d5257d4068d77aa3da806ecd246d34e664b753392d03415ee87d41480e"
+  }
+}

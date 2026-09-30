@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="SwordVFXProfile" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/vfx/sword_vfx_profile.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/vfx/sword/sword_ribbon.png" id="2"]
+[ext_resource type="Texture2D" path="res://assets/vfx/sword/sword_contact.png" id="3"]
+
+[resource]
+script = ExtResource("1")
+ribbon_texture = ExtResource("2")
+contact_texture = ExtResource("3")
+body_color = Color(0.15, 0.42, 0.67, 1)
+edge_color = Color(0.82, 0.96, 1, 1)
+contact_color = Color(1, 0.7, 0.29, 1)
+lifetime = 0.32
+sweep_time = 0.065
+ribbon_width = 0.94
+emission = 1.25
+shard_count = 8
+contact_size = 1.35
+contact_lifetime = 0.12
+arc_opacity = 0.52
+blade_trail_lifetime = 0.11
+blade_trail_start = 0.055
+blade_trail_end = 0.22
+blade_trail_opacity = 0.72

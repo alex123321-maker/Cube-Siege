@@ -1,0 +1,30 @@
+{
+  "ground_steps.mp4": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "width": 1280,
+        "height": 720,
+        "r_frame_rate": "60/1"
+      }
+    ],
+    "format": {
+      "duration": "19.416667"
+    }
+  },
+  "ground-and-slopes.mp4": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "width": 1280,
+        "height": 720,
+        "r_frame_rate": "60/1"
+      }
+    ],
+    "format": {
+      "duration": "11.200000"
+    }
+  }
+}

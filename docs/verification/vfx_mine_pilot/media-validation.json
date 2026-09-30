@@ -1,0 +1,44 @@
+{
+  "mine-before-after.mp4": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "width": 1280,
+        "height": 720,
+        "r_frame_rate": "60/1"
+      }
+    ],
+    "format": {
+      "duration": "17.500000"
+    }
+  },
+  "sword-soft-tail-ab.mp4": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "width": 1280,
+        "height": 720,
+        "r_frame_rate": "60/1"
+      }
+    ],
+    "format": {
+      "duration": "15.000000"
+    }
+  },
+  "mine-profile-variants.mp4": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "width": 1440,
+        "height": 640,
+        "r_frame_rate": "60/1"
+      }
+    ],
+    "format": {
+      "duration": "6.983333"
+    }
+  }
+}

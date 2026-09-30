@@ -1,0 +1,1305 @@
+Godot Engine v4.6.1.stable.official.14d19694e - https://godotengine.org
+
+[   0% ] [90m[1mfirst_scan_filesystem[22m | Started Инициализация проекта (5 steps)[39m[0m
+[   0% ] [90m[1mfirst_scan_filesystem[22m | Сканирование структуры файлов…[39m[0m
+[  16% ] [90m[1mfirst_scan_filesystem[22m | Загрузка глобальных имен классов…[39m[0m
+[  33% ] [90m[1mfirst_scan_filesystem[22m | Проверка GDExtensions…[39m[0m
+[  50% ] [90m[1mfirst_scan_filesystem[22m | Создание скриптов автозагрузки…[39m[0m
+[  66% ] [90m[1mfirst_scan_filesystem[22m | Инициализация плагинов…[39m[0m
+[  83% ] [90m[1mfirst_scan_filesystem[22m | Начало сканирование файлов…[39m[0m
+[92m[ DONE ][39m [1mfirst_scan_filesystem[22m
+[0m
+WARNING: Missing .uid file for path "res://tools/capture_issue42_pickup.gd". The file was re-created from cache.
+   at: _process_file_system (editor/file_system/editor_file_system.cpp:1363)
+WARNING: Missing .uid file for path "res://tools/capture_issue_43_terrain.gd". The file was re-created from cache.
+   at: _process_file_system (editor/file_system/editor_file_system.cpp:1363)
+[   0% ] [90m[1mupdate_scripts_classes[22m | Started Регистрация глобальных классов… (5 steps)[39m[0m
+[   0% ] [90m[1mupdate_scripts_classes[22m | ArrowImpactProfile[39m[0m
+[  16% ] [90m[1mupdate_scripts_classes[22m | ArrowImpactVFX[39m[0m
+[  33% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  50% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[  66% ] [90m[1mupdate_scripts_classes[22m | [39m[0m
+[92m[ DONE ][39m [1mupdate_scripts_classes[22m
+[0m
+[   0% ] [90m[1m_update_scan_actions[22m | Started Сканирование действий… (326 steps)[39m[0m
+[   0% ] [90m[1m_update_scan_actions[22m | mcp_panel.csv[39m[0m
+[   0% ] [90m[1m_update_scan_actions[22m | tool_descriptions.csv[39m[0m
+[   0% ] [90m[1m_update_scan_actions[22m | icon.png[39m[0m
+[   0% ] [90m[1m_update_scan_actions[22m | icon.svg[39m[0m
+[   1% ] [90m[1m_update_scan_actions[22m | AnonymousPro-Bold.ttf[39m[0m
+[   1% ] [90m[1m_update_scan_actions[22m | AnonymousPro-BoldItalic.ttf[39m[0m
+[   1% ] [90m[1m_update_scan_actions[22m | AnonymousPro-Italic.ttf[39m[0m
+[   2% ] [90m[1m_update_scan_actions[22m | AnonymousPro-Regular.ttf[39m[0m
+[   2% ] [90m[1m_update_scan_actions[22m | CourierPrime-Bold.ttf[39m[0m
+[   2% ] [90m[1m_update_scan_actions[22m | CourierPrime-BoldItalic.ttf[39m[0m
+[   3% ] [90m[1m_update_scan_actions[22m | CourierPrime-Italic.ttf[39m[0m
+[   3% ] [90m[1m_update_scan_actions[22m | CourierPrime-Regular.ttf[39m[0m
+[   3% ] [90m[1m_update_scan_actions[22m | LobsterTwo-Bold.ttf[39m[0m
+[   3% ] [90m[1m_update_scan_actions[22m | LobsterTwo-BoldItalic.ttf[39m[0m
+[   4% ] [90m[1m_update_scan_actions[22m | LobsterTwo-Italic.ttf[39m[0m
+[   4% ] [90m[1m_update_scan_actions[22m | LobsterTwo-Regular.ttf[39m[0m
+[   4% ] [90m[1m_update_scan_actions[22m | arrow.png[39m[0m
+[   5% ] [90m[1m_update_scan_actions[22m | play.png[39m[0m
+[   5% ] [90m[1m_update_scan_actions[22m | eyey.png[39m[0m
+[   5% ] [90m[1m_update_scan_actions[22m | Folder.svg[39m[0m
+[   6% ] [90m[1m_update_scan_actions[22m | green.png[39m[0m
+[   6% ] [90m[1m_update_scan_actions[22m | GutIconV2_base.png[39m[0m
+[   6% ] [90m[1m_update_scan_actions[22m | GutIconV2_no_shine.png[39m[0m
+[   7% ] [90m[1m_update_scan_actions[22m | HSplitContainer.svg[39m[0m
+[   7% ] [90m[1m_update_scan_actions[22m | red.png[39m[0m
+[   7% ] [90m[1m_update_scan_actions[22m | Script.svg[39m[0m
+[   7% ] [90m[1m_update_scan_actions[22m | VSplitContainer.svg[39m[0m
+[   8% ] [90m[1m_update_scan_actions[22m | yellow.png[39m[0m
+[   8% ] [90m[1m_update_scan_actions[22m | icon.png[39m[0m
+[   8% ] [90m[1m_update_scan_actions[22m | source_code_pro.fnt[39m[0m
+[   9% ] [90m[1m_update_scan_actions[22m | dressing_palette_atlas.png[39m[0m
+[   9% ] [90m[1m_update_scan_actions[22m | dressing_roughness_atlas.png[39m[0m
+[   9% ] [90m[1m_update_scan_actions[22m | flower_mixed_accent.glb[39m[0m
+[  10% ] [90m[1m_update_scan_actions[22m | flower_red_cluster.glb[39m[0m
+[  10% ] [90m[1m_update_scan_actions[22m | flower_white_cluster.glb[39m[0m
+[  10% ] [90m[1m_update_scan_actions[22m | flower_yellow_cluster.glb[39m[0m
+[  11% ] [90m[1m_update_scan_actions[22m | grass_tuft_med_01.glb[39m[0m
+[  11% ] [90m[1m_update_scan_actions[22m | grass_tuft_med_02.glb[39m[0m
+[  11% ] [90m[1m_update_scan_actions[22m | grass_tuft_small_01.glb[39m[0m
+[  11% ] [90m[1m_update_scan_actions[22m | grass_tuft_small_02.glb[39m[0m
+[  12% ] [90m[1m_update_scan_actions[22m | grass_tuft_small_03.glb[39m[0m
+[  12% ] [90m[1m_update_scan_actions[22m | grass_tuft_tall_01.glb[39m[0m
+[  12% ] [90m[1m_update_scan_actions[22m | moss_cliff_ledge.glb[39m[0m
+[  13% ] [90m[1m_update_scan_actions[22m | moss_rock_shelf.glb[39m[0m
+[  13% ] [90m[1m_update_scan_actions[22m | moss_tree_base.glb[39m[0m
+[  13% ] [90m[1m_update_scan_actions[22m | stone_debris_angular_chip.glb[39m[0m
+[  14% ] [90m[1m_update_scan_actions[22m | stone_debris_fine_scatter.glb[39m[0m
+[  14% ] [90m[1m_update_scan_actions[22m | stone_debris_flat_patch.glb[39m[0m
+[  14% ] [90m[1m_update_scan_actions[22m | stone_debris_mountain_cluster.glb[39m[0m
+[  14% ] [90m[1m_update_scan_actions[22m | stone_debris_single.glb[39m[0m
+[  15% ] [90m[1m_update_scan_actions[22m | stone_debris_trio.glb[39m[0m
+[  15% ] [90m[1m_update_scan_actions[22m | rock_stage1_var_0.glb[39m[0m
+[  15% ] [90m[1m_update_scan_actions[22m | rock_stage1_var_1.glb[39m[0m
+[  16% ] [90m[1m_update_scan_actions[22m | rock_stage1_var_2.glb[39m[0m
+[  16% ] [90m[1m_update_scan_actions[22m | rock_stage1_var_3.glb[39m[0m
+[  16% ] [90m[1m_update_scan_actions[22m | rock_stage1_var_4.glb[39m[0m
+[  17% ] [90m[1m_update_scan_actions[22m | rock_stage1_var_5.glb[39m[0m
+[  17% ] [90m[1m_update_scan_actions[22m | rock_stage2_var_0.glb[39m[0m
+[  17% ] [90m[1m_update_scan_actions[22m | rock_stage2_var_1.glb[39m[0m
+[  18% ] [90m[1m_update_scan_actions[22m | rock_stage2_var_2.glb[39m[0m
+[  18% ] [90m[1m_update_scan_actions[22m | rock_stage3_var_0.glb[39m[0m
+[  18% ] [90m[1m_update_scan_actions[22m | rock_stage3_var_1.glb[39m[0m
+[  18% ] [90m[1m_update_scan_actions[22m | rock_stage3_var_2.glb[39m[0m
+[  19% ] [90m[1m_update_scan_actions[22m | rock_stage4_var_0.glb[39m[0m
+[  19% ] [90m[1m_update_scan_actions[22m | rock_stage4_var_1.glb[39m[0m
+[  19% ] [90m[1m_update_scan_actions[22m | rock_stage5_var_0.glb[39m[0m
+[  20% ] [90m[1m_update_scan_actions[22m | rock_stage5_var_1.glb[39m[0m
+[  20% ] [90m[1m_update_scan_actions[22m | rock_stage5_var_2.glb[39m[0m
+[  20% ] [90m[1m_update_scan_actions[22m | tree_0_standard_oak.glb[39m[0m
+[  21% ] [90m[1m_update_scan_actions[22m | tree_1_tall_oak.glb[39m[0m
+[  21% ] [90m[1m_update_scan_actions[22m | tree_2_broad_oak.glb[39m[0m
+[  21% ] [90m[1m_update_scan_actions[22m | tree_3_young_oak.glb[39m[0m
+[  22% ] [90m[1m_update_scan_actions[22m | tree_4_shrub_oak.glb[39m[0m
+[  22% ] [90m[1m_update_scan_actions[22m | cliff_side.png[39m[0m
+[  22% ] [90m[1m_update_scan_actions[22m | dirt_soil.png[39m[0m
+[  22% ] [90m[1m_update_scan_actions[22m | forest_grass_top.png[39m[0m
+[  23% ] [90m[1m_update_scan_actions[22m | forest_side_edge.png[39m[0m
+[  23% ] [90m[1m_update_scan_actions[22m | mountain_stone_top.png[39m[0m
+[  23% ] [90m[1m_update_scan_actions[22m | plains_meadow_top.png[39m[0m
+[  24% ] [90m[1m_update_scan_actions[22m | plains_side_edge.png[39m[0m
+[  24% ] [90m[1m_update_scan_actions[22m | stone_cliff_rim.png[39m[0m
+[  24% ] [90m[1m_update_scan_actions[22m | terrain_atlas.png[39m[0m
+[  25% ] [90m[1m_update_scan_actions[22m | hero_archer.glb[39m[0m
+[  25% ] [90m[1m_update_scan_actions[22m | hero_engineer.glb[39m[0m
+[  25% ] [90m[1m_update_scan_actions[22m | hero_warrior.glb[39m[0m
+[  25% ] [90m[1m_update_scan_actions[22m | ranged_skirmisher.glb[39m[0m
+[  26% ] [90m[1m_update_scan_actions[22m | siege_breaker.glb[39m[0m
+[  26% ] [90m[1m_update_scan_actions[22m | zombie.glb[39m[0m
+[  26% ] [90m[1m_update_scan_actions[22m | hero_warrior_attack_storyboard.png[39m[0m
+[  27% ] [90m[1m_update_scan_actions[22m | hero_warrior_block_storyboard.png[39m[0m
+[  27% ] [90m[1m_update_scan_actions[22m | hero_warrior_preview.png[39m[0m
+[  27% ] [90m[1m_update_scan_actions[22m | hero_warrior_walk_storyboard.png[39m[0m
+[  28% ] [90m[1m_update_scan_actions[22m | hero_archer_material_atlas.png[39m[0m
+[  28% ] [90m[1m_update_scan_actions[22m | hero_engineer_material_atlas.png[39m[0m
+[  28% ] [90m[1m_update_scan_actions[22m | hero_warrior_material_atlas.png[39m[0m
+[  29% ] [90m[1m_update_scan_actions[22m | decoy_dummy.png[39m[0m
+[  29% ] [90m[1m_update_scan_actions[22m | hero_archer.png[39m[0m
+[  29% ] [90m[1m_update_scan_actions[22m | hero_engineer.png[39m[0m
+[  29% ] [90m[1m_update_scan_actions[22m | hero_warrior.png[39m[0m
+[  30% ] [90m[1m_update_scan_actions[22m | remote_mine.png[39m[0m
+[  30% ] [90m[1m_update_scan_actions[22m | temp_turret.png[39m[0m
+[  30% ] [90m[1m_update_scan_actions[22m | health_bar_bg.png[39m[0m
+[  31% ] [90m[1m_update_scan_actions[22m | health_bar_fill_danger.png[39m[0m
+[  31% ] [90m[1m_update_scan_actions[22m | health_bar_fill_full.png[39m[0m
+[  31% ] [90m[1m_update_scan_actions[22m | wave_bar_bg.png[39m[0m
+[  32% ] [90m[1m_update_scan_actions[22m | wave_bar_fill.png[39m[0m
+[  32% ] [90m[1m_update_scan_actions[22m | xp_bar_bg.png[39m[0m
+[  32% ] [90m[1m_update_scan_actions[22m | xp_bar_fill.png[39m[0m
+[  33% ] [90m[1m_update_scan_actions[22m | action_slot_cooldown.png[39m[0m
+[  33% ] [90m[1m_update_scan_actions[22m | action_slot_cooldown_64.png[39m[0m
+[  33% ] [90m[1m_update_scan_actions[22m | action_slot_disabled.png[39m[0m
+[  33% ] [90m[1m_update_scan_actions[22m | action_slot_disabled_64.png[39m[0m
+[  34% ] [90m[1m_update_scan_actions[22m | action_slot_hover.png[39m[0m
+[  34% ] [90m[1m_update_scan_actions[22m | action_slot_hover_64.png[39m[0m
+[  34% ] [90m[1m_update_scan_actions[22m | action_slot_normal.png[39m[0m
+[  35% ] [90m[1m_update_scan_actions[22m | action_slot_normal_64.png[39m[0m
+[  35% ] [90m[1m_update_scan_actions[22m | action_slot_pressed.png[39m[0m
+[  35% ] [90m[1m_update_scan_actions[22m | action_slot_pressed_64.png[39m[0m
+[  36% ] [90m[1m_update_scan_actions[22m | cooldown_mask.png[39m[0m
+[  36% ] [90m[1m_update_scan_actions[22m | day_night_panel_frame.png[39m[0m
+[  36% ] [90m[1m_update_scan_actions[22m | keycap_E.png[39m[0m
+[  37% ] [90m[1m_update_scan_actions[22m | keycap_F.png[39m[0m
+[  37% ] [90m[1m_update_scan_actions[22m | keycap_frame_normal.png[39m[0m
+[  37% ] [90m[1m_update_scan_actions[22m | keycap_frame_pressed.png[39m[0m
+[  37% ] [90m[1m_update_scan_actions[22m | keycap_LMB.png[39m[0m
+[  38% ] [90m[1m_update_scan_actions[22m | keycap_Q.png[39m[0m
+[  38% ] [90m[1m_update_scan_actions[22m | keycap_R.png[39m[0m
+[  38% ] [90m[1m_update_scan_actions[22m | keycap_RMB.png[39m[0m
+[  39% ] [90m[1m_update_scan_actions[22m | keycap_SPACE.png[39m[0m
+[  39% ] [90m[1m_update_scan_actions[22m | keycap_TAB.png[39m[0m
+[  39% ] [90m[1m_update_scan_actions[22m | keycap_W.png[39m[0m
+[  40% ] [90m[1m_update_scan_actions[22m | resource_panel_frame.png[39m[0m
+[  40% ] [90m[1m_update_scan_actions[22m | tooltip_frame.png[39m[0m
+[  40% ] [90m[1m_update_scan_actions[22m | archer_decoy_64.png[39m[0m
+[  40% ] [90m[1m_update_scan_actions[22m | archer_piercing_shot_64.png[39m[0m
+[  41% ] [90m[1m_update_scan_actions[22m | archer_roll_64.png[39m[0m
+[  41% ] [90m[1m_update_scan_actions[22m | archer_shot_64.png[39m[0m
+[  41% ] [90m[1m_update_scan_actions[22m | archer_sniper_64.png[39m[0m
+[  42% ] [90m[1m_update_scan_actions[22m | engineer_dash_64.png[39m[0m
+[  42% ] [90m[1m_update_scan_actions[22m | engineer_hammer_64.png[39m[0m
+[  42% ] [90m[1m_update_scan_actions[22m | engineer_mine_64.png[39m[0m
+[  43% ] [90m[1m_update_scan_actions[22m | engineer_overclock_64.png[39m[0m
+[  43% ] [90m[1m_update_scan_actions[22m | engineer_turret_64.png[39m[0m
+[  43% ] [90m[1m_update_scan_actions[22m | global_build_64.png[39m[0m
+[  44% ] [90m[1m_update_scan_actions[22m | global_day_64.png[39m[0m
+[  44% ] [90m[1m_update_scan_actions[22m | global_night_64.png[39m[0m
+[  44% ] [90m[1m_update_scan_actions[22m | global_settings_64.png[39m[0m
+[  44% ] [90m[1m_update_scan_actions[22m | hud_armor_shield_64.png[39m[0m
+[  45% ] [90m[1m_update_scan_actions[22m | hud_health_cross_64.png[39m[0m
+[  45% ] [90m[1m_update_scan_actions[22m | hud_skull_wave_64.png[39m[0m
+[  45% ] [90m[1m_update_scan_actions[22m | hud_target_range_64.png[39m[0m
+[  46% ] [90m[1m_update_scan_actions[22m | resource_iron_64.png[39m[0m
+[  46% ] [90m[1m_update_scan_actions[22m | resource_magic_stone_64.png[39m[0m
+[  46% ] [90m[1m_update_scan_actions[22m | resource_stone_64.png[39m[0m
+[  47% ] [90m[1m_update_scan_actions[22m | resource_wood_64.png[39m[0m
+[  47% ] [90m[1m_update_scan_actions[22m | warrior_cleave_64.png[39m[0m
+[  47% ] [90m[1m_update_scan_actions[22m | warrior_dash_64.png[39m[0m
+[  48% ] [90m[1m_update_scan_actions[22m | warrior_duel_64.png[39m[0m
+[  48% ] [90m[1m_update_scan_actions[22m | warrior_parry_64.png[39m[0m
+[  48% ] [90m[1m_update_scan_actions[22m | warrior_sword_attack_64.png[39m[0m
+[  48% ] [90m[1m_update_scan_actions[22m | 01_baseline_far.png[39m[0m
+[  49% ] [90m[1m_update_scan_actions[22m | 02_preset_medium.png[39m[0m
+[  49% ] [90m[1m_update_scan_actions[22m | 03_preset_close.png[39m[0m
+[  49% ] [90m[1m_update_scan_actions[22m | 04_deadzone_center.png[39m[0m
+[  50% ] [90m[1m_update_scan_actions[22m | 05_edge_pan_right.png[39m[0m
+[  50% ] [90m[1m_update_scan_actions[22m | 06_edge_pan_top.png[39m[0m
+[  50% ] [90m[1m_update_scan_actions[22m | 07_edge_pan_corner.png[39m[0m
+[  51% ] [90m[1m_update_scan_actions[22m | 08_in_game_settings_modal.png[39m[0m
+[  51% ] [90m[1m_update_scan_actions[22m | 09_building_occlusion_panned.png[39m[0m
+[  51% ] [90m[1m_update_scan_actions[22m | 01_portal_forest_start.png[39m[0m
+[  51% ] [90m[1m_update_scan_actions[22m | 02_plains_biome.png[39m[0m
+[  52% ] [90m[1m_update_scan_actions[22m | 03_mountain_biome_altitude_50.png[39m[0m
+[  52% ] [90m[1m_update_scan_actions[22m | 04_biome_transition_forest_plains.png[39m[0m
+[  52% ] [90m[1m_update_scan_actions[22m | 05_biome_transition_plains_mountains.png[39m[0m
+[  53% ] [90m[1m_update_scan_actions[22m | 06_foliage_readability_multi_enemy.png[39m[0m
+[  53% ] [90m[1m_update_scan_actions[22m | 07_loose_vs_deposit_resources.png[39m[0m
+[  53% ] [90m[1m_update_scan_actions[22m | 08_vertical_combat_step_vs_cliff.png[39m[0m
+[  54% ] [90m[1m_update_scan_actions[22m | 09_projectile_vertical_trajectory.png[39m[0m
+[  54% ] [90m[1m_update_scan_actions[22m | 10_high_mountain_duel_aiming.png[39m[0m
+[  54% ] [90m[1m_update_scan_actions[22m | 11_far_night_spawn.png[39m[0m
+[  55% ] [90m[1m_update_scan_actions[22m | 12_resource_deposit_degradation_stages.png[39m[0m
+[  55% ] [90m[1m_update_scan_actions[22m | 13_free_pickups_interaction_e.png[39m[0m
+[  55% ] [90m[1m_update_scan_actions[22m | 14_melee_cleave_staircase.png[39m[0m
+[  55% ] [90m[1m_update_scan_actions[22m | 15_arrow_vertical_trajectories_all_cases.png[39m[0m
+[  56% ] [90m[1m_update_scan_actions[22m | 16_pierce_arrow_vertical_flight.png[39m[0m
+[  56% ] [90m[1m_update_scan_actions[22m | 17_tactical_nuke_multilevel_impact.png[39m[0m
+[  56% ] [90m[1m_update_scan_actions[22m | 18_stone_iron_deposit_silhouettes.png[39m[0m
+[  57% ] [90m[1m_update_scan_actions[22m | 01_forest_day.png[39m[0m
+[  57% ] [90m[1m_update_scan_actions[22m | 02_plains_day.png[39m[0m
+[  57% ] [90m[1m_update_scan_actions[22m | 03_mountains_day.png[39m[0m
+[  58% ] [90m[1m_update_scan_actions[22m | 04_forest_night.png[39m[0m
+[  58% ] [90m[1m_update_scan_actions[22m | 05_mountains_night.png[39m[0m
+[  58% ] [90m[1m_update_scan_actions[22m | 06_composition_hero_enemy_rock_tree.png[39m[0m
+[  59% ] [90m[1m_update_scan_actions[22m | 01_forest_day.png[39m[0m
+[  59% ] [90m[1m_update_scan_actions[22m | 02_plains_day.png[39m[0m
+[  59% ] [90m[1m_update_scan_actions[22m | 03_mountains_day.png[39m[0m
+[  59% ] [90m[1m_update_scan_actions[22m | 04_forest_night.png[39m[0m
+[  60% ] [90m[1m_update_scan_actions[22m | 05_mountains_night.png[39m[0m
+[  60% ] [90m[1m_update_scan_actions[22m | 06_composition_hero_enemy_rock_tree.png[39m[0m
+[  60% ] [90m[1m_update_scan_actions[22m | 01_forest_day_comparison.png[39m[0m
+[  61% ] [90m[1m_update_scan_actions[22m | 02_plains_day_comparison.png[39m[0m
+[  61% ] [90m[1m_update_scan_actions[22m | 03_mountains_day_comparison.png[39m[0m
+[  61% ] [90m[1m_update_scan_actions[22m | 04_forest_night_comparison.png[39m[0m
+[  62% ] [90m[1m_update_scan_actions[22m | 05_mountains_night_comparison.png[39m[0m
+[  62% ] [90m[1m_update_scan_actions[22m | 06_composition_comparison.png[39m[0m
+[  62% ] [90m[1m_update_scan_actions[22m | 01_long_mountain_slope.png[39m[0m
+[  62% ] [90m[1m_update_scan_actions[22m | 02_cliff_height_50plus.png[39m[0m
+[  63% ] [90m[1m_update_scan_actions[22m | 03_biome_transition_plains_mountains.png[39m[0m
+[  63% ] [90m[1m_update_scan_actions[22m | 04_forest_hill.png[39m[0m
+[  63% ] [90m[1m_update_scan_actions[22m | 05_loaded_chunk_boundary.png[39m[0m
+[  64% ] [90m[1m_update_scan_actions[22m | 01_long_mountain_slope.png[39m[0m
+[  64% ] [90m[1m_update_scan_actions[22m | 02_cliff_height_50plus.png[39m[0m
+[  64% ] [90m[1m_update_scan_actions[22m | 03_biome_transition_plains_mountains.png[39m[0m
+[  65% ] [90m[1m_update_scan_actions[22m | 04_forest_hill.png[39m[0m
+[  65% ] [90m[1m_update_scan_actions[22m | 05_loaded_chunk_boundary.png[39m[0m
+[  65% ] [90m[1m_update_scan_actions[22m | 01_long_mountain_slope_comparison.png[39m[0m
+[  66% ] [90m[1m_update_scan_actions[22m | 02_cliff_height_50plus_comparison.png[39m[0m
+[  66% ] [90m[1m_update_scan_actions[22m | 03_biome_transition_comparison.png[39m[0m
+[  66% ] [90m[1m_update_scan_actions[22m | 04_forest_hill_comparison.png[39m[0m
+[  66% ] [90m[1m_update_scan_actions[22m | 05_loaded_chunk_boundary_comparison.png[39m[0m
+[  67% ] [90m[1m_update_scan_actions[22m | forest.png[39m[0m
+[  67% ] [90m[1m_update_scan_actions[22m | mountains.png[39m[0m
+[  67% ] [90m[1m_update_scan_actions[22m | plains.png[39m[0m
+[  68% ] [90m[1m_update_scan_actions[22m | final_break.png[39m[0m
+[  68% ] [90m[1m_update_scan_actions[22m | stage_1_full_health.png[39m[0m
+[  68% ] [90m[1m_update_scan_actions[22m | stage_2_transition.png[39m[0m
+[  69% ] [90m[1m_update_scan_actions[22m | stage_3_transition.png[39m[0m
+[  69% ] [90m[1m_update_scan_actions[22m | stage_4_transition.png[39m[0m
+[  69% ] [90m[1m_update_scan_actions[22m | stage_5_pickup.png[39m[0m
+[  70% ] [90m[1m_update_scan_actions[22m | enemy_hit_flash_showcase.png[39m[0m
+[  70% ] [90m[1m_update_scan_actions[22m | family_lineup_front.png[39m[0m
+[  70% ] [90m[1m_update_scan_actions[22m | family_lineup_gameplay.png[39m[0m
+[  70% ] [90m[1m_update_scan_actions[22m | family_lineup_gameplay_night.png[39m[0m
+[  71% ] [90m[1m_update_scan_actions[22m | family_lineup_iso.png[39m[0m
+[  71% ] [90m[1m_update_scan_actions[22m | family_lineup_silhouette.png[39m[0m
+[  71% ] [90m[1m_update_scan_actions[22m | mixed_combat_scene.png[39m[0m
+[  72% ] [90m[1m_update_scan_actions[22m | siege_breaker_anim_attack.png[39m[0m
+[  72% ] [90m[1m_update_scan_actions[22m | siege_breaker_anim_death.png[39m[0m
+[  72% ] [90m[1m_update_scan_actions[22m | siege_breaker_anim_hit.png[39m[0m
+[  73% ] [90m[1m_update_scan_actions[22m | siege_breaker_anim_idle.png[39m[0m
+[  73% ] [90m[1m_update_scan_actions[22m | siege_breaker_anim_move.png[39m[0m
+[  73% ] [90m[1m_update_scan_actions[22m | siege_breaker_gameplay_camera.png[39m[0m
+[  74% ] [90m[1m_update_scan_actions[22m | skirmisher_anim_attack.png[39m[0m
+[  74% ] [90m[1m_update_scan_actions[22m | skirmisher_anim_death.png[39m[0m
+[  74% ] [90m[1m_update_scan_actions[22m | skirmisher_anim_hit.png[39m[0m
+[  74% ] [90m[1m_update_scan_actions[22m | skirmisher_anim_idle.png[39m[0m
+[  75% ] [90m[1m_update_scan_actions[22m | skirmisher_anim_move.png[39m[0m
+[  75% ] [90m[1m_update_scan_actions[22m | skirmisher_gameplay_camera.png[39m[0m
+[  75% ] [90m[1m_update_scan_actions[22m | undead_enemies_concept.png[39m[0m
+[  76% ] [90m[1m_update_scan_actions[22m | zombie_anim_attack.png[39m[0m
+[  76% ] [90m[1m_update_scan_actions[22m | zombie_anim_death.png[39m[0m
+[  76% ] [90m[1m_update_scan_actions[22m | zombie_anim_hit.png[39m[0m
+[  77% ] [90m[1m_update_scan_actions[22m | zombie_anim_idle.png[39m[0m
+[  77% ] [90m[1m_update_scan_actions[22m | zombie_anim_move.png[39m[0m
+[  77% ] [90m[1m_update_scan_actions[22m | zombie_gameplay_camera.png[39m[0m
+[  77% ] [90m[1m_update_scan_actions[22m | 01_cursor_north_wasd.png[39m[0m
+[  78% ] [90m[1m_update_scan_actions[22m | 02_cursor_east_wasd.png[39m[0m
+[  78% ] [90m[1m_update_scan_actions[22m | 03_holding_w_cursor_orbit.png[39m[0m
+[  78% ] [90m[1m_update_scan_actions[22m | 04_holding_strafe_orbit.png[39m[0m
+[  79% ] [90m[1m_update_scan_actions[22m | 05_holding_w_aim_flip_180.png[39m[0m
+[  79% ] [90m[1m_update_scan_actions[22m | 06_aim_deadzone_stable.png[39m[0m
+[  79% ] [90m[1m_update_scan_actions[22m | 07_diagonals_multidirectional.png[39m[0m
+[  80% ] [90m[1m_update_scan_actions[22m | 08_dash_relative.png[39m[0m
+[  80% ] [90m[1m_update_scan_actions[22m | 09_forced_target_movement.png[39m[0m
+[  80% ] [90m[1m_update_scan_actions[22m | 10_warrior_duel_automatic.png[39m[0m
+[  81% ] [90m[1m_update_scan_actions[22m | 11_peripheral_pan_independence.png[39m[0m
+[  81% ] [90m[1m_update_scan_actions[22m | 01_main_menu.png[39m[0m
+[  81% ] [90m[1m_update_scan_actions[22m | 02_character_selection.png[39m[0m
+[  81% ] [90m[1m_update_scan_actions[22m | 03_mastery_talents.png[39m[0m
+[  82% ] [90m[1m_update_scan_actions[22m | 04_gameplay_day.png[39m[0m
+[  82% ] [90m[1m_update_scan_actions[22m | 05_radial_build_menu.png[39m[0m
+[  82% ] [90m[1m_update_scan_actions[22m | 06_card_draft.png[39m[0m
+[  83% ] [90m[1m_update_scan_actions[22m | 07_workbench_crafting.png[39m[0m
+[  83% ] [90m[1m_update_scan_actions[22m | 08_night_boss_battle.png[39m[0m
+[  83% ] [90m[1m_update_scan_actions[22m | 09_extraction_victory.png[39m[0m
+[  84% ] [90m[1m_update_scan_actions[22m | vfx_01_warrior_lmb_slash.png[39m[0m
+[  84% ] [90m[1m_update_scan_actions[22m | vfx_02_warrior_rmb_cleave.png[39m[0m
+[  84% ] [90m[1m_update_scan_actions[22m | vfx_03_warrior_q_parry_stance.png[39m[0m
+[  85% ] [90m[1m_update_scan_actions[22m | vfx_04_warrior_q_parry_clash.png[39m[0m
+[  85% ] [90m[1m_update_scan_actions[22m | vfx_05_warrior_f_duel_arena.png[39m[0m
+[  85% ] [90m[1m_update_scan_actions[22m | vfx_06_archer_lmb_arrow_flight.png[39m[0m
+[  85% ] [90m[1m_update_scan_actions[22m | vfx_07_archer_rmb_pierce_charge.png[39m[0m
+[  86% ] [90m[1m_update_scan_actions[22m | vfx_08_archer_rmb_pierce_flight.png[39m[0m
+[  86% ] [90m[1m_update_scan_actions[22m | vfx_09_archer_q_decoy_dummy.png[39m[0m
+[  86% ] [90m[1m_update_scan_actions[22m | vfx_10_archer_f_eagle_eye.png[39m[0m
+[  87% ] [90m[1m_update_scan_actions[22m | vfx_11_engineer_lmb_hammer.png[39m[0m
+[  87% ] [90m[1m_update_scan_actions[22m | vfx_12_engineer_rmb_turret_deploy.png[39m[0m
+[  87% ] [90m[1m_update_scan_actions[22m | vfx_13_engineer_q_mine_planted.png[39m[0m
+[  88% ] [90m[1m_update_scan_actions[22m | vfx_14_engineer_q_mine_detonation.png[39m[0m
+[  88% ] [90m[1m_update_scan_actions[22m | vfx_15_engineer_f_nuke_telegraph.png[39m[0m
+[  88% ] [90m[1m_update_scan_actions[22m | vfx_16_engineer_f_nuke_mushroom_cloud.png[39m[0m
+[  88% ] [90m[1m_update_scan_actions[22m | vfx_17_high_density_readability.png[39m[0m
+[  89% ] [90m[1m_update_scan_actions[22m | 1_intact_node.png[39m[0m
+[  89% ] [90m[1m_update_scan_actions[22m | 2_destroyed_prompt_immediate.png[39m[0m
+[  89% ] [90m[1m_update_scan_actions[22m | 3_hold_progress.png[39m[0m
+[  90% ] [90m[1m_update_scan_actions[22m | 4_harvest_complete.png[39m[0m
+[  90% ] [90m[1m_update_scan_actions[22m | before_0_002.png[39m[0m
+[  90% ] [90m[1m_update_scan_actions[22m | before_0_005.png[39m[0m
+[  91% ] [90m[1m_update_scan_actions[22m | before_0_009.png[39m[0m
+[  91% ] [90m[1m_update_scan_actions[22m | before_0_015.png[39m[0m
+[  91% ] [90m[1m_update_scan_actions[22m | before_0_024.png[39m[0m
+[  92% ] [90m[1m_update_scan_actions[22m | before_0_036.png[39m[0m
+[  92% ] [90m[1m_update_scan_actions[22m | before_1_002.png[39m[0m
+[  92% ] [90m[1m_update_scan_actions[22m | before_1_005.png[39m[0m
+[  92% ] [90m[1m_update_scan_actions[22m | before_1_009.png[39m[0m
+[  93% ] [90m[1m_update_scan_actions[22m | before_1_015.png[39m[0m
+[  93% ] [90m[1m_update_scan_actions[22m | before_1_024.png[39m[0m
+[  93% ] [90m[1m_update_scan_actions[22m | before_1_036.png[39m[0m
+[  94% ] [90m[1m_update_scan_actions[22m | before_2_002.png[39m[0m
+[  94% ] [90m[1m_update_scan_actions[22m | before_2_005.png[39m[0m
+[  94% ] [90m[1m_update_scan_actions[22m | before_2_009.png[39m[0m
+[  95% ] [90m[1m_update_scan_actions[22m | before_2_015.png[39m[0m
+[  95% ] [90m[1m_update_scan_actions[22m | before_2_024.png[39m[0m
+[  95% ] [90m[1m_update_scan_actions[22m | before_2_036.png[39m[0m
+[  96% ] [90m[1m_update_scan_actions[22m | before_3_002.png[39m[0m
+[  96% ] [90m[1m_update_scan_actions[22m | before_3_005.png[39m[0m
+[  96% ] [90m[1m_update_scan_actions[22m | before_3_009.png[39m[0m
+[  96% ] [90m[1m_update_scan_actions[22m | before_3_015.png[39m[0m
+[  97% ] [90m[1m_update_scan_actions[22m | before_3_024.png[39m[0m
+[  97% ] [90m[1m_update_scan_actions[22m | before_3_036.png[39m[0m
+[  97% ] [90m[1m_update_scan_actions[22m | before_4_002.png[39m[0m
+[  98% ] [90m[1m_update_scan_actions[22m | before_4_005.png[39m[0m
+[  98% ] [90m[1m_update_scan_actions[22m | before_4_009.png[39m[0m
+[  98% ] [90m[1m_update_scan_actions[22m | before_4_015.png[39m[0m
+[  99% ] [90m[1m_update_scan_actions[22m | before_4_024.png[39m[0m
+[  99% ] [90m[1m_update_scan_actions[22m | before_4_036.png[39m[0m
+[92m[ DONE ][39m [1m_update_scan_actions[22m
+[0m
+[   0% ] [90m[1mreimport[22m | Started Импорт или повторный импорт ассетов (324 steps)[39m[0m
+[   0% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[   0% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[   0% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[   0% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[   1% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[   1% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[   1% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[   2% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[   2% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[   2% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[   3% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[   3% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[   3% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[   4% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[   4% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[   4% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[   4% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[   5% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[   5% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[   5% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[   6% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[   6% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[   6% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[   7% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[   7% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[   7% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[   8% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[   8% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[   8% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[   8% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[   9% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[   9% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[   9% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  10% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  10% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  10% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  11% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  11% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  11% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  12% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  12% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  12% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  12% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  13% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  13% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  13% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  14% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  14% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  14% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  15% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  15% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  15% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  16% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  16% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  16% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  16% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  17% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  17% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  17% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  18% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  18% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  18% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  19% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  19% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  19% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  20% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  20% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  20% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  20% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  21% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  21% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  21% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  22% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  22% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  22% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  23% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  23% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  23% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  24% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  24% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  24% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  24% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  25% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  25% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  25% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  26% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  26% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  26% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  27% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  27% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  27% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  28% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  28% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  28% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  28% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  29% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  29% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  29% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  30% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  30% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  30% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  31% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  31% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  31% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  32% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  32% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  32% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  32% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  33% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  33% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  33% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  34% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  34% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  34% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  35% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  35% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  35% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  36% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  36% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  36% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  36% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  37% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  37% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  37% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  38% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  38% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  38% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  39% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  39% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  39% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  40% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  40% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  40% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  40% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  41% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  41% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  41% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  42% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  42% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  42% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  43% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  43% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  43% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  44% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  44% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  44% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  44% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  45% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  45% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  45% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  46% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  46% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  46% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  47% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  47% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  47% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  48% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  48% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  48% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  48% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  49% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  49% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  49% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  50% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  50% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  50% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  51% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  51% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  51% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  52% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  52% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  52% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  52% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  53% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  53% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  53% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  54% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  54% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  54% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  55% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  55% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  55% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  56% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  56% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  56% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  56% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  57% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  57% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  57% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  58% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  58% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  58% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  59% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  59% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  59% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  60% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  60% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  60% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  60% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  61% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  61% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  61% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  62% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  62% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  62% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  63% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  63% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  63% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  64% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  64% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  64% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  64% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  65% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  65% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  65% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  66% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  66% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  66% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  67% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  67% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  67% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  68% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  68% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  68% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  68% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  69% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  69% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  69% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  70% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  70% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  70% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  71% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  71% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  71% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  72% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  72% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  72% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  72% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  73% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  73% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  73% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  74% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  74% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  74% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  75% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  75% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  75% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  76% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  76% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  76% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  76% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  77% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  77% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  77% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  78% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  78% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  78% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  79% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  79% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  79% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  80% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  80% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  80% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  80% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  81% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  81% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  81% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  82% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  82% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  82% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  83% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  83% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  83% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  84% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  84% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  84% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  84% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  85% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  85% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  85% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  86% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  86% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  86% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  87% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  87% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  87% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  88% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  88% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  88% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  88% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  89% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  89% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  89% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  90% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  90% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  90% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  91% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  91% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  91% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  92% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  92% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  92% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  92% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  93% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  93% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  93% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  94% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  94% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  94% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  95% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  95% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  95% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  96% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  96% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  96% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  96% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  97% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  97% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  97% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  98% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  98% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  98% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  99% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[  99% ] [90m[1mreimport[22m | Подготовка файлов к повторному импорту…[39m[0m
+[   0% ] [90m[1mreimport[22m | Выполнение предимпортных операций…[39m[0m
+[   0% ] [90m[1mpreload_reimporting_scene[22m | Started Подготовка сцен к перезагрузке (1 steps)[39m[0m
+[   0% ] [90m[1mpreload_reimporting_scene[22m | Анализ сцены [пусто][39m[0m
+[  50% ] [90m[1mpreload_reimporting_scene[22m | Подготовка завершена.[39m[0m
+[92m[ DONE ][39m [1mpreload_reimporting_scene[22m
+[0m
+[   0% ] [90m[1mreimport[22m | source_code_pro.fnt[39m[0m
+[   0% ] [90m[1mreimport[22m | source_code_pro.fnt[39m[0m
+[   0% ] [90m[1mreimport[22m | LobsterTwo-Regular.ttf[39m[0m
+[   0% ] [90m[1mreimport[22m | LobsterTwo-Italic.ttf[39m[0m
+[   1% ] [90m[1mreimport[22m | LobsterTwo-BoldItalic.ttf[39m[0m
+[   1% ] [90m[1mreimport[22m | LobsterTwo-Bold.ttf[39m[0m
+[   1% ] [90m[1mreimport[22m | CourierPrime-Regular.ttf[39m[0m
+[   2% ] [90m[1mreimport[22m | CourierPrime-Italic.ttf[39m[0m
+[   2% ] [90m[1mreimport[22m | CourierPrime-BoldItalic.ttf[39m[0m
+[   2% ] [90m[1mreimport[22m | CourierPrime-Bold.ttf[39m[0m
+[   3% ] [90m[1mreimport[22m | AnonymousPro-Regular.ttf[39m[0m
+[   3% ] [90m[1mreimport[22m | AnonymousPro-Italic.ttf[39m[0m
+[   3% ] [90m[1mreimport[22m | AnonymousPro-BoldItalic.ttf[39m[0m
+[   4% ] [90m[1mreimport[22m | source_code_pro.fnt[39m[0m
+[   4% ] [90m[1mreimport[22m | LobsterTwo-Regular.ttf[39m[0m
+[   4% ] [90m[1mreimport[22m | LobsterTwo-Italic.ttf[39m[0m
+[   4% ] [90m[1mreimport[22m | LobsterTwo-BoldItalic.ttf[39m[0m
+[   5% ] [90m[1mreimport[22m | LobsterTwo-Bold.ttf[39m[0m
+[   5% ] [90m[1mreimport[22m | CourierPrime-Regular.ttf[39m[0m
+[   5% ] [90m[1mreimport[22m | CourierPrime-Italic.ttf[39m[0m
+[   6% ] [90m[1mreimport[22m | CourierPrime-BoldItalic.ttf[39m[0m
+[   6% ] [90m[1mreimport[22m | CourierPrime-Bold.ttf[39m[0m
+[   6% ] [90m[1mreimport[22m | AnonymousPro-Regular.ttf[39m[0m
+[   7% ] [90m[1mreimport[22m | AnonymousPro-Italic.ttf[39m[0m
+[   7% ] [90m[1mreimport[22m | AnonymousPro-BoldItalic.ttf[39m[0m
+[   7% ] [90m[1mreimport[22m | AnonymousPro-Bold.ttf[39m[0m
+[   8% ] [90m[1mreimport[22m | mountains.png[39m[0m
+[   8% ] [90m[1mreimport[22m | plains.png[39m[0m
+[   8% ] [90m[1mreimport[22m | final_break.png[39m[0m
+[   8% ] [90m[1mreimport[22m | forest.png[39m[0m
+[   9% ] [90m[1mreimport[22m | stage_1_full_health.png[39m[0m
+[   9% ] [90m[1mreimport[22m | stage_2_transition.png[39m[0m
+[   9% ] [90m[1mreimport[22m | stage_3_transition.png[39m[0m
+[  10% ] [90m[1mreimport[22m | stage_4_transition.png[39m[0m
+[  10% ] [90m[1mreimport[22m | stage_5_pickup.png[39m[0m
+[  10% ] [90m[1mreimport[22m | 05_loaded_chunk_boundary_comparison.png[39m[0m
+[  11% ] [90m[1mreimport[22m | 04_forest_hill_comparison.png[39m[0m
+[  11% ] [90m[1mreimport[22m | 03_biome_transition_comparison.png[39m[0m
+[  11% ] [90m[1mreimport[22m | 02_cliff_height_50plus_comparison.png[39m[0m
+[  12% ] [90m[1mreimport[22m | 01_long_mountain_slope_comparison.png[39m[0m
+[  12% ] [90m[1mreimport[22m | 05_loaded_chunk_boundary.png[39m[0m
+[  12% ] [90m[1mreimport[22m | 04_forest_hill.png[39m[0m
+[  12% ] [90m[1mreimport[22m | 03_biome_transition_plains_mountains.png[39m[0m
+[  13% ] [90m[1mreimport[22m | 02_cliff_height_50plus.png[39m[0m
+[  13% ] [90m[1mreimport[22m | 01_long_mountain_slope.png[39m[0m
+[  13% ] [90m[1mreimport[22m | skirmisher_gameplay_camera.png[39m[0m
+[  14% ] [90m[1mreimport[22m | skirmisher_anim_move.png[39m[0m
+[  14% ] [90m[1mreimport[22m | skirmisher_anim_idle.png[39m[0m
+[  14% ] [90m[1mreimport[22m | skirmisher_anim_hit.png[39m[0m
+[  15% ] [90m[1mreimport[22m | skirmisher_anim_death.png[39m[0m
+[  15% ] [90m[1mreimport[22m | skirmisher_anim_attack.png[39m[0m
+[  15% ] [90m[1mreimport[22m | siege_breaker_gameplay_camera.png[39m[0m
+[  16% ] [90m[1mreimport[22m | siege_breaker_anim_move.png[39m[0m
+[  16% ] [90m[1mreimport[22m | siege_breaker_anim_idle.png[39m[0m
+[  16% ] [90m[1mreimport[22m | siege_breaker_anim_hit.png[39m[0m
+[  16% ] [90m[1mreimport[22m | siege_breaker_anim_death.png[39m[0m
+[  17% ] [90m[1mreimport[22m | siege_breaker_anim_attack.png[39m[0m
+[  17% ] [90m[1mreimport[22m | mixed_combat_scene.png[39m[0m
+[  17% ] [90m[1mreimport[22m | family_lineup_silhouette.png[39m[0m
+[  18% ] [90m[1mreimport[22m | family_lineup_iso.png[39m[0m
+[  18% ] [90m[1mreimport[22m | family_lineup_gameplay_night.png[39m[0m
+[  18% ] [90m[1mreimport[22m | family_lineup_gameplay.png[39m[0m
+[  19% ] [90m[1mreimport[22m | family_lineup_front.png[39m[0m
+[  19% ] [90m[1mreimport[22m | enemy_hit_flash_showcase.png[39m[0m
+[  19% ] [90m[1mreimport[22m | 03_mountains_day.png[39m[0m
+[  20% ] [90m[1mreimport[22m | 02_plains_day.png[39m[0m
+[  20% ] [90m[1mreimport[22m | 01_forest_day.png[39m[0m
+[  20% ] [90m[1mreimport[22m | 18_stone_iron_deposit_silhouettes.png[39m[0m
+[  20% ] [90m[1mreimport[22m | 17_tactical_nuke_multilevel_impact.png[39m[0m
+[  21% ] [90m[1mreimport[22m | 16_pierce_arrow_vertical_flight.png[39m[0m
+[  21% ] [90m[1mreimport[22m | 15_arrow_vertical_trajectories_all_cases.png[39m[0m
+[  21% ] [90m[1mreimport[22m | 14_melee_cleave_staircase.png[39m[0m
+[  22% ] [90m[1mreimport[22m | 13_free_pickups_interaction_e.png[39m[0m
+[  22% ] [90m[1mreimport[22m | 12_resource_deposit_degradation_stages.png[39m[0m
+[  22% ] [90m[1mreimport[22m | 11_far_night_spawn.png[39m[0m
+[  23% ] [90m[1mreimport[22m | 10_high_mountain_duel_aiming.png[39m[0m
+[  23% ] [90m[1mreimport[22m | 09_projectile_vertical_trajectory.png[39m[0m
+[  23% ] [90m[1mreimport[22m | 08_vertical_combat_step_vs_cliff.png[39m[0m
+[  24% ] [90m[1mreimport[22m | 07_loose_vs_deposit_resources.png[39m[0m
+[  24% ] [90m[1mreimport[22m | 06_foliage_readability_multi_enemy.png[39m[0m
+[  24% ] [90m[1mreimport[22m | 05_biome_transition_plains_mountains.png[39m[0m
+[  24% ] [90m[1mreimport[22m | 04_biome_transition_forest_plains.png[39m[0m
+[  25% ] [90m[1mreimport[22m | 03_mountain_biome_altitude_50.png[39m[0m
+[  25% ] [90m[1mreimport[22m | 05_loaded_chunk_boundary.png[39m[0m
+[  25% ] [90m[1mreimport[22m | 04_forest_hill.png[39m[0m
+[  26% ] [90m[1mreimport[22m | 03_biome_transition_plains_mountains.png[39m[0m
+[  26% ] [90m[1mreimport[22m | 02_cliff_height_50plus.png[39m[0m
+[  26% ] [90m[1mreimport[22m | 01_long_mountain_slope.png[39m[0m
+[  27% ] [90m[1mreimport[22m | 06_composition_comparison.png[39m[0m
+[  27% ] [90m[1mreimport[22m | 05_mountains_night_comparison.png[39m[0m
+[  27% ] [90m[1mreimport[22m | 04_forest_night_comparison.png[39m[0m
+[  28% ] [90m[1mreimport[22m | 03_mountains_day_comparison.png[39m[0m
+[  28% ] [90m[1mreimport[22m | 02_plains_day_comparison.png[39m[0m
+[  28% ] [90m[1mreimport[22m | 01_forest_day_comparison.png[39m[0m
+[  28% ] [90m[1mreimport[22m | 06_composition_hero_enemy_rock_tree.png[39m[0m
+[  29% ] [90m[1mreimport[22m | 05_mountains_night.png[39m[0m
+[  29% ] [90m[1mreimport[22m | 04_forest_night.png[39m[0m
+[  29% ] [90m[1mreimport[22m | 03_mountains_day.png[39m[0m
+[  30% ] [90m[1mreimport[22m | 02_plains_day.png[39m[0m
+[  30% ] [90m[1mreimport[22m | 01_forest_day.png[39m[0m
+[  30% ] [90m[1mreimport[22m | 06_composition_hero_enemy_rock_tree.png[39m[0m
+[  31% ] [90m[1mreimport[22m | 05_mountains_night.png[39m[0m
+[  31% ] [90m[1mreimport[22m | 04_forest_night.png[39m[0m
+[  31% ] [90m[1mreimport[22m | before_1_015.png[39m[0m
+[  32% ] [90m[1mreimport[22m | before_1_009.png[39m[0m
+[  32% ] [90m[1mreimport[22m | before_1_005.png[39m[0m
+[  32% ] [90m[1mreimport[22m | before_1_002.png[39m[0m
+[  32% ] [90m[1mreimport[22m | before_0_036.png[39m[0m
+[  33% ] [90m[1mreimport[22m | before_0_024.png[39m[0m
+[  33% ] [90m[1mreimport[22m | before_0_015.png[39m[0m
+[  33% ] [90m[1mreimport[22m | before_0_009.png[39m[0m
+[  34% ] [90m[1mreimport[22m | before_0_005.png[39m[0m
+[  34% ] [90m[1mreimport[22m | before_0_002.png[39m[0m
+[  34% ] [90m[1mreimport[22m | 4_harvest_complete.png[39m[0m
+[  35% ] [90m[1mreimport[22m | 3_hold_progress.png[39m[0m
+[  35% ] [90m[1mreimport[22m | 2_destroyed_prompt_immediate.png[39m[0m
+[  35% ] [90m[1mreimport[22m | 1_intact_node.png[39m[0m
+[  36% ] [90m[1mreimport[22m | vfx_17_high_density_readability.png[39m[0m
+[  36% ] [90m[1mreimport[22m | vfx_16_engineer_f_nuke_mushroom_cloud.png[39m[0m
+[  36% ] [90m[1mreimport[22m | vfx_15_engineer_f_nuke_telegraph.png[39m[0m
+[  36% ] [90m[1mreimport[22m | vfx_14_engineer_q_mine_detonation.png[39m[0m
+[  37% ] [90m[1mreimport[22m | vfx_13_engineer_q_mine_planted.png[39m[0m
+[  37% ] [90m[1mreimport[22m | before_4_036.png[39m[0m
+[  37% ] [90m[1mreimport[22m | before_4_024.png[39m[0m
+[  38% ] [90m[1mreimport[22m | before_4_015.png[39m[0m
+[  38% ] [90m[1mreimport[22m | before_4_009.png[39m[0m
+[  38% ] [90m[1mreimport[22m | before_4_005.png[39m[0m
+[  39% ] [90m[1mreimport[22m | before_4_002.png[39m[0m
+[  39% ] [90m[1mreimport[22m | before_3_036.png[39m[0m
+[  39% ] [90m[1mreimport[22m | before_3_024.png[39m[0m
+[  40% ] [90m[1mreimport[22m | before_3_015.png[39m[0m
+[  40% ] [90m[1mreimport[22m | before_3_009.png[39m[0m
+[  40% ] [90m[1mreimport[22m | before_3_005.png[39m[0m
+[  40% ] [90m[1mreimport[22m | before_3_002.png[39m[0m
+[  41% ] [90m[1mreimport[22m | before_2_036.png[39m[0m
+[  41% ] [90m[1mreimport[22m | before_2_024.png[39m[0m
+[  41% ] [90m[1mreimport[22m | before_2_015.png[39m[0m
+[  42% ] [90m[1mreimport[22m | before_2_009.png[39m[0m
+[  42% ] [90m[1mreimport[22m | before_2_005.png[39m[0m
+[  42% ] [90m[1mreimport[22m | before_2_002.png[39m[0m
+[  43% ] [90m[1mreimport[22m | before_1_036.png[39m[0m
+[  43% ] [90m[1mreimport[22m | before_1_024.png[39m[0m
+[  43% ] [90m[1mreimport[22m | 01_main_menu.png[39m[0m
+[  44% ] [90m[1mreimport[22m | 11_peripheral_pan_independence.png[39m[0m
+[  44% ] [90m[1mreimport[22m | 10_warrior_duel_automatic.png[39m[0m
+[  44% ] [90m[1mreimport[22m | 09_forced_target_movement.png[39m[0m
+[  44% ] [90m[1mreimport[22m | 08_dash_relative.png[39m[0m
+[  45% ] [90m[1mreimport[22m | 07_diagonals_multidirectional.png[39m[0m
+[  45% ] [90m[1mreimport[22m | 06_aim_deadzone_stable.png[39m[0m
+[  45% ] [90m[1mreimport[22m | 05_holding_w_aim_flip_180.png[39m[0m
+[  46% ] [90m[1mreimport[22m | 04_holding_strafe_orbit.png[39m[0m
+[  46% ] [90m[1mreimport[22m | 03_holding_w_cursor_orbit.png[39m[0m
+[  46% ] [90m[1mreimport[22m | 02_cursor_east_wasd.png[39m[0m
+[  47% ] [90m[1mreimport[22m | 01_cursor_north_wasd.png[39m[0m
+[  47% ] [90m[1mreimport[22m | zombie_gameplay_camera.png[39m[0m
+[  47% ] [90m[1mreimport[22m | zombie_anim_move.png[39m[0m
+[  48% ] [90m[1mreimport[22m | zombie_anim_idle.png[39m[0m
+[  48% ] [90m[1mreimport[22m | zombie_anim_hit.png[39m[0m
+[  48% ] [90m[1mreimport[22m | zombie_anim_death.png[39m[0m
+[  48% ] [90m[1mreimport[22m | zombie_anim_attack.png[39m[0m
+[  49% ] [90m[1mreimport[22m | undead_enemies_concept.png[39m[0m
+[  49% ] [90m[1mreimport[22m | vfx_12_engineer_rmb_turret_deploy.png[39m[0m
+[  49% ] [90m[1mreimport[22m | vfx_11_engineer_lmb_hammer.png[39m[0m
+[  50% ] [90m[1mreimport[22m | vfx_10_archer_f_eagle_eye.png[39m[0m
+[  50% ] [90m[1mreimport[22m | vfx_09_archer_q_decoy_dummy.png[39m[0m
+[  50% ] [90m[1mreimport[22m | vfx_08_archer_rmb_pierce_flight.png[39m[0m
+[  51% ] [90m[1mreimport[22m | vfx_07_archer_rmb_pierce_charge.png[39m[0m
+[  51% ] [90m[1mreimport[22m | vfx_06_archer_lmb_arrow_flight.png[39m[0m
+[  51% ] [90m[1mreimport[22m | vfx_05_warrior_f_duel_arena.png[39m[0m
+[  52% ] [90m[1mreimport[22m | vfx_04_warrior_q_parry_clash.png[39m[0m
+[  52% ] [90m[1mreimport[22m | vfx_03_warrior_q_parry_stance.png[39m[0m
+[  52% ] [90m[1mreimport[22m | vfx_02_warrior_rmb_cleave.png[39m[0m
+[  52% ] [90m[1mreimport[22m | vfx_01_warrior_lmb_slash.png[39m[0m
+[  53% ] [90m[1mreimport[22m | 09_extraction_victory.png[39m[0m
+[  53% ] [90m[1mreimport[22m | 08_night_boss_battle.png[39m[0m
+[  53% ] [90m[1mreimport[22m | 07_workbench_crafting.png[39m[0m
+[  54% ] [90m[1mreimport[22m | 06_card_draft.png[39m[0m
+[  54% ] [90m[1mreimport[22m | 05_radial_build_menu.png[39m[0m
+[  54% ] [90m[1mreimport[22m | 04_gameplay_day.png[39m[0m
+[  55% ] [90m[1mreimport[22m | 03_mastery_talents.png[39m[0m
+[  55% ] [90m[1mreimport[22m | 02_character_selection.png[39m[0m
+[  55% ] [90m[1mreimport[22m | hero_warrior_block_storyboard.png[39m[0m
+[  56% ] [90m[1mreimport[22m | hero_warrior_preview.png[39m[0m
+[  56% ] [90m[1mreimport[22m | hero_warrior_walk_storyboard.png[39m[0m
+[  56% ] [90m[1mreimport[22m | hero_archer_material_atlas.png[39m[0m
+[  56% ] [90m[1mreimport[22m | hero_engineer_material_atlas.png[39m[0m
+[  57% ] [90m[1mreimport[22m | hero_warrior_material_atlas.png[39m[0m
+[  57% ] [90m[1mreimport[22m | decoy_dummy.png[39m[0m
+[  57% ] [90m[1mreimport[22m | hero_archer.png[39m[0m
+[  58% ] [90m[1mreimport[22m | hero_engineer.png[39m[0m
+[  58% ] [90m[1mreimport[22m | hero_warrior.png[39m[0m
+[  58% ] [90m[1mreimport[22m | remote_mine.png[39m[0m
+[  59% ] [90m[1mreimport[22m | temp_turret.png[39m[0m
+[  59% ] [90m[1mreimport[22m | health_bar_bg.png[39m[0m
+[  59% ] [90m[1mreimport[22m | health_bar_fill_danger.png[39m[0m
+[  60% ] [90m[1mreimport[22m | health_bar_fill_full.png[39m[0m
+[  60% ] [90m[1mreimport[22m | wave_bar_bg.png[39m[0m
+[  60% ] [90m[1mreimport[22m | wave_bar_fill.png[39m[0m
+[  60% ] [90m[1mreimport[22m | xp_bar_bg.png[39m[0m
+[  61% ] [90m[1mreimport[22m | xp_bar_fill.png[39m[0m
+[  61% ] [90m[1mreimport[22m | action_slot_cooldown.png[39m[0m
+[  61% ] [90m[1mreimport[22m | action_slot_cooldown_64.png[39m[0m
+[  62% ] [90m[1mreimport[22m | action_slot_disabled.png[39m[0m
+[  62% ] [90m[1mreimport[22m | action_slot_disabled_64.png[39m[0m
+[  62% ] [90m[1mreimport[22m | action_slot_hover.png[39m[0m
+[  63% ] [90m[1mreimport[22m | action_slot_hover_64.png[39m[0m
+[  63% ] [90m[1mreimport[22m | action_slot_normal.png[39m[0m
+[  63% ] [90m[1mreimport[22m | action_slot_normal_64.png[39m[0m
+[  64% ] [90m[1mreimport[22m | icon.png[39m[0m
+[  64% ] [90m[1mreimport[22m | icon.svg[39m[0m
+[  64% ] [90m[1mreimport[22m | arrow.png[39m[0m
+[  64% ] [90m[1mreimport[22m | play.png[39m[0m
+[  65% ] [90m[1mreimport[22m | eyey.png[39m[0m
+[  65% ] [90m[1mreimport[22m | Folder.svg[39m[0m
+[  65% ] [90m[1mreimport[22m | green.png[39m[0m
+[  66% ] [90m[1mreimport[22m | GutIconV2_base.png[39m[0m
+[  66% ] [90m[1mreimport[22m | GutIconV2_no_shine.png[39m[0m
+[  66% ] [90m[1mreimport[22m | HSplitContainer.svg[39m[0m
+[  67% ] [90m[1mreimport[22m | red.png[39m[0m
+[  67% ] [90m[1mreimport[22m | Script.svg[39m[0m
+[  67% ] [90m[1mreimport[22m | VSplitContainer.svg[39m[0m
+[  68% ] [90m[1mreimport[22m | yellow.png[39m[0m
+[  68% ] [90m[1mreimport[22m | icon.png[39m[0m
+[  68% ] [90m[1mreimport[22m | dressing_palette_atlas.png[39m[0m
+[  68% ] [90m[1mreimport[22m | dressing_roughness_atlas.png[39m[0m
+[  69% ] [90m[1mreimport[22m | cliff_side.png[39m[0m
+[  69% ] [90m[1mreimport[22m | dirt_soil.png[39m[0m
+[  69% ] [90m[1mreimport[22m | forest_grass_top.png[39m[0m
+[  70% ] [90m[1mreimport[22m | forest_side_edge.png[39m[0m
+[  70% ] [90m[1mreimport[22m | mountain_stone_top.png[39m[0m
+[  70% ] [90m[1mreimport[22m | plains_meadow_top.png[39m[0m
+[  71% ] [90m[1mreimport[22m | plains_side_edge.png[39m[0m
+[  71% ] [90m[1mreimport[22m | stone_cliff_rim.png[39m[0m
+[  71% ] [90m[1mreimport[22m | terrain_atlas.png[39m[0m
+[  72% ] [90m[1mreimport[22m | hero_warrior_attack_storyboard.png[39m[0m
+[  72% ] [90m[1mreimport[22m | global_day_64.png[39m[0m
+[  72% ] [90m[1mreimport[22m | global_night_64.png[39m[0m
+[  72% ] [90m[1mreimport[22m | global_settings_64.png[39m[0m
+[  73% ] [90m[1mreimport[22m | hud_armor_shield_64.png[39m[0m
+[  73% ] [90m[1mreimport[22m | hud_health_cross_64.png[39m[0m
+[  73% ] [90m[1mreimport[22m | hud_skull_wave_64.png[39m[0m
+[  74% ] [90m[1mreimport[22m | hud_target_range_64.png[39m[0m
+[  74% ] [90m[1mreimport[22m | resource_iron_64.png[39m[0m
+[  74% ] [90m[1mreimport[22m | resource_magic_stone_64.png[39m[0m
+[  75% ] [90m[1mreimport[22m | resource_stone_64.png[39m[0m
+[  75% ] [90m[1mreimport[22m | resource_wood_64.png[39m[0m
+[  75% ] [90m[1mreimport[22m | warrior_cleave_64.png[39m[0m
+[  76% ] [90m[1mreimport[22m | warrior_dash_64.png[39m[0m
+[  76% ] [90m[1mreimport[22m | warrior_duel_64.png[39m[0m
+[  76% ] [90m[1mreimport[22m | warrior_parry_64.png[39m[0m
+[  76% ] [90m[1mreimport[22m | warrior_sword_attack_64.png[39m[0m
+[  77% ] [90m[1mreimport[22m | 01_baseline_far.png[39m[0m
+[  77% ] [90m[1mreimport[22m | 02_preset_medium.png[39m[0m
+[  77% ] [90m[1mreimport[22m | 03_preset_close.png[39m[0m
+[  78% ] [90m[1mreimport[22m | 04_deadzone_center.png[39m[0m
+[  78% ] [90m[1mreimport[22m | 05_edge_pan_right.png[39m[0m
+[  78% ] [90m[1mreimport[22m | 06_edge_pan_top.png[39m[0m
+[  79% ] [90m[1mreimport[22m | 07_edge_pan_corner.png[39m[0m
+[  79% ] [90m[1mreimport[22m | 08_in_game_settings_modal.png[39m[0m
+[  79% ] [90m[1mreimport[22m | 09_building_occlusion_panned.png[39m[0m
+[  80% ] [90m[1mreimport[22m | 01_portal_forest_start.png[39m[0m
+[  80% ] [90m[1mreimport[22m | 02_plains_biome.png[39m[0m
+[  80% ] [90m[1mreimport[22m | tooltip_frame.png[39m[0m
+[  80% ] [90m[1mreimport[22m | resource_panel_frame.png[39m[0m
+[  81% ] [90m[1mreimport[22m | keycap_W.png[39m[0m
+[  81% ] [90m[1mreimport[22m | keycap_TAB.png[39m[0m
+[  81% ] [90m[1mreimport[22m | keycap_SPACE.png[39m[0m
+[  82% ] [90m[1mreimport[22m | keycap_RMB.png[39m[0m
+[  82% ] [90m[1mreimport[22m | keycap_R.png[39m[0m
+[  82% ] [90m[1mreimport[22m | keycap_Q.png[39m[0m
+[  83% ] [90m[1mreimport[22m | keycap_LMB.png[39m[0m
+[  83% ] [90m[1mreimport[22m | keycap_frame_pressed.png[39m[0m
+[  83% ] [90m[1mreimport[22m | keycap_frame_normal.png[39m[0m
+[  84% ] [90m[1mreimport[22m | keycap_F.png[39m[0m
+[  84% ] [90m[1mreimport[22m | keycap_E.png[39m[0m
+[  84% ] [90m[1mreimport[22m | day_night_panel_frame.png[39m[0m
+[  84% ] [90m[1mreimport[22m | cooldown_mask.png[39m[0m
+[  85% ] [90m[1mreimport[22m | moss_rock_shelf.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  85% ] [90m[1mreimport[22m | moss_cliff_ledge.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  85% ] [90m[1mreimport[22m | grass_tuft_tall_01.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  86% ] [90m[1mreimport[22m | grass_tuft_small_03.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  86% ] [90m[1mreimport[22m | grass_tuft_small_02.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  86% ] [90m[1mreimport[22m | grass_tuft_small_01.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  87% ] [90m[1mreimport[22m | grass_tuft_med_02.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  87% ] [90m[1mreimport[22m | grass_tuft_med_01.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  87% ] [90m[1mreimport[22m | flower_yellow_cluster.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  88% ] [90m[1mreimport[22m | flower_white_cluster.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  88% ] [90m[1mreimport[22m | flower_red_cluster.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  88% ] [90m[1mreimport[22m | flower_mixed_accent.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  88% ] [90m[1mreimport[22m | zombie.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  89% ] [90m[1mreimport[22m | siege_breaker.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  89% ] [90m[1mreimport[22m | ranged_skirmisher.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  89% ] [90m[1mreimport[22m | hero_warrior.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  90% ] [90m[1mreimport[22m | hero_engineer.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  90% ] [90m[1mreimport[22m | hero_archer.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  90% ] [90m[1mreimport[22m | tree_4_shrub_oak.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  91% ] [90m[1mreimport[22m | tree_3_young_oak.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  91% ] [90m[1mreimport[22m | tree_2_broad_oak.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  91% ] [90m[1mreimport[22m | tree_1_tall_oak.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  92% ] [90m[1mreimport[22m | tree_0_standard_oak.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  92% ] [90m[1mreimport[22m | rock_stage5_var_2.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  92% ] [90m[1mreimport[22m | rock_stage5_var_1.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  92% ] [90m[1mreimport[22m | rock_stage5_var_0.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  93% ] [90m[1mreimport[22m | rock_stage4_var_1.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  93% ] [90m[1mreimport[22m | rock_stage4_var_0.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  93% ] [90m[1mreimport[22m | rock_stage3_var_2.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  94% ] [90m[1mreimport[22m | rock_stage3_var_1.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  94% ] [90m[1mreimport[22m | rock_stage3_var_0.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  94% ] [90m[1mreimport[22m | rock_stage2_var_2.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  95% ] [90m[1mreimport[22m | rock_stage2_var_1.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  95% ] [90m[1mreimport[22m | rock_stage2_var_0.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  95% ] [90m[1mreimport[22m | rock_stage1_var_5.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  96% ] [90m[1mreimport[22m | rock_stage1_var_4.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  96% ] [90m[1mreimport[22m | rock_stage1_var_3.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  96% ] [90m[1mreimport[22m | rock_stage1_var_2.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  96% ] [90m[1mreimport[22m | rock_stage1_var_1.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  97% ] [90m[1mreimport[22m | rock_stage1_var_0.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  97% ] [90m[1mreimport[22m | stone_debris_trio.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  97% ] [90m[1mreimport[22m | stone_debris_single.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  98% ] [90m[1mreimport[22m | stone_debris_mountain_cluster.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  98% ] [90m[1mreimport[22m | stone_debris_flat_patch.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  98% ] [90m[1mreimport[22m | stone_debris_fine_scatter.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  99% ] [90m[1mreimport[22m | stone_debris_angular_chip.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  99% ] [90m[1mreimport[22m | moss_tree_base.glb[39m[0m
+[   0% ] [90m[1mimport[22m | Started Импортировать сцену (104 steps)[39m[0m
+[   0% ] [90m[1mimport[22m | Импорт сцены…[39m[0m
+[   1% ] [90m[1mimport[22m | Запуск пользовательского скрипта…[39m[0m
+[  99% ] [90m[1mimport[22m | Сохранение…[39m[0m
+[92m[ DONE ][39m [1mimport[22m
+[0m
+[  99% ] [90m[1mreimport[22m | Завершение импорта активов…[39m[0m
+[92m[ DONE ][39m [1mreimport[22m
+[0m
+[   0% ] [90m[1mreimport[22m | Started Импорт или повторный импорт ассетов (324 steps)[39m[0m
+[   0% ] [90m[1mreimport[22m | Выполнение операций после реимпорта…[39m[0m
+[92m[ DONE ][39m [1mreimport[22m
+[0m
+[   0% ] [90m[1mloading_editor_layout[22m | Started Загрузка редактора (5 steps)[39m[0m
+[   0% ] [90m[1mloading_editor_layout[22m | Загрузка макета редактора…[39m[0m
+[  16% ] [90m[1mloading_editor_layout[22m | Загрузка док-панели…[39m[0m
+[92m[ DONE ][39m [1mloading_editor_layout[22m
+[0m
+WARNING: ObjectDB instances leaked at exit (run with --verbose for details).
+   at: cleanup (core/object/object.cpp:2641)
+ERROR: 10 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:810)

@@ -1,0 +1,19 @@
+{
+  "assets/vfx/mine/README.md": "3fb749b3fe7bf17bebb71fed5b2bcedf85fe9d56930f0d523c0707f062615bdc",
+  "assets/vfx/mine/ember_burst.tres": "641863c9af992ddce2a392c6cf117cf2adb6c7043284019a8ee1cb5adee9c36a",
+  "assets/vfx/mine/fire_burst.png": "7c4f2fc58b119fc44e537f8ea7b0887f81fc55a357e21b409f92e051d43c9acd",
+  "assets/vfx/mine/smoke_puff.png": "69804aff984da12abf66622d955491f693801dee234c31bffe05bd5574613680",
+  "assets/vfx/shaders/mine_plume.gdshader": "604b2d9e443f64c8debff7daf0e11d3d69860842e97521a0c2b01a22f9b3f6bc",
+  "assets/vfx/shaders/mine_ring.gdshader": "bde55106562bc4b3ab183e31c4fbc7573a2d9a6a9449784347b7e9104db38d4d",
+  "docs/verification/vfx_mine_pilot/REPORT.md": "5e51c17967db55fafef14539a7ac454f879d580ce9136a90e982d6f6e9e1e31a",
+  "docs/verification/vfx_mine_pilot/radius-before-after.mp4": "3a03f9db5e9f81fd18b855cac3b35000d712479dbcd33d000a68ebc9cc4cc51d",
+  "docs/verification/vfx_mine_pilot/radius_before.mp4": "8521b8ae3f689794707be28875b7f1b5e6fd9c010533bb888c341114d476a0b6",
+  "docs/verification/vfx_mine_pilot/radius_blast.mp4": "12a9a53a65466cbc1e43ee45e764e73685cf6827f094ef5875d93d3b385691c0",
+  "scripts/player/player_abilities.gd": "4086aaa5c3d666965293d26984435dca7e417f6c31b20818e5906e62fa744254",
+  "scripts/remote_mine.gd": "69ea7b632f27af880ca9f20e48041475f2ef9f9bd755bd7298a52d4d5f633151",
+  "scripts/vfx/mine_explosion_vfx.gd": "c4e3e1b3fa0642e05d2b01a0c1e9edfee8a731f5269e6c419f8cc9056a60227b",
+  "scripts/vfx/mine_vfx_profile.gd": "840ce6c76c7cf49fd473917faaf09b39cac198d0f90eeb0ba37e4943fb9be9b9",
+  "scripts/vfx/vfx_manager.gd": "782f4181aa1dd94fa4af789f3b3bd55b67a126c92dcd141c18822d87df42bab2",
+  "tests/integration/test_mine_vfx.gd": "ebbf4ba168a6826c57b1d29de7ad4102923f85241bc9a6a0ad0b866532e8d3ee",
+  "tools/capture_mine_pilot.gd": "8a2b36117e8e6c0b633518a0e37762946cf36ce3859cbdaf070b16c4684e03d3"
+}

@@ -3,13 +3,16 @@ class_name HurtboxArea
 
 signal damaged(amount: float, knockback: Vector3, damage_type: String, attacker: Node)
 
+const HIT_HIGHLIGHT: Shader = preload("res://assets/vfx/shaders/hit_highlight.gdshader")
+
 @export var target_node_path: NodePath
 @export var mesh_to_flash_path: NodePath
 
 var target_node: Node = null
 var mesh_to_flash: MeshInstance3D = null
-var original_material: Material = null
-var flash_material: StandardMaterial3D = null
+var flash_material: ShaderMaterial = null
+var _previous_overlay: Material = null
+var _flash_tween: Tween = null
 
 func _ready() -> void:
 	if has_node(target_node_path):
@@ -27,12 +30,8 @@ func _ready() -> void:
 				mesh_to_flash = meshes[0] as MeshInstance3D
 			else:
 				mesh_to_flash = candidate.find_child("*", true, false) as MeshInstance3D
-		if mesh_to_flash and mesh_to_flash.mesh and "material" in mesh_to_flash.mesh:
-			original_material = mesh_to_flash.mesh.material
-
-	flash_material = StandardMaterial3D.new()
-	flash_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	flash_material.albedo_color = Color(1.0, 1.0, 1.0, 1.0)
+	flash_material = ShaderMaterial.new()
+	flash_material.shader = HIT_HIGHLIGHT
 
 func get_target_node() -> Node:
 	return target_node
@@ -44,8 +43,26 @@ func take_damage(amount: float, knockback: Vector3, damage_type: String, attacke
 	flash_hit()
 
 func flash_hit() -> void:
-	if mesh_to_flash:
-		mesh_to_flash.material_override = flash_material
-		await get_tree().create_timer(0.08).timeout
-		if is_instance_valid(mesh_to_flash):
-			mesh_to_flash.material_override = null
+	if not is_instance_valid(mesh_to_flash):
+		return
+	# Restart one pulse on rapid hits; an older timer must not erase a newer hit.
+	if _flash_tween:
+		_flash_tween.kill()
+	if mesh_to_flash.material_overlay != flash_material:
+		_previous_overlay = mesh_to_flash.material_overlay
+	mesh_to_flash.material_overlay = flash_material
+	flash_material.set_shader_parameter("strength", 1.0)
+	_flash_tween = create_tween()
+	_flash_tween.tween_property(flash_material, "shader_parameter/strength", 0.0, 0.12) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_flash_tween.tween_callback(_restore_overlay)
+
+func _restore_overlay() -> void:
+	if is_instance_valid(mesh_to_flash) and mesh_to_flash.material_overlay == flash_material:
+		mesh_to_flash.material_overlay = _previous_overlay
+	_previous_overlay = null
+
+func _exit_tree() -> void:
+	if _flash_tween:
+		_flash_tween.kill()
+	_restore_overlay()

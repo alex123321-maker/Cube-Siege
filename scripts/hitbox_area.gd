@@ -1,6 +1,9 @@
 extends Area3D
 class_name HitboxArea
 
+## Presentation can react to a real hit, including late overlap entries.
+signal hit_confirmed(target: Node, direction: Vector3)
+
 @export var damage: float = 25.0
 @export var knockback_force: float = 6.0
 @export var damage_type: String = "physical"
@@ -43,3 +46,4 @@ func _on_area_entered(area: Area3D) -> void:
 		hit_direction.y = 0.0
 		var attacker = owner_entity if is_instance_valid(owner_entity) else null
 		area.take_damage(damage, knockback_force * hit_direction, damage_type, attacker)
+		hit_confirmed.emit(target, hit_direction)

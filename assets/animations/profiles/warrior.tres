@@ -8,6 +8,8 @@
 
 [resource]
 script = ExtResource("1")
+blade_base_path = NodePath("root/torso/right_arm/sword/SwordGuard")
+blade_tip_path = NodePath("root/torso/right_arm/sword/SwordTip")
 right_foot_parts = Array[NodePath]([NodePath("R_Boot"), NodePath("R_BootToe")])
 left_foot_parts = Array[NodePath]([NodePath("L_Boot"), NodePath("L_BootToe")])
 forward = ExtResource("2")

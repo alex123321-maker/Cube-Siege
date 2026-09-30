@@ -1,0 +1,105 @@
+--- before/assets/vfx/shaders/mine_ring.gdshader
++++ after/assets/vfx/shaders/mine_ring.gdshader
+@@ -10,7 +10,7 @@
+ uniform float radius = 4.5;
+ uniform float half_height = 0.765;
+ uniform float age = 0.0;
+-uniform float opacity = 0.82;
++uniform float opacity = 0.76;
+ uniform float edge_lifetime = 0.28;
+ uniform float hold_time = 0.09;
+ uniform float lifetime = 0.42;
+@@ -66,19 +66,35 @@
+ 		float local_lifetime = mix(lifetime, edge_lifetime, smoothstep(0.45, 0.95, r));
+ 		float cooling = 1.0 - smoothstep(hold_time, local_lifetime, age);
+ 		vec3 flow = q * 11.0 + vec3(0.0, -age * 1.5, 0.0);
+-		float folds = noise3(flow) * 0.68 + noise3(flow * 2.1 + 7.0) * 0.32;
++		flow += vec3(sin(flow.y * 0.6 + flow.z * 0.35), sin(flow.x * 0.65),
++			cos(flow.z * 0.55 + flow.y * 0.3)) * 0.55;
++		float fine = noise3(flow * 2.1 + 7.0);
++		float folds = noise3(flow) * 0.68 + fine * 0.32;
+ 		float vertical = 1.0 - smoothstep(0.55, 0.95, abs(p.y / half_height));
++		// Painted brushwork modulates heat gently; the 3D field owns volume
++		// shape. Two oblique projections avoid extruding one image into columns.
++		vec2 art_uv = q.xz * 1.25 + 0.5;
++		art_uv += vec2(sin(q.z * 6.0 + q.y * 2.0), cos(q.x * 5.0 - q.y * 3.0)) * 0.07;
++		// Filter sub-voxel brush grain: hard texture cutouts undersample along
++		// a 24-step ray and turn into vertical bands at grazing angles.
++		art_uv += vec2(q.y * 0.7, -q.y * 0.5);
++		vec4 painting = textureLod(artwork, art_uv, 2.0);
++		vec4 cross_painting = textureLod(artwork, vec2(q.x + q.z * 0.35,
++			q.y * 3.0 + q.z * 0.5) * 1.25 + vec2(0.36, 0.65), 2.0);
++		float ink = mix(painting.r * painting.a, cross_painting.r * cross_painting.a, 0.5);
+ 		float density = smoothstep(0.40, 0.53, folds - abs(p.y / half_height) * 0.10) * outer * vertical;
+-		float ink = textureLod(artwork, q.xz * 1.7 + 0.5, 0.0).r;
+-		density *= mix(0.8, 1.1, ink);
+-		vec3 color = mix(tint.rgb * 0.38, tint.rgb, smoothstep(0.40, 0.55, folds));
+-		color = mix(color, hot_color.rgb, smoothstep(0.57, 0.74, folds));
++		density *= mix(0.40, 1.0, smoothstep(0.21, 0.38, fine));
++		// Darker pockets separate hot lobes. Painted variation lightly breaks
++		// up the hot ridges while the 3D folds retain the blast's volume.
++		float painted_folds = folds + (ink - 0.35) * 0.06;
++		vec3 color = mix(tint.rgb * 0.32, tint.rgb, smoothstep(0.40, 0.53, painted_folds));
++		color = mix(color, hot_color.rgb, smoothstep(0.60, 0.72, painted_folds));
+ 		float alpha = 1.0 - exp(-density * opacity * cooling * step_length * 3.5 / (radius / 4.5));
+ 		accumulated.rgb += (1.0 - accumulated.a) * color * alpha;
+ 		accumulated.a += (1.0 - accumulated.a) * alpha;
+ 		if (accumulated.a > 0.97) { break; }
+ 	}
+ 	ALBEDO = accumulated.rgb / max(accumulated.a, 0.001);
+-	EMISSION = ALBEDO * 0.45 * envelope;
++	EMISSION = ALBEDO * 0.35 * envelope;
+ 	ALPHA = accumulated.a;
+ }
+--- before/assets/vfx/shaders/mine_ground_imprint.gdshader
++++ after/assets/vfx/shaders/mine_ground_imprint.gdshader
+@@ -40,13 +40,15 @@
+ 	float edge = 1.0 - smoothstep(0.92, 1.0, reach + broad * 0.025);
+ 	float rim = smoothstep(0.58, 0.86, reach);
+ 	float broken = smoothstep(0.28, 0.58, broad * 0.7 + grain * 0.3);
+-	float heat = (1.0 - smoothstep(0.20, 1.0, age)) * broken * mix(0.22, 1.0, rim);
++	// Residual heat dies before the footprint; the remaining mark is cool
++	// soot, so a completed explosion does not keep advertising active fire.
++	float heat = (1.0 - smoothstep(0.12, 0.58, age)) * broken * mix(0.14, 0.72, rim);
+ 	float soot = mix(0.65, 1.0, broad) * mix(0.85, 1.0, rim);
+ 	float reveal = smoothstep(0.05, 0.16, age);
+ 	float fade = 1.0 - smoothstep(0.75, lifetime, age);
+ 	float facing = mix(0.18, 1.0, smoothstep(0.0, 0.65, terrain_normal.y));
+-	ALBEDO = mix(vec3(0.065, 0.045, 0.035), ember_color.rgb, heat);
++	ALBEDO = mix(vec3(0.065, 0.045, 0.035), ember_color.rgb * 0.55, heat);
+ 	ROUGHNESS = 1.0;
+-	EMISSION = ember_color.rgb * heat * 1.15;
++	EMISSION = ember_color.rgb * heat * heat * 0.85;
+ 	ALPHA = edge * reveal * fade * facing * opacity * max(soot, heat);
+ }
+--- before/assets/vfx/mine/ember_burst.tres
++++ after/assets/vfx/mine/ember_burst.tres
+@@ -10,7 +10,7 @@
+ fire_texture = ExtResource("2")
+ smoke_texture = ExtResource("3")
+ flash_texture = ExtResource("4")
+-ring_texture = ExtResource("3")
++ring_texture = ExtResource("2")
+ flame_color = Color(1, 0.25, 0.035, 1)
+ hot_color = Color(1, 0.88, 0.49, 1)
+ smoke_color = Color(0.32, 0.29, 0.25, 1)
+@@ -21,7 +21,7 @@
+ fire_scale = 1.0
+ smoke_scale = 1.0
+ emission = 1.35
+-ring_opacity = 0.82
++ring_opacity = 0.76
+ wave_edge_lifetime = 0.28
+ wave_hold_time = 0.09
+ wave_lifetime = 0.42
+--- before/scripts/vfx/mine_vfx_profile.gd
++++ after/scripts/vfx/mine_vfx_profile.gd
+@@ -16,7 +16,7 @@
+ @export_range(0.6, 1.3) var fire_scale: float = 1.0
+ @export_range(0.6, 1.3) var smoke_scale: float = 1.0
+ @export_range(0.0, 3.0) var emission: float = 1.35
+-@export_range(0.1, 1.0) var ring_opacity: float = 0.82
++@export_range(0.1, 1.0) var ring_opacity: float = 0.76
+ ## The full footprint flashes immediately, then cools in place at the periphery.
+ @export_range(0.20, 0.34) var wave_edge_lifetime: float = 0.28
+ @export_range(0.04, 0.12) var wave_hold_time: float = 0.09

@@ -1,0 +1,196 @@
+TAP version 13
+# Subtest: adapter sends mentor request once and returns only its completed answer
+ok 1 - adapter sends mentor request once and returns only its completed answer
+  ---
+  duration_ms: 110.0439
+  type: 'test'
+  ...
+# Subtest: both image attachment and prompt are submitted together
+ok 2 - both image attachment and prompt are submitted together
+  ---
+  duration_ms: 68.0447
+  type: 'test'
+  ...
+# Subtest: image-only response downloads full-size viewer bytes and closes the viewer
+ok 3 - image-only response downloads full-size viewer bytes and closes the viewer
+  ---
+  duration_ms: 70.2439
+  type: 'test'
+  ...
+# Subtest: wrong project or existing draft blocks without sending or erasing draft
+ok 4 - wrong project or existing draft blocks without sending or erasing draft
+  ---
+  duration_ms: 15.335
+  type: 'test'
+  ...
+# Subtest: lost send acknowledgement is uncertain, with no automatic second click
+ok 5 - lost send acknowledgement is uncertain, with no automatic second click
+  ---
+  duration_ms: 2097.898
+  type: 'test'
+  ...
+# Subtest: short start/status protocol survives a new background connection without repeating send
+ok 6 - short start/status protocol survives a new background connection without repeating send
+  ---
+  duration_ms: 50.2231
+  type: 'test'
+  ...
+# Subtest: worker resumes long task after termination using status, without a new tab/request
+ok 7 - worker resumes long task after termination using status, without a new tab/request
+  ---
+  duration_ms: 11.0668
+  type: 'test'
+  ...
+# Subtest: lost start acknowledgement is recovered by status, never by another send
+ok 8 - lost start acknowledgement is recovered by status, never by another send
+  ---
+  duration_ms: 3.8453
+  type: 'test'
+  ...
+# Subtest: closed/reloaded task tab is uncertain and not automatically replayed
+ok 9 - closed/reloaded task tab is uncertain and not automatically replayed
+  ---
+  duration_ms: 2.188
+  type: 'test'
+  ...
+# Subtest: outbox survives worker restart and broker outage, preserving result
+ok 10 - outbox survives worker restart and broker outage, preserving result
+  ---
+  duration_ms: 2.656
+  type: 'test'
+  ...
+# Subtest: disabled bridge never claims new work
+ok 11 - disabled bridge never claims new work
+  ---
+  duration_ms: 1.4332
+  type: 'test'
+  ...
+# Subtest: loopback auth rejects websites, DNS rebinding and wrong tokens
+ok 12 - loopback auth rejects websites, DNS rebinding and wrong tokens
+  ---
+  duration_ms: 1.0345
+  type: 'test'
+  ...
+# Subtest: image results are saved as real files with checksums, never accepted from another project
+ok 13 - image results are saved as real files with checksums, never accepted from another project
+  ---
+  duration_ms: 11.498
+  type: 'test'
+  ...
+# Subtest: HTTP claim/report works and rejected requests cannot claim a job
+ok 14 - HTTP claim/report works and rejected requests cannot claim a job
+  ---
+  duration_ms: 75.7527
+  type: 'test'
+  ...
+# Subtest: empty target project is accepted, unrelated normal chats are rejected
+ok 15 - empty target project is accepted, unrelated normal chats are rejected
+  ---
+  duration_ms: 97.753
+  type: 'test'
+  ...
+# Subtest: existing messages, drafts and busy generation block new sends
+ok 16 - existing messages, drafts and busy generation block new sends
+  ---
+  duration_ms: 38.9038
+  type: 'test'
+  ...
+# Subtest: disabled or hidden send controls are never clicked
+ok 17 - disabled or hidden send controls are never clicked
+  ---
+  duration_ms: 13.9997
+  type: 'test'
+  ...
+# Subtest: pre-existing attachment is not sent with a new agent request
+ok 18 - pre-existing attachment is not sent with a new agent request
+  ---
+  duration_ms: 10.5967
+  type: 'test'
+  ...
+# Subtest: image-only section turns are recognized even without an assistant text node
+ok 19 - image-only section turns are recognized even without an assistant text node
+  ---
+  duration_ms: 9.1664
+  type: 'test'
+  ...
+# Subtest: mentor answer is scoped to its response turn, not the entire conversation
+ok 20 - mentor answer is scoped to its response turn, not the entire conversation
+  ---
+  duration_ms: 5.0653
+  type: 'test'
+  ...
+# Subtest: real MCP stdio exposes tools, returns mentor text and image bytes through get_job
+ok 21 - real MCP stdio exposes tools, returns mentor text and image bytes through get_job
+  ---
+  duration_ms: 409.115
+  type: 'test'
+  ...
+# Subtest: projects reject home, ordinary chats, credentials and wrong hosts
+ok 22 - projects reject home, ordinary chats, credentials and wrong hosts
+  ---
+  duration_ms: 2.0546
+  type: 'test'
+  ...
+# Subtest: both tools carry images and explicit repo/branch context to their separate project
+ok 23 - both tools carry images and explicit repo/branch context to their separate project
+  ---
+  duration_ms: 8.3446
+  type: 'test'
+  ...
+# Subtest: image reads are limited to allowed real folders; MIME is checked by signature
+ok 24 - image reads are limited to allowed real folders; MIME is checked by signature
+  ---
+  duration_ms: 4.8461
+  type: 'test'
+  ...
+# Subtest: malformed repo links and excess image count are rejected
+ok 25 - malformed repo links and excess image count are rejected
+  ---
+  duration_ms: 2.2658
+  type: 'test'
+  ...
+# Subtest: popup root has fixed bounds and scrolls inside the body, without viewport feedback
+ok 26 - popup root has fixed bounds and scrolls inside the body, without viewport feedback
+  ---
+  duration_ms: 81.8106
+  type: 'test'
+  ...
+# Subtest: stable keys deduplicate and reject changed input
+ok 27 - stable keys deduplicate and reject changed input
+  ---
+  duration_ms: 5.0152
+  type: 'test'
+  ...
+# Subtest: only one lease at a time; repeated reports do not overwrite finished result
+ok 28 - only one lease at a time; repeated reports do not overwrite finished result
+  ---
+  duration_ms: 4.53
+  type: 'test'
+  ...
+# Subtest: restart never replays a possibly-sent job
+ok 29 - restart never replays a possibly-sent job
+  ---
+  duration_ms: 3.7241
+  type: 'test'
+  ...
+# Subtest: timeouts are terminal and do not automatically requeue
+ok 30 - timeouts are terminal and do not automatically requeue
+  ---
+  duration_ms: 5.449
+  type: 'test'
+  ...
+# Subtest: second process lock is rejected without mutating queue
+ok 31 - second process lock is rejected without mutating queue
+  ---
+  duration_ms: 6.5965
+  type: 'test'
+  ...
+1..31
+# tests 31
+# suites 0
+# pass 31
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 11714.7976

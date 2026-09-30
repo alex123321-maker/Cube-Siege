@@ -1,0 +1,62 @@
+{
+  "before.mp4": {
+    "full_decode": "passed",
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "width": 1280,
+        "height": 720,
+        "r_frame_rate": "60/1"
+      }
+    ],
+    "format": {
+      "duration": "19.333333"
+    }
+  },
+  "after.mp4": {
+    "full_decode": "passed",
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "width": 1280,
+        "height": 720,
+        "r_frame_rate": "60/1"
+      }
+    ],
+    "format": {
+      "duration": "19.333333"
+    }
+  },
+  "surface.mp4": {
+    "full_decode": "passed",
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "width": 1280,
+        "height": 720,
+        "r_frame_rate": "60/1"
+      }
+    ],
+    "format": {
+      "duration": "10.333333"
+    }
+  },
+  "archer-impact-before-after.mp4": {
+    "full_decode": "passed",
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "width": 1280,
+        "height": 720,
+        "r_frame_rate": "60/1"
+      }
+    ],
+    "format": {
+      "duration": "12.800000"
+    }
+  }
+}

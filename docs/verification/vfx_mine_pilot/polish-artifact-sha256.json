@@ -1,0 +1,32 @@
+{
+  "date": "2026-09-29",
+  "note": "Final shader differs from the rendered version only in a descriptive comment.",
+  "files": {
+    "assets/vfx/shaders/mine_ring.gdshader": {
+      "after": "a05e8c662024cec5b298fbd43aee51ce7c72f99c929a5aea5b5cd2b83fb55e2f",
+      "before": "bde55106562bc4b3ab183e31c4fbc7573a2d9a6a9449784347b7e9104db38d4d"
+    },
+    "assets/vfx/shaders/mine_ground_imprint.gdshader": {
+      "after": "786f1bb680d1683d9ff85d5380453a6b82d1e68915eb074b1d2134cb01d56b07",
+      "before": "a7750595b3027dc4a23efc39f0fcbfafc280b58cdde045a859c578cf1dcf05bb"
+    },
+    "assets/vfx/mine/ember_burst.tres": {
+      "after": "f6fb8c16b3db28aeab610c8659bb2720ca80f76bbd72848aab5ab6c5073e637b",
+      "before": "d98c8b7b746b2abb58369f7ca22a1de6095cf454558ec2280858ae9fb852b051"
+    },
+    "scripts/vfx/mine_vfx_profile.gd": {
+      "after": "e6846121e134a5a99757d9c948b8725929079453fd40951182e882a4355d4cb8",
+      "before": "883105cd0991e25700a88286c64e690c012088a3ac063445b0b9f62e53d9e531"
+    },
+    "assets/vfx/mine/fire_burst.png": {
+      "after": "7c4f2fc58b119fc44e537f8ea7b0887f81fc55a357e21b409f92e051d43c9acd"
+    },
+    "assets/vfx/mine/smoke_puff.png": {
+      "after": "69804aff984da12abf66622d955491f693801dee234c31bffe05bd5574613680"
+    },
+    "tools/capture_mine_pilot.gd": {
+      "after": "1d3b998d71fe7d1b7e863e689e164da6db948e6d983d26ff6eb45e6b17e78f08",
+      "before": "1d3b998d71fe7d1b7e863e689e164da6db948e6d983d26ff6eb45e6b17e78f08"
+    }
+  }
+}
