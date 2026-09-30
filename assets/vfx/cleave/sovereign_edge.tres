@@ -8,4 +8,4 @@
 script = ExtResource("1")
 release_sound = ExtResource("2")
 ribbon_texture = ExtResource("3")
-traveling_head = true
+traveling_head = false

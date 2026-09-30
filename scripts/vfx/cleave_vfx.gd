@@ -20,16 +20,20 @@ var _contact: bool = false
 var _weapon_tip: Node3D
 var _weapon_glint: MeshInstance3D
 var _contact_direction: Vector3 = Vector3.FORWARD
+var _contact_target: Node3D
+var _contact_offset: Vector3
 
 func setup_release(profile: CleaveVFXProfile, visual_duration: float) -> void:
 	_profile = profile
 	_lifetime = maxf(profile.lifetime, visual_duration) + 0.12
-	# Painted torn steel; the bright head travels and the tail dies locally.
-	_add_blade(profile.radius, profile.blade_width, 180.0, 0.0, 0.29, 0, 0.98)
-	_add_blade(profile.radius - 0.28, 1.9, 175.0, 0.036, 0.36, 2, 0.35)
-	_blades[0].position = Vector3(0.0, 0.40, -0.15)
-	_blades[1].position.y = 0.08
-	_blades[1].rotation.z = 0.10
+	# A broad frontal blade matches the real sector; its painted body erodes locally.
+	_add_blade(profile.radius, profile.blade_width, profile.ability.arc_degrees, 0.0, 0.38, 0, 0.98)
+	_add_blade(profile.radius, 0.28, profile.ability.arc_degrees, 0.0, 0.32, 8, 0.92)
+	_add_blade(profile.radius - 0.18, 1.9, profile.ability.arc_degrees, 0.035, 0.45, 2, 0.42)
+	_blades[0].position.y = 0.16
+	_blades[1].position.y = 0.17
+	_blades[2].position.y = -0.08
+	_ground_sector()
 	_create_fragments(profile.fragment_count + profile.spark_count, profile.radius)
 	_ground_cuts()
 	_add_glint(Vector3(0.45, 0.40, -0.75), 1.5, 0.08)
@@ -53,20 +57,27 @@ func setup_charge(profile: CleaveVFXProfile, owner_node: Node3D, duration: float
 	_charge_owner = owner_node
 	_weapon_tip = weapon_tip
 	_lifetime = duration
-	_add_blade(0.90, 0.045, 85.0, 0.0, duration, 1, 0.55)
-	_blades[0].rotation.z = -0.75
+	global_position = owner_node.global_position + Vector3.UP * 0.25
+	global_basis = owner_node.global_basis
+	_ground_sector()
 	_weapon_glint = _add_glint(Vector3.ZERO, 0.65, duration, true)
 	_add_light(1.8)
 
-func setup_contact(profile: CleaveVFXProfile, direction: Vector3) -> void:
+func setup_contact(profile: CleaveVFXProfile, direction: Vector3, target: Node3D = null) -> void:
 	_profile = profile
 	_contact = true
 	_contact_direction = global_basis.inverse() * direction.normalized()
-	_lifetime = 0.46
+	_lifetime = 0.58
+	_contact_target = target
+	if is_instance_valid(target):
+		_contact_offset = global_position - target.global_position
 	# Pull the flash onto the struck surface, with normal depth occlusion.
-	_add_glint(-direction.normalized() * 0.30, 1.30, 0.085)
-	_create_fragments(10, 0.0)
-	_add_light(1.8)
+	var scar: MeshInstance3D = _add_glint(Vector3.ZERO, 2.0, 0.40)
+	scar.material_override = _material(6, 0.0, 0.40, 1.0)
+	var camera: Camera3D = get_viewport().get_camera_3d()
+	scar.position = (camera.global_position - global_position).normalized() * 0.62 if camera else -direction.normalized() * 0.55
+	_create_fragments(18, 0.0)
+	_add_light(2.5)
 
 func _material(layer: int, delay: float, life: float, opacity: float) -> ShaderMaterial:
 	var material := ShaderMaterial.new()
@@ -76,6 +87,7 @@ func _material(layer: int, delay: float, life: float, opacity: float) -> ShaderM
 	material.set_shader_parameter("gold_color", _profile.gold_color)
 	material.set_shader_parameter("artwork", _profile.ribbon_texture)
 	material.set_shader_parameter("traveling_head", _profile.traveling_head)
+	material.set_shader_parameter("charging", _charge)
 	material.set_shader_parameter("intensity", _profile.emission)
 	material.set_shader_parameter("sweep_time", _profile.sweep_time)
 	material.set_shader_parameter("delay", delay)
@@ -91,14 +103,11 @@ func _add_blade(radius: float, width: float, arc: float, delay: float,
 	mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLE_STRIP)
 	for index in range(73):
 		var u: float = float(index) / 72.0
-		var angle: float = deg_to_rad(lerpf(-arc * 0.5, arc * 0.5, u))
+		var angle: float = deg_to_rad(lerpf(arc * 0.5, -arc * 0.5, u))
 		var radial := Vector3(sin(angle), 0.0, -cos(angle))
 		# The blade narrows at the tips and lifts off the ground at its heart.
 		var taper: float = pow(maxf(0.0, sin(u * PI)), 0.45) * lerpf(0.5, 1.25, u)
 		var rise: float = sin(u * PI) * 0.45 + (u - 0.5) * 0.55
-		# Compress the sides to the existing frontal hitbox's footprint.
-		radial.x *= 0.62
-		radial.z *= 0.84
 		mesh.surface_set_uv(Vector2(u, 0.0))
 		mesh.surface_add_vertex(radial * radius + Vector3.UP * rise)
 		mesh.surface_set_uv(Vector2(u, 1.0))
@@ -158,10 +167,8 @@ func _create_fragments(count: int, radius: float) -> void:
 	add_child(renderer)
 	for index in range(count):
 		var f: float = (float(index) + 0.5) / maxf(float(count), 1.0)
-		var angle: float = lerpf(-PI * 0.50, PI * 0.50, f)
+		var angle: float = lerpf(PI * 0.50, -PI * 0.50, f)
 		var radial := Vector3(sin(angle), 0.0, -cos(angle))
-		radial.x *= 0.62
-		radial.z *= 0.84
 		var tangent := Vector3(-radial.z, 0.0, radial.x)
 		var noise: float = 0.5 + 0.5 * sin(float(index) * 17.73)
 		var origin: Vector3 = radial * radius * (0.70 + noise * 0.28)
@@ -177,6 +184,51 @@ func _create_fragments(count: int, radius: float) -> void:
 		_sizes.append(0.018 + noise * 0.055)
 		_fragments.set_instance_transform(index, Transform3D(Basis().scaled(Vector3.ZERO), Vector3.ZERO))
 
+func _ground_sector() -> void:
+	# Sample the real terrain; never project a disc across an unsupported ledge.
+	const SEGMENTS: int = 24
+	const RINGS: int = 4
+	var points: Array[Vector3] = []
+	var valid: Array[bool] = []
+	for segment in range(SEGMENTS + 1):
+		var angle: float = deg_to_rad(lerpf(-_profile.ability.arc_degrees * 0.5,
+			_profile.ability.arc_degrees * 0.5, float(segment) / SEGMENTS))
+		for ring in range(RINGS + 1):
+			var radial := Vector3(sin(angle), 0.0, -cos(angle)) * _profile.radius * float(ring) / RINGS
+			var at: Vector3 = to_global(radial)
+			var query := PhysicsRayQueryParameters3D.create(at + Vector3.UP, at + Vector3.DOWN * 2.3, 1)
+			var hit: Dictionary = get_world_3d().direct_space_state.intersect_ray(query)
+			valid.append(not hit.is_empty())
+			points.append(to_local((hit.position as Vector3) + Vector3.UP * 0.025) if not hit.is_empty() else Vector3.ZERO)
+	var indices: Array[int] = []
+	for segment in range(SEGMENTS):
+		for ring in range(RINGS):
+			var a: int = segment * (RINGS + 1) + ring
+			var b: int = a + RINGS + 1
+			if not (valid[a] and valid[b] and valid[a + 1] and valid[b + 1]):
+				continue
+			var low: float = minf(minf(points[a].y, points[b].y), minf(points[a + 1].y, points[b + 1].y))
+			var high: float = maxf(maxf(points[a].y, points[b].y), maxf(points[a + 1].y, points[b + 1].y))
+			if high - low > 0.6 or absf(low + 1.15) > 1.05:
+				continue
+			for vertex: int in [a, b, a + 1, b, b + 1, a + 1]:
+				indices.append(vertex)
+	if indices.is_empty():
+		# ImmediateMesh rejects empty surfaces.
+		return
+	var mesh := ImmediateMesh.new()
+	mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLES)
+	for vertex: int in indices:
+		mesh.surface_set_uv(Vector2(float(vertex / (RINGS + 1)) / SEGMENTS, float(vertex % (RINGS + 1)) / RINGS))
+		mesh.surface_add_vertex(points[vertex])
+	mesh.surface_end()
+	var ground := MeshInstance3D.new()
+	ground.name = "CleaveFootprint"
+	ground.mesh = mesh
+	ground.material_override = _material(7, 0.0, _lifetime if _charge else 0.58, 0.9)
+	ground.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(ground)
+
 func _ground_cuts() -> void:
 	var vertices: Array[Vector3] = []
 	var texcoords: Array[Vector2] = []
@@ -185,8 +237,6 @@ func _ground_cuts() -> void:
 		var u: float = (float(index) + 0.5) / 22.0
 		var angle: float = lerpf(-PI * 0.46, PI * 0.46, u)
 		var radial := Vector3(sin(angle), 0.0, -cos(angle))
-		radial.x *= 0.62
-		radial.z *= 0.84
 		var at: Vector3 = to_global(radial * (_profile.radius - 0.25))
 		var query := PhysicsRayQueryParameters3D.create(at + Vector3.UP * 1.0, at + Vector3.DOWN * 2.2, 1)
 		var hit: Dictionary = get_world_3d().direct_space_state.intersect_ray(query)
@@ -229,13 +279,12 @@ func _process(delta: float) -> void:
 		return
 	for material: ShaderMaterial in _materials:
 		material.set_shader_parameter("age", _age)
+	if _contact and is_instance_valid(_contact_target) and _contact_target.is_inside_tree():
+		global_position = _contact_target.global_position + _contact_offset
 	if _charge:
 		global_position = _charge_owner.global_position + Vector3.UP * 0.25
 		global_basis = _charge_owner.global_basis
 		var buildup: float = clampf(_age / _lifetime, 0.0, 1.0)
-		for blade: MeshInstance3D in _blades:
-			blade.scale = Vector3.ONE * lerpf(1.15, 0.55, buildup)
-			blade.rotation.y = -0.7 + buildup * 1.6
 		if is_instance_valid(_weapon_tip):
 			_weapon_glint.global_position = _weapon_tip.get_global_transform_interpolated().origin
 			_light.global_position = _weapon_glint.global_position
@@ -244,10 +293,9 @@ func _process(delta: float) -> void:
 		return
 	var expansion: float = 1.0 - pow(1.0 - clampf(_age / 0.09, 0.0, 1.0), 3.0)
 	for index in range(_blades.size()):
-		_blades[index].scale = Vector3.ONE * lerpf(0.78, 1.0, expansion)
-		_blades[index].rotation.y = lerpf(-0.12, 0.025, expansion) - float(index) * 0.025
-		_blades[index].visible = _age < 0.40
-	_light.light_energy = (1.0 if _contact else 3.4) * pow(maxf(0.0, 1.0 - _age / 0.16), 2.0)
+		_blades[index].scale = Vector3.ONE * lerpf(0.90, 1.0, expansion)
+		_blades[index].visible = _age < 0.45
+	_light.light_energy = (2.0 if _contact else 3.4) * pow(maxf(0.0, 1.0 - _age / 0.18), 2.0)
 	if not _fragments:
 		return
 	for index in range(_fragments.instance_count):

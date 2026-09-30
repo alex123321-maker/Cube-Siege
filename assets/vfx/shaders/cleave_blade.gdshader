@@ -6,6 +6,7 @@ uniform vec4 edge_color : source_color;
 uniform vec4 gold_color : source_color;
 uniform sampler2D artwork : source_color, filter_linear_mipmap, repeat_disable;
 uniform bool traveling_head = false;
+uniform bool charging = false;
 uniform float age = 0.0;
 uniform float delay = 0.0;
 uniform float lifetime = 0.50;
@@ -68,6 +69,32 @@ void fragment() {
 		color = mix(vec3(0.04, 0.11, 0.14), gold_color.rgb, pow(1.0 - phase, 8.0));
 		alpha = envelope * dissolve * taper * pow(sin(UV.y * 3.14159265), 0.7) * 0.55;
 		glow = pow(1.0 - phase, 10.0) * 0.5;
+	} else if (layer == 6) {
+		vec2 p = (UV - 0.5) * 2.0;
+		float slash = abs(p.y + p.x * 0.40);
+		float ends = 1.0 - smoothstep(0.48, 0.96, abs(p.x));
+		float core = 1.0 - smoothstep(0.015, 0.045, slash);
+		float body = 1.0 - smoothstep(0.035, 0.15, slash);
+		float echo = (1.0 - smoothstep(0.018, 0.055, abs(p.y + p.x * 0.40 - 0.18))) * 0.5;
+		alpha = max(body, echo) * ends * (1.0 - smoothstep(0.35, 1.0, phase));
+		color = mix(steel_color.rgb * 0.5, gold_color.rgb, body);
+		color = mix(color, vec3(1.0, 0.98, 0.84), core);
+		glow = core * 1.25;
+	} else if (layer == 7) {
+		float outer = smoothstep(0.965, 0.984, UV.y);
+		float inner = smoothstep(0.942, 0.95, UV.y) * (1.0 - smoothstep(0.953, 0.963, UV.y));
+		float ends = 1.0 - smoothstep(0.005, 0.016, min(UV.x, 1.0 - UV.x));
+		float striae = pow(0.5 + 0.5 * cos(UV.x * 75.4), 24.0) * smoothstep(0.65, 0.9, UV.y);
+		float build = charging ? smoothstep(0.0, 0.60, phase) : 1.0;
+		float fade = charging ? 1.0 : 1.0 - smoothstep(0.15, 1.0, phase);
+		alpha = (outer * 0.8 + inner * 0.18 + ends * 0.6 + striae * 0.10
+			+ smoothstep(0.10, 0.6, UV.y) * 0.07) * build * fade;
+		color = mix(steel_color.rgb, gold_color.rgb, max(outer, ends) * 0.8);
+		glow = outer * 0.45;
+	} else if (layer == 8) {
+		alpha = (1.0 - smoothstep(0.15, 0.95, UV.y)) * reveal * envelope * taper;
+		color = mix(vec3(1.0, 0.97, 0.85), gold_color.rgb, UV.y);
+		glow = 0.85;
 	} else {
 		vec2 p = (UV - 0.5) * 2.0;
 		float radial = length(p);

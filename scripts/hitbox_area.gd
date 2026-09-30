@@ -12,6 +12,9 @@ signal hit_confirmed(target: Node, direction: Vector3)
 
 var hit_entities: Array[Node] = []
 var owner_entity: Node = null
+## Optional frontal sector inside the broad-phase shape. Zero radius disables it.
+var frontal_radius: float = 0.0
+var frontal_arc_degrees: float = 180.0
 
 func _ready() -> void:
 	area_entered.connect(_on_area_entered)
@@ -24,6 +27,13 @@ func _on_area_entered(area: Area3D) -> void:
 		var target: Node = area.get_target_node() if area.has_method("get_target_node") else area.get_parent()
 		if target == owner_entity or hit_entities.has(target):
 			return
+		if frontal_radius > 0.0 and target is Node3D:
+			var local: Vector3 = to_local((target as Node3D).global_position)
+			var planar: Vector2 = Vector2(local.x, local.z)
+			if planar.length() > frontal_radius:
+				return
+			if not planar.is_zero_approx() and -local.z / planar.length() < cos(deg_to_rad(frontal_arc_degrees * 0.5)) - 0.0001:
+				return
 
 		# Player attacks must NEVER damage friendly buildings!
 		if owner_entity and (owner_entity.is_in_group("player") or owner_entity.name == "Player"):

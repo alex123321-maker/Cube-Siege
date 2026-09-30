@@ -4,7 +4,7 @@ extends SceneTree
 ## --fixed-fps 60 --write-movie screenshots_debug/cleave.avi -s tools/capture_cleave.gd
 const MAIN: PackedScene = preload("res://scenes/main.tscn")
 const ENEMY: PackedScene = preload("res://scenes/enemy_dummy.tscn")
-const OUTPUT: String = "res://docs/verification/vfx_cleave/"
+const OUTPUT: String = "res://docs/verification/vfx_cleave_ability/"
 var _world: Node3D
 var _player: CharacterBody3D
 var _camera: CameraFollow
@@ -20,6 +20,9 @@ var _label: String = "sovereign"
 var _miss: bool = false
 var _facing: float = 0.0
 var _profile_real_time: bool = false
+var _basic: bool = false
+var _target_offsets: Array[Vector3] = []
+var _pose_only: bool = false
 
 func _initialize() -> void:
 	root.content_scale_size = Vector2i(1280, 720)
@@ -32,6 +35,10 @@ func _initialize() -> void:
 			_label = argument.trim_prefix("--label=")
 		elif argument == "--miss":
 			_miss = true
+		elif argument == "--basic":
+			_basic = true
+		elif argument == "--pose-only":
+			_pose_only = true
 		elif argument.begins_with("--facing-degrees="):
 			_facing = deg_to_rad(float(argument.trim_prefix("--facing-degrees=")))
 		elif argument == "--static-head":
@@ -86,11 +93,14 @@ func _capture() -> void:
 	for index in range(80):
 		await process_frame
 	_add_target(Vector3(0.0, 0.0, -1.8))
-	_add_target(Vector3(1.0, 0.0, -1.4))
-	_add_target(Vector3(-1.0, 0.0, -1.4))
+	_add_target(Vector3(2.8, 0.0, -1.0))
+	_add_target(Vector3(-2.8, 0.0, -1.0))
 	# A sentinel behind the warrior must never be hit by the frontal special.
 	_add_target(Vector3(0.0, 0.0, 2.2))
 	root.get_node("VFXManager")._ensure_container().child_entered_tree.connect(_record_effect)
+	if _pose_only:
+		root.get_node("VFXManager")._ensure_container().hide()
+		_player.presentation.blade_trail.hide()
 	_running = true
 	if _profile_real_time:
 		await _profile_effects()
@@ -99,18 +109,26 @@ func _capture() -> void:
 		var phase: int = frame / 140 if _only_phase < 0 else _only_phase
 		var local_frame: int = frame % 140
 		if local_frame == 0:
+			for index in range(_targets.size()):
+				_targets[index].global_position = _player.global_position + _target_offsets[index]
+				_targets[index].velocity = Vector3.ZERO
+				_targets[index].knockback_velocity = Vector3.ZERO
 			_set_view(phase)
 		if local_frame == 6:
 			if not _miss:
-				for index in range(3):
-					_expected[index] -= _player.combat.special_damage
-			_player.combat.special_cooldown_timer = 0.0
-			_player.perform_special_attack()
-		if local_frame == 35:
+				for index in range(1 if _basic else 3):
+					_expected[index] -= _player.combat.attack_damage if _basic else _player.combat.special_damage
+			if _basic:
+				_player.combat.attack_cooldown_timer = 0.0
+				_player.perform_attack()
+			else:
+				_player.combat.special_cooldown_timer = 0.0
+				_player.perform_special_attack()
+		if local_frame == 45:
 			for index in range(4):
 				if not is_equal_approx(_targets[index].current_health, _expected[index]):
 					_failed = true
-		if local_frame in [0, 9, 15, 18, 21, 25, 33, 45, 65]:
+		if local_frame in [0, 9, 16, 19, 22, 25, 29, 35, 45, 65, 90]:
 			await RenderingServer.frame_post_draw
 			root.get_texture().get_image().save_png(OUTPUT + "%s_%d_%03d.png" % [_label, phase, local_frame])
 		await process_frame
@@ -121,7 +139,7 @@ func _capture() -> void:
 		" contacts=", _contacts, " active_effects=", active,
 		" camera_offset=", Vector2(_camera.h_offset, _camera.v_offset),
 		" settled_trail=", _player.presentation.blade_trail.mesh.get_surface_count())
-	if _failed or active != 0 or _releases != phases or (_contacts != 0 if _miss else _contacts < phases * 3):
+	if _failed or active != 0 or (not _basic and (_releases != phases or (_contacts != 0 if _miss else _contacts < phases * 3))):
 		push_error("Cleave damage, release, contact or cleanup verification failed")
 		quit(2)
 		return
@@ -191,10 +209,12 @@ func _count_effect(effect: Node) -> void:
 func _add_target(offset: Vector3) -> void:
 	var enemy: CharacterBody3D = ENEMY.instantiate() as CharacterBody3D
 	_world.add_child(enemy)
-	enemy.set_physics_process(false)
+	enemy.move_speed = 0.0
+	enemy.attack_timer = 1000.0
 	var displacement: Vector3 = offset.rotated(Vector3.UP, _facing)
 	if _miss:
 		displacement *= 3.0
+	_target_offsets.append(displacement)
 	enemy.global_position = _player.global_position + displacement
 	enemy.max_health = 10000.0
 	enemy.current_health = 10000.0
@@ -224,6 +244,12 @@ func _set_view(phase: int) -> void:
 	elif phase == 4:
 		title = "SIDE VIEW / DAY / CROWD"
 		offset = Vector3(9.0, 9.0, -12.0)
+	elif phase == 5:
+		title = "SWORD SIDE / POSE DIAGNOSTIC"
+		offset = Vector3(6.0, 3.5, 0.0)
+	elif phase == 6:
+		title = "FRONT / POSE DIAGNOSTIC"
+		offset = Vector3(0.0, 3.0, -6.0)
 	_camera.global_position = focal + offset
 	_camera.look_at(focal)
-	_caption.text = "SOVEREIGN EDGE  /  " + title + (" / MISS" if _miss else "")
+	_caption.text = ("BASIC ATTACK" if _basic else "CLEAVE ABILITY") + "  /  " + title + (" / MISS" if _miss else "")

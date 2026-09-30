@@ -41,8 +41,8 @@ func setup(profile: SwordVFXProfile, base_anchor: Node3D, tip_anchor: Node3D) ->
 	_tip_anchor.get_global_transform_interpolated()
 
 func set_attack_phase(active: bool, animation_time: float, cleave: bool = false) -> void:
-	var start: float = 0.12 if cleave else _profile.blade_trail_start
-	var end: float = 0.30 if cleave else _profile.blade_trail_end
+	var start: float = 0.22 if cleave else _profile.blade_trail_start
+	var end: float = 0.40 if cleave else _profile.blade_trail_end
 	_emitting = active and animation_time >= start and animation_time <= end
 	if _cleave != cleave:
 		_cleave = cleave

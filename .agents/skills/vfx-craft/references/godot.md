@@ -6,7 +6,13 @@ Read this reference only for Godot work. Follow the active repository's scene, G
 
 Locate the real weapon attachment, animated skeleton or pivot, and the ability's authoritative events. Decide explicitly which components remain weapon-local and which detach into world space. Sample or drive a trail from the blade's actual transforms when it should describe the swing; avoid an unrelated motion tween that merely starts at the same time.
 
+Verify imported model axes, wrapper transforms, bone rest orientation, and local forward/up directions on the actual rig before procedural posing. A shoulder-to-blade-tip look-at or shortest quaternion rotation alone does not determine a natural whole-arm pose: preserve joint limits, elbow direction, and the hand's relationship to the torso. Inspect anticipation, swing, and recovery without VFX from the weapon side and the front to catch reversed motion, torso penetration, or a hand passing behind the body unintentionally.
+
+Inspect whether presentation can articulate the stance, torso, and weapon together rather than only rotating the sword. Preserve collision and movement authority when adjusting visible body poses. Read the actual hit shape and its local-to-world transform; generate its visual footprint from the same geometry data or authoritative query, including vertical limits, rather than independently compressing an arc to resemble a box. An explicitly decorative extension should remain visually subordinate to the damaging area.
+
 Use an existing animation/event clock for coordinated presentation where possible. Keep damage authority in the gameplay system, with hit feedback consuming confirmed results. Inspect interruption, animation speed changes, rotation, movement, and multiple instances. The [AnimationTree documentation](https://docs.godotengine.org/en/stable/tutorials/animation/animation_tree.html) explains its relationship to AnimationPlayer and warns that animation node resources can be shared: use per-instance parameters appropriately rather than accidentally changing all actors.
+
+Place confirmed-hit presentation on the target's contact point or visible surface when available. If the gameplay event only supplies a target, derive a suitable visual placement from that target's transform/bounds and the hit direction, and document that approximation; do not call it an exact physics contact. Keep target recoil or hit deformation in presentation unless a gameplay change is authorized. Check that light, color, or motion makes the hit readable without turning every struck model into a featureless bright block.
 
 ## Materials, particles, and lifecycle
 

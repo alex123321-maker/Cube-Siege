@@ -9,8 +9,13 @@ var attack_cooldown_timer: float = 0.0
 var special_cooldown_timer: float = 0.0
 var _sword_contacts_remaining: int = 0
 var _cleave_contacts_remaining: int = 0
+var _cleave_hit_window: bool = false
 
 const ARROW_PROJECTILE_SCENE = preload("res://scenes/prefabs/arrow_projectile.tscn")
+const CLEAVE_SPEC: WarriorCleaveSpec = preload("res://assets/abilities/warrior_cleave.tres")
+var _regular_slash_shape: Shape3D
+var _regular_slash_transform: Transform3D
+var _cleave_shape: CylinderShape3D
 
 func update_timers(delta: float) -> void:
 	if attack_cooldown_timer > 0.0:
@@ -68,15 +73,16 @@ func perform_special_attack(player: CharacterBody3D, current_class: int, is_dash
 	match current_class:
 		0: # CharacterClass.WARRIOR
 			special_cooldown_timer = 4.0
+			attack_cooldown_timer = maxf(attack_cooldown_timer, CLEAVE_SPEC.recovery)
 			if player.presentation:
 				player.presentation.play_special_animation()
 			var vfx: Node = player.get_node_or_null("/root/VFXManager")
 			if vfx:
-				vfx.spawn_cleave_charge(player, 0.15, player.presentation.blade_tip_anchor)
+				vfx.spawn_cleave_charge(player, CLEAVE_SPEC.windup, player.presentation.blade_tip_anchor)
 			if not player.is_inside_tree():
 				trigger_slash(player, special_damage, 12.0, 180.0, is_dueling)
 				return
-			await player.get_tree().create_timer(0.15).timeout
+			await player.get_tree().create_timer(CLEAVE_SPEC.windup).timeout
 			if _is_actor_alive(player) and player.current_class == 0:
 				trigger_slash(player, special_damage, 12.0, 180.0, is_dueling)
 		1: # CharacterClass.ARCHER
@@ -118,6 +124,8 @@ func trigger_slash(player: CharacterBody3D, dmg: float, knockback: float, arc_de
 	slash_area.damage = final_dmg
 	slash_area.knockback_force = knockback
 	slash_area.hit_entities.clear()
+	_configure_slash_shape(slash_area, player.current_class == 0 and arc_degrees > 120.0)
+	_cleave_hit_window = player.current_class == 0 and arc_degrees > 120.0
 	_sword_contacts_remaining = 3 if player.current_class == 0 and arc_degrees <= 120.0 else 0
 	_cleave_contacts_remaining = 6 if player.current_class == 0 and arc_degrees > 120.0 else 0
 	var on_hit: Callable = _on_sword_hit.bind(player)
@@ -140,18 +148,41 @@ func trigger_slash(player: CharacterBody3D, dmg: float, knockback: float, arc_de
 	finish_slash(player, slash_area)
 
 func _on_sword_hit(target: Node, direction: Vector3, player: CharacterBody3D) -> void:
-	if (_sword_contacts_remaining <= 0 and _cleave_contacts_remaining <= 0) or not is_instance_valid(target) or not target is Node3D:
+	if not is_instance_valid(target) or not target is Node3D:
 		return
 	if not is_instance_valid(player) or not player.is_inside_tree():
+		return
+	if _cleave_hit_window and target is EnemyBase and (target as EnemyBase).presentation:
+		(target as EnemyBase).presentation.play_cleave_recoil(direction)
+	if _sword_contacts_remaining <= 0 and _cleave_contacts_remaining <= 0:
 		return
 	var vfx: Node = player.get_node_or_null("/root/VFXManager")
 	if vfx:
 		if _cleave_contacts_remaining > 0:
-			vfx.spawn_cleave_contact((target as Node3D).global_position + Vector3(0, 0.35, 0), direction)
+			vfx.spawn_cleave_contact((target as Node3D).global_position + Vector3(0, 0.65, 0), direction, target as Node3D)
 			_cleave_contacts_remaining -= 1
 		else:
 			vfx.spawn_sword_contact((target as Node3D).global_position + Vector3(0, 0.35, 0), direction)
 			_sword_contacts_remaining -= 1
+
+func _configure_slash_shape(area: HitboxArea, cleave: bool) -> void:
+	var collider: CollisionShape3D = area.get_node("CollisionShape3D") as CollisionShape3D
+	if not _regular_slash_shape:
+		_regular_slash_shape = collider.shape
+		_regular_slash_transform = collider.transform
+	if cleave:
+		if not _cleave_shape:
+			_cleave_shape = CylinderShape3D.new()
+			_cleave_shape.radius = CLEAVE_SPEC.radius
+			_cleave_shape.height = 2.6
+		collider.shape = _cleave_shape
+		collider.position = Vector3(0.0, 0.4, 0.0)
+		area.frontal_radius = CLEAVE_SPEC.radius
+		area.frontal_arc_degrees = CLEAVE_SPEC.arc_degrees
+	else:
+		collider.shape = _regular_slash_shape
+		collider.transform = _regular_slash_transform
+		area.frontal_radius = 0.0
 
 func await_slash_hit(player: CharacterBody3D, slash_area: Area3D, sword_contact: bool = false, cleave: bool = false) -> void:
 	if not player.is_inside_tree():
@@ -211,6 +242,7 @@ func finish_slash(player: CharacterBody3D, slash_area: Area3D) -> void:
 	await player.get_tree().create_timer(0.16).timeout
 	if is_instance_valid(slash_area):
 		slash_area.monitoring = false
+	_cleave_hit_window = false
 
 func trigger_arrow_shot(player: CharacterBody3D, dmg: float, pierce: int = 1, spd: float = 28.0) -> void:
 	var arrow = ARROW_PROJECTILE_SCENE.instantiate()

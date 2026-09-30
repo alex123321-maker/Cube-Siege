@@ -24,6 +24,7 @@ const WARRIOR_PROFILE = preload("res://assets/animations/profiles/warrior.tres")
 const ARCHER_PROFILE = preload("res://assets/animations/profiles/archer.tres")
 const ENGINEER_PROFILE = preload("res://assets/animations/profiles/engineer.tres")
 const SWORD_VFX_PROFILE = preload("res://assets/vfx/sword/steel_slash.tres")
+const CLEAVE_ANIMATION: Animation = preload("res://assets/animations/actions/warrior_cleave.tres")
 const ACTIONS: Array[StringName] = [&"attack", &"special", &"utility", &"ultimate"]
 
 func setup(player_node: CharacterBody3D) -> void:
@@ -54,6 +55,12 @@ func set_active_model(model: Node3D, profile: CharacterAnimationProfile = null) 
 	anim_player = model.get_node_or_null(animation_profile.animation_player_path) as AnimationPlayer
 	if not anim_player:
 		return
+	if animation_profile == WARRIOR_PROFILE:
+		var library: AnimationLibrary = anim_player.get_animation_library(&"").duplicate() as AnimationLibrary
+		library.remove_animation(&"special")
+		library.add_animation(&"special", CLEAVE_ANIMATION)
+		anim_player.remove_animation_library(&"")
+		anim_player.add_animation_library(&"", library)
 	anim_player.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
 	pose_layer = CharacterPoseLayer.new()
 	pose_layer.bind(model, animation_profile)

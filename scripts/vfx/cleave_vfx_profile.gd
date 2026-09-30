@@ -7,9 +7,12 @@ extends Resource
 @export var gold_color: Color = Color(1.0, 0.59, 0.16)
 @export var ribbon_texture: Texture2D
 @export var traveling_head: bool = false
-@export_range(1.0, 4.0) var radius: float = 3.0
+@export var ability: WarriorCleaveSpec = preload("res://assets/abilities/warrior_cleave.tres")
+var radius: float:
+	get:
+		return ability.radius
 @export_range(0.2, 2.0) var blade_width: float = 1.65
-@export_range(0.2, 1.0) var lifetime: float = 0.56
+@export_range(0.2, 1.0) var lifetime: float = 0.72
 @export_range(0.03, 0.2) var sweep_time: float = 0.10
 @export_range(0.0, 4.0) var emission: float = 1.65
 @export_range(0, 64) var fragment_count: int = 22

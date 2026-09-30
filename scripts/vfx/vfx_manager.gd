@@ -172,12 +172,12 @@ func spawn_cleave_charge(player: Node3D, duration: float, weapon_tip: Node3D = n
 	effect.setup_charge(CLEAVE_PROFILE, player, duration, weapon_tip)
 	return register_effect(effect) as Node3D
 
-func spawn_cleave_contact(pos: Vector3, direction: Vector3) -> Node3D:
+func spawn_cleave_contact(pos: Vector3, direction: Vector3, target: Node3D = null) -> Node3D:
 	var effect: CleaveVFX = CLEAVE_EFFECT.new()
 	effect.name = "CleaveContact"
 	_ensure_container().add_child(effect)
 	effect.global_position = pos
-	effect.setup_contact(CLEAVE_PROFILE, direction)
+	effect.setup_contact(CLEAVE_PROFILE, direction, target)
 	return register_effect(effect) as Node3D
 
 ## Spawns directional voxel sparks on hit, with bonus multi-hit flash

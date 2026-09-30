@@ -18,6 +18,7 @@ Adapt the following coverage to the game, retaining the conditions that could ex
 | Context | What to inspect |
 | --- | --- |
 | Normal gameplay camera, repeated casts | Signature read, rhythm, residue buildup, camera recovery |
+| Basic attack and ability in identical conditions | Observable distinction in body action, effect silhouette/reach, and target response |
 | Bright/day and dark/night environments | Exposure, contrast, bloom, pale terrain and dark backgrounds |
 | Miss, single hit, multiple hits, crowded combat | Truthful impact feedback, actor visibility, competing effects |
 | Relevant facing angles and actor/camera rotation | Blade attachment, directional read, foreshortening, backfaces |
@@ -25,7 +26,9 @@ Adapt the following coverage to the game, retaining the conditions that could ex
 | Slopes, elevation changes, walls, terrain transitions | Floating decals, intersection, clipping, misleading reach |
 | Supported frame rates and representative hardware | Timing consistency, first-use hitch, sustained worst-case cost |
 
-Inspect anticipation, commitment, contact/peak, and dissipation frames as well as the full sequence. Note concrete observations: "the edge disappears against sand" or "the blade arrives after the hit burst." A selected still cannot establish temporal quality. Label skipped coverage explicitly.
+Inspect full-body anticipation, commitment, contact/peak, recovery, and effect dissipation as well as the full sequence. View the body action with VFX disabled diagnostically, then confirm the pose remains readable in the combined recording. Review miss footage for the cast's silhouette and hit footage for visible target-local response; do not let bright contacts conceal a weak ability shape. Include targets at relevant footprint boundaries and compare observed hits with the actual gameplay geometry. Keep geometry/debug overlays separate from the representative capture.
+
+Note concrete observations: "the edge disappears against sand," "the body pose matches the basic attack," or "the blade arrives after the hit burst." A selected still cannot establish temporal quality. Label skipped coverage explicitly.
 
 ## Measure and compare
 
