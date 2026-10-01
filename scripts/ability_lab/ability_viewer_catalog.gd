@@ -35,7 +35,7 @@ static func entries() -> Array[Entry]:
 		Entry.new(0, Slot.SPECIAL, "Рассечение", "Широкий взмах с усиленным уроном и отбрасыванием.", "Вихрь 360°, оглушение о стену и кровотечение описаны в GDD; в игровом коде пока не реализованы."),
 		Entry.new(0, Slot.UTILITY, "Парирование", "Защитная стойка. В варианте успеха зомби атакует во время защитного окна."),
 		Entry.new(0, Slot.ULTIMATE, "Вызов на дуэль", "Выбранный зомби становится целью дуэли. Воин сближается с ним; атаки получают бонус."),
-		Entry.new(0, Slot.DASH, "Боевой рывок", "Действующий общий механизм рывка с неуязвимостью."),
+		Entry.new(0, Slot.DASH, "Боевой рывок", "Рывок Воина без неуязвимости к урону: Воин получает входящий урон во время перемещения."),
 		Entry.new(1, Slot.ATTACK, "Выстрел из лука", "Настоящий снаряд Лучника, показанный моделью Воина."),
 		Entry.new(1, Slot.SPECIAL, "Сквозная стрела", "Усиленная стрела проходит через несколько целей.", "Осколки, сбивание с ног и срез брони описаны в GDD; в коде пока не реализованы."),
 		Entry.new(1, Slot.UTILITY, "Приманка", "Создаёт игровое чучело и переназначает цели ближайших зомби."),
@@ -74,7 +74,7 @@ static func variant_explanation(kind: VariantKind) -> String:
 		"Карта VAMPIRIC_STRIKE задаёт 4 HP лечения. Воин начинает с неполным здоровьем. Известная особенность текущего кода: позднее попадание может пройти после проверки лечения; в этом случае HP не восстанавливается.",
 		"Состояние дуэли умножает урон взмахов на 1.2. Защита от сторонних атак: 40% снижения и 20% отражения.",
 		"Игровая карта WINDSTRIDER умножает скорость бега на 1.2, перезарядку рывка — на 0.65. Скорость самого рывка не меняется.",
-		"Входящий удар попадает в окно парирования: урон блокируется, срабатывают контрудар и оглушение, перезарядка сокращается.",
+		"Входящий удар попадает в окно парирования: урон блокируется, срабатывает AoE оглушение врагов без ответного урона, перезарядка сокращается.",
 		"Демонстрация выполняет два обычных применения утилиты с интервалом 1 с. Урон и радиус берутся из настоящей сцены мины."
 	][kind]
 
@@ -113,20 +113,22 @@ static func properties(entry: Entry, player: CharacterBody3D, variant: VariantKi
 				else:
 					_value(rows, "Активное окно", PlayerCombat.SLASH_ACTIVE_DURATION, PlayerCombat.SLASH_ACTIVE_DURATION, "с", "В это время SlashHitbox принимает столкновения.")
 					var shape: BoxShape3D = player.get_node("SlashHitbox/CollisionShape3D").shape as BoxShape3D
-					rows.append(Property.new("Форма попадания", str(shape.size), str(shape.size), "Размеры игрового прямоугольного хитбокса в метрах. Визуальная дуга не задаёт сектор попадания."))
+					var shape_desc: String = "Размеры игрового прямоугольного хитбокса в метрах. Базовый взмах Воина поражает строго 1 цель за окно; Рассечение поражает несколько целей." if c == 0 else "Размеры игрового прямоугольного хитбокса в метрах. Визуальная дуга не задаёт сектор попадания."
+					rows.append(Property.new("Форма попадания", str(shape.size), str(shape.size), shape_desc))
 					_value(rows, "Параметр лечения", 0.0, player.vampirism_heal, "HP", "Значение карты. Проверка ранних попаданий в текущем коде может пропустить поздний контакт; фактические HP показаны под сценой.")
 		Slot.DASH:
 			_value(rows, "Перезарядка", base_movement.dash_cooldown, player.dash_cooldown, "с", "Карта Ветроход сокращает ожидание следующего рывка.")
 			_value(rows, "Скорость рывка", base_movement.dash_speed, player.dash_speed, "м/с", "Отдельна от скорости обычного бега.")
-			_value(rows, "Длительность", base_movement.dash_duration, player.dash_duration, "с", "Пока состояние рывка активно, входящий урон игнорируется.")
+			var dash_expl: String = "У Воина урон во время рывка проходит; у Лучника и Инженера урон игнорируется." if c == 0 else "Пока состояние рывка активно, входящий урон игнорируется."
+			_value(rows, "Длительность", base_movement.dash_duration, player.dash_duration, "с", dash_expl)
 			_value(rows, "Скорость бега", base_movement.speed, player.speed, "м/с", "Показано влияние карты; это не скорость рывка.")
 		Slot.UTILITY:
 			if c == 0:
 				_value(rows, "Защитное окно", PlayerHealth.PARRY_WINDOW, PlayerHealth.PARRY_WINDOW, "с", "Попавший в окно удар блокируется.")
 				_value(rows, "Перезарядка", PlayerHealth.PARRY_COOLDOWN, PlayerHealth.PARRY_SUCCESS_COOLDOWN if variant == VariantKind.PARRY_SUCCESS else PlayerHealth.PARRY_COOLDOWN, "с", "При успешном парировании используется сокращённая перезарядка.")
-				_value(rows, "Ответный урон", PlayerHealth.COUNTER_DAMAGE, PlayerHealth.COUNTER_DAMAGE, "", "Срабатывает только при успешном парировании.")
-				_value(rows, "Радиус контрудара", PlayerHealth.COUNTER_RADIUS, PlayerHealth.COUNTER_RADIUS, "м", "Применяется к ближайшим врагам, поддерживающим оглушение.")
-				_value(rows, "Оглушение", PlayerHealth.COUNTER_STUN, PlayerHealth.COUNTER_STUN, "с", "Останавливает действия врага после контрудара.")
+				_value(rows, "Ответный урон", PlayerHealth.COUNTER_DAMAGE, PlayerHealth.COUNTER_DAMAGE, "", "Базовое парирование не наносит ответного урона (вынесен в талант «Контратака»).")
+				_value(rows, "Радиус оглушения", PlayerHealth.COUNTER_RADIUS, PlayerHealth.COUNTER_RADIUS, "м", "Оглушение применяется ко всем врагам в радиусе 3.5м.")
+				_value(rows, "Оглушение", PlayerHealth.COUNTER_STUN, PlayerHealth.COUNTER_STUN, "с", "Останавливает действия врага после парирования.")
 			elif c == 1:
 				var decoy: Node3D = PlayerAbilities.DECOY_DUMMY_SCENE.instantiate() as Node3D
 				_value(rows, "Перезарядка", PlayerAbilities.DECOY_COOLDOWN, PlayerAbilities.DECOY_COOLDOWN, "с", "Ожидание следующей приманки.")
