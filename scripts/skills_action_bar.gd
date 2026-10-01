@@ -3,7 +3,7 @@ extends HBoxContainer
 const CLASS_ACTIONS: Dictionary = {
     0: [
         ["warrior_sword_attack", "МЕЧ", "Базовая атака мечом"],
-        ["warrior_cleave", "РАССЕЧЬ", "Особая круговая атака"],
+        ["warrior_cleave", "РАССЕЧЬ", "Рассечение перед собой"],
         ["warrior_dash", "РЫВОК", "Боевой рывок"],
         ["warrior_parry", "ПАРИРОВАТЬ", "Парирование щитом"],
         ["warrior_duel", "ДУЭЛЬ", "Вызвать цель на дуэль"],
