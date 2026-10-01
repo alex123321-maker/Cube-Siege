@@ -1,0 +1,70 @@
+Godot Engine v4.6.1.stable.official.14d19694e - https://godotengine.org
+
+---  GUT  ---
+[1m[INFO]:  [0musing [C:/Users/alexa/AppData/Roaming/Godot/app_userdata/Cube Siege] for temporary output.
+Godot version:  4.6.1
+GUT version:  9.6.1
+[4m
+
+res://tests/regression/test_warrior_legacy_compatible.gd
+[0m* test_warrior_basic_attack_single_target_via_perform_attack
+[31m    [Failed]:  [0mExactly one target must be damaged by basic attack
+      at line 57
+[31m    [Failed]:  [0m[2] expected to equal [1]:  hit_confirmed emitted exactly once
+      at line 59
+* test_parry_absorbs_single_hit_aoe_stuns_zero_counter_damage_zero_knockback
+[31m    [Failed]:  [0m[50.0] expected to equal [80.0]:  Attacker received ZERO counter damage
+      at line 95
+[31m    [Failed]:  [0m[50.0] expected to equal [80.0]:  Nearby target received ZERO counter damage
+      at line 96
+[31m    [Failed]:  [0m[VECTOR3(0.0, 0.0, 8.0)] expected to equal [VECTOR3(0.0, 0.0, 0.0)]:  Attacker received ZERO knockback impulse
+      at line 97
+[31m    [Failed]:  [0m[VECTOR2(0.0, 20.22222)] expected to equal [VECTOR2(0.0, 0.0)]:  Attacker horizontal velocity remains zero
+      at line 107
+[31m    [Failed]:  [0m[2.21481490135192870000] expected to equal [1.5] +/- [0.001]:  Attacker Z position unchanged (no knockback)
+      at line 109
+* test_warrior_dash_damage_timing_before_during_after
+[31m    [Failed]:  [0m[80.0] expected to equal [60.0]:  Warrior takes damage during active dash
+      at line 143
+[1m0/3 passed.
+[0m
+
+
+
+[33m==============================================
+[0m[33m= Run Summary
+[0m[33m==============================================
+[0m[4m
+res://tests/regression/test_warrior_legacy_compatible.gd
+[0m- test_warrior_basic_attack_single_target_via_perform_attack
+[31m    [Failed]:  [0mExactly one target must be damaged by basic attack
+          at line 57
+[31m    [Failed]:  [0m[2] expected to equal [1]:  hit_confirmed emitted exactly once
+          at line 59
+- test_parry_absorbs_single_hit_aoe_stuns_zero_counter_damage_zero_knockback
+[31m    [Failed]:  [0m[50.0] expected to equal [80.0]:  Attacker received ZERO counter damage
+          at line 95
+[31m    [Failed]:  [0m[50.0] expected to equal [80.0]:  Nearby target received ZERO counter damage
+          at line 96
+[31m    [Failed]:  [0m[VECTOR3(0.0, 0.0, 8.0)] expected to equal [VECTOR3(0.0, 0.0, 0.0)]:  Attacker received ZERO knockback impulse
+          at line 97
+[31m    [Failed]:  [0m[VECTOR2(0.0, 20.22222)] expected to equal [VECTOR2(0.0, 0.0)]:  Attacker horizontal velocity remains zero
+          at line 107
+[31m    [Failed]:  [0m[2.21481490135192870000] expected to equal [1.5] +/- [0.001]:  Attacker Z position unchanged (no knockback)
+          at line 109
+- test_warrior_dash_damage_timing_before_during_after
+[31m    [Failed]:  [0m[80.0] expected to equal [60.0]:  Warrior takes damage during active dash
+          at line 143
+
+Totals
+------
+Scripts               1
+Tests                 3
+Passing Tests      none
+Failing Tests         3
+Asserts           18/26
+Time              2.056s
+
+
+[31m---- 3 failing tests ----
+[0m
