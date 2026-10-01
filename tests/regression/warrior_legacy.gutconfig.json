@@ -1,0 +1,10 @@
+{
+  "dirs": [
+    "res://tests/regression/"
+  ],
+  "include_subdirs": false,
+  "prefix": "test_warrior_legacy",
+  "suffix": ".gd",
+  "should_exit": true,
+  "log_level": 1
+}

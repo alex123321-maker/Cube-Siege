@@ -1,0 +1,14 @@
+{
+  "baseline": "722bac40e1f4ba8f4619501dcc579a7d290ed1f1",
+  "final_gameplay": "a953e945b13d1f07d9ab42bbd80d1f551b954ded",
+  "godot": "4.6.1.stable.official.14d19694e",
+  "test_sha256": "83262bc1b89bcd798b6ae376069e5befd068239a42daa68fa47a540a3fed713e",
+  "baseline_exit": 1,
+  "baseline_tests_passed": 0,
+  "baseline_tests_failed": 3,
+  "final_exit": 0,
+  "final_tests_passed": 3,
+  "assertions": 26,
+  "test_profile": "user://consolidation_audit_20261002/",
+  "native_binary": "Unchanged debug GDExtension built by full verification, copied into baseline checkout; no baseline gameplay handlers modified."
+}

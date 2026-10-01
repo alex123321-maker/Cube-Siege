@@ -1,0 +1,32 @@
+Godot Engine v4.6.1.stable.official.14d19694e - https://godotengine.org
+
+---  GUT  ---
+[1m[INFO]:  [0musing [C:/Users/alexa/AppData/Roaming/Godot/app_userdata/Cube Siege] for temporary output.
+Godot version:  4.6.1
+GUT version:  9.6.1
+[4m
+
+res://tests/regression/test_warrior_legacy_compatible.gd
+[0m* test_warrior_basic_attack_single_target_via_perform_attack
+* test_parry_absorbs_single_hit_aoe_stuns_zero_counter_damage_zero_knockback
+* test_warrior_dash_damage_timing_before_during_after
+[1m3/3 passed.
+[0m
+
+
+
+[33m==============================================
+[0m[33m= Run Summary
+[0m[33m==============================================
+[0m
+Totals
+------
+Scripts               1
+Tests                 3
+Passing Tests         3
+Asserts              26
+Time              2.048s
+
+
+[32m---- All tests passed! ----
+[0m
