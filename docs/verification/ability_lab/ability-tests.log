@@ -1,0 +1,268 @@
+WorkerThreadPool: 22 threads, 6 max low-priority.
+Godot Engine v4.6.1.stable.official.14d19694e - https://godotengine.org
+TextServer: Added interface "Dummy"
+TextServer: Added interface "ICU / HarfBuzz / Graphite (Built-in)"
+Unrecognized output string "misc2" in mapping:
+030000000d0f00000202000000000000,Horipad O Nintendo Switch 2 Controller,a:b1,b:b0,back:b8,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,dpup:h0.1,guide:b12,leftshoulder:b4,leftstick:b10,lefttrigger:b6,leftx:a0,lefty:a1,misc1:b13,misc2:b14,rightshoulder:b5,rightstick:b11,righttrigger:b7,rightx:a2,righty:a3,start:b9,x:b3,y:b2,platform:Windows,
+Unrecognized output string "misc2" in mapping:
+030000000d0f00009601000000000000,Horipad Steam,a:b0,b:b1,back:b10,dpdown:h0.4,dpleft:h0.8,dpright:h0.2,dpup:h0.1,guide:b12,leftshoulder:b6,leftstick:b13,lefttrigger:b8,leftx:a0,lefty:a1,misc2:b2,paddle1:b5,paddle2:b15,paddle3:b18,paddle4:b19,rightshoulder:b7,rightstick:b14,righttrigger:b9,rightx:a3,righty:a4,start:b11,x:b3,y:b4,platform:Windows,
+Unrecognized output string "misc2" in mapping:
+030000007e0500006920000000000000,Nintendo Switch 2 Pro Controller,a:b0,b:b1,back:b14,dpdown:b8,dpleft:b10,dpright:b9,dpup:b11,guide:b16,leftshoulder:b12,leftstick:b15,lefttrigger:b13,leftx:a0,lefty:a1~,misc1:b17,misc2:b20,paddle1:b18,paddle2:b19,rightshoulder:b4,rightstick:b7,righttrigger:b5,rightx:a2,righty:a3~,start:b6,x:b2,y:b3,platform:Windows,
+Using "default" pen tablet driver...
+
+TextServer: Primary interface set to: "ICU / HarfBuzz / Graphite (Built-in)".
+CORE API HASH: 75400357
+EDITOR API HASH: 3012763406
+Loading resource: res://addons/gut/gut_cmdln.gd
+SceneTreeFTI: traversal method DEFAULT
+Loading resource: res://addons/gut/version_conversion.gd
+Loading resource: res://addons/gut/gut_loader.gd
+Loading resource: res://addons/gut/warnings_manager.gd
+Loading resource: res://addons/gut/utils.gd
+Loading resource: res://addons/gut/GutScene.tscn
+Loading resource: res://addons/gut/GutScene.gd
+Loading resource: res://addons/gut/gui/NormalGui.tscn
+Loading resource: res://addons/gut/gui/GutSceneTheme.tres
+Loading resource: res://addons/gut/fonts/AnonymousPro-Regular.ttf
+Loading resource: res://.godot/imported/AnonymousPro-Regular.ttf-856c843fd6f89964d2ca8d8ff1724f13.fontdata
+Loading resource: res://addons/gut/gui/gut_gui.gd
+Loading resource: res://addons/gut/fonts/CourierPrime-Regular.ttf
+Loading resource: res://.godot/imported/CourierPrime-Regular.ttf-3babe7e4a7a588dfc9a84c14b4f1fe23.fontdata
+Loading resource: res://addons/gut/gui/ResizeHandle.tscn
+Loading resource: res://addons/gut/gui/ResizeHandle.gd
+Loading resource: res://addons/gut/gui/MinGui.tscn
+Loading resource: res://addons/gut/lazy_loader.gd
+Loading resource: res://addons/gut/thing_counter.gd
+Loading resource: res://addons/gut/version_numbers.gd
+Loading resource: res://addons/gut/gui/editor_globals.gd
+Loading resource: res://addons/gut/gui/gut_user_preferences.gd
+Loading resource: res://addons/gut/gui/RunExternally.tscn
+Loading resource: res://addons/gut/gui/RunExternally.gd
+Loading resource: res://addons/gut/gut_fonts.gd
+Loading resource: res://addons/gut/inner_class_registry.gd
+Loading resource: res://addons/gut/dynamic_gdscript.gd
+Loading resource: res://addons/gut/autofree.gd
+Loading resource: res://addons/gut/awaiter.gd
+Loading resource: res://addons/gut/comparator.gd
+Loading resource: res://addons/gut/collected_test.gd
+Loading resource: res://addons/gut/collected_script.gd
+Loading resource: res://addons/gut/compare_result.gd
+Loading resource: res://addons/gut/diff_formatter.gd
+Loading resource: res://addons/gut/diff_tool.gd
+Loading resource: res://addons/gut/double_tools.gd
+Loading resource: res://addons/gut/doubler.gd
+Loading resource: res://addons/gut/godot_singletons.gd
+Loading resource: res://addons/gut/gut.gd
+Loading resource: res://addons/gut/gut_config.gd
+Loading resource: res://addons/gut/input_factory.gd
+Loading resource: res://addons/gut/input_sender.gd
+Loading resource: res://addons/gut/junit_xml_export.gd
+Loading resource: res://addons/gut/logger.gd
+Loading resource: res://addons/gut/method_maker.gd
+Loading resource: res://addons/gut/one_to_many.gd
+Loading resource: res://addons/gut/gui/option_maker.gd
+Loading resource: res://addons/gut/orphan_counter.gd
+Loading resource: res://addons/gut/parameter_factory.gd
+Loading resource: res://addons/gut/parameter_handler.gd
+Loading resource: res://addons/gut/printers.gd
+Loading resource: res://addons/gut/result_exporter.gd
+Loading resource: res://addons/gut/script_parser.gd
+Loading resource: res://addons/gut/signal_watcher.gd
+Loading resource: res://addons/gut/singleton_parser.gd
+Loading resource: res://addons/gut/spy.gd
+Loading resource: res://addons/gut/stubber.gd
+Loading resource: res://addons/gut/stub_params.gd
+Loading resource: res://addons/gut/stubs.gd
+Loading resource: res://addons/gut/summary.gd
+Loading resource: res://addons/gut/test.gd
+Loading resource: res://addons/gut/test_collector.gd
+Loading resource: res://addons/gut/update_detector.gd
+Loading resource: res://scripts/event_bus.gd
+Loading resource: res://scripts/game_settings.gd
+Loading resource: res://scripts/save_manager.gd
+Loading resource: res://scripts/mastery_manager.gd
+Loading resource: res://scripts/roster_manager.gd
+Loading resource: res://scripts/core/entity_registry.gd
+Loading resource: res://scripts/vfx/vfx_manager.gd
+Loading resource: res://assets/vfx/sword/steel_slash.tres
+Loading resource: res://scripts/vfx/sword_vfx_profile.gd
+Loading resource: res://assets/vfx/sword/sword_ribbon.png
+Loading resource: res://.godot/imported/sword_ribbon.png-1c9e1d289689249fa586916cc01462ce.ctex
+Loading resource: res://assets/vfx/sword/sword_contact.png
+Loading resource: res://.godot/imported/sword_contact.png-e0175ad99cd5bdd9b3da471de344f9b5.ctex
+Loading resource: res://assets/vfx/mine/ember_burst.tres
+Loading resource: res://scripts/vfx/mine_vfx_profile.gd
+Loading resource: res://assets/vfx/mine/fire_burst.png
+Loading resource: res://.godot/imported/fire_burst.png-f661b54d2f1ca630e6050c1e4f486cd9.ctex
+Loading resource: res://assets/vfx/mine/smoke_puff.png
+Loading resource: res://.godot/imported/smoke_puff.png-b0f9150a95ba8e618e6ca381f98d1d60.ctex
+Loading resource: res://assets/vfx/archer/arrow_impact.tres
+Loading resource: res://scripts/vfx/arrow_impact_profile.gd
+Loading resource: res://assets/vfx/shaders/sword_ribbon.gdshader
+Loading resource: res://assets/vfx/shaders/sword_contact.gdshader
+Loading resource: res://assets/vfx/shaders/mine_plume.gdshader
+Loading resource: res://assets/vfx/shaders/mine_ring.gdshader
+Loading resource: res://assets/vfx/shaders/mine_ground_imprint.gdshader
+Loading resource: res://assets/vfx/shaders/arrow_impact.gdshader
+Loading resource: res://addons/godot_mcp/runtime/mcp_runtime_probe.gd
+Loaded system CA certificates
+Loading resource: res://addons/gut/cli/gut_cli.gd
+Loading resource: res://addons/gut/cli/optparse.gd
+Loading resource: res://addons/gut/gui/GutRunner.tscn
+Loading resource: res://addons/gut/gui/GutRunner.gd
+---  GUT  ---
+[INFO]:  using [C:/Users/alexa/AppData/Roaming/Godot/app_userdata/Cube Siege] for temporary output.
+Godot version:  4.6.1
+GUT version:  9.6.1
+Loading resource: res://tests/integration/test_ability_viewer.gd
+Loading resource: res://scenes/tools/ability_lab.tscn
+Loading resource: res://scripts/ability_lab/ability_lab.gd
+Loading resource: res://scenes/player.tscn
+Loading resource: res://scripts/player_prototype.gd
+Loading resource: res://scenes/duel_tether.tscn
+Loading resource: res://scripts/duel_tether.gd
+Loading resource: res://scenes/floating_text.tscn
+Loading resource: res://scripts/floating_text.gd
+Loading resource: res://assets/animations/profiles/warrior.tres
+Loading resource: res://scripts/resources/character_animation_profile.gd
+Loading resource: res://assets/animations/locomotion/forward.tres
+Loading resource: res://assets/animations/locomotion/backward.tres
+Loading resource: res://assets/animations/locomotion/strafe_right.tres
+Loading resource: res://assets/animations/locomotion/strafe_left.tres
+Loading resource: res://assets/animations/profiles/archer.tres
+Loading resource: res://assets/animations/profiles/engineer.tres
+Loading resource: res://assets/environment/resources/tree_oak/tree_0_standard_oak.glb
+Loading resource: res://.godot/imported/tree_0_standard_oak.glb-0123a3431255bf5e1674f21afdd5c7d3.scn
+Loading resource: res://assets/environment/resources/tree_oak/tree_1_tall_oak.glb
+Loading resource: res://.godot/imported/tree_1_tall_oak.glb-5586747bddc22d3cc5bd2a702e0705f7.scn
+Loading resource: res://assets/environment/resources/tree_oak/tree_2_broad_oak.glb
+Loading resource: res://.godot/imported/tree_2_broad_oak.glb-d7ab55b5d468c76cb1d056acdfb9b374.scn
+Loading resource: res://assets/environment/resources/tree_oak/tree_3_young_oak.glb
+Loading resource: res://.godot/imported/tree_3_young_oak.glb-54b3752753cebe279ab31a8570a049c8.scn
+Loading resource: res://assets/environment/resources/tree_oak/tree_4_shrub_oak.glb
+Loading resource: res://.godot/imported/tree_4_shrub_oak.glb-c90c691ead6742181ff448cb5aa95668.scn
+Loading resource: res://assets/vfx/shaders/hit_highlight.gdshader
+Loading resource: res://assets/environment/resources/rock_stage1/rock_stage1_var_0.glb
+Loading resource: res://.godot/imported/rock_stage1_var_0.glb-998afcb5d555584a9355f0c217616b27.scn
+Loading resource: res://assets/environment/resources/rock_stage1/rock_stage1_var_1.glb
+Loading resource: res://.godot/imported/rock_stage1_var_1.glb-d4dc0ea0c6f72bd60ca3e85fe86ae56d.scn
+Loading resource: res://assets/environment/resources/rock_stage1/rock_stage1_var_2.glb
+Loading resource: res://.godot/imported/rock_stage1_var_2.glb-060bc64b2cc950cb2af4bdb41da28377.scn
+Loading resource: res://assets/environment/resources/rock_stage1/rock_stage1_var_3.glb
+Loading resource: res://.godot/imported/rock_stage1_var_3.glb-01236a54c79337807d1e1f46524897c5.scn
+Loading resource: res://assets/environment/resources/rock_stage1/rock_stage1_var_4.glb
+Loading resource: res://.godot/imported/rock_stage1_var_4.glb-6cafb594772c20945cbdbab0c4f80fe7.scn
+Loading resource: res://assets/environment/resources/rock_stage1/rock_stage1_var_5.glb
+Loading resource: res://.godot/imported/rock_stage1_var_5.glb-0b35e0097f4d7d93a079069b33bbcdc3.scn
+Loading resource: res://assets/environment/resources/rock_stage2/rock_stage2_var_0.glb
+Loading resource: res://.godot/imported/rock_stage2_var_0.glb-d127a3bec087fe4bdce39375f2f4703c.scn
+Loading resource: res://assets/environment/resources/rock_stage2/rock_stage2_var_1.glb
+Loading resource: res://.godot/imported/rock_stage2_var_1.glb-1ae459713879a2d3668be89df1094bbc.scn
+Loading resource: res://assets/environment/resources/rock_stage2/rock_stage2_var_2.glb
+Loading resource: res://.godot/imported/rock_stage2_var_2.glb-dfef4bc6fa4e86428a582cb0e3a35ef1.scn
+Loading resource: res://assets/environment/resources/rock_stage3/rock_stage3_var_0.glb
+Loading resource: res://.godot/imported/rock_stage3_var_0.glb-7bd0b5024d072cfa06e84cfee4639dea.scn
+Loading resource: res://assets/environment/resources/rock_stage3/rock_stage3_var_1.glb
+Loading resource: res://.godot/imported/rock_stage3_var_1.glb-308cab13931799773bb0fd89c0f14d75.scn
+Loading resource: res://assets/environment/resources/rock_stage3/rock_stage3_var_2.glb
+Loading resource: res://.godot/imported/rock_stage3_var_2.glb-a6866f2be777e73d7e4f1ba3af0b552a.scn
+Loading resource: res://assets/environment/resources/rock_stage4/rock_stage4_var_0.glb
+Loading resource: res://.godot/imported/rock_stage4_var_0.glb-bff2f759308c52a2afe2a94d96a21354.scn
+Loading resource: res://assets/environment/resources/rock_stage4/rock_stage4_var_1.glb
+Loading resource: res://.godot/imported/rock_stage4_var_1.glb-b73719287c33629c8466d3c4eb7cb830.scn
+Loading resource: res://assets/environment/resources/rock_stage5/rock_stage5_var_0.glb
+Loading resource: res://.godot/imported/rock_stage5_var_0.glb-8775d7eb9d1a2ede218304b1e48a876b.scn
+Loading resource: res://assets/environment/resources/rock_stage5/rock_stage5_var_1.glb
+Loading resource: res://.godot/imported/rock_stage5_var_1.glb-40a792c3e405dd0492dffb9da0c923f1.scn
+Loading resource: res://assets/environment/resources/rock_stage5/rock_stage5_var_2.glb
+Loading resource: res://.godot/imported/rock_stage5_var_2.glb-08c8c39f58f1633c4ecd8f504a5fe9c0.scn
+Loading resource: res://assets/vfx/shaders/sword_blade_trail.gdshader
+Loading resource: res://scenes/prefabs/arrow_projectile.tscn
+Loading resource: res://scripts/arrow_projectile.gd
+Loading resource: res://scripts/hitbox_area.gd
+Loading resource: res://scenes/prefabs/temp_turret.tscn
+Loading resource: res://scripts/temp_turret.gd
+Loading resource: res://assets/models/props/temp_turret_model.tscn
+Loading resource: res://assets/models/textures/temp_turret.png
+Loading resource: res://.godot/imported/temp_turret.png-f3fcbd6d5c411e66201156beadf710f8.ctex
+Loading resource: res://scenes/prefabs/remote_mine.tscn
+Loading resource: res://scripts/remote_mine.gd
+Loading resource: res://assets/models/props/remote_mine_model.tscn
+Loading resource: res://assets/models/textures/remote_mine.png
+Loading resource: res://.godot/imported/remote_mine.png-82efac77e51910652e2c16b93b8f7f51.ctex
+Loading resource: res://scenes/prefabs/decoy_dummy.tscn
+Loading resource: res://scripts/decoy_dummy.gd
+Loading resource: res://assets/models/props/decoy_dummy_model.tscn
+Loading resource: res://assets/models/textures/decoy_dummy.png
+Loading resource: res://.godot/imported/decoy_dummy.png-547023ac3dea60920e26bec3080f7d80.ctex
+Loading resource: res://assets/models/characters/hero_warrior.tscn
+Loading resource: res://assets/models/characters/hero_warrior.glb
+Loading resource: res://.godot/imported/hero_warrior.glb-624f74dd4c0599b6675f8c2bfbd152fb.scn
+Loading resource: res://assets/models/characters/hero_archer.tscn
+Loading resource: res://assets/models/characters/hero_archer.glb
+Loading resource: res://.godot/imported/hero_archer.glb-80949031e9c34b50c30334212100ac76.scn
+Loading resource: res://assets/models/characters/hero_engineer.tscn
+Loading resource: res://assets/models/characters/hero_engineer.glb
+Loading resource: res://.godot/imported/hero_engineer.glb-ba3ba7b747b523bd55f738e8e3092ed7.scn
+Loading resource: res://scenes/enemy_dummy.tscn
+Loading resource: res://scripts/enemy_dummy.gd
+Loading resource: res://assets/models/enemies/zombie.tscn
+Loading resource: res://assets/models/enemies/zombie.glb
+Loading resource: res://.godot/imported/zombie.glb-4e343e443bb87432a44c9fb6ad5bb072.scn
+
+
+res://tests/integration/test_ability_viewer.gd
+* test_catalogue_has_all_class_actions_and_always_uses_warrior_and_zombie_models
+    --- Awaiting 1.6 seconds  ---
+* test_viewer_is_read_only_and_has_no_recipe_or_manual_step_operations
+ABILITY_LAB_READY
+    --- Awaiting 0.7 seconds  ---
+    --- Awaiting 1.6 seconds  ---
+* test_native_melee_and_sharp_edge_match_displayed_damage
+    --- Awaiting 1.6 seconds  ---
+* test_native_archer_attacks_use_real_projectiles_and_piercing
+    --- Awaiting 0.6 seconds  ---
+    --- Awaiting 0.8 seconds  ---
+    --- Awaiting 1.6 seconds  ---
+* test_native_parry_success_blocks_attack_and_applies_counter_stun
+    --- Awaiting 1.6 seconds  ---
+* test_vampirism_properties_distinguish_card_value_from_observed_healing
+    --- Awaiting 1.6 seconds  ---
+* test_native_turret_and_mine_deal_their_own_damage
+    --- Awaiting 1.1 seconds  ---
+    --- Awaiting 1.2 seconds  ---
+    --- Awaiting 1.6 seconds  ---
+* test_native_nuke_applies_impact_and_burn_to_fixed_preview_target
+    --- Awaiting 1.3 seconds  ---
+    --- Awaiting 0.5 seconds  ---
+    --- Awaiting 1.6 seconds  ---
+* test_native_duel_decoy_eagle_eye_and_dash_are_dispatched
+    --- Awaiting 1.6 seconds  ---
+* test_reset_cancels_delayed_preview_actions
+    --- Awaiting 1.2 seconds  ---
+    --- Awaiting 1.6 seconds  ---
+* test_unavailable_native_special_preserves_buffered_public_attack
+    --- Awaiting 1.6 seconds  ---
+11/11 passed.
+
+
+
+
+==============================================
+= Run Summary
+==============================================
+
+Totals
+------
+Scripts               1
+Tests                11
+Passing Tests        11
+Asserts             156
+Time              31.689s
+
+
+---- All tests passed! ----
+
+XR: Clearing primary interface
+XR: Removed interface "Native mobile"
+XR: Removed interface "OpenXR"

@@ -55,6 +55,25 @@ func get_active_effect_count() -> int:
 	_cleanup_stale_references()
 	return active_effect_ids.size()
 
+## Reset a standalone preview or end a scene without leaving timed effects behind.
+func clear_effects() -> void:
+	for id: int in active_effect_ids.keys():
+		var effect: Node = instance_from_id(id) as Node
+		if is_instance_valid(effect) and not effect.is_queued_for_deletion():
+			effect.queue_free()
+	active_effect_ids.clear()
+	_timed_effects.clear()
+
+
+## Tie the deadline to its effect so resetting a preview frees both together.
+func _attach_lifetime_timer(effect: Node, duration: float) -> void:
+	var timer: Timer = Timer.new()
+	timer.one_shot = true
+	timer.process_mode = Node.PROCESS_MODE_ALWAYS
+	effect.add_child(timer)
+	timer.timeout.connect(effect.queue_free)
+	timer.start(duration)
+
 func _cleanup_stale_references() -> void:
 	var to_remove: Array[int] = []
 	for id in active_effect_ids.keys():
@@ -336,13 +355,7 @@ func spawn_parry_stance_aura(player: CharacterBody3D, max_duration: float = 0.5)
 	t.tween_property(mat, "albedo_color:a", 0.7, 0.15)
 	t.tween_property(mat, "albedo_color:a", 0.35, 0.15)
 
-	var safety_timer = root.get_tree().create_timer(max_duration)
-	var r_id = root.get_instance_id()
-	safety_timer.timeout.connect(func():
-		var node = instance_from_id(r_id)
-		if node and is_instance_valid(node):
-			node.queue_free()
-	)
+	_attach_lifetime_timer(root, max_duration)
 
 	register_effect(root, max_duration + 0.1)
 	return root
@@ -406,13 +419,7 @@ func spawn_duel_indicator(target: Node3D, max_duration: float = 15.0) -> Node3D:
 	var t = root.create_tween().set_loops()
 	t.tween_property(root, "rotation:y", TAU, 1.8)
 
-	var safety_timer = root.get_tree().create_timer(max_duration)
-	var r_id = root.get_instance_id()
-	safety_timer.timeout.connect(func():
-		var node = instance_from_id(r_id)
-		if node and is_instance_valid(node):
-			node.queue_free()
-	)
+	_attach_lifetime_timer(root, max_duration)
 
 	register_effect(root, max_duration + 0.1)
 	return root
