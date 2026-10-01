@@ -27,6 +27,11 @@ var orientation: PlayerOrientation = PlayerOrientation.new()
 @export var orientation_settings: PlayerOrientationSettings = null
 @export var debug_orientation: bool = false
 
+## Optional authored loadout. Null preserves the existing class ability.
+## Draft resources are rejected by the shared runtime.
+@export var constructed_special: AbilityDefinition
+var constructed_runner: AbilityRunner
+
 # Delegated properties for external API compatibility
 var speed: float:
 	get: return movement.speed
@@ -144,8 +149,13 @@ var attack_cooldown_timer: float:
 	set(val): combat.attack_cooldown_timer = val
 
 var special_cooldown_timer: float:
-	get: return combat.special_cooldown_timer
-	set(val): combat.special_cooldown_timer = val
+	get:
+		return constructed_runner.cooldown_remaining if constructed_special and constructed_runner else combat.special_cooldown_timer
+	set(val):
+		if constructed_special and constructed_runner:
+			constructed_runner.cooldown_remaining = val
+		else:
+			combat.special_cooldown_timer = val
 
 var ultimate_cooldown: float:
 	get: return abilities.ultimate_cooldown
@@ -198,6 +208,10 @@ const DUEL_TETHER_SCENE = preload("res://scenes/duel_tether.tscn")
 const FLOATING_TEXT_SCENE = preload("res://scenes/floating_text.tscn")
 
 func _ready() -> void:
+	constructed_runner = AbilityRunner.new()
+	constructed_runner.automatic = false
+	constructed_runner.alive_predicate = func() -> bool: return current_health > 0.0
+	add_child(constructed_runner)
 	add_to_group("player")
 	presentation.setup(self)
 
@@ -272,6 +286,7 @@ func _ready() -> void:
 		portal = get_node_or_null(portal_path) as Node3D
 
 func _physics_process(delta: float) -> void:
+	constructed_runner.advance(delta)
 	presentation.update_portal_compass(self)
 
 	# Update component timers
@@ -304,6 +319,7 @@ func _physics_process(delta: float) -> void:
 
 	# Action inputs
 	if Input.is_action_just_pressed("dash"):
+		constructed_runner.cancel("Прервано уклонением")
 		movement.perform_dash(orientation.body_facing_direction, calculated_move_dir)
 
 	if Input.is_action_just_pressed("class_utility"):
@@ -323,10 +339,11 @@ func _physics_process(delta: float) -> void:
 
 	var orient_move_dir: Vector3 = movement.dash_direction if movement.is_dashing else calculated_move_dir
 	orientation.process_orientation(self, delta, target_aim, orient_move_dir)
-	if is_dueling and duel_target and is_instance_valid(duel_target):
-		movement.process_duel_movement(self, delta, duel_target)
-	else:
-		movement.process_movement(self, delta, forced_target, orientation.directional_speed_multiplier, orientation.aim_direction)
+	if not constructed_runner.moved_this_advance and not constructed_runner.owns_movement():
+		if is_dueling and duel_target and is_instance_valid(duel_target):
+			movement.process_duel_movement(self, delta, duel_target)
+		else:
+			movement.process_movement(self, delta, forced_target, orientation.directional_speed_multiplier, orientation.aim_direction)
 	presentation.update_animations(self, health.is_parrying, movement.is_dashing, delta, orientation)
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -394,6 +411,8 @@ func set_class(new_class: CharacterClass, show_popup: bool = true) -> void:
 			if show_popup: spawn_popup_text("КЛАСС: ИНЖЕНЕР [МОЛОТ & ТУРЕЛИ]", Color(1.0, 0.6, 0.2))
 
 func perform_attack() -> void:
+	if constructed_runner and constructed_runner.running:
+		return
 	if combat.attack_cooldown_timer > 0.0 or movement.is_dashing:
 		return
 	orientation.request_action(
@@ -403,6 +422,11 @@ func perform_attack() -> void:
 	)
 
 func perform_special_attack() -> void:
+	if constructed_special:
+		if movement.is_dashing or abilities.is_dueling or current_health <= 0.0:
+			return
+		orientation.request_action("special", _cast_constructed_special, true)
+		return
 	if combat.special_cooldown_timer > 0.0 or movement.is_dashing:
 		return
 	orientation.request_action(
@@ -411,7 +435,17 @@ func perform_special_attack() -> void:
 		true
 	)
 
+func _cast_constructed_special() -> void:
+	if movement.is_dashing or abilities.is_dueling:
+		return
+	var map: MapGenerator = get_tree().get_first_node_in_group("map_generator") as MapGenerator
+	var lookup: Callable = map.get_voxel_height if map else Callable()
+	if constructed_runner.start_cast(constructed_special, self, orientation.aim_direction, lookup):
+		presentation.play_special_animation()
+
 func perform_utility() -> void:
+	if constructed_runner:
+		constructed_runner.cancel("Прервано классовой утилитой")
 	# Utility actions (Parry, Decoy, Mine) do not require facing
 	orientation.request_action(
 		"utility",
@@ -423,9 +457,13 @@ func perform_parry() -> void:
 	abilities.perform_parry(self)
 
 func perform_dash() -> void:
+	if constructed_runner:
+		constructed_runner.cancel("Прервано уклонением")
 	movement.perform_dash(-global_transform.basis.z)
 
 func perform_ultimate() -> void:
+	if constructed_runner:
+		constructed_runner.cancel("Прервано ультимейтом")
 	if abilities.ultimate_cooldown_timer > 0.0:
 		return
 	match current_class:

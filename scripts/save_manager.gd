@@ -44,6 +44,9 @@ func _init_storage_paths() -> void:
 	var all_args: Array = OS.get_cmdline_args() + OS.get_cmdline_user_args()
 	for arg in all_args:
 		var s_arg: String = str(arg)
+		if s_arg.contains("ability_lab.tscn") or s_arg == "--ability-lab":
+			set_storage_dir("user://ability_lab/profile/")
+			return
 		if s_arg.begins_with("--test-profile="):
 			set_storage_dir(s_arg.substr("--test-profile=".length()))
 			return

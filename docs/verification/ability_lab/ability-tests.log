@@ -1,0 +1,65 @@
+Godot Engine v4.6.1.stable.official.14d19694e - https://godotengine.org
+
+---  GUT  ---
+[INFO]:  using [C:/Users/alexa/AppData/Roaming/Godot/app_userdata/Cube Siege] for temporary output.
+Godot version:  4.6.1
+GUT version:  9.6.1
+
+
+res://tests/unit/test_ability_compiler.gd
+* test_examples_compile_without_mutating_the_source
+* test_conflicting_replacements_fail_instead_of_using_last_writer
+* test_unknown_slot_and_invalid_numbers_are_rejected
+* test_recipe_offsets_and_semantic_paths
+* test_recipe_cycles_fail_without_recursing_forever
+* test_overlapping_motion_owners_fail
+* test_duplicate_slots_and_unknown_schema_fail
+* test_document_roundtrip_and_undo_keep_nested_actions
+8/8 passed.
+
+
+res://tests/integration/test_ability_laboratory.gd
+* test_sector_uses_real_enemy_health_and_excludes_targets_behind
+* test_repeat_policy_and_reentrant_cast_rejection
+* test_cancel_removes_future_hits_and_motion
+* test_running_cast_has_a_snapshot_of_authored_parameters
+* test_terrain_and_world_obstacles_explain_rejections
+* test_owner_death_cancels_and_drafts_require_explicit_lab_mode
+* test_editor_opens_and_rebuilds_after_undo
+ABILITY_LAB_READY
+* test_opt_in_player_uses_the_same_runner_and_cancels_on_dash
+* test_temporal_boundaries_preserve_motion_distance
+* test_moving_area_hits_targets_along_path_not_only_at_endpoint
+10/10 passed.
+
+
+
+
+==============================================
+= Run Summary
+==============================================
+
+Totals
+------
+Scripts               2
+Tests                18
+Passing Tests        18
+Asserts              67
+Time              2.057s
+
+
+---- All tests passed! ----
+
+WARNING: Godot 3.x SpatialMaterial remapped parameter not found: specular
+   at: _set (scene/resources/material.cpp:4116)
+   GDScript backtrace (most recent call first):
+       [0] load_script_using_custom_warnings (res://addons/gut/warnings_manager.gd:173)
+       [1] _parse_script (res://addons/gut/test_collector.gd:76)
+       [2] add_script (res://addons/gut/test_collector.gd:128)
+       [3] add_script (res://addons/gut/gut.gd:1070)
+       [4] _apply_options (res://addons/gut/gut_config.gd:139)
+       [5] apply_options (res://addons/gut/gut_config.gd:207)
+       [6] run_tests (res://addons/gut/gui/GutRunner.gd:192)
+       [7] _run_tests (res://addons/gut/cli/gut_cli.gd:239)
+       [8] main (res://addons/gut/cli/gut_cli.gd:297)
+       [9] _init (res://addons/gut/gut_cmdln.gd:39)
