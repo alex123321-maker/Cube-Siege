@@ -1,0 +1,264 @@
+{
+  "version": 2,
+  "issue": 52,
+  "source_repository": "https://github.com/alex123321-maker/assets",
+  "source_base_commit": "2e896cf314b89958189e273ac3491ddea71397d7",
+  "source_revision": "e8ec0d812f259efec0d87a20027fcfbcd0f50654",
+  "generation_tool": "Codex built-in ImageGen",
+  "source_prompts_sha256": "142787f77b2681d6d14a7e8c144ec64377b0a5efe8117b13dbca2a702e1836bd",
+  "icons": [
+    {
+      "id": "resource_wood",
+      "runtime_file": "icons/resource_wood.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "export_sha256": "e9c996ecba0a377bf0b57031f55f3ee4df5d27c2c8fc409185252a50c5fe28a7",
+      "source_master": "source/imagegen/masters/resource_wood.png",
+      "master_sha256": "f9807f0c9a9277244ee846d3352d8f68025f4f5aa1c7ccf8e1140c7a8f78d189"
+    },
+    {
+      "id": "resource_stone",
+      "runtime_file": "icons/resource_stone.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "export_sha256": "6f0d9eb25547ea073040c3f69dd137b1c2cac06ec7906315fcaf569c8b5c08c9",
+      "source_master": "source/imagegen/masters/resource_stone.png",
+      "master_sha256": "7534d77a814a73fca34e324ae8ee9f7efcd50846ee4e180afc32a1c769c0294e"
+    },
+    {
+      "id": "resource_iron",
+      "runtime_file": "icons/resource_iron.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "export_sha256": "ee9e9b6b401a818dc693884588ecf14461ec25b13824388eb456d24629da7745",
+      "source_master": "source/imagegen/masters/resource_iron.png",
+      "master_sha256": "99c2ef3d43d92858fec0102f64930da2ff96dc2d67293d4221daa69493b656c7"
+    },
+    {
+      "id": "resource_magic_stone",
+      "runtime_file": "icons/resource_magic_stone.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "export_sha256": "794e0b0b9c5de2a6a0f92deb574f8a04269052a16871a795da85e86417341c5f",
+      "source_master": "source/imagegen/masters/resource_magic_stone.png",
+      "master_sha256": "8f86f6960acd5d3f33cc1572ef35e2cfed5d14b6eb275c367761b68966d83d5a"
+    },
+    {
+      "id": "global_day",
+      "runtime_file": "icons/global_day.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "export_sha256": "8762903fc35838cbce07ee2f9557b9dba9d5c20d70709e60e9c09cab58a3acce",
+      "source_master": "source/imagegen/masters/global_day.png",
+      "master_sha256": "b643afc7a6a819cb9614555fe6220fbb07659324dc9c419406e20422df47a434"
+    },
+    {
+      "id": "global_night",
+      "runtime_file": "icons/global_night.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "export_sha256": "e2f4eff9d35f54c2e2ce74f44dc0a4766bd582b4fd9f81e052caab81004e6be6",
+      "source_master": "source/imagegen/masters/global_night.png",
+      "master_sha256": "9284d35354501b4423c3968136003fd89dae54adfce5f84df38183c2e4ffaf58"
+    },
+    {
+      "id": "global_settings",
+      "runtime_file": "icons/global_settings.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "export_sha256": "3f33a038f62e134ec2a5b420517cc297775348d1753f230a05a016a23f7204c1",
+      "source_master": "source/imagegen/masters/global_settings.png",
+      "master_sha256": "9500b25e21619bb056d8aaa064a1c1e8c505b2e65be3a3d7f485d637bff2cd0f"
+    },
+    {
+      "id": "global_build",
+      "runtime_file": "icons/global_build.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "export_sha256": "4e78ee392db92bdeff8dcbd59f09dc118221dc3af8df09e6de9567f0e6d78c02",
+      "source_master": "source/imagegen/masters/global_build.png",
+      "master_sha256": "f18dc572828a0a828324b4f5bdd6f9c559dce600f6b262bc7a5c48e6e4abec77"
+    },
+    {
+      "id": "warrior_sword_attack",
+      "runtime_file": "icons/warrior_sword_attack.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "export_sha256": "f74e62a4d0f932f0140656ad25fc9651b9cf88963f9e6bb322111b9ee7c4f0a1",
+      "source_master": "source/imagegen/masters/warrior_sword_attack.png",
+      "master_sha256": "79e23fd9a67eab07449529105f6a3cac03bb4dce6ddc0180976490b5104d9630"
+    },
+    {
+      "id": "warrior_cleave",
+      "runtime_file": "icons/warrior_cleave.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "export_sha256": "1ab2e4ba54b8a424d2415ad37f28913f545695e5590e87b10d6acaa2cc8846f0",
+      "source_master": "source/imagegen/masters/warrior_cleave.png",
+      "master_sha256": "7b8fc7c52d1f61ab675c7299c7693c0f85d71ecf3304d65bb3dc519fc4ee9556"
+    },
+    {
+      "id": "warrior_dash",
+      "runtime_file": "icons/warrior_dash.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "export_sha256": "8a8df1508578bbc0c5d5a7d57049f7addc5dff6bd1a2f415c1c881b38356b687",
+      "source_master": "source/imagegen/masters/warrior_dash.png",
+      "master_sha256": "ad0bf8d97850b4b52c21d3158459479067143103e35ab77e324b17a73f8f997a"
+    },
+    {
+      "id": "warrior_parry",
+      "runtime_file": "icons/warrior_parry.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "export_sha256": "3fcf88702546b01650c05d9b1872bb3ba6606270ab694a8aa039aa05c71d28c1",
+      "source_master": "source/imagegen/masters/warrior_parry.png",
+      "master_sha256": "b523638cf095614f3a23a93088f6a84892632f20938c3fc6ee3cbda64c904cac"
+    },
+    {
+      "id": "warrior_duel",
+      "runtime_file": "icons/warrior_duel.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "export_sha256": "d106feee3227bb4312d2503648ac7cb5f588c5712a00bae22209b8308952ffc8",
+      "source_master": "source/imagegen/masters/warrior_duel.png",
+      "master_sha256": "9940be50b8483c2ee8e145afc848be1ad668e3cf241ae03fff22935d53e37114"
+    },
+    {
+      "id": "archer_shot",
+      "runtime_file": "icons/archer_shot.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "export_sha256": "070e14db3021acb5c4c31b394b6a6613f15bf50586a2a520dd38bb15543f6264",
+      "source_master": "source/imagegen/masters/archer_shot.png",
+      "master_sha256": "e581db5c3b42f2a770ae27bb02a4198128cb101b63b044005fd4799a7f28a6a4"
+    },
+    {
+      "id": "archer_piercing_shot",
+      "runtime_file": "icons/archer_piercing_shot.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "export_sha256": "b288201d2702dd1b43024fb6df59f0b44a4361924ff2be691cfc9d67634cfbf2",
+      "source_master": "source/imagegen/masters/archer_piercing_shot.png",
+      "master_sha256": "a05ec4faab2c812a9b7b1bf20b08dcbf10b91b24e4275d087c1d0d0b1906462c"
+    },
+    {
+      "id": "archer_roll",
+      "runtime_file": "icons/archer_roll.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "export_sha256": "6eb610b2946d8801f148aee8c095b4a706bc26fc77ad094f07e5b15a13ac4624",
+      "source_master": "source/imagegen/masters/archer_roll.png",
+      "master_sha256": "decda28af18c2f3b2653b3476ca9a64ab6f9768303e2a6fae1bf73e891c6c3bb"
+    },
+    {
+      "id": "archer_decoy",
+      "runtime_file": "icons/archer_decoy.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "export_sha256": "fa6bbdf9748b8140a6d3494ffe7d5f6f672a4740fb3a8ef37c866ce57c34f263",
+      "source_master": "source/imagegen/masters/archer_decoy.png",
+      "master_sha256": "7d8d173eca4e8583620763852f4ef4d7d06e01f4a03df3e415b1b69513241e4f"
+    },
+    {
+      "id": "archer_eagle_eye",
+      "runtime_file": "icons/archer_eagle_eye.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "export_sha256": "838f7da299aa76aa6f5c8f914496a2094ffe71f566503cc46cda692d5c7bee8c",
+      "source_master": "source/imagegen/masters/archer_eagle_eye.png",
+      "master_sha256": "bb18b066d1524e79616e1af9a913811e97359c410865c6723fb68cc7baa1ec7d"
+    },
+    {
+      "id": "engineer_hammer",
+      "runtime_file": "icons/engineer_hammer.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "export_sha256": "a71bdfab20582e9393d7fe588e8e18ba84876e7202129d2566c93900f6aaff19",
+      "source_master": "source/imagegen/masters/engineer_hammer.png",
+      "master_sha256": "0c9a07a097a2bbdce82d6c5dd76ad462b8a21b0843aaeff3c551feaa3c06eeb0"
+    },
+    {
+      "id": "engineer_turret",
+      "runtime_file": "icons/engineer_turret.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "export_sha256": "fa3f27c45dec539f02e68cb7677c69c44e0ab1c059b06b5ab5dcf083428e385f",
+      "source_master": "source/imagegen/masters/engineer_turret.png",
+      "master_sha256": "f2f4077245ebee1ead62e71a20dcb64e725bd2ff957f202d875292103beb0c94"
+    },
+    {
+      "id": "engineer_dash",
+      "runtime_file": "icons/engineer_dash.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "export_sha256": "37c7951e78060a39a9bd9741b2836ba63aed1cb251b071cde78e7ce7c5cbbf89",
+      "source_master": "source/imagegen/masters/engineer_dash.png",
+      "master_sha256": "94bc820ead59c8a74dad0c6e4e52c0c8673649688d986506fc179d90a977ab09"
+    },
+    {
+      "id": "engineer_mine",
+      "runtime_file": "icons/engineer_mine.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "export_sha256": "08bd79947339ed3361530bed669e2b68f9a9db4d261f197c1c62c3b7519d1a8a",
+      "source_master": "source/imagegen/masters/engineer_mine.png",
+      "master_sha256": "7e38ff679e833f44cb6f3f16d58ac5d8a11618967d20118ba067193eb28cf509"
+    },
+    {
+      "id": "engineer_tactical_nuke",
+      "runtime_file": "icons/engineer_tactical_nuke.png",
+      "dimensions": [
+        256,
+        256
+      ],
+      "export_sha256": "02ed3bd615bae16c70406df252d2981f25fa91c6679e985504c2b377a2a9dfbb",
+      "source_master": "source/imagegen/masters/engineer_tactical_nuke.png",
+      "master_sha256": "59a4e2967ebf01e45b7dbcfccaf5e525c02bf22d4d24668737bcc4536b14353e"
+    }
+  ]
+}

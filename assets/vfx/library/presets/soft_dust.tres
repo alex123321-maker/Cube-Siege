@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="VFXStampProfile" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/vfx/library/vfx_stamp_profile.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/vfx/library/kenney/smoke_01.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+texture = ExtResource("2")
+tint = Color(0.82, 0.73, 0.61, 0.42)
+start_size = Vector2(0.65, 0.65)
+end_size = Vector2(1.35, 1.15)
+lifetime = 0.5
+rise_seconds = 0.05
+emission = 0.0
+drift = Vector3(0, 0.45, 0)

@@ -1,0 +1,14 @@
+Godot Engine v4.6.1.stable.official.14d19694e - https://godotengine.org
+Vulkan 1.4.325 - Forward+ - Using Device #0: Intel - Intel(R) Arc(TM) Graphics
+
+WARNING: Godot 3.x SpatialMaterial remapped parameter not found: specular
+   at: _set (scene/resources/material.cpp:4116)
+Movie Maker mode enabled, recording movie in 1280×720 @ 60 FPS...
+CLEAVE_CAPTURE damage_pass=true releases=5 contacts=17 active_effects=0 camera_offset=(0.0, 0.0) settled_trail=0
+--------------------------------------------------------------------------------
+Done recording movie at path: D:/Repository/game/screenshots_debug/cleave.avi
+833 frames at 60 FPS (movie length: 00:00:13:53), recorded in 00:00:38 (34% of real-time speed).
+CPU render time: 2.95 seconds (average: 3.54 ms/frame)
+GPU render time: 5.70 seconds (average: 6.84 ms/frame)
+Encoding time: 11.15 seconds (average: 13.38 ms/frame)
+--------------------------------------------------------------------------------

@@ -364,6 +364,16 @@ func test_rejected_friendly_building_does_not_consume_quota() -> void:
 	assert_eq(player.slash_area.hits_landed, 1)
 
 func test_alternating_lmb_rmb_actual_damage() -> void:
+	# Longer ability timing needs a real floor; otherwise the actors fall
+	# throughout the sequence and reset targets end up above the player.
+	var floor_body := StaticBody3D.new()
+	var floor_shape := CollisionShape3D.new()
+	var floor_box := BoxShape3D.new()
+	floor_box.size = Vector3(20, 1, 20)
+	floor_shape.shape = floor_box
+	floor_body.add_child(floor_shape)
+	floor_body.position.y = -0.5
+	add_child_autoqfree(floor_body)
 	var player = PLAYER_SCENE.instantiate()
 	add_child_autoqfree(player)
 	player.set_class(player.CharacterClass.WARRIOR, false)
@@ -398,7 +408,8 @@ func test_alternating_lmb_rmb_actual_damage() -> void:
 	# 2. Cleave (RMB) -> multi target
 	player.combat.special_cooldown_timer = 0.0
 	player.perform_special_attack()
-	await wait_seconds(0.25)
+	# Observe a completed release window using the shared ability timing.
+	await wait_seconds(PlayerCombat.CLEAVE_SPEC.windup + PlayerCombat.SLASH_ACTIVE_DURATION + 0.05)
 
 	var hp_a_2: float = enemy_a.current_health
 	var hp_b_2: float = enemy_b.current_health
@@ -407,13 +418,19 @@ func test_alternating_lmb_rmb_actual_damage() -> void:
 	assert_true(hp_a_2 > 0.0 and hp_b_2 > 0.0, "Both targets remain alive after Cleave (hp_a=%f, hp_b=%f)" % [hp_a_2, hp_b_2])
 
 	# 3. Normal attack (LMB) again -> single target with BOTH alive targets present
+	# Cleave knockback may move these still-living targets out of LMB range.
+	enemy_a.knockback_velocity = Vector3.ZERO
+	enemy_b.knockback_velocity = Vector3.ZERO
+	enemy_a.global_position = Vector3(-0.4, 0, -1.5)
+	enemy_b.global_position = Vector3(0.4, 0, -1.5)
+	await wait_physics_frames(3)
 	player.combat.attack_cooldown_timer = 0.0
 	player.perform_attack()
 	await wait_seconds(0.25)
 
 	var a_took_hit_3: bool = enemy_a.current_health < hp_a_2
 	var b_took_hit_3: bool = enemy_b.current_health < hp_b_2
-	assert_true(a_took_hit_3 != b_took_hit_3, "LMB damages exactly one target again when multiple living targets are present")
+	assert_true(a_took_hit_3 != b_took_hit_3, "LMB damages exactly one target again with two live targets: before=%s/%s after=%s/%s hits=%s player=%s targets=%s/%s" % [hp_a_2, hp_b_2, enemy_a.current_health, enemy_b.current_health, player.slash_area.hits_landed, player.global_position, enemy_a.global_position, enemy_b.global_position])
 
 func test_engineer_hammer_multi_target_actual_damage() -> void:
 	var player = PLAYER_SCENE.instantiate()

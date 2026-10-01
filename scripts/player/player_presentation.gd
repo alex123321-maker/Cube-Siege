@@ -18,11 +18,13 @@ var debug_enabled: bool = false
 var _debug_label: Label3D = null
 var _debug_elapsed: float = 0.0
 var blade_trail: SwordBladeTrail = null
+var blade_tip_anchor: Node3D = null
 
 const WARRIOR_PROFILE = preload("res://assets/animations/profiles/warrior.tres")
 const ARCHER_PROFILE = preload("res://assets/animations/profiles/archer.tres")
 const ENGINEER_PROFILE = preload("res://assets/animations/profiles/engineer.tres")
 const SWORD_VFX_PROFILE = preload("res://assets/vfx/sword/steel_slash.tres")
+const CLEAVE_ANIMATION: Animation = preload("res://assets/animations/actions/warrior_cleave.tres")
 const ACTIONS: Array[StringName] = [&"attack", &"special", &"utility", &"ultimate"]
 
 func setup(player_node: CharacterBody3D) -> void:
@@ -36,6 +38,7 @@ func set_active_model(model: Node3D, profile: CharacterAnimationProfile = null) 
 		blade_trail.reset_trail()
 		blade_trail.queue_free()
 	blade_trail = null
+	blade_tip_anchor = null
 	if pose_layer:
 		pose_layer.reset()
 	if is_instance_valid(anim_player):
@@ -52,6 +55,12 @@ func set_active_model(model: Node3D, profile: CharacterAnimationProfile = null) 
 	anim_player = model.get_node_or_null(animation_profile.animation_player_path) as AnimationPlayer
 	if not anim_player:
 		return
+	if animation_profile == WARRIOR_PROFILE:
+		var library: AnimationLibrary = anim_player.get_animation_library(&"").duplicate() as AnimationLibrary
+		library.remove_animation(&"special")
+		library.add_animation(&"special", CLEAVE_ANIMATION)
+		anim_player.remove_animation_library(&"")
+		anim_player.add_animation_library(&"", library)
 	anim_player.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
 	pose_layer = CharacterPoseLayer.new()
 	pose_layer.bind(model, animation_profile)
@@ -60,6 +69,7 @@ func set_active_model(model: Node3D, profile: CharacterAnimationProfile = null) 
 		var blade_base: Node3D = model.get_node_or_null(animation_profile.blade_base_path) as Node3D
 		var blade_tip: Node3D = model.get_node_or_null(animation_profile.blade_tip_path) as Node3D
 		if blade_base and blade_tip:
+			blade_tip_anchor = blade_tip
 			blade_trail = SwordBladeTrail.new()
 			blade_trail.name = "SwordBladeTrail"
 			model.add_child(blade_trail)
@@ -98,7 +108,8 @@ func update_animations(body: CharacterBody3D, is_parrying: bool, is_dashing: boo
 	pose_layer.update(delta, facing, aim, move, actual_velocity, turn, is_dashing,
 		cur if action_active else &"", is_parrying)
 	if is_instance_valid(blade_trail):
-		blade_trail.set_attack_phase(action_active and cur == &"attack", anim_player.current_animation_position)
+		blade_trail.set_attack_phase(action_active and cur in [&"attack", &"special"],
+			anim_player.current_animation_position, cur == &"special")
 	_update_debug(delta)
 
 func _play_action(animation: StringName, fallback: StringName = &"") -> void:

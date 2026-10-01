@@ -1,122 +1,127 @@
 {
   "resources": {
-    "wood": {
+    "resource_wood": {
       "file": "resource_wood.png",
-      "action": "Chopped Wood Logs"
+      "name": "Дерево",
+      "action": "Ресурс"
     },
-    "stone": {
+    "resource_stone": {
       "file": "resource_stone.png",
-      "action": "Granite Stone Blocks"
+      "name": "Камень",
+      "action": "Ресурс"
     },
-    "iron": {
+    "resource_iron": {
       "file": "resource_iron.png",
-      "action": "Forged Iron Ingot"
+      "name": "Железо",
+      "action": "Ресурс"
     },
-    "magic_stone": {
+    "resource_magic_stone": {
       "file": "resource_magic_stone.png",
-      "action": "Glowing Mana Crystal"
+      "name": "Магический камень",
+      "action": "Ресурс"
     }
   },
   "global_hud": {
-    "day": {
+    "global_day": {
       "file": "global_day.png",
-      "action": "Day Phase Indicator"
+      "name": "День",
+      "action": "Фаза суток"
     },
-    "night": {
+    "global_night": {
       "file": "global_night.png",
-      "action": "Night Phase Indicator"
+      "name": "Ночь",
+      "action": "Фаза суток"
     },
-    "settings": {
+    "global_settings": {
       "file": "global_settings.png",
-      "action": "Settings / Pause Menu"
+      "name": "Настройки",
+      "action": "Пауза / настройки"
     },
-    "build": {
+    "global_build": {
       "file": "global_build.png",
-      "action": "Build Mode (TAB)"
+      "name": "Строительство",
+      "action": "TAB: режим строительства"
     }
   },
   "warrior": {
-    "lmb": {
+    "warrior_sword_attack": {
       "file": "warrior_sword_attack.png",
-      "action": "LMB Sword Attack"
+      "name": "Меч",
+      "action": "ЛКМ: базовая атака"
     },
-    "rmb": {
+    "warrior_cleave": {
       "file": "warrior_cleave.png",
-      "action": "RMB Whirlwind Cleave"
+      "name": "Рассечение",
+      "action": "ПКМ: особая атака"
     },
-    "space": {
+    "warrior_dash": {
       "file": "warrior_dash.png",
-      "action": "Space Combat Dash"
+      "name": "Рывок",
+      "action": "SPACE: рывок"
     },
-    "q": {
+    "warrior_parry": {
       "file": "warrior_parry.png",
-      "action": "Q Shield Parry"
+      "name": "Парирование",
+      "action": "Q: парирование щитом"
     },
-    "f": {
+    "warrior_duel": {
       "file": "warrior_duel.png",
-      "action": "F Duel Challenge"
+      "name": "Дуэль",
+      "action": "F: вызов на дуэль"
     }
   },
   "archer": {
-    "lmb": {
+    "archer_shot": {
       "file": "archer_shot.png",
-      "action": "LMB Standard Shot"
+      "name": "Выстрел",
+      "action": "ЛКМ: базовая атака"
     },
-    "rmb": {
+    "archer_piercing_shot": {
       "file": "archer_piercing_shot.png",
-      "action": "RMB Piercing Drill Shot"
+      "name": "Пробивающий выстрел",
+      "action": "ПКМ: особая атака"
     },
-    "space": {
+    "archer_roll": {
       "file": "archer_roll.png",
-      "action": "Space Evasive Roll"
+      "name": "Кувырок",
+      "action": "SPACE: уклонение"
     },
-    "q": {
+    "archer_decoy": {
       "file": "archer_decoy.png",
-      "action": "Q Holographic Decoy"
+      "name": "Приманка",
+      "action": "Q: приманка"
     },
-    "f": {
-      "file": "archer_sniper.png",
-      "action": "F Lethal Sniper Stance"
+    "archer_eagle_eye": {
+      "file": "archer_eagle_eye.png",
+      "name": "Орлиный глаз",
+      "action": "F: Eagle Eye"
     }
   },
   "engineer": {
-    "lmb": {
+    "engineer_hammer": {
       "file": "engineer_hammer.png",
-      "action": "LMB Power Hammer"
+      "name": "Молот",
+      "action": "ЛКМ: базовая атака"
     },
-    "rmb": {
+    "engineer_turret": {
       "file": "engineer_turret.png",
-      "action": "RMB Sentry Turret"
+      "name": "Турель",
+      "action": "ПКМ: особая атака"
     },
-    "space": {
+    "engineer_dash": {
       "file": "engineer_dash.png",
-      "action": "Space Rocket Thruster"
+      "name": "Реактивный рывок",
+      "action": "SPACE: рывок"
     },
-    "q": {
+    "engineer_mine": {
       "file": "engineer_mine.png",
-      "action": "Q Proximity Landmine"
+      "name": "Мина",
+      "action": "Q: установить / подорвать"
     },
-    "f": {
-      "file": "engineer_overclock.png",
-      "action": "F Clockwork Overclock"
-    }
-  },
-  "auxiliary": {
-    "skull_wave": {
-      "file": "hud_skull_wave.png",
-      "action": "Wave / Boss Threat Indicator"
-    },
-    "health_cross": {
-      "file": "hud_health_cross.png",
-      "action": "Vitality / Healing"
-    },
-    "armor_shield": {
-      "file": "hud_armor_shield.png",
-      "action": "Armor / Fortification"
-    },
-    "target_range": {
-      "file": "hud_target_range.png",
-      "action": "Range Reticle"
+    "engineer_tactical_nuke": {
+      "file": "engineer_tactical_nuke.png",
+      "name": "Тактический заряд",
+      "action": "F: Tactical Nuke"
     }
   }
 }

@@ -1,4 +1,5 @@
 extends CharacterBody3D
+class_name PlayerPrototype
 
 ## Player Root Controller
 ## Composed of focused subsystems: Movement, Aim, Health, Progression, Interaction, Presentation, Combat, and Abilities.
@@ -123,7 +124,7 @@ var is_action_pending: bool:
 
 # External system paths & resolved references
 @export var building_system_path: NodePath = NodePath("../BuildingSystem")
-@export var radial_menu_path: NodePath = NodePath("../HUD/RadialMenu")
+@export var radial_menu_path: NodePath = NodePath("../HUD/Margin/RadialMenu")
 @export var portal_path: NodePath = NodePath("../Portal")
 
 var building_system: BuildingSystem = null

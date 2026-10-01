@@ -19,14 +19,16 @@ var _radius: float = 4.5
 var _only_phase: int = -1
 var _failed: bool = false
 var _no_imprint: bool = false
-const OUTPUT: String = "res://docs/verification/vfx_mine_pilot/"
+var _output: String = "res://docs/verification/vfx_mine_pilot/"
 
 func _initialize() -> void:
 	root.content_scale_size = Vector2i(1280, 720)
 	root.content_scale_mode = Window.CONTENT_SCALE_MODE_VIEWPORT
 	root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_KEEP
 	for argument: String in OS.get_cmdline_user_args():
-		if argument.begins_with("--label="):
+		if argument.begins_with("--output="):
+			_output = argument.trim_prefix("--output=").trim_suffix("/") + "/"
+		elif argument.begins_with("--label="):
 			_label = argument.trim_prefix("--label=")
 		elif argument.begins_with("--profile="):
 			_profile_path = argument.trim_prefix("--profile=")
@@ -63,7 +65,7 @@ func _process(delta: float) -> bool:
 
 func _capture() -> void:
 	seed(573901)
-	DirAccess.make_dir_recursive_absolute(OUTPUT)
+	DirAccess.make_dir_recursive_absolute(_output)
 	_manager = root.get_node("VFXManager")
 	_manager.set_process(false)
 	if not _profile_path.is_empty():
@@ -140,7 +142,7 @@ func _capture() -> void:
 				" targets=", _targets.size(), " pass=", not _failed)
 		if local_frame in [45, 47, 51, 57, 69, 90, 105, 120, 144, 177]:
 			await RenderingServer.frame_post_draw
-			root.get_texture().get_image().save_png(OUTPUT + "%s_%d_%03d.png" % [_label, phase, local_frame - 45])
+			root.get_texture().get_image().save_png(_output + "%s_%d_%03d.png" % [_label, phase, local_frame - 45])
 		await process_frame
 	await create_timer(0.6).timeout
 	print("MINE_PILOT inside_health=", _targets[0].current_health, ",", _targets[1].current_health,

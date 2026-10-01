@@ -58,10 +58,10 @@ func run_captures() -> void:
 	var hud = main.get_node_or_null("HUD")
 	var player = main.get_node_or_null("Player")
 	var day_night = main.get_node_or_null("DayNightCycle")
-	var radial = hud.get_node_or_null("RadialMenu") if hud else null
-	var draft = hud.get_node_or_null("CardDraftPopup") if hud else null
-	var bench = hud.get_node_or_null("WorkbenchModal") if hud else null
-	var overlay = hud.get_node_or_null("GameOverOverlay") if hud else null
+	var radial = hud.get_node_or_null("Margin/RadialMenu") if hud else null
+	var draft = hud.get_node_or_null("Margin/CardDraftPopup") if hud else null
+	var bench = hud.get_node_or_null("Margin/WorkbenchModal") if hud else null
+	var overlay = hud.get_node_or_null("Margin/GameOverOverlay") if hud else null
 
 	if radial:
 		radial.close_menu()
