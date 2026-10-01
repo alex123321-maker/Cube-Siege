@@ -338,8 +338,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.keycode == KEY_F4:
 			presentation.procedural_enabled = not presentation.procedural_enabled
 
+func is_dash_invulnerable() -> bool:
+	if not movement.is_dashing:
+		return false
+	return current_class != CharacterClass.WARRIOR
+
 func take_damage(damage: float, attacker: Node = null) -> void:
-	health.take_damage(damage, attacker, movement.is_dashing, is_dueling, duel_target, self)
+	health.take_damage(damage, attacker, is_dash_invulnerable(), abilities.is_dueling, abilities.duel_target, self)
 
 func heal(amount: float) -> void:
 	health.heal(amount)
@@ -476,8 +481,8 @@ func end_duel() -> void:
 func find_target_near_mouse() -> Node3D:
 	return abilities.find_target_near_mouse(self)
 
-func trigger_slash(dmg: float, knockback: float, arc_degrees: float) -> void:
-	combat.trigger_slash(self, dmg, knockback, arc_degrees, abilities.is_dueling)
+func trigger_slash(dmg: float, knockback: float, arc_degrees: float, can_hit_multiple: bool = true) -> void:
+	combat.trigger_slash(self, dmg, knockback, arc_degrees, abilities.is_dueling, can_hit_multiple)
 
 func trigger_arrow_shot(dmg: float, pierce: int = 1, spd: float = 28.0) -> void:
 	combat.trigger_arrow_shot(self, dmg, pierce, spd)

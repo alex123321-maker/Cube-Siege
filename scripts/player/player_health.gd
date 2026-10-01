@@ -33,8 +33,8 @@ func trigger_parry(duration: float = 0.5, cooldown: float = 6.0) -> bool:
 	parry_triggered.emit(false)
 	return true
 
-func take_damage(damage: float, attacker: Node = null, is_dashing: bool = false, is_dueling: bool = false, duel_target: Node = null, player_node: Node = null) -> void:
-	if is_dashing:
+func take_damage(damage: float, attacker: Node = null, is_invulnerable: bool = false, is_dueling: bool = false, duel_target: Node = null, player_node: Node = null) -> void:
+	if is_invulnerable:
 		return
 
 	if is_parrying:
@@ -48,15 +48,13 @@ func take_damage(damage: float, attacker: Node = null, is_dashing: bool = false,
 				vfx.dismiss_parry_stance_aura(player_node)
 				vfx.spawn_parry_clash(player_node.global_position)
 
-		# Stun nearby enemies on successful parry
+		# Stun nearby enemies on successful parry (counter attack damage/knockback removed per Issue 48)
 		if player_node and is_instance_valid(player_node):
 			var enemies: Array[Node] = player_node.get_tree().get_nodes_in_group("enemies")
 			for e in enemies:
 				if e is Node3D and player_node.global_position.distance_to(e.global_position) <= 3.5:
 					if e.has_method("apply_stun"):
 						e.apply_stun(1.0)
-						if e.has_method("_on_damaged"):
-							e._on_damaged(30.0, (e.global_position - player_node.global_position).normalized() * 8.0, "counter", player_node)
 		return
 
 	var final_damage: float = damage
