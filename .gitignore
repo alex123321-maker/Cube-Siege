@@ -64,3 +64,4 @@ docs/concepts/*.import
 # Verification captures are documentation, not runtime textures.
 docs/verification/issue42/*.import
 docs/verification/vfx_*/*.import
+docs/verification/ability_lab/*.import

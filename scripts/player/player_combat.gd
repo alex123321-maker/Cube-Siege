@@ -9,6 +9,19 @@ var attack_cooldown_timer: float = 0.0
 var special_cooldown_timer: float = 0.0
 var _sword_contacts_remaining: int = 0
 
+## Shared execution/inspection values. The viewer never owns gameplay tuning.
+const ATTACK_COOLDOWNS: Array[float] = [0.35, 0.38, 0.48]
+const ATTACK_WINDUPS: Array[float] = [0.06, 0.08, 0.12]
+const SPECIAL_COOLDOWNS: Array[float] = [4.0, 5.0, 5.0]
+const SPECIAL_WINDUPS: Array[float] = [0.15, 0.28, 0.15]
+const HAMMER_DAMAGE_MULTIPLIER: float = 1.35
+const PIERCING_DAMAGE_MULTIPLIER: float = 1.3
+const DUEL_DAMAGE_MULTIPLIER: float = 1.2
+const ARROW_SPEED: float = 28.0
+const PIERCING_SPEED: float = 36.0
+const PIERCING_TARGETS: int = 6
+const SLASH_ACTIVE_DURATION: float = 0.16
+
 const ARROW_PROJECTILE_SCENE = preload("res://scenes/prefabs/arrow_projectile.tscn")
 
 func update_timers(delta: float) -> void:
@@ -30,35 +43,35 @@ func perform_attack(player: CharacterBody3D, current_class: int, is_dashing: boo
 
 	match current_class:
 		0: # CharacterClass.WARRIOR
-			attack_cooldown_timer = 0.35
+			attack_cooldown_timer = ATTACK_COOLDOWNS[0]
 			if player.presentation:
 				player.presentation.play_attack_animation()
 			if not player.is_inside_tree():
 				trigger_slash(player, attack_damage, 5.0, 90.0, is_dueling, false)
 				return
-			await player.get_tree().create_timer(0.06).timeout
+			await player.get_tree().create_timer(ATTACK_WINDUPS[0]).timeout
 			if _is_actor_alive(player):
 				trigger_slash(player, attack_damage, 5.0, 90.0, is_dueling, false)
 		1: # CharacterClass.ARCHER
-			attack_cooldown_timer = 0.38
+			attack_cooldown_timer = ATTACK_COOLDOWNS[1]
 			if player.presentation:
 				player.presentation.play_attack_animation()
 			if not player.is_inside_tree():
-				trigger_arrow_shot(player, attack_damage, 1, 28.0)
+				trigger_arrow_shot(player, attack_damage, 1, ARROW_SPEED)
 				return
-			await player.get_tree().create_timer(0.08).timeout
+			await player.get_tree().create_timer(ATTACK_WINDUPS[1]).timeout
 			if _is_actor_alive(player):
-				trigger_arrow_shot(player, attack_damage, 1, 28.0)
+				trigger_arrow_shot(player, attack_damage, 1, ARROW_SPEED)
 		2: # CharacterClass.ENGINEER
-			attack_cooldown_timer = 0.48
+			attack_cooldown_timer = ATTACK_COOLDOWNS[2]
 			if player.presentation:
 				player.presentation.play_attack_animation()
 			if not player.is_inside_tree():
-				trigger_hammer_smash(player, attack_damage * 1.35, is_dueling)
+				trigger_hammer_smash(player, attack_damage * HAMMER_DAMAGE_MULTIPLIER, is_dueling)
 				return
-			await player.get_tree().create_timer(0.12).timeout
+			await player.get_tree().create_timer(ATTACK_WINDUPS[2]).timeout
 			if _is_actor_alive(player):
-				trigger_hammer_smash(player, attack_damage * 1.35, is_dueling)
+				trigger_hammer_smash(player, attack_damage * HAMMER_DAMAGE_MULTIPLIER, is_dueling)
 
 func perform_special_attack(player: CharacterBody3D, current_class: int, is_dashing: bool, is_dueling: bool, abilities: PlayerAbilities) -> void:
 	if not _is_actor_alive(player) or special_cooldown_timer > 0.0 or is_dashing:
@@ -66,37 +79,37 @@ func perform_special_attack(player: CharacterBody3D, current_class: int, is_dash
 
 	match current_class:
 		0: # CharacterClass.WARRIOR
-			special_cooldown_timer = 4.0
+			special_cooldown_timer = SPECIAL_COOLDOWNS[0]
 			if player.presentation:
 				player.presentation.play_special_animation()
 			if not player.is_inside_tree():
 				trigger_slash(player, special_damage, 12.0, 180.0, is_dueling, true)
 				return
-			await player.get_tree().create_timer(0.15).timeout
+			await player.get_tree().create_timer(SPECIAL_WINDUPS[current_class]).timeout
 			if _is_actor_alive(player):
 				trigger_slash(player, special_damage, 12.0, 180.0, is_dueling, true)
 		1: # CharacterClass.ARCHER
-			special_cooldown_timer = 5.0
+			special_cooldown_timer = SPECIAL_COOLDOWNS[current_class]
 			if player.presentation:
 				player.presentation.play_special_animation()
 			var vfx = player.get_node_or_null("/root/VFXManager")
 			if vfx:
-				vfx.spawn_arrow_charge(player, 0.28)
+				vfx.spawn_arrow_charge(player, SPECIAL_WINDUPS[current_class])
 			if not player.is_inside_tree():
-				trigger_piercing_arrow(player, special_damage * 1.3, 6, 36.0)
+				trigger_piercing_arrow(player, special_damage * PIERCING_DAMAGE_MULTIPLIER, PIERCING_TARGETS, PIERCING_SPEED)
 				return
-			await player.get_tree().create_timer(0.28).timeout
+			await player.get_tree().create_timer(SPECIAL_WINDUPS[current_class]).timeout
 			if _is_actor_alive(player):
-				trigger_piercing_arrow(player, special_damage * 1.3, 6, 36.0)
+				trigger_piercing_arrow(player, special_damage * PIERCING_DAMAGE_MULTIPLIER, PIERCING_TARGETS, PIERCING_SPEED)
 		2: # CharacterClass.ENGINEER
-			special_cooldown_timer = 5.0
+			special_cooldown_timer = SPECIAL_COOLDOWNS[current_class]
 			if player.presentation:
 				player.presentation.play_special_animation()
 			if abilities:
 				if not player.is_inside_tree():
 					abilities.deploy_temp_turret(player)
 					return
-				await player.get_tree().create_timer(0.15).timeout
+				await player.get_tree().create_timer(SPECIAL_WINDUPS[current_class]).timeout
 				if _is_actor_alive(player):
 					abilities.deploy_temp_turret(player)
 			else:
@@ -109,7 +122,7 @@ func trigger_slash(player: CharacterBody3D, dmg: float, knockback: float, arc_de
 
 	var final_dmg: float = dmg
 	if is_dueling:
-		final_dmg *= 1.2
+		final_dmg *= DUEL_DAMAGE_MULTIPLIER
 
 	slash_area.damage = final_dmg
 	slash_area.knockback_force = knockback
@@ -202,7 +215,7 @@ func finish_slash(player: CharacterBody3D, slash_area: Area3D) -> void:
 		if is_instance_valid(slash_area):
 			slash_area.monitoring = false
 		return
-	await player.get_tree().create_timer(0.16).timeout
+	await player.get_tree().create_timer(SLASH_ACTIVE_DURATION).timeout
 	if is_instance_valid(slash_area):
 		slash_area.monitoring = false
 
