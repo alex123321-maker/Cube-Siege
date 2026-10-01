@@ -3,7 +3,7 @@
   "issue": 52,
   "source_repository": "https://github.com/alex123321-maker/assets",
   "source_base_commit": "2e896cf314b89958189e273ac3491ddea71397d7",
-  "source_revision": "uncommitted Issue #52 ImageGen package, content-addressed below",
+  "source_revision": "9e3a858bdfbd4f9561c81997177566394b7fd328",
   "generation_tool": "Codex built-in ImageGen",
   "source_prompts_sha256": "142787f77b2681d6d14a7e8c144ec64377b0a5efe8117b13dbca2a702e1836bd",
   "icons": [
