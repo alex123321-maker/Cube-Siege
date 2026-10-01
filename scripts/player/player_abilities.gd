@@ -14,6 +14,16 @@ var active_tether: Node3D = null
 var active_duel_indicator: Node3D = null
 var active_parry_aura: Node3D = null
 
+const DECOY_COOLDOWN: float = 12.0
+const MINE_RELOAD: float = 3.5
+const NUKE_COOLDOWN: float = 60.0
+const NUKE_DAMAGE: float = 300.0
+const NUKE_RADIUS: float = 10.0
+const NUKE_WINDUP: float = 1.2
+const NUKE_BURN_DAMAGE: float = 25.0
+const NUKE_BURN_INTERVAL: float = 0.5
+const NUKE_BURN_TICKS: int = 10
+
 const DUEL_TETHER_SCENE = preload("res://scenes/duel_tether.tscn")
 const TEMP_TURRET_SCENE = preload("res://scenes/prefabs/temp_turret.tscn")
 const REMOTE_MINE_SCENE = preload("res://scenes/prefabs/remote_mine.tscn")
@@ -36,7 +46,7 @@ func perform_utility(player: CharacterBody3D, current_class: int) -> void:
 			toggle_remote_mine(player)
 
 func perform_parry(player: CharacterBody3D) -> void:
-	if player.health.trigger_parry(0.5, 6.0):
+	if player.health.trigger_parry():
 		if player.orientation:
 			player.orientation.cancel_pending_action()
 		var vfx = player.get_node_or_null("/root/VFXManager")
@@ -126,11 +136,11 @@ func perform_archer_ultimate(player: CharacterBody3D) -> void:
 		var t = player.create_tween()
 		t.tween_property(cam, "size", 34.0, 0.5)
 
-func perform_engineer_ultimate(player: CharacterBody3D) -> void:
+func perform_engineer_ultimate(player: CharacterBody3D, target_override: Vector3 = Vector3.INF) -> void:
 	if player.orientation:
 		player.orientation.cancel_pending_action()
-	ultimate_cooldown_timer = 60.0
-	var target_pos: Vector3 = get_nuke_target_position(player)
+	ultimate_cooldown_timer = NUKE_COOLDOWN
+	var target_pos: Vector3 = target_override if target_override.is_finite() else get_nuke_target_position(player)
 
 	if player.presentation:
 		player.presentation.play_ultimate_animation()
@@ -166,20 +176,20 @@ func get_nuke_target_position(player: CharacterBody3D) -> Vector3:
 	return player.global_position
 
 func _execute_tactical_nuke(player: CharacterBody3D, target_pos: Vector3) -> void:
-	var nuke_damage: float = 300.0
-	var nuke_radius: float = 10.0
-	var burn_damage: float = 25.0
+	var nuke_damage: float = NUKE_DAMAGE
+	var nuke_radius: float = NUKE_RADIUS
+	var burn_damage: float = NUKE_BURN_DAMAGE
 
 	var vfx = player.get_node_or_null("/root/VFXManager")
 	if vfx:
-		vfx.spawn_tactical_nuke_telegraph(target_pos, 1.2)
+		vfx.spawn_tactical_nuke_telegraph(target_pos, NUKE_WINDUP)
 
 	if not player.is_inside_tree():
 		_apply_nuke_impact_damage(player, target_pos, nuke_damage, nuke_radius)
 		return
 
 	# Explicit gameplay timing: 1.2s to impact
-	await player.get_tree().create_timer(1.2).timeout
+	await player.get_tree().create_timer(NUKE_WINDUP).timeout
 	if not is_instance_valid(player) or not player.is_inside_tree():
 		return
 
@@ -190,8 +200,8 @@ func _execute_tactical_nuke(player: CharacterBody3D, target_pos: Vector3) -> voi
 		vfx.spawn_tactical_nuke_burn(target_pos, 5.0)
 
 	# Ground plasma burn loop (10 ticks, every 0.5s for 5.0s total)
-	for i in range(10):
-		await player.get_tree().create_timer(0.5).timeout
+	for i in range(NUKE_BURN_TICKS):
+		await player.get_tree().create_timer(NUKE_BURN_INTERVAL).timeout
 		if not is_instance_valid(player) or not player.is_inside_tree():
 			return
 		_apply_nuke_burn_damage(player, target_pos, burn_damage, nuke_radius)
@@ -350,7 +360,7 @@ func toggle_remote_mine(player: CharacterBody3D) -> void:
 			player.presentation.play_utility_animation()
 		active_remote_mine.detonate(player)
 		active_remote_mine = null
-		player.parry_cooldown_timer = 3.5
+		player.parry_cooldown_timer = MINE_RELOAD
 	else:
 		if player.parry_cooldown_timer > 0.0:
 			player.spawn_popup_text("MINE RECHARGING...", Color.GRAY)
@@ -371,7 +381,7 @@ func deploy_decoy(player: CharacterBody3D) -> void:
 		return
 	if player.orientation:
 		player.orientation.cancel_pending_action()
-	player.parry_cooldown_timer = 12.0
+	player.parry_cooldown_timer = DECOY_COOLDOWN
 	if player.presentation:
 		player.presentation.play_utility_animation()
 	if not player.is_inside_tree():

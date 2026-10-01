@@ -32,7 +32,7 @@
 ======================================================================
  [VERIFY] 5. Running GUT Automated Tests
 ======================================================================
-  [PASS]  | GUT Test Suite                      | All 308 tests passed across 51 scripts
+  [PASS]  | GUT Test Suite                      | All 301 tests passed across 50 scripts
 
 ======================================================================
  [VERIFY] 6. Running Python Tooling & Unit Tests

@@ -1,4 +1,4 @@
-"""Launch the ability laboratory with isolated saves and bounded readiness.
+"""Launch the read-only native ability viewer with isolated saves and bounded readiness.
 
 Default: open the interactive laboratory and return its PID after readiness.
 --smoke: bounded headless scene initialization. --capture: finite rendered demo.
@@ -20,6 +20,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--smoke", action="store_true")
     parser.add_argument("--capture", action="store_true")
+    parser.add_argument("--entry", type=int, default=1, choices=range(15), help="Ability index for capture (0-14).")
+    parser.add_argument("--delay", type=float, default=0.23, help="Seconds after activation to capture.")
     args = parser.parse_args()
     executable = find_godot_binary()
     if not executable:
@@ -31,11 +33,11 @@ def main() -> int:
     if args.smoke:
         command.append("--headless")
     command.append("res://scenes/tools/ability_lab.tscn")
-    if args.smoke or args.capture:
+    if args.smoke:
         command += ["--quit-after", "120"]
     command += ["--", "--ability-lab"]
     if args.capture:
-        command.append("--lab-capture")
+        command += ["--lab-capture", f"--viewer-entry={args.entry}", f"--viewer-delay={args.delay}"]
     environment = os.environ.copy()
     environment["CUBE_SIEGE_TEST_PROFILE"] = "user://ability_lab/profile/"
     flags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0

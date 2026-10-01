@@ -1,39 +1,36 @@
-extends EnemyBase
+extends "res://scripts/enemy_dummy.gd"
 class_name AbilityLabTarget
 
-## Uses the actual EnemyBase health pipeline with inert training presentation.
-## No XP, drops, persistence, AI, or asynchronous death cleanup in a fixture.
+signal damage_observed(amount: float, damage_type: String)
+
+## Native zombie health, hitboxes, knockback, stun and animations, without rewards.
 func _ready() -> void:
-	add_to_group("enemies")
+	super._ready()
+	max_health = 1000.0
 	current_health = max_health
-	if hurtbox:
-		(hurtbox as HurtboxArea).damaged.connect(_on_damaged)
 	update_hp_label()
 
-func _physics_process(_delta: float) -> void:
-	# The arena advances fixture physics together with the shared ability clock.
-	pass
-
-func advance_fixture(delta: float) -> void:
-	super._physics_process(delta)
-
-func _custom_physics(_delta: float) -> void:
+func _custom_physics(delta: float) -> void:
 	velocity.x = 0.0
 	velocity.z = 0.0
+	if is_in_duel or (is_instance_valid(target_player) and target_player.is_in_group("decoy")) or is_stunned:
+		super._custom_physics(delta)
+
+func perform_attack() -> void:
+	# A preview never creates an uncontrolled combat encounter.
+	pass
+
+func demonstrate_attack() -> void:
+	super.perform_attack()
 
 func _on_damaged(amount: float, knockback: Vector3, type: String, attacker: Node) -> void:
+	if is_dying:
+		return
 	super._on_damaged(amount, knockback, type, attacker)
-
-func _spawn_damage_text_on_damaged(_amount: float) -> void:
-	pass
+	damage_observed.emit(amount, type)
 
 func die() -> void:
 	is_dying = true
-	update_hp_label()
-
-func reset_fixture() -> void:
-	is_dying = false
-	current_health = max_health
-	velocity = Vector3.ZERO
-	knockback_velocity = Vector3.ZERO
+	remove_from_group("enemies")
+	presentation.play_death()
 	update_hp_label()
