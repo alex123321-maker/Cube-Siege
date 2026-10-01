@@ -47,11 +47,11 @@ func perform_attack(player: CharacterBody3D, current_class: int, is_dashing: boo
 			if player.presentation:
 				player.presentation.play_attack_animation()
 			if not player.is_inside_tree():
-				trigger_slash(player, attack_damage, 5.0, 90.0, is_dueling)
+				trigger_slash(player, attack_damage, 5.0, 90.0, is_dueling, false)
 				return
 			await player.get_tree().create_timer(ATTACK_WINDUPS[0]).timeout
 			if _is_actor_alive(player):
-				trigger_slash(player, attack_damage, 5.0, 90.0, is_dueling)
+				trigger_slash(player, attack_damage, 5.0, 90.0, is_dueling, false)
 		1: # CharacterClass.ARCHER
 			attack_cooldown_timer = ATTACK_COOLDOWNS[1]
 			if player.presentation:
@@ -83,11 +83,11 @@ func perform_special_attack(player: CharacterBody3D, current_class: int, is_dash
 			if player.presentation:
 				player.presentation.play_special_animation()
 			if not player.is_inside_tree():
-				trigger_slash(player, special_damage, 12.0, 180.0, is_dueling)
+				trigger_slash(player, special_damage, 12.0, 180.0, is_dueling, true)
 				return
 			await player.get_tree().create_timer(SPECIAL_WINDUPS[current_class]).timeout
 			if _is_actor_alive(player):
-				trigger_slash(player, special_damage, 12.0, 180.0, is_dueling)
+				trigger_slash(player, special_damage, 12.0, 180.0, is_dueling, true)
 		1: # CharacterClass.ARCHER
 			special_cooldown_timer = SPECIAL_COOLDOWNS[current_class]
 			if player.presentation:
@@ -115,7 +115,7 @@ func perform_special_attack(player: CharacterBody3D, current_class: int, is_dash
 			else:
 				push_warning("PlayerCombat: cannot deploy temp turret because abilities dependency is missing.")
 
-func trigger_slash(player: CharacterBody3D, dmg: float, knockback: float, arc_degrees: float, is_dueling: bool) -> void:
+func trigger_slash(player: CharacterBody3D, dmg: float, knockback: float, arc_degrees: float, is_dueling: bool, can_hit_multiple: bool = true) -> void:
 	var slash_area: HitboxArea = player.get_node_or_null("SlashHitbox") as HitboxArea
 	if not slash_area:
 		return
@@ -126,8 +126,9 @@ func trigger_slash(player: CharacterBody3D, dmg: float, knockback: float, arc_de
 
 	slash_area.damage = final_dmg
 	slash_area.knockback_force = knockback
-	slash_area.hit_entities.clear()
-	_sword_contacts_remaining = 3 if player.current_class == 0 and arc_degrees <= 120.0 else 0
+	slash_area.can_hit_multiple = can_hit_multiple
+	slash_area.reset_hits()
+	_sword_contacts_remaining = 1 if (player.current_class == 0 and not can_hit_multiple) else (3 if player.current_class == 0 and arc_degrees <= 120.0 else 0)
 	var on_hit: Callable = _on_sword_hit.bind(player)
 	if not slash_area.hit_confirmed.is_connected(on_hit):
 		slash_area.hit_confirmed.connect(on_hit)
@@ -161,12 +162,14 @@ func await_slash_hit(player: CharacterBody3D, slash_area: Area3D, sword_contact:
 	if not player.is_inside_tree():
 		return
 	await player.get_tree().physics_frame
+	if not _is_actor_alive(player):
+		return
 	if is_instance_valid(slash_area):
 		for a in slash_area.get_overlapping_areas():
 			if slash_area.has_method("_on_area_entered"):
 				slash_area._on_area_entered(a)
 
-		var hit_count = slash_area.hit_entities.size()
+		var hit_count: int = slash_area.hits_landed if ("hits_landed" in slash_area) else slash_area.hit_entities.size()
 		if hit_count > 0:
 			var vfx = player.get_node_or_null("/root/VFXManager")
 			if vfx:
@@ -237,7 +240,7 @@ func trigger_piercing_arrow(player: CharacterBody3D, dmg: float, pierce: int = 6
 	player.spawn_popup_text("PIERCING ARROW!", Color.CYAN)
 
 func trigger_hammer_smash(player: CharacterBody3D, dmg: float, is_dueling: bool) -> void:
-	trigger_slash(player, dmg, 6.0, 110.0, is_dueling)
+	trigger_slash(player, dmg, 6.0, 110.0, is_dueling, true)
 	var aim_dir = -player.global_transform.basis.z
 	var impact_pos = player.global_position + aim_dir * 1.4
 
