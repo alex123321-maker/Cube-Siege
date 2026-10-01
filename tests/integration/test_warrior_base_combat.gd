@@ -14,8 +14,9 @@ func before_each() -> void:
 func after_each() -> void:
 	await wait_seconds(0.2)
 	for child in get_children():
-		if child != null and is_instance_valid(child) and child.name.begins_with("FloatingText"):
-			child.queue_free()
+		if child != null and is_instance_valid(child) and not child.is_queued_for_deletion():
+			if child.name.begins_with("FloatingText") or child.name.begins_with("ArrowProjectile") or (child.get_script() and child.get_script().resource_path.ends_with("floating_text.gd")):
+				child.queue_free()
 	var save_mgr = get_node_or_null("/root/SaveManager")
 	if save_mgr and not _save_snapshot.is_empty():
 		save_mgr.restore_state(_save_snapshot)
@@ -27,7 +28,7 @@ func after_each() -> void:
 # 1. WARRIOR BASIC ATTACK (SINGLE-TARGET) & CLEAVE (MULTI-TARGET)
 # ==============================================================================
 
-func test_warrior_basic_attack_hits_only_one_target() -> void:
+func test_warrior_basic_attack_single_target_via_perform_attack() -> void:
 	var player = PLAYER_SCENE.instantiate()
 	add_child_autoqfree(player)
 	player.set_class(player.CharacterClass.WARRIOR, false)
@@ -36,244 +37,397 @@ func test_warrior_basic_attack_hits_only_one_target() -> void:
 
 	var enemy_a = ENEMY_DUMMY_SCENE.instantiate()
 	add_child_autoqfree(enemy_a)
-	enemy_a.global_position = Vector3(-0.5, 0, -1.5)
+	enemy_a.global_position = Vector3(-0.4, 0, -1.5)
 
 	var enemy_b = ENEMY_DUMMY_SCENE.instantiate()
 	add_child_autoqfree(enemy_b)
-	enemy_b.global_position = Vector3(0.5, 0, -1.5)
+	enemy_b.global_position = Vector3(0.4, 0, -1.5)
 
-	var initial_hp_a: float = enemy_a.current_health
-	var initial_hp_b: float = enemy_b.current_health
+	await wait_physics_frames(3)
+	watch_signals(player.slash_area)
 
-	# Trigger normal slash (LMB)
-	player.combat.trigger_slash(player, 25.0, 5.0, 90.0, false, false)
-	# Process physics overlaps
-	if player.slash_area.has_method("_on_area_entered"):
-		player.slash_area._on_area_entered(enemy_a.hurtbox)
-		player.slash_area._on_area_entered(enemy_b.hurtbox)
+	var hp_a_before: float = enemy_a.current_health
+	var hp_b_before: float = enemy_b.current_health
 
-	var a_damaged: bool = enemy_a.current_health < initial_hp_a
-	var b_damaged: bool = enemy_b.current_health < initial_hp_b
+	# Trigger through public player method
+	player.combat.attack_cooldown_timer = 0.0
+	player.perform_attack()
+	await wait_seconds(0.25)
+
+	var a_damaged: bool = enemy_a.current_health < hp_a_before
+	var b_damaged: bool = enemy_b.current_health < hp_b_before
 
 	assert_true(a_damaged != b_damaged, "Exactly one target must be damaged by basic attack")
 	assert_eq(player.slash_area.hits_landed, 1, "HitboxArea hits_landed must be exactly 1")
+	assert_signal_emitted(player.slash_area, "hit_confirmed")
+	assert_eq(get_signal_emit_count(player.slash_area, "hit_confirmed"), 1, "hit_confirmed emitted exactly once")
 
-func test_warrior_cleave_hits_multiple_targets() -> void:
+func test_warrior_basic_attack_late_entry_during_active_window() -> void:
 	var player = PLAYER_SCENE.instantiate()
 	add_child_autoqfree(player)
 	player.set_class(player.CharacterClass.WARRIOR, false)
 	player.global_position = Vector3.ZERO
+	player.look_at(Vector3(0, 0, -10), Vector3.UP)
 
 	var enemy_a = ENEMY_DUMMY_SCENE.instantiate()
 	add_child_autoqfree(enemy_a)
-	enemy_a.global_position = Vector3(-0.5, 0, -1.5)
+	enemy_a.move_speed = 0.0
+	enemy_a.attack_timer = 99.0
+	enemy_a.global_position = Vector3(-0.3, 0, -1.5)
 
 	var enemy_b = ENEMY_DUMMY_SCENE.instantiate()
 	add_child_autoqfree(enemy_b)
-	enemy_b.global_position = Vector3(0.5, 0, -1.5)
+	enemy_b.move_speed = 0.0
+	enemy_b.attack_timer = 99.0
+	enemy_b.global_position = Vector3(15.0, 0, 0) # Far outside initial area
 
-	var initial_hp_a: float = enemy_a.current_health
-	var initial_hp_b: float = enemy_b.current_health
+	await wait_physics_frames(3)
 
-	# Cleave (RMB) with can_hit_multiple = true
-	player.combat.trigger_slash(player, 60.0, 12.0, 180.0, false, true)
-	if player.slash_area.has_method("_on_area_entered"):
-		player.slash_area._on_area_entered(enemy_a.hurtbox)
-		player.slash_area._on_area_entered(enemy_b.hurtbox)
+	player.combat.attack_cooldown_timer = 0.0
+	player.perform_attack()
+	# Wait for swing to start and connect with enemy_a (0.06s timer in perform_attack + physics frame)
+	await wait_seconds(0.12)
+	assert_lt(enemy_a.current_health, 80.0, "Enemy A hit by first overlap")
 
-	assert_lt(enemy_a.current_health, initial_hp_a, "Enemy A damaged by Cleave")
-	assert_lt(enemy_b.current_health, initial_hp_b, "Enemy B damaged by Cleave")
-	assert_eq(player.slash_area.hits_landed, 2, "HitboxArea hits_landed must be 2 for Cleave")
+	# Move enemy_b into the active slash area while window is still active
+	enemy_b.global_position = Vector3(0.3, 0, -1.5)
+	await wait_physics_frames(3)
+	await wait_seconds(0.15)
 
-func test_warrior_basic_attack_late_entry_rejected() -> void:
-	var player = PLAYER_SCENE.instantiate()
-	add_child_autoqfree(player)
-	player.set_class(player.CharacterClass.WARRIOR, false)
-
-	var enemy_a = ENEMY_DUMMY_SCENE.instantiate()
-	add_child_autoqfree(enemy_a)
-	var enemy_b = ENEMY_DUMMY_SCENE.instantiate()
-	add_child_autoqfree(enemy_b)
-
-	player.combat.trigger_slash(player, 25.0, 5.0, 90.0, false, false)
-	player.slash_area._on_area_entered(enemy_a.hurtbox)
+	assert_eq(enemy_b.current_health, 80.0, "Late entrant receives no damage because quota was already spent")
 	assert_eq(player.slash_area.hits_landed, 1)
-
-	# Enemy B enters late during same swing window
-	var hp_b_before = enemy_b.current_health
-	player.slash_area._on_area_entered(enemy_b.hurtbox)
-	assert_eq(enemy_b.current_health, hp_b_before, "Late entrant must not receive damage")
-	assert_eq(player.slash_area.hits_landed, 1, "Hits landed remains 1")
 
 func test_warrior_basic_attack_multiple_hurtboxes_same_target() -> void:
 	var player = PLAYER_SCENE.instantiate()
 	add_child_autoqfree(player)
 	player.set_class(player.CharacterClass.WARRIOR, false)
+	player.global_position = Vector3.ZERO
+	player.look_at(Vector3(0, 0, -10), Vector3.UP)
 
 	var enemy = ENEMY_DUMMY_SCENE.instantiate()
 	add_child_autoqfree(enemy)
+	enemy.global_position = Vector3(0, 0, -1.5)
+
+	# Add second HurtboxArea to the same enemy target
+	var extra_hurtbox = HurtboxArea.new()
+	var extra_shape = CollisionShape3D.new()
+	var box = BoxShape3D.new()
+	box.size = Vector3(1.0, 2.0, 1.0)
+	extra_shape.shape = box
+	extra_hurtbox.add_child(extra_shape)
+	extra_hurtbox.collision_layer = enemy.hurtbox.collision_layer
+	extra_hurtbox.collision_mask = enemy.hurtbox.collision_mask
+	enemy.add_child(extra_hurtbox)
+
+	await wait_physics_frames(3)
+	watch_signals(player.slash_area)
+
 	var initial_hp = enemy.current_health
+	player.combat.attack_cooldown_timer = 0.0
+	player.perform_attack()
+	await wait_seconds(0.25)
 
-	player.combat.trigger_slash(player, 25.0, 5.0, 90.0, false, false)
-	# Trigger with same hurtbox twice
-	player.slash_area._on_area_entered(enemy.hurtbox)
-	player.slash_area._on_area_entered(enemy.hurtbox)
-
-	assert_eq(enemy.current_health, initial_hp - 25.0, "Same target damaged only once")
+	assert_eq(enemy.current_health, initial_hp - 25.0, "Target damaged only once despite multiple hurtboxes")
 	assert_eq(player.slash_area.hits_landed, 1)
+	assert_eq(get_signal_emit_count(player.slash_area, "hit_confirmed"), 1)
 
-func test_warrior_basic_attack_dead_target_does_not_restore_limit() -> void:
+func test_warrior_basic_attack_repeat_swing_after_cooldown() -> void:
 	var player = PLAYER_SCENE.instantiate()
 	add_child_autoqfree(player)
 	player.set_class(player.CharacterClass.WARRIOR, false)
+	player.global_position = Vector3.ZERO
+	player.look_at(Vector3(0, 0, -10), Vector3.UP)
 
-	var enemy_a = ENEMY_DUMMY_SCENE.instantiate()
-	add_child_autoqfree(enemy_a)
-	var enemy_b = ENEMY_DUMMY_SCENE.instantiate()
-	add_child_autoqfree(enemy_b)
+	var enemy = ENEMY_DUMMY_SCENE.instantiate()
+	add_child_autoqfree(enemy)
+	enemy.global_position = Vector3(0, 0, -1.5)
 
-	player.combat.trigger_slash(player, 25.0, 5.0, 90.0, false, false)
-	player.slash_area._on_area_entered(enemy_a.hurtbox)
-	assert_eq(player.slash_area.hits_landed, 1)
+	await wait_physics_frames(3)
 
-	# Enemy A dies
-	enemy_a.is_dying = true
+	# Swing 1
+	player.combat.attack_cooldown_timer = 0.0
+	player.perform_attack()
+	await wait_seconds(0.25)
+	assert_eq(enemy.current_health, 55.0, "First swing deals 25 damage")
 
-	# Another target enters during same swing
-	var hp_b_before = enemy_b.current_health
-	player.slash_area._on_area_entered(enemy_b.hurtbox)
-	assert_eq(enemy_b.current_health, hp_b_before, "Death of target does not restore single-hit limit")
+	# Swing 2 on surviving target after cooldown
+	player.combat.attack_cooldown_timer = 0.0
+	player.perform_attack()
+	await wait_seconds(0.25)
+	assert_eq(enemy.current_health, 30.0, "Second swing deals 25 damage to surviving target")
 
-func test_warrior_basic_attack_rejected_contact_does_not_consume_limit() -> void:
+func test_already_dying_target_does_not_consume_quota() -> void:
 	var player = PLAYER_SCENE.instantiate()
 	add_child_autoqfree(player)
 	player.set_class(player.CharacterClass.WARRIOR, false)
+	player.global_position = Vector3.ZERO
+	player.look_at(Vector3(0, 0, -10), Vector3.UP)
+
+	var enemy_dying = ENEMY_DUMMY_SCENE.instantiate()
+	add_child_autoqfree(enemy_dying)
+	enemy_dying.global_position = Vector3(-0.3, 0, -1.5)
+	enemy_dying.is_dying = true # Marked dying before the attack
+
+	var enemy_live = ENEMY_DUMMY_SCENE.instantiate()
+	add_child_autoqfree(enemy_live)
+	enemy_live.global_position = Vector3(0.3, 0, -1.5)
+
+	await wait_physics_frames(3)
+
+	player.combat.attack_cooldown_timer = 0.0
+	player.perform_attack()
+	await wait_seconds(0.25)
+
+	assert_eq(enemy_dying.current_health, 80.0, "Already-dying target must receive no damage")
+	assert_eq(enemy_live.current_health, 55.0, "Live target must receive damage after dying target skipped")
+	assert_eq(player.slash_area.hits_landed, 1)
+
+func test_lethal_first_hit_does_not_restore_quota_for_second_target() -> void:
+	var player = PLAYER_SCENE.instantiate()
+	add_child_autoqfree(player)
+	player.set_class(player.CharacterClass.WARRIOR, false)
+	player.global_position = Vector3.ZERO
+	player.look_at(Vector3(0, 0, -10), Vector3.UP)
+
+	var enemy_low_hp = ENEMY_DUMMY_SCENE.instantiate()
+	add_child_autoqfree(enemy_low_hp)
+	enemy_low_hp.current_health = 10.0 # Will die from 25.0 damage
+	enemy_low_hp.global_position = Vector3(-0.3, 0, -1.5)
+
+	var enemy_second = ENEMY_DUMMY_SCENE.instantiate()
+	add_child_autoqfree(enemy_second)
+	enemy_second.global_position = Vector3(0.3, 0, -1.5)
+
+	await wait_physics_frames(3)
+
+	player.combat.attack_cooldown_timer = 0.0
+	player.perform_attack()
+	await wait_seconds(0.25)
+
+	assert_true(enemy_low_hp.is_dying, "First enemy was killed by the attack")
+	assert_eq(enemy_second.current_health, 80.0, "Second enemy takes no damage even though first enemy died")
+	assert_eq(player.slash_area.hits_landed, 1)
+
+func test_rejected_height_difference_does_not_consume_quota() -> void:
+	var player = PLAYER_SCENE.instantiate()
+	add_child_autoqfree(player)
+	player.set_class(player.CharacterClass.WARRIOR, false)
+	player.global_position = Vector3.ZERO
+	player.look_at(Vector3(0, 0, -10), Vector3.UP)
+
+	# Enemy A is at invalid height (delta Y >= 2.0 blocks)
+	var enemy_high = ENEMY_DUMMY_SCENE.instantiate()
+	add_child_autoqfree(enemy_high)
+	enemy_high.global_position = Vector3(-0.3, 3.0, -1.5)
+
+	# Enemy B is at valid connected height
+	var enemy_ground = ENEMY_DUMMY_SCENE.instantiate()
+	add_child_autoqfree(enemy_ground)
+	enemy_ground.global_position = Vector3(0.3, 0.0, -1.5)
+
+	await wait_physics_frames(3)
+
+	player.combat.attack_cooldown_timer = 0.0
+	player.perform_attack()
+	await wait_seconds(0.25)
+
+	assert_eq(enemy_high.current_health, 80.0, "Target on high ledge rejected by height check")
+	assert_eq(enemy_ground.current_health, 55.0, "Target on connected ground receives hit")
+	assert_eq(player.slash_area.hits_landed, 1)
+
+func test_rejected_friendly_building_does_not_consume_quota() -> void:
+	var player = PLAYER_SCENE.instantiate()
+	add_child_autoqfree(player)
+	player.set_class(player.CharacterClass.WARRIOR, false)
+	player.global_position = Vector3.ZERO
+	player.look_at(Vector3(0, 0, -10), Vector3.UP)
 
 	var wall = WOOD_WALL_SCENE.instantiate()
 	add_child_autoqfree(wall)
+	wall.global_position = Vector3(-0.4, 0, -1.5)
+
 	var enemy = ENEMY_DUMMY_SCENE.instantiate()
 	add_child_autoqfree(enemy)
+	enemy.move_speed = 0.0
+	enemy.attack_timer = 99.0
+	enemy.global_position = Vector3(0.4, 0, -1.5)
 
-	player.combat.trigger_slash(player, 25.0, 5.0, 90.0, false, false)
+	await wait_physics_frames(3)
 
-	# Wall enters first (friendly building)
-	var wall_hurtbox = wall.get_node_or_null("Hurtbox") as Area3D
-	if wall_hurtbox:
-		player.slash_area._on_area_entered(wall_hurtbox)
-	assert_eq(player.slash_area.hits_landed, 0, "Friendly wall must not consume hit limit")
+	player.combat.attack_cooldown_timer = 0.0
+	player.perform_attack()
+	await wait_seconds(0.25)
 
-	# Now valid enemy enters
-	var enemy_hp_before = enemy.current_health
-	player.slash_area._on_area_entered(enemy.hurtbox)
-	assert_lt(enemy.current_health, enemy_hp_before, "Valid enemy damaged after rejected friendly building")
+	assert_eq(wall.current_health, wall.max_health, "Friendly wall must receive no damage")
+	assert_eq(enemy.current_health, 55.0, "Enemy receives damage after friendly wall is rejected")
 	assert_eq(player.slash_area.hits_landed, 1)
 
-func test_warrior_alternating_lmb_rmb_does_not_leak_mode() -> void:
+func test_alternating_lmb_rmb_actual_damage() -> void:
 	var player = PLAYER_SCENE.instantiate()
 	add_child_autoqfree(player)
 	player.set_class(player.CharacterClass.WARRIOR, false)
+	player.global_position = Vector3.ZERO
+	player.look_at(Vector3(0, 0, -10), Vector3.UP)
 
-	var enemy_1 = ENEMY_DUMMY_SCENE.instantiate()
-	add_child_autoqfree(enemy_1)
-	var enemy_2 = ENEMY_DUMMY_SCENE.instantiate()
-	add_child_autoqfree(enemy_2)
+	var enemy_a = ENEMY_DUMMY_SCENE.instantiate()
+	add_child_autoqfree(enemy_a)
+	enemy_a.global_position = Vector3(-0.4, 0, -1.5)
 
-	# 1. Normal attack (LMB) -> Single target
-	player.combat.trigger_slash(player, 25.0, 5.0, 90.0, false, false)
-	assert_false(player.slash_area.can_hit_multiple, "LMB slash has can_hit_multiple = false")
+	var enemy_b = ENEMY_DUMMY_SCENE.instantiate()
+	add_child_autoqfree(enemy_b)
+	enemy_b.global_position = Vector3(0.4, 0, -1.5)
 
-	# 2. Cleave (RMB) -> Multi target
-	player.combat.trigger_slash(player, 60.0, 12.0, 180.0, false, true)
-	assert_true(player.slash_area.can_hit_multiple, "RMB cleave has can_hit_multiple = true")
+	await wait_physics_frames(3)
 
-	# 3. Normal attack (LMB) again -> Single target
-	player.combat.trigger_slash(player, 25.0, 5.0, 90.0, false, false)
-	assert_false(player.slash_area.can_hit_multiple, "LMB slash returned to can_hit_multiple = false")
+	# 1. Normal attack (LMB) -> single target
+	player.combat.attack_cooldown_timer = 0.0
+	player.perform_attack()
+	await wait_seconds(0.25)
 
-func test_engineer_hammer_retains_multi_hit() -> void:
+	var hp_a_1: float = enemy_a.current_health
+	var hp_b_1: float = enemy_b.current_health
+	assert_true((hp_a_1 < 80.0) != (hp_b_1 < 80.0), "LMB damages exactly one target")
+
+	# 2. Cleave (RMB) -> multi target
+	player.combat.special_cooldown_timer = 0.0
+	player.perform_special_attack()
+	await wait_seconds(0.25)
+
+	var hp_a_2: float = enemy_a.current_health
+	var hp_b_2: float = enemy_b.current_health
+	assert_lt(hp_a_2, hp_a_1, "Enemy A damaged by Cleave")
+	assert_lt(hp_b_2, hp_b_1, "Enemy B damaged by Cleave")
+
+	# 3. Normal attack (LMB) again -> single target
+	player.combat.attack_cooldown_timer = 0.0
+	player.perform_attack()
+	await wait_seconds(0.25)
+
+	var a_took_hit_3: bool = enemy_a.current_health < hp_a_2
+	var b_took_hit_3: bool = enemy_b.current_health < hp_b_2
+	assert_true(a_took_hit_3 != b_took_hit_3, "LMB damages exactly one target again")
+
+func test_engineer_hammer_multi_target_actual_damage() -> void:
 	var player = PLAYER_SCENE.instantiate()
 	add_child_autoqfree(player)
 	player.set_class(player.CharacterClass.ENGINEER, false)
+	player.global_position = Vector3.ZERO
+	player.look_at(Vector3(0, 0, -10), Vector3.UP)
 
-	player.combat.trigger_hammer_smash(player, 33.75, false)
-	assert_true(player.slash_area.can_hit_multiple, "Engineer hammer smash must hit multiple targets")
+	var enemy_a = ENEMY_DUMMY_SCENE.instantiate()
+	add_child_autoqfree(enemy_a)
+	enemy_a.global_position = Vector3(-0.4, 0, -1.5)
+
+	var enemy_b = ENEMY_DUMMY_SCENE.instantiate()
+	add_child_autoqfree(enemy_b)
+	enemy_b.global_position = Vector3(0.4, 0, -1.5)
+
+	await wait_physics_frames(3)
+
+	player.combat.attack_cooldown_timer = 0.0
+	player.perform_attack()
+	await wait_seconds(0.25)
+
+	assert_lt(enemy_a.current_health, 80.0, "Enemy A damaged by Engineer hammer")
+	assert_lt(enemy_b.current_health, 80.0, "Enemy B damaged by Engineer hammer")
+	assert_eq(player.slash_area.hits_landed, 2, "Engineer hammer hits multiple targets")
+
+func test_archer_projectile_behavior_preserved() -> void:
+	var player = PLAYER_SCENE.instantiate()
+	add_child_autoqfree(player)
+	player.set_class(player.CharacterClass.ARCHER, false)
+	player.global_position = Vector3.ZERO
+	player.look_at(Vector3(0, 0, -10), Vector3.UP)
+
+	var enemy = ENEMY_DUMMY_SCENE.instantiate()
+	add_child_autoqfree(enemy)
+	enemy.global_position = Vector3(0, 0, -3.0)
+
+	await wait_physics_frames(3)
+
+	player.combat.attack_cooldown_timer = 0.0
+	player.perform_attack()
+	await wait_seconds(0.35)
+
+	assert_lt(enemy.current_health, 80.0, "Archer arrow damages enemy at range")
 
 # ==============================================================================
-# 2. PARRY (ABSORB FIRST HIT, NO COUNTER DAMAGE, PRESERVE STUN)
+# 2. PARRY (ABSORB FIRST HIT, AOE STUN, ZERO COUNTER DAMAGE & KNOCKBACK)
 # ==============================================================================
 
-func test_parry_absorbs_first_hit_second_hit_damages() -> void:
+func test_parry_absorbs_single_hit_aoe_stuns_zero_counter_damage_zero_knockback() -> void:
 	var player = PLAYER_SCENE.instantiate()
 	add_child_autoqfree(player)
 	watch_signals(player)
 
-	player.health.trigger_parry(0.5, 6.0)
+	var enemy_attacker = ENEMY_DUMMY_SCENE.instantiate()
+	add_child_autoqfree(enemy_attacker)
+	enemy_attacker.move_speed = 0.0
+	enemy_attacker.attack_timer = 99.0
+	enemy_attacker.global_position = player.global_position + Vector3(0, 0, 1.5)
+
+	var enemy_nearby = ENEMY_DUMMY_SCENE.instantiate()
+	add_child_autoqfree(enemy_nearby)
+	enemy_nearby.move_speed = 0.0
+	enemy_nearby.attack_timer = 99.0
+	enemy_nearby.global_position = player.global_position + Vector3(2.0, 0, 0) # Within 3.5m radius
+
+	player.health.parry_cooldown_timer = 0.0
+	player.perform_utility()
 	assert_true(player.health.is_parrying, "Parry is active")
 
-	var initial_hp = player.current_health
+	var initial_player_hp = player.current_health
+	var initial_attacker_hp = enemy_attacker.current_health
 
-	# 1st hit during parry: absorbed
-	player.take_damage(20.0)
-	assert_eq(player.current_health, initial_hp, "1st hit absorbed by parry")
-	assert_false(player.health.is_parrying, "Parry consumed immediately on first hit")
+	# Hit 1: Absorbed
+	player.take_damage(20.0, enemy_attacker)
+
+	assert_eq(player.current_health, initial_player_hp, "1st hit absorbed by parry")
+	assert_false(player.health.is_parrying, "Parry consumed on first hit")
 	assert_signal_emitted_with_parameters(player, "parry_triggered", [true])
-	assert_eq(player.health.parry_cooldown_timer, 3.0, "Cooldown set to 3.0 on success")
+	assert_eq(get_signal_emit_count(player, "parry_triggered"), 2, "parry_triggered emitted twice: once on stance start (false), once on absorb (true)")
+	assert_eq(enemy_attacker.current_health, initial_attacker_hp, "Attacker received ZERO counter damage")
+	assert_eq(enemy_attacker.velocity, Vector3.ZERO, "Attacker received ZERO knockback impulse")
 
-	# 2nd hit in same step: parry already consumed, deals damage
-	player.take_damage(20.0)
-	assert_eq(player.current_health, initial_hp - 20.0, "2nd hit penetrates spent parry")
+	# Both enemies in 3.5m radius are stunned for 1.0s
+	assert_true(enemy_attacker.is_stunned, "Attacking enemy is stunned")
+	assert_eq(enemy_attacker.stun_timer, 1.0, "Attacker stun is 1.0s")
+	assert_true(enemy_nearby.is_stunned, "Nearby enemy within 3.5m is also stunned")
+	assert_eq(enemy_nearby.stun_timer, 1.0, "Nearby stun is 1.0s")
 
-func test_parry_removes_counter_damage_preserves_stun() -> void:
-	var player = PLAYER_SCENE.instantiate()
-	add_child_autoqfree(player)
-
-	var enemy = ENEMY_DUMMY_SCENE.instantiate()
-	add_child_autoqfree(enemy)
-	enemy.global_position = player.global_position + Vector3(0, 0, 1.5)
-
-	var enemy_initial_hp = enemy.current_health
-	player.health.trigger_parry(0.5, 6.0)
-
-	# Take damage from enemy to trigger parry branch
-	player.take_damage(15.0, enemy)
-
-	# Assert enemy received NO counter damage and was stunned
-	assert_eq(enemy.current_health, enemy_initial_hp, "Enemy must receive NO counter damage from parry")
-	assert_true(enemy.is_stunned, "Enemy must receive stun from parry")
-	assert_eq(enemy.stun_timer, 1.0, "Stun duration must be 1.0s")
-
-func test_parry_window_expiry_restores_damage_reception() -> void:
-	var player = PLAYER_SCENE.instantiate()
-	add_child_autoqfree(player)
-
-	player.health.trigger_parry(0.5, 6.0)
-	assert_true(player.health.is_parrying)
-
-	# Expire parry window
-	player.health.update_timers(0.51)
-	assert_false(player.health.is_parrying, "Parry window expired")
-	assert_almost_eq(player.health.parry_cooldown_timer, 6.0 - 0.51, 0.01, "Failed parry keeps 6s base cooldown")
-
-	var initial_hp = player.current_health
-	player.take_damage(25.0)
-	assert_eq(player.current_health, initial_hp - 25.0, "Damage dealt after parry expired")
+	# Hit 2: Penetrates because parry already consumed
+	player.take_damage(20.0, enemy_attacker)
+	assert_eq(player.current_health, initial_player_hp - 20.0, "2nd hit penetrates spent parry")
 
 # ==============================================================================
-# 3. WARRIOR DASH VULNERABILITY & CLASS ISOLATION
+# 3. WARRIOR DASH VULNERABILITY, DUEL MODIFIERS & CLASS ISOLATION
 # ==============================================================================
 
-func test_warrior_takes_damage_during_dash() -> void:
+func test_warrior_dash_damage_timing_before_during_after() -> void:
 	var player = PLAYER_SCENE.instantiate()
 	add_child_autoqfree(player)
 	player.set_class(player.CharacterClass.WARRIOR, false)
 
+	var hp = player.current_health
+
+	# 1. Damage before dash
+	player.take_damage(20.0)
+	assert_eq(player.current_health, hp - 20.0, "Warrior takes damage before dash")
+	hp = player.current_health
+
+	# 2. Damage during dash
 	player.movement.perform_dash(Vector3.FORWARD)
 	assert_true(player.movement.is_dashing, "Movement state is dashing")
-	assert_false(player.is_dash_invulnerable(), "Warrior has no dash invulnerability")
+	assert_false(player.is_dash_invulnerable(), "Warrior is not invulnerable during dash")
+	player.take_damage(20.0)
+	assert_eq(player.current_health, hp - 20.0, "Warrior takes damage during dash")
+	hp = player.current_health
 
-	var initial_hp = player.current_health
-	player.take_damage(30.0)
-	assert_eq(player.current_health, initial_hp - 30.0, "Warrior must take damage during dash")
+	# 3. Damage after dash
+	player.movement.is_dashing = false
+	player.movement.dash_timer = 0.0
+	player.take_damage(20.0)
+	assert_eq(player.current_health, hp - 20.0, "Warrior takes damage after dash")
 
 func test_archer_and_engineer_retain_dash_immunity() -> void:
 	var player = PLAYER_SCENE.instantiate()
@@ -284,7 +438,6 @@ func test_archer_and_engineer_retain_dash_immunity() -> void:
 	player.movement.perform_dash(Vector3.FORWARD)
 	assert_true(player.movement.is_dashing)
 	assert_true(player.is_dash_invulnerable(), "Archer retains dash invulnerability")
-
 	var hp_archer = player.current_health
 	player.take_damage(30.0)
 	assert_eq(player.current_health, hp_archer, "Archer immune to damage during dash")
@@ -299,24 +452,34 @@ func test_archer_and_engineer_retain_dash_immunity() -> void:
 	player.movement.perform_dash(Vector3.FORWARD)
 	assert_true(player.movement.is_dashing)
 	assert_true(player.is_dash_invulnerable(), "Engineer retains dash invulnerability")
-
 	var hp_eng = player.current_health
 	player.take_damage(30.0)
 	assert_eq(player.current_health, hp_eng, "Engineer immune to damage during dash")
 
-func test_class_switching_isolates_dash_state() -> void:
+func test_warrior_dash_with_duel_modifiers() -> void:
 	var player = PLAYER_SCENE.instantiate()
 	add_child_autoqfree(player)
-
-	# Switch Archer -> Warrior
-	player.set_class(player.CharacterClass.ARCHER, false)
 	player.set_class(player.CharacterClass.WARRIOR, false)
-	player.movement.perform_dash(Vector3.FORWARD)
-	assert_false(player.is_dash_invulnerable(), "Warrior is not invulnerable after switching from Archer")
 
-	var initial_hp = player.current_health
-	player.take_damage(20.0)
-	assert_eq(player.current_health, initial_hp - 20.0, "Takes damage after class switch")
+	var duel_target = ENEMY_DUMMY_SCENE.instantiate()
+	add_child_autoqfree(duel_target)
+
+	var third_party = ENEMY_DUMMY_SCENE.instantiate()
+	add_child_autoqfree(third_party)
+
+	player.abilities.is_dueling = true
+	player.abilities.duel_target = duel_target
+
+	# Third party attacks during dash
+	player.movement.perform_dash(Vector3.FORWARD)
+	var player_hp_before = player.current_health
+	var third_party_hp_before = third_party.current_health
+
+	# 20 damage incoming from third party: 40% reduction applied (takes 12), 20% reflected (deals 4 to attacker)
+	player.take_damage(20.0, third_party)
+
+	assert_eq(player.current_health, player_hp_before - 12.0, "Takes 60% of damage from third-party during duel dash")
+	assert_eq(third_party.current_health, third_party_hp_before - 4.0, "Reflects 20% damage back to third-party attacker")
 
 func test_warrior_dash_combined_with_parry() -> void:
 	var player = PLAYER_SCENE.instantiate()

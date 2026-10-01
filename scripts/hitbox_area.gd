@@ -37,6 +37,10 @@ func _on_area_entered(area: Area3D) -> void:
 	if not is_instance_valid(target) or target == owner_entity:
 		return
 
+	# Rejection: already dying targets cannot receive damage and must not consume hit quota or emit hit_confirmed
+	if "is_dying" in target and target.is_dying:
+		return
+
 	var target_id: int = target.get_instance_id()
 	if _hit_target_ids.has(target_id) or hit_entities.has(target):
 		return
@@ -60,11 +64,15 @@ func _on_area_entered(area: Area3D) -> void:
 	if not can_hit_multiple and hits_landed >= 1:
 		return
 
-	hits_landed += 1
-	_hit_target_ids[target_id] = true
-	hit_entities.append(target)
 	var hit_direction: Vector3 = (target.global_position - global_position).normalized() if (target is Node3D) else Vector3.FORWARD
 	hit_direction.y = 0.0
 	var attacker = owner_entity if is_instance_valid(owner_entity) else null
-	area.take_damage(damage, knockback_force * hit_direction, damage_type, attacker)
+
+	var hit_result = area.take_damage(damage, knockback_force * hit_direction, damage_type, attacker)
+	if hit_result == false:
+		return
+
+	hits_landed += 1
+	_hit_target_ids[target_id] = true
+	hit_entities.append(target)
 	hit_confirmed.emit(target, hit_direction)
