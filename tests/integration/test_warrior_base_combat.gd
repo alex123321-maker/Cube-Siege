@@ -2,6 +2,7 @@ extends GutTest
 
 const PLAYER_SCENE = preload("res://scenes/player.tscn")
 const ENEMY_DUMMY_SCENE = preload("res://scenes/enemy_dummy.tscn")
+const SIEGE_BREAKER_SCENE = preload("res://scenes/enemies/siege_breaker.tscn")
 const WOOD_WALL_SCENE = preload("res://scenes/prefabs/wood_wall.tscn")
 
 var _save_snapshot: Dictionary = {}
@@ -293,36 +294,47 @@ func test_rejected_height_difference_does_not_consume_quota() -> void:
 	player.global_position = Vector3.ZERO
 	player.look_at(Vector3(0, 0, -10), Vector3.UP)
 
-	# Enemy A is at Y=1.5:
+	# High enemy is at Y=1.5:
 	# Its Hurtbox [0.5, 2.5] physically overlaps with SlashHitbox [-0.9, 1.7] across [0.5, 1.7] (1.2m vertical overlap).
 	# However, delta Y = 1.5 rounds to 2, which fails TerrainCombatRules.is_melee_connected (|rounded_delta_y| <= 1).
 	var enemy_high = ENEMY_DUMMY_SCENE.instantiate()
 	add_child_autoqfree(enemy_high)
-	enemy_high.global_position = Vector3(-0.3, 1.5, -1.5)
+	enemy_high.move_speed = 0.0
+	enemy_high.attack_timer = 99.0
+	enemy_high.global_position = Vector3(0.0, 1.5, -1.5)
 
-	# Enemy B is at valid connected height on the ground (delta Y = 0.0)
+	# Ground enemy starts far outside the attack area so it cannot be evaluated first or consume quota early
 	var enemy_ground = ENEMY_DUMMY_SCENE.instantiate()
 	add_child_autoqfree(enemy_ground)
-	enemy_ground.global_position = Vector3(0.3, 0.0, -1.5)
+	enemy_ground.move_speed = 0.0
+	enemy_ground.attack_timer = 99.0
+	enemy_ground.global_position = Vector3(15.0, 0.0, 0.0)
 
 	await wait_physics_frames(3)
+	watch_signals(player.slash_area)
 
+	# Phase 1: Trigger attack while ONLY enemy_high is in the slash area.
+	# Quota is free (hits_landed == 0). High enemy physically overlaps but is rejected solely by height check.
 	player.combat.attack_cooldown_timer = 0.0
 	player.perform_attack()
-	await wait_seconds(0.25)
+	await wait_physics_frames(2)
+	await wait_seconds(0.08)
 
-	assert_eq(enemy_high.current_health, 80.0, "Target with physical overlap but invalid height delta is rejected by TerrainCombatRules")
-	assert_eq(enemy_ground.current_health, 55.0, "Connected ground target receives the single hit after high target rejection")
-	assert_eq(player.slash_area.hits_landed, 1)
+	# If the height check were disabled or broken, enemy_high would take damage and consume quota here
+	assert_eq(enemy_high.current_health, 80.0, "High enemy rejected by height check takes no damage despite free quota")
+	assert_eq(player.slash_area.hits_landed, 0, "Hits landed remains 0 because height rejection did not consume quota")
+	assert_eq(get_signal_emit_count(player.slash_area, "hit_confirmed"), 0, "No hit_confirmed signal emitted for height rejection")
 
-	# Second phase: move enemy_high down to ground level and verify it can now be hit
-	enemy_high.global_position = Vector3(-0.3, 0.0, -1.5)
+	# Phase 2: While the slash window is STILL active (monitoring == true), introduce ground enemy into the slash area
+	enemy_ground.global_position = Vector3(0.0, 0.0, -1.5)
 	await wait_physics_frames(3)
-	player.combat.attack_cooldown_timer = 0.0
-	player.perform_attack()
-	await wait_seconds(0.25)
+	await wait_seconds(0.15)
 
-	assert_eq(enemy_high.current_health, 55.0, "Enemy on ground level now receives hit, confirming height was sole reject reason")
+	# Ground enemy receives the single allowed hit; high enemy remains untouched
+	assert_eq(enemy_ground.current_health, 55.0, "Ground enemy receives hit during active swing window after high target rejection")
+	assert_eq(enemy_high.current_health, 80.0, "High enemy still has full health")
+	assert_eq(player.slash_area.hits_landed, 1, "Single-target quota consumed exactly once")
+	assert_eq(get_signal_emit_count(player.slash_area, "hit_confirmed"), 1, "Exactly one hit_confirmed emitted for the ground enemy")
 
 func test_rejected_friendly_building_does_not_consume_quota() -> void:
 	var player = PLAYER_SCENE.instantiate()
@@ -536,6 +548,50 @@ func test_parry_window_expiration_and_cooldowns() -> void:
 	assert_lte(player.health.parry_cooldown_timer, PlayerHealth.PARRY_SUCCESS_COOLDOWN, "Cooldown reset to 3.0s on success")
 	assert_gt(player.health.parry_cooldown_timer, 2.5, "Cooldown timer active around 3.0s")
 
+func test_parry_with_mixed_enemy_group_including_siege_breaker() -> void:
+	var player = PLAYER_SCENE.instantiate()
+	add_child_autoqfree(player)
+	player.set_class(player.CharacterClass.WARRIOR, false)
+	player.global_position = Vector3.ZERO
+	watch_signals(player)
+
+	# 1. Real SiegeBreaker enemy (inherits EnemyBase, lacks apply_stun)
+	var breaker = SIEGE_BREAKER_SCENE.instantiate()
+	add_child_autoqfree(breaker)
+	breaker.move_speed = 0.0
+	breaker.attack_timer = 99.0
+	breaker.retarget_timer = 9999.0
+	breaker.global_position = player.global_position + Vector3(0, 0, 1.8) # Within 3.5m radius
+
+	# 2. Zombie dummy enemy (implements apply_stun)
+	var zombie = ENEMY_DUMMY_SCENE.instantiate()
+	add_child_autoqfree(zombie)
+	zombie.move_speed = 0.0
+	zombie.attack_timer = 99.0
+	zombie.global_position = player.global_position + Vector3(1.5, 0, 0) # Within 3.5m radius
+
+	await wait_physics_frames(2)
+
+	player.health.parry_cooldown_timer = 0.0
+	player.perform_utility()
+	assert_true(player.health.is_parrying, "Parry stance is active")
+
+	var initial_player_hp: float = player.current_health
+	var initial_breaker_hp: float = breaker.current_health
+	var initial_zombie_hp: float = zombie.current_health
+
+	# Breaker attacks player during parry window:
+	# Incoming hit blocked, parry triggered, breaker skipped for stun without error, zombie stunned, zero counter damage
+	player.take_damage(breaker.player_damage, breaker)
+
+	assert_eq(player.current_health, initial_player_hp, "Breaker attack was absorbed by parry")
+	assert_false(player.health.is_parrying, "Parry stance consumed on first absorbed hit")
+	assert_signal_emitted_with_parameters(player, "parry_triggered", [true])
+	assert_eq(breaker.current_health, initial_breaker_hp, "Siege breaker took ZERO counter damage")
+	assert_eq(zombie.current_health, initial_zombie_hp, "Zombie took ZERO counter damage")
+	assert_true(zombie.is_stunned, "Zombie dummy received AoE stun")
+	assert_eq(zombie.stun_timer, 1.0, "Zombie stun duration is 1.0s")
+
 # ==============================================================================
 # 3. WARRIOR DASH VULNERABILITY, DUEL MODIFIERS & CLASS ISOLATION
 # ==============================================================================
@@ -556,12 +612,14 @@ func test_warrior_dash_damage_timing_before_during_after() -> void:
 	hp = player.current_health
 
 	# 2. Damage during dash with actual locomotion
-	var start_pos = player.global_position
+	var start_pos_h: Vector2 = Vector2(player.global_position.x, player.global_position.z)
 	player.perform_dash()
 	await wait_physics_frames(2)
 
 	assert_true(player.movement.is_dashing, "Movement state is dashing")
-	assert_ne(player.global_position, start_pos, "Player actually moved during dash")
+	var current_pos_h: Vector2 = Vector2(player.global_position.x, player.global_position.z)
+	var horiz_displacement: float = current_pos_h.distance_to(start_pos_h)
+	assert_gt(horiz_displacement, 0.2, "Player actually moved horizontally on XZ plane during dash (displacement: %f)" % horiz_displacement)
 	assert_false(player.is_dash_invulnerable(), "Warrior is not invulnerable during dash")
 
 	player.take_damage(20.0)
@@ -581,9 +639,12 @@ func test_archer_and_engineer_retain_dash_immunity() -> void:
 
 	# Archer
 	player.set_class(player.CharacterClass.ARCHER, false)
+	player.look_at(Vector3(0, 0, -10), Vector3.UP)
+	var start_archer_h: Vector2 = Vector2(player.global_position.x, player.global_position.z)
 	player.perform_dash()
 	await wait_physics_frames(2)
 	assert_true(player.movement.is_dashing)
+	assert_gt(Vector2(player.global_position.x, player.global_position.z).distance_to(start_archer_h), 0.2, "Archer moved horizontally during dash")
 	assert_true(player.is_dash_invulnerable(), "Archer retains dash invulnerability")
 	var hp_archer = player.current_health
 	player.take_damage(30.0)
@@ -594,9 +655,12 @@ func test_archer_and_engineer_retain_dash_immunity() -> void:
 	# Engineer
 	player.set_class(player.CharacterClass.ENGINEER, false)
 	player.movement.dash_cooldown_timer = 0.0
+	player.look_at(Vector3(0, 0, -10), Vector3.UP)
+	var start_eng_h: Vector2 = Vector2(player.global_position.x, player.global_position.z)
 	player.perform_dash()
 	await wait_physics_frames(2)
 	assert_true(player.movement.is_dashing)
+	assert_gt(Vector2(player.global_position.x, player.global_position.z).distance_to(start_eng_h), 0.2, "Engineer moved horizontally during dash")
 	assert_true(player.is_dash_invulnerable(), "Engineer retains dash invulnerability")
 	var hp_eng = player.current_health
 	player.take_damage(30.0)

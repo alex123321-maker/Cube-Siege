@@ -59,10 +59,13 @@ func take_damage(damage: float, attacker: Node = null, is_invulnerable: bool = f
 		if player_node and is_instance_valid(player_node):
 			var enemies: Array[Node] = player_node.get_tree().get_nodes_in_group("enemies")
 			for e in enemies:
+				if not is_instance_valid(e) or e == player_node:
+					continue
 				if e is Node3D and player_node.global_position.distance_to(e.global_position) <= COUNTER_RADIUS:
+					if e.has_method("apply_stun"):
 						e.apply_stun(COUNTER_STUN)
-						if COUNTER_DAMAGE > 0.0 and e.has_method("_on_damaged"):
-							e._on_damaged(COUNTER_DAMAGE, (e.global_position - player_node.global_position).normalized() * 8.0, "counter", player_node)
+					if COUNTER_DAMAGE > 0.0 and e.has_method("_on_damaged"):
+						e._on_damaged(COUNTER_DAMAGE, (e.global_position - player_node.global_position).normalized() * 8.0, "counter", player_node)
 		return
 
 	var final_damage: float = damage
