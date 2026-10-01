@@ -250,3 +250,21 @@ func test_actions_and_block_soften_movement_lean() -> void:
 	assert_almost_eq(layer.movement_lean.length(), full_lean * layer.profile.block_movement_lean_weight, 0.0001)
 	_lean_steps(layer, Vector3.RIGHT * 7)
 	assert_almost_eq(layer.movement_lean.length(), full_lean, 0.0001)
+
+func test_all_hero_faces_match_gameplay_forward_with_their_imported_axes() -> void:
+	var player: CharacterBody3D = _player()
+	var face_paths: Array[NodePath] = [^"root/torso/head/Eye", ^"root/torso/head/eye_catchlight_1",
+		^"root/torso/head/goggle_lens_1"]
+	for class_id in range(3):
+		player.set_class(class_id, false)
+		var model: Node3D = player.presentation.active_model
+		player.presentation.anim_player.play("idle")
+		player.presentation.anim_player.advance(0.0)
+		var head: Node3D = model.get_node("root/torso/head") as Node3D
+		var face: MeshInstance3D = model.get_node(face_paths[class_id]) as MeshInstance3D
+		for yaw: float in [0.0, PI / 2, PI, -PI / 2]:
+			player.rotation.y = yaw
+			var front: Vector3 = face.to_global(face.get_aabb().get_center()) - head.global_position
+			front.y = 0.0
+			assert_gt(front.normalized().dot(-player.global_basis.z), 0.8,
+				"Visible face follows gameplay forward for class %d, including the +Z imported warrior" % class_id)

@@ -28,6 +28,20 @@ var current_peripheral_offset: Vector3 = Vector3.ZERO
 var target_peripheral_offset: Vector3 = Vector3.ZERO
 var is_initialized: bool = false
 var pan_enabled: bool = true
+var _combat_impulse: Vector2 = Vector2.ZERO
+var _combat_impulse_age: float = 1.0
+
+## A brief translation in the image plane; orientation, presets and FOV stay fixed.
+func add_combat_impulse(direction: Vector3, strength: float) -> void:
+	_combat_impulse = Vector2(direction.dot(global_basis.x), direction.dot(global_basis.y)) * clampf(strength, 0.0, 0.09)
+	_combat_impulse_age = 0.0
+
+func _step_combat_impulse(delta: float) -> void:
+	_combat_impulse_age = minf(_combat_impulse_age + delta, 0.20)
+	var phase: float = _combat_impulse_age / 0.20
+	var envelope: float = pow(1.0 - phase, 2.0) * cos(phase * TAU)
+	h_offset = _combat_impulse.x * envelope
+	v_offset = _combat_impulse.y * envelope
 
 func _ready() -> void:
 	current = true
@@ -100,6 +114,7 @@ func _get_target_position() -> Vector3:
 	return target.global_position
 
 func step_camera(delta: float) -> void:
+	_step_combat_impulse(delta)
 	if not target or not is_instance_valid(target):
 		return
 

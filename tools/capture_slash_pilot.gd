@@ -27,7 +27,9 @@ func _initialize() -> void:
 	root.content_scale_mode = Window.CONTENT_SCALE_MODE_VIEWPORT
 	root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_KEEP
 	for argument: String in OS.get_cmdline_user_args():
-		if argument.begins_with("--label="):
+		if argument.begins_with("--output="):
+			_output = argument.trim_prefix("--output=").trim_suffix("/") + "/"
+		elif argument.begins_with("--label="):
 			_label = argument.trim_prefix("--label=")
 		elif argument.begins_with("--profile="):
 			_profile_path = argument.trim_prefix("--profile=")
@@ -125,7 +127,7 @@ func _capture() -> void:
 		push_error("Expected one contact per confirmed attack in the rendered sequence.")
 		quit(3)
 		return
-	if not is_equal_approx(_targets[0].current_health, 10000.0 - float(_expected_contacts) * 25.0) or root.get_node("VFXManager").get_active_effect_count() != 0:
+	if not is_equal_approx(_targets[0].current_health, 10000.0 - float(_expected_contacts) * _player.combat.attack_damage) or root.get_node("VFXManager").get_active_effect_count() != 0:
 		push_error("Damage or final cleanup changed during the profile comparison.")
 		quit(5)
 		return

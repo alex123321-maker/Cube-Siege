@@ -1,0 +1,43 @@
+Godot Engine v4.6.1.stable.official.14d19694e - https://godotengine.org
+
+---  GUT  ---
+[INFO]:  using [C:/Users/alexa/AppData/Roaming/Godot/app_userdata/Cube Siege] for temporary output.
+Godot version:  4.6.1
+GUT version:  9.6.1
+
+
+res://tests/integration/test_cleave_vfx.gd
+* test_repeated_release_and_contacts_release_all_registered_effects
+    --- Awaiting 0.9 seconds  ---
+    --- Awaiting 1.0 seconds  ---
+* test_real_special_hit_and_miss_keep_damage_and_contact_positions
+    --- Awaiting 0.9 seconds  ---
+    --- Awaiting 0.9 seconds  ---
+    --- Awaiting 0.9 seconds  ---
+* test_windup_does_not_survive_owner_removal
+* test_contact_budget_never_limits_gameplay_damage
+    --- Awaiting 0.9 seconds  ---
+    --- Awaiting 0.9 seconds  ---
+* test_class_change_during_windup_cancels_warrior_release
+    --- Awaiting 0.9 seconds  ---
+* test_camera_impulse_settles_without_changing_orientation_or_fov
+6/6 passed.
+
+
+
+
+==============================================
+= Run Summary
+==============================================
+
+Totals
+------
+Scripts               1
+Tests                 6
+Passing Tests         6
+Asserts              25
+Time              9.25s
+
+
+Ran Scripts matching "test_cleave_vfx.gd"
+---- All tests passed! ----

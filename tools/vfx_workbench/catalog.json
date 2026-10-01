@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "families": {
+    "cleave": {
+      "role": "Full-body frontal melee ability; approved local reference",
+      "profile": "assets/vfx/cleave/sovereign_edge.tres",
+      "effect": "scripts/vfx/cleave_vfx.gd",
+      "harness": "tools/capture_cleave.gd",
+      "test": "tests/integration/test_cleave_vfx.gd",
+      "evidence": "docs/verification/vfx_cleave_ability/VERIFICATION.md",
+      "controls": "Palette, width, erosion, emission, decorative fragments, sound. ability is authoritative gameplay data; do not change it in an art trial.",
+      "cases": {
+        "day": ["--only-phase=1"],
+        "basic": ["--only-phase=1", "--basic"],
+        "night": ["--only-phase=2"],
+        "crowd": ["--only-phase=3"],
+        "miss": ["--only-phase=1", "--miss"],
+        "rotated": ["--only-phase=1", "--facing-degrees=90"],
+        "pose_front": ["--only-phase=6", "--pose-only"],
+        "pose_side": ["--only-phase=5", "--pose-only"],
+        "profile": ["--profile-real-time"]
+      },
+      "success_marker": "CLEAVE_CAPTURE",
+      "coverage_limits": "No moving caster, interrupted-cast movie, isolated single-hit, wall/slope-specific or hardware matrix. Integration tests cover some cancellation and geometry behavior separately."
+    },
+    "sword": {
+      "role": "Ordinary physical attack, actual blade-anchor history",
+      "profile": "assets/vfx/sword/steel_slash.tres",
+      "effect": "scripts/vfx/sword_vfx.gd",
+      "harness": "tools/capture_slash_pilot.gd",
+      "test": "tests/unit/test_sword_blade_trail.gd",
+      "evidence": "docs/verification/vfx_slash_pilot",
+      "controls": "Emission, arc/contact opacity, shards, trail thickness and tail. Preserve source anchors and combat timing.",
+      "cases": {"coverage": [], "rapid": ["--rapid"]},
+      "success_marker": "SLASH_PILOT",
+      "coverage_limits": "Coverage contains close/day/night/crowd/miss. Frozen targets do not demonstrate physical knockback; rapid changes capture cadence only."
+    },
+    "mine": {
+      "role": "Radial explosion from real mine detonation, with terrain-sampled ground presentation",
+      "profile": "assets/vfx/mine/ember_burst.tres",
+      "effect": "scripts/vfx/mine_explosion_vfx.gd",
+      "harness": "tools/capture_mine_pilot.gd",
+      "test": "tests/integration/test_mine_vfx.gd",
+      "evidence": "docs/verification/vfx_mine_pilot",
+      "controls": "Fire/smoke size, lifetime, opacity, emission, embers and light. Harness passes real blast radius to VFX.",
+      "cases": {"day": ["--only-phase=1"], "night": ["--only-phase=2"], "crowd": ["--only-phase=3"], "coverage": []},
+      "success_marker": "MINE_PILOT",
+      "coverage_limits": "Coverage contains boundaries and voxel steps. Frozen actors do not show knockback. No basic-attack comparison, isolated miss or real-time renderer stress."
+    },
+    "archer": {
+      "role": "Actual projectile surface contact and directional impact",
+      "profile": "assets/vfx/archer/arrow_impact.tres",
+      "effect": "scripts/vfx/arrow_impact_vfx.gd",
+      "harness": "tools/capture_archer_pilot.gd",
+      "test": "tests/integration/test_arrow_impact_vfx.gd",
+      "evidence": "docs/verification/vfx_archer_pilot",
+      "controls": "Contact painting, dust, chips, glow. Keep actual projectile collision authoritative.",
+      "cases": {"coverage": [], "surface": ["--surface-check"]},
+      "success_marker": "ARCHER_PILOT",
+      "coverage_limits": "Coverage contains close/day/night/crowd/direction changes; surface includes real wall and empty-space miss. No special/basic comparison or real-time stress."
+    },
+    "stamps": {
+      "role": "Subordinate sprite accents; component preview, not an ability",
+      "profile": "assets/vfx/library/presets/warm_contact.tres",
+      "effect": "scripts/vfx/library/vfx_stamp_3d.gd",
+      "harness": "tools/vfx_workbench/preview_stamps.gd",
+      "test": "tests/unit/test_vfx_stamp.gd",
+      "evidence": "docs/vfx/LIBRARY.md",
+      "controls": "Texture, tint, size, lifetime, rise, drift and local emission. No damage, light or camera shake.",
+      "cases": {"preview": []},
+      "success_marker": "VFX_STAMP_PREVIEW",
+      "coverage_limits": "Isolated camera and background. It cannot establish production integration, terrain, target contact or ability readability."
+    }
+  },
+  "sources": [
+    {"name": "Kenney Particle Pack", "url": "https://kenney.nl/assets/particle-pack", "purpose": "Six local transparent masks", "license": "CC0-1.0; assets/vfx/library/kenney/License.txt", "verified": "2026-09-30"},
+    {"name": "Riot Art Education: Visual Effects", "url": "https://www.riotgames.com/en/artedu/visual-effects", "purpose": "Clarity, thematic cohesion and restraint", "license": "Reference only; no imported game assets", "verified": "2026-09-30"},
+    {"name": "Cyanilux Sword Slash Shader Breakdown", "url": "https://www.cyanilux.com/tutorials/sword-slash-shader-breakdown/", "purpose": "Mesh silhouette and moving mask technique; Unity example", "license": "Reference only; no copied source or textures", "verified": "2026-09-30"},
+    {"name": "Godot 4.6 Movie Maker", "url": "https://docs.godotengine.org/en/4.6/tutorials/animation/creating_movies.html", "purpose": "Fixed-step offline recording and format limits", "license": "Documentation reference", "verified": "2026-09-30"}
+  ]
+}

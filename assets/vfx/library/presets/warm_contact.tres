@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="VFXStampProfile" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/vfx/library/vfx_stamp_profile.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/vfx/library/kenney/flare_01.png" id="2"]
+
+[resource]
+script = ExtResource("1")
+texture = ExtResource("2")
+tint = Color(1, 0.76, 0.32, 0.85)
+start_size = Vector2(1.1, 0.75)
+end_size = Vector2(1.55, 1.0)
+lifetime = 0.22
+rise_seconds = 0.015
+emission = 0.9

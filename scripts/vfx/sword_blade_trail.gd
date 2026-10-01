@@ -4,6 +4,7 @@ extends MeshInstance3D
 ## A bounded world-space history of the displayed blade, owned by presentation.
 ## One reusable mesh per bound warrior; no damage, timers, or scene searches.
 const TRAIL_SHADER: Shader = preload("res://assets/vfx/shaders/sword_blade_trail.gdshader")
+const CLEAVE_ARTWORK: Texture2D = preload("res://assets/vfx/cleave/cleave_ribbon_v2.png")
 const MAX_SAMPLES: int = 32
 const BREAK_DISTANCE: float = 2.0
 var _profile: SwordVFXProfile
@@ -15,6 +16,7 @@ var _tips: Array[Vector3] = []
 var _times: Array[float] = []
 var _clock: float = 0.0
 var _emitting: bool = false
+var _cleave: bool = false
 
 func setup(profile: SwordVFXProfile, base_anchor: Node3D, tip_anchor: Node3D) -> void:
 	_profile = profile
@@ -38,9 +40,17 @@ func setup(profile: SwordVFXProfile, base_anchor: Node3D, tip_anchor: Node3D) ->
 	_base_anchor.get_global_transform_interpolated()
 	_tip_anchor.get_global_transform_interpolated()
 
-func set_attack_phase(active: bool, animation_time: float) -> void:
-	_emitting = active and animation_time >= _profile.blade_trail_start \
-		and animation_time <= _profile.blade_trail_end
+func set_attack_phase(active: bool, animation_time: float, cleave: bool = false) -> void:
+	var start: float = 0.22 if cleave else _profile.blade_trail_start
+	var end: float = 0.40 if cleave else _profile.blade_trail_end
+	_emitting = active and animation_time >= start and animation_time <= end
+	if _cleave != cleave:
+		_cleave = cleave
+		var material: ShaderMaterial = material_override as ShaderMaterial
+		material.set_shader_parameter("artwork", CLEAVE_ARTWORK if cleave else _profile.ribbon_texture)
+		material.set_shader_parameter("artwork_rect", Vector4(0.025, 0.25, 0.948, 0.485)
+			if cleave else Vector4(0.16, 0.28, 0.74, 0.46))
+	(material_override as ShaderMaterial).set_shader_parameter("intensity", _profile.emission * (1.65 if cleave else 1.0))
 
 func reset_trail() -> void:
 	_emitting = false

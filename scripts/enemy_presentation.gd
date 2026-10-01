@@ -10,6 +10,8 @@ var body_mesh: MeshInstance3D = null
 var model_root: Node3D = null
 var is_dying: bool = false
 var current_action: StringName = &""
+var _model_rest: Transform3D = Transform3D.IDENTITY
+var _cleave_recoil: Tween
 
 func setup(enemy: CharacterBody3D, model: Node3D = null) -> void:
 	if model:
@@ -20,6 +22,7 @@ func setup(enemy: CharacterBody3D, model: Node3D = null) -> void:
 		model_root = enemy.get_node("Visuals") as Node3D
 
 	if model_root:
+		_model_rest = model_root.transform
 		anim_player = model_root.find_child("AnimationPlayer", true, false) as AnimationPlayer
 		var meshes: Array[Node] = model_root.find_children("*", "MeshInstance3D", true, false)
 		if not meshes.is_empty():
@@ -91,7 +94,31 @@ func play_hit() -> void:
 		anim_player.stop()
 		anim_player.play("hit", 0.05)
 
+func play_cleave_recoil(direction: Vector3) -> void:
+	if not is_instance_valid(model_root) or is_dying:
+		return
+	if _cleave_recoil and _cleave_recoil.is_valid():
+		_cleave_recoil.kill()
+	var local_direction: Vector3 = model_root.get_parent_node_3d().global_basis.inverse() * direction
+	local_direction.y = 0.0
+	if local_direction.is_zero_approx():
+		return
+	local_direction = local_direction.normalized()
+	var axis: Vector3 = Vector3.UP.cross(local_direction).normalized()
+	_cleave_recoil = model_root.create_tween()
+	_cleave_recoil.tween_method(_apply_cleave_recoil.bind(axis, local_direction), 0.0, 1.0, 0.055)
+	_cleave_recoil.tween_method(_apply_cleave_recoil.bind(axis, local_direction), 1.0, 0.0, 0.38).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+
+func _apply_cleave_recoil(weight: float, axis: Vector3, direction: Vector3) -> void:
+	if is_instance_valid(model_root):
+		model_root.transform = Transform3D(Basis(axis, weight * 0.30) * _model_rest.basis,
+			_model_rest.origin + direction * weight * 0.18)
+
 func play_death() -> void:
+	if _cleave_recoil and _cleave_recoil.is_valid():
+		_cleave_recoil.kill()
+		if is_instance_valid(model_root):
+			model_root.transform = _model_rest
 	is_dying = true
 	current_action = &"death"
 	if is_instance_valid(anim_player) and anim_player.has_animation("death"):
