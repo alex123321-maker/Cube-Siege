@@ -4,10 +4,11 @@
 [ext_resource type="PackedScene" path="res://scenes/hud_action_slot.tscn" id="2_slot"]
 
 [node name="SkillsActionBar" type="HBoxContainer"]
-custom_minimum_size = Vector2(468, 86)
+custom_minimum_size = Vector2(532, 120)
 layout_mode = 2
-theme_override_constants/separation = 6
+theme_override_constants/separation = 8
 alignment = 1
+mouse_filter = 2
 script = ExtResource("1_skills")
 
 [node name="SlotLMB" parent="." instance=ExtResource("2_slot")]

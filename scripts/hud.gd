@@ -1,90 +1,83 @@
 extends CanvasLayer
 
-const DAY_ICON: Texture2D = preload("res://assets/ui/hud_visual_kit/icons/global_day_64.png")
-const NIGHT_ICON: Texture2D = preload("res://assets/ui/hud_visual_kit/icons/global_night_64.png")
+const DAY_ICON: Texture2D = preload("res://assets/ui/hud_visual_kit/icons/global_day.png")
+const NIGHT_ICON: Texture2D = preload("res://assets/ui/hud_visual_kit/icons/global_night.png")
 
 @export var player_path: NodePath
 @export var day_night_cycle_path: NodePath = NodePath("../DayNightCycle")
+@export var building_system_path: NodePath = NodePath("../BuildingSystem")
 
-@onready var top_xp_bar: ProgressBar = $TopXPBar
-@onready var xp_label: Label = $TopXPBar/XPLabel
-@onready var day_night_label: Label = $Margin/DayNightLabel
 @onready var day_night_icon: TextureRect = $Margin/TopCenter/DayNightRow/DayNightIcon
 @onready var day_night_phase_label: Label = $Margin/TopCenter/DayNightRow/PhaseLabel
 @onready var day_night_timer_label: Label = $Margin/TopCenter/DayNightRow/TimerLabel
 @onready var wood_label: Label = $Margin/Resources/ResourceRows/WoodBox/WoodLabel
 @onready var stone_label: Label = $Margin/Resources/ResourceRows/StoneBox/StoneLabel
 @onready var iron_label: Label = $Margin/Resources/ResourceRows/IronBox/IronLabel
-@onready var magic_label: Label = get_node_or_null("Margin/Resources/ResourceRows/MagicBox/MagicLabel")
-@onready var card_draft_popup: Control = $CardDraftPopup
+@onready var magic_label: Label = $Margin/Resources/ResourceRows/MagicBox/MagicLabel
+@onready var hero_portrait: HUDHeroPortrait = $Margin/Resources/ResourceRows/HeroPortrait
+@onready var card_draft_popup: Control = $Margin/CardDraftPopup
+@onready var player_floating_hp: Control = $Margin/PlayerFloatingHP
+@onready var player_hp_bar: ProgressBar = $Margin/PlayerFloatingHP/Bar
+@onready var player_hp_label: Label = $Margin/PlayerFloatingHP/Bar/Label
+@onready var player_xp_bar: ProgressBar = $Margin/PlayerFloatingHP/XPBar
+@onready var player_xp_label: Label = $Margin/PlayerFloatingHP/XPLabel
 
-@onready var player_floating_hp: Control = $PlayerFloatingHP
-@onready var player_hp_bar: ProgressBar = $PlayerFloatingHP/Bar
-@onready var player_hp_label: Label = $PlayerFloatingHP/Bar/Label
-
-var player: Node3D = null
-var day_night_cycle: DayNightCycle = null
-var camera: Camera3D = null
+var player: PlayerPrototype
+var day_night_cycle: DayNightCycle
+var camera: Camera3D
 var _last_night_state: Variant = null
+var _event_bus: Node
 
 func _ready() -> void:
-	if has_node(player_path):
-		player = get_node(player_path)
-	if has_node(day_night_cycle_path):
+	if not player_path.is_empty() and has_node(player_path):
+		player = get_node(player_path) as PlayerPrototype
+	if not day_night_cycle_path.is_empty() and has_node(day_night_cycle_path):
 		day_night_cycle = get_node(day_night_cycle_path) as DayNightCycle
 
-	if has_node("Margin/TopCenter/DayNightRow/BtnSkipNight"):
-		$Margin/TopCenter/DayNightRow/BtnSkipNight.pressed.connect(_on_skip_night_pressed)
+	$Margin/TopCenter/DayNightRow/BtnSkipNight.pressed.connect(_on_skip_night_pressed)
+	$Margin/TopCenter/DayNightRow/BtnSettings.pressed.connect(_on_settings_pressed)
 
-	if has_node("Margin/TopCenter/DayNightRow/BtnSettings"):
-		$Margin/TopCenter/DayNightRow/BtnSettings.pressed.connect(func():
-			var modal = get_node_or_null("SettingsModal")
-			if modal and modal.has_method("open_modal"):
-				modal.open_modal()
-		)
-
-	# EventBus listeners for decoupled architecture (single source of truth)
-	var eb = get_node_or_null("/root/EventBus")
-	if eb:
-		eb.player_health_changed.connect(_on_health_changed)
-		eb.player_xp_changed.connect(_on_xp_changed)
-		eb.player_level_up.connect(_on_level_up_reached)
-		eb.resources_changed.connect(_on_resources_changed)
-		eb.cycle_time_updated.connect(_on_cycle_time_updated)
-		eb.boss_spawned.connect(show_boss_bar)
-		eb.boss_defeated.connect(_on_boss_defeated_event)
+	_event_bus = get_node_or_null("/root/EventBus")
+	if _event_bus:
+		_event_bus.player_health_changed.connect(_on_health_changed)
+		_event_bus.player_xp_changed.connect(_on_xp_changed)
+		_event_bus.player_level_up.connect(_on_level_up_reached)
+		_event_bus.player_class_changed.connect(_on_player_class_changed)
+		_event_bus.resources_changed.connect(_on_resources_changed)
+		_event_bus.cycle_time_updated.connect(_on_cycle_time_updated)
+		_event_bus.boss_spawned.connect(show_boss_bar)
+		_event_bus.boss_defeated.connect(_on_boss_defeated_event)
 	else:
-		# Fallback direct wiring for standalone testing without EventBus autoload
 		if player:
-			if player.has_signal("health_changed"):
-				player.connect("health_changed", Callable(self, "_on_health_changed"))
-			if player.has_signal("xp_changed"):
-				player.connect("xp_changed", Callable(self, "_on_xp_changed"))
-			if player.has_signal("level_up_reached"):
-				player.connect("level_up_reached", Callable(self, "_on_level_up_reached"))
+			player.health_changed.connect(_on_health_changed)
+			player.xp_changed.connect(_on_xp_changed)
+			player.level_up_reached.connect(_on_level_up_reached)
 		if day_night_cycle:
-			day_night_cycle.time_updated.connect(func(tl, _tot, night): _update_day_night_label(tl, night, day_night_cycle.current_day))
-	if player and is_instance_valid(player):
-		var current_health: Variant = player.get("current_health")
-		var max_health: Variant = player.get("max_health")
-		if current_health != null and max_health != null:
-			_on_health_changed(float(current_health), float(max_health))
+			day_night_cycle.time_updated.connect(_on_cycle_time_updated_legacy)
+
+	if player:
+		_on_health_changed(player.current_health, player.max_health)
+		_on_xp_changed(player.current_xp, player.xp_to_next_level, player.player_level)
+		hero_portrait.set_class(int(player.current_class))
+	var building_system: BuildingSystem = get_node_or_null(building_system_path) as BuildingSystem
+	if building_system:
+		var wallet: ResourceWallet = building_system.wallet
+		_on_resources_changed(wallet.get_wood(), wallet.get_stone(), wallet.get_iron(), wallet.get_magic_stone())
 
 func _process(_delta: float) -> void:
-	if not player or not is_instance_valid(player) or not player_floating_hp:
+	if not is_instance_valid(player) or not is_instance_valid(player_floating_hp):
 		return
-	if not camera or not is_instance_valid(camera):
+	if not is_instance_valid(camera):
 		camera = get_viewport().get_camera_3d()
 		if not camera:
 			return
-
-	var target_3d: Vector3 = player.global_position + Vector3(0, 2.2, 0)
+	var target_3d: Vector3 = player.global_position + Vector3(0.0, 2.2, 0.0)
 	if camera.is_position_behind(target_3d):
 		player_floating_hp.visible = false
-	else:
-		player_floating_hp.visible = true
-		var screen_pos: Vector2 = camera.unproject_position(target_3d)
-		player_floating_hp.global_position = screen_pos - (player_floating_hp.size * 0.5)
+		return
+	player_floating_hp.visible = true
+	var screen_pos: Vector2 = camera.unproject_position(target_3d)
+	player_floating_hp.position = screen_pos - player_floating_hp.size * 0.5
 
 func _on_health_changed(current: float, max_hp: float) -> void:
 	if player_hp_bar:
@@ -94,15 +87,29 @@ func _on_health_changed(current: float, max_hp: float) -> void:
 	if player_hp_label:
 		player_hp_label.text = "%d / %d HP" % [max(0, int(current)), int(max_hp)]
 
+func _on_xp_changed(current: float, max_xp: float, level: int) -> void:
+	if player_xp_bar:
+		player_xp_bar.max_value = max_xp
+		player_xp_bar.value = current
+	if player_xp_label:
+		player_xp_label.text = "LV %d  ·  %d / %d XP" % [level, int(current), int(max_xp)]
+
 func _on_resources_changed(wood: int, stone: int, iron: int, magic_stone: int = 0) -> void:
-	if wood_label:
-		wood_label.text = "ДЕРЕВО\n%d / 25" % wood
-	if stone_label:
-		stone_label.text = "КАМЕНЬ\n%d / 25" % stone
-	if iron_label:
-		iron_label.text = "ЖЕЛЕЗО\n%d" % iron
-	if magic_label:
-		magic_label.text = "МАГ. КАМЕНЬ\n%d" % magic_stone
+	_set_resource_count(wood_label, wood)
+	_set_resource_count(stone_label, stone)
+	_set_resource_count(iron_label, iron)
+	_set_resource_count(magic_label, magic_stone)
+
+func _set_resource_count(label: Label, count: int) -> void:
+	label.tooltip_text = str(count)
+	if count < 1000:
+		label.text = str(count)
+		return
+	for unit: Array in [[1000000000, "B"], [1000000, "M"], [1000, "K"]]:
+		if count >= unit[0]:
+			var value: float = float(count) / float(unit[0])
+			label.text = ("%.1f%s" if value < 10.0 else "%.0f%s") % [value, unit[1]]
+			return
 
 func _on_skip_night_pressed() -> void:
 	if day_night_cycle:
@@ -110,50 +117,39 @@ func _on_skip_night_pressed() -> void:
 	else:
 		push_warning("HUD: Cannot skip to night - day_night_cycle is not configured")
 
+func _on_settings_pressed() -> void:
+	var modal: SettingsModal = $Margin/SettingsModal
+	modal.open_modal()
+
 func _update_day_night_label(seconds_left: float, is_night: bool, day_number: int) -> void:
-	if not day_night_label:
-		return
-	if day_night_icon and _last_night_state != is_night:
+	if _last_night_state != is_night:
 		day_night_icon.texture = NIGHT_ICON if is_night else DAY_ICON
 		_last_night_state = is_night
 	var minutes: int = int(seconds_left) / 60
 	var seconds: int = int(seconds_left) % 60
 	var tint: Color = Color.WHITE
 	if is_night:
-		day_night_label.text = "NIGHT %d [SIEGE]  %02d:%02d" % [day_number, minutes, seconds]
-		day_night_phase_label.text = "NIGHT %d [SIEGE]" % day_number
+		day_night_phase_label.text = "NIGHT %d  ·  SIEGE" % day_number
 		tint = Color(1.0, 0.3, 0.3, 1.0)
+	elif seconds_left <= 30.0:
+		day_night_phase_label.text = "DAY %d  ·  SUNSET" % day_number
+		tint = Color(1.0, 0.6, 0.1, 1.0)
 	else:
-		if seconds_left <= 30.0:
-			day_night_label.text = "DAY %d [SUNSET]  %02d:%02d" % [day_number, minutes, seconds]
-			day_night_phase_label.text = "DAY %d [SUNSET]" % day_number
-			tint = Color(1.0, 0.6, 0.1, 1.0)
-		else:
-			day_night_label.text = "DAY %d  %02d:%02d" % [day_number, minutes, seconds]
-			day_night_phase_label.text = "DAY %d" % day_number
-	day_night_label.modulate = tint
-	if day_night_timer_label:
-		day_night_timer_label.text = "%02d:%02d" % [minutes, seconds]
-		day_night_timer_label.modulate = tint
-	if day_night_phase_label:
-		day_night_phase_label.modulate = tint
+		day_night_phase_label.text = "DAY %d" % day_number
+	day_night_phase_label.modulate = tint
+	day_night_phase_label.tooltip_text = day_night_phase_label.text
+	day_night_timer_label.text = "%02d:%02d" % [minutes, seconds]
+	day_night_timer_label.modulate = tint
 
-func _on_xp_changed(current: float, max_xp: float, level: int) -> void:
-	if top_xp_bar:
-		top_xp_bar.max_value = max_xp
-		top_xp_bar.value = current
-	if xp_label:
-		var pct: int = int((current / max(1.0, max_xp)) * 100)
-		xp_label.text = "LV %d  ·  %d / %d XP  ·  %d%%" % [level, int(current), int(max_xp), pct]
+func _on_player_class_changed(new_class: int) -> void:
+	hero_portrait.set_class(new_class)
 
 func _on_level_up_reached(new_level: int) -> void:
-	if card_draft_popup and card_draft_popup.has_method("open_draft"):
-		card_draft_popup.open_draft(player, new_level)
+	card_draft_popup.open_draft(player, new_level)
 
 func show_boss_bar(boss: Node) -> void:
-	var boss_container: Control = get_node_or_null("Margin/BossBarContainer") as Control
-	if boss_container:
-		boss_container.visible = true
+	var boss_container: Control = $Margin/BossBarContainer
+	boss_container.visible = true
 	if boss.has_signal("boss_health_changed"):
 		boss.connect("boss_health_changed", Callable(self, "_on_boss_health_changed"))
 	if boss.has_signal("boss_defeated"):
@@ -162,39 +158,40 @@ func show_boss_bar(boss: Node) -> void:
 		_on_boss_health_changed(boss.current_health, boss.max_health)
 
 func _on_boss_health_changed(current: float, max_hp: float) -> void:
-	var boss_hp_bar: ProgressBar = get_node_or_null("Margin/BossBarContainer/BossHPBar") as ProgressBar
-	var boss_hp_label: Label = get_node_or_null("Margin/BossBarContainer/BossHPBar/BossHPLabel") as Label
-	if boss_hp_bar:
-		boss_hp_bar.max_value = max_hp
-		boss_hp_bar.value = current
-	if boss_hp_label:
-		boss_hp_label.text = "%d / %d HP" % [max(0, int(current)), int(max_hp)]
+	var boss_hp_bar: ProgressBar = $Margin/BossBarContainer/BossHPBar
+	var boss_hp_label: Label = $Margin/BossBarContainer/BossHPBar/BossHPLabel
+	boss_hp_bar.max_value = max_hp
+	boss_hp_bar.value = current
+	boss_hp_label.text = "%d / %d HP" % [max(0, int(current)), int(max_hp)]
 
 func _on_boss_defeated() -> void:
-	var boss_container: Control = get_node_or_null("Margin/BossBarContainer") as Control
-	if boss_container:
-		boss_container.visible = false
+	$Margin/BossBarContainer.visible = false
 
-func _on_cycle_time_updated(tl: float, _tot: float, night: bool, day_num: int) -> void:
-	_update_day_night_label(tl, night, day_num)
+func _on_cycle_time_updated(seconds_left: float, _total: float, night: bool, day_number: int) -> void:
+	_update_day_night_label(seconds_left, night, day_number)
 
-func _on_boss_defeated_event(_b: Node = null) -> void:
+func _on_cycle_time_updated_legacy(seconds_left: float, _total: float, night: bool) -> void:
+	_update_day_night_label(seconds_left, night, day_night_cycle.current_day)
+
+func _on_boss_defeated_event(_boss: Node = null) -> void:
 	_on_boss_defeated()
 
 func _exit_tree() -> void:
-	var eb = get_node_or_null("/root/EventBus")
-	if eb:
-		if eb.player_health_changed.is_connected(_on_health_changed):
-			eb.player_health_changed.disconnect(_on_health_changed)
-		if eb.player_xp_changed.is_connected(_on_xp_changed):
-			eb.player_xp_changed.disconnect(_on_xp_changed)
-		if eb.player_level_up.is_connected(_on_level_up_reached):
-			eb.player_level_up.disconnect(_on_level_up_reached)
-		if eb.resources_changed.is_connected(_on_resources_changed):
-			eb.resources_changed.disconnect(_on_resources_changed)
-		if eb.cycle_time_updated.is_connected(_on_cycle_time_updated):
-			eb.cycle_time_updated.disconnect(_on_cycle_time_updated)
-		if eb.boss_spawned.is_connected(show_boss_bar):
-			eb.boss_spawned.disconnect(show_boss_bar)
-		if eb.boss_defeated.is_connected(_on_boss_defeated_event):
-			eb.boss_defeated.disconnect(_on_boss_defeated_event)
+	if not is_instance_valid(_event_bus):
+		return
+	if _event_bus.player_health_changed.is_connected(_on_health_changed):
+		_event_bus.player_health_changed.disconnect(_on_health_changed)
+	if _event_bus.player_xp_changed.is_connected(_on_xp_changed):
+		_event_bus.player_xp_changed.disconnect(_on_xp_changed)
+	if _event_bus.player_level_up.is_connected(_on_level_up_reached):
+		_event_bus.player_level_up.disconnect(_on_level_up_reached)
+	if _event_bus.player_class_changed.is_connected(_on_player_class_changed):
+		_event_bus.player_class_changed.disconnect(_on_player_class_changed)
+	if _event_bus.resources_changed.is_connected(_on_resources_changed):
+		_event_bus.resources_changed.disconnect(_on_resources_changed)
+	if _event_bus.cycle_time_updated.is_connected(_on_cycle_time_updated):
+		_event_bus.cycle_time_updated.disconnect(_on_cycle_time_updated)
+	if _event_bus.boss_spawned.is_connected(show_boss_bar):
+		_event_bus.boss_spawned.disconnect(show_boss_bar)
+	if _event_bus.boss_defeated.is_connected(_on_boss_defeated_event):
+		_event_bus.boss_defeated.disconnect(_on_boss_defeated_event)

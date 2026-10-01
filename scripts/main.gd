@@ -1,9 +1,9 @@
 extends Node3D
 
 @onready var building_system: Node = $BuildingSystem
-@onready var radial_menu: Control = $HUD/RadialMenu
+@onready var radial_menu: Control = $HUD/Margin/RadialMenu
 @onready var player: Node = $Player
-@onready var overlay: Control = $HUD/GameOverOverlay
+@onready var overlay: Control = $HUD/Margin/GameOverOverlay
 @onready var save_manager: Node = get_node_or_null("/root/SaveManager")
 @onready var day_night: Node = $DayNightCycle
 @onready var hud: CanvasLayer = $HUD
