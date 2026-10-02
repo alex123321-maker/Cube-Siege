@@ -121,7 +121,7 @@ func demolish(player: Node = null) -> void:
 func take_damage(amount: float, attacker: Node = null, damage_type: String = "physical", knockback: Vector3 = Vector3.ZERO) -> bool:
 	if not CombatRules.can_damage(attacker, self):
 		return false
-	_apply_damage(amount, knockback, damage_type, attacker)
+	_on_damaged(amount, knockback, damage_type, attacker)
 	return true
 
 func _on_damaged(amount: float, knockback: Vector3, type: String, attacker: Node) -> void:

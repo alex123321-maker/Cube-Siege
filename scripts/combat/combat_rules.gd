@@ -150,7 +150,8 @@ static func can_damage(attacker: Variant, target: Node, attacker_team: Team = Te
 		# Enemy can damage player faction
 		if eff_attacker_team == Team.ENEMY:
 			return true
-		return false
+		# Scripted / environmental / neutral damage without player team provenance is allowed
+		return eff_attacker_team != Team.PLAYER
 
 	# Target is a resource node (rock, tree)
 	if target_team == Team.NEUTRAL or (is_instance_valid(resolved_target) and (resolved_target.is_in_group("resources") or resolved_target.is_in_group("resource_nodes"))):

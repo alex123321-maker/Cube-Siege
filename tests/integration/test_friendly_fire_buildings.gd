@@ -225,6 +225,14 @@ func test_iron_wall_thorns_reflection_only_against_enemies() -> void:
 	# 25% of 40 = 10 thorns damage
 	assert_eq(enemy.current_health, initial_enemy_hp - 10.0, "Enemy must receive 25% reflected thorns damage")
 
+	# 4. Direct wall.take_damage API from enemy: also accepted and reflects thorns
+	var hp_before_direct = enemy.current_health
+	var wall_hp_before_direct = wall.current_health
+	var res_take_damage = wall.take_damage(40.0, enemy)
+	assert_true(res_take_damage, "Direct wall.take_damage from enemy must return true")
+	assert_eq(wall.current_health, wall_hp_before_direct - 40.0, "Iron wall must take damage via direct take_damage")
+	assert_eq(enemy.current_health, hp_before_direct - 10.0, "Enemy must receive 25% reflected thorns damage via direct take_damage")
+
 func test_delayed_attack_after_source_destruction() -> void:
 	var tower = ARCHER_TOWER_SCENE.instantiate()
 	add_child(tower)
@@ -287,3 +295,54 @@ func test_building_repair_and_demolish() -> void:
 	wall.building_destroyed.connect(func(b): destroyed_emitted.append(b))
 	wall.demolish()
 	assert_eq(destroyed_emitted.size(), 1, "building_destroyed signal must be emitted on demolish")
+
+func test_decoy_dummy_hurtbox_damage_sources() -> void:
+	var decoy = DECOY_DUMMY_SCENE.instantiate()
+	add_child_autoqfree(decoy)
+	var decoy_hurtbox: HurtboxArea = decoy.get_node("Hurtbox") as HurtboxArea
+	assert_not_null(decoy_hurtbox, "Decoy must have a HurtboxArea node")
+
+	var player = PLAYER_SCENE.instantiate()
+	add_child_autoqfree(player)
+
+	var tower = ARCHER_TOWER_SCENE.instantiate()
+	add_child_autoqfree(tower)
+
+	var enemy = ENEMY_DUMMY_SCENE.instantiate()
+	add_child_autoqfree(enemy)
+	enemy.global_position = Vector3(10.0, 0, 0)
+	enemy.attack_timer = 999.0
+
+	var initial_decoy_hp: float = decoy.current_health
+
+	# 1. Known ally attacks (player, tower) on decoy must be rejected
+	var res_p = decoy_hurtbox.take_damage(20.0, Vector3.ZERO, "physical", player)
+	assert_false(res_p, "Decoy Hurtbox must reject damage from player")
+	assert_eq(decoy.current_health, initial_decoy_hp, "Decoy HP must not change from player attack")
+
+	var res_t = decoy_hurtbox.take_damage(20.0, Vector3.ZERO, "projectile", tower)
+	assert_false(res_t, "Decoy Hurtbox must reject damage from tower")
+	assert_eq(decoy.current_health, initial_decoy_hp, "Decoy HP must not change from tower attack")
+
+	# 2. Delayed ally attack with null source but Team.PLAYER provenance must be rejected
+	var res_delayed_ally = decoy_hurtbox.take_damage(20.0, Vector3.ZERO, "projectile", null, CombatRules.Team.PLAYER)
+	assert_false(res_delayed_ally, "Decoy Hurtbox must reject delayed attack with Team.PLAYER provenance")
+	assert_eq(decoy.current_health, initial_decoy_hp, "Decoy HP must not change from delayed ally attack")
+
+	# 3. Scripted damage with null source and Team.NONE must be accepted
+	var res_scripted = decoy_hurtbox.take_damage(20.0, Vector3.ZERO, "physical", null)
+	assert_true(res_scripted, "Decoy Hurtbox must accept scripted null-source damage")
+	assert_eq(decoy.current_health, initial_decoy_hp - 20.0, "Decoy HP must decrease by 20 from scripted damage")
+
+	# 4. Neutral / environmental damage must be accepted
+	var hp_after_scripted = decoy.current_health
+	var res_neutral = decoy_hurtbox.take_damage(15.0, Vector3.ZERO, "environmental", null, CombatRules.Team.NEUTRAL)
+	assert_true(res_neutral, "Decoy Hurtbox must accept neutral damage")
+	assert_eq(decoy.current_health, hp_after_scripted - 15.0, "Decoy HP must decrease by 15 from neutral damage")
+
+	# 5. Enemy attack must be accepted
+	var hp_after_neutral = decoy.current_health
+	var res_enemy = decoy_hurtbox.take_damage(25.0, Vector3.ZERO, "melee", enemy)
+	assert_true(res_enemy, "Decoy Hurtbox must accept enemy damage")
+	assert_eq(decoy.current_health, hp_after_neutral - 25.0, "Decoy HP must decrease by 25 from enemy damage")
+

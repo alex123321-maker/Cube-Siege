@@ -84,7 +84,7 @@ func _on_area_entered(area: Area3D) -> void:
 	var hit_direction: Vector3 = (target.global_position - global_position).normalized() if (target is Node3D) else Vector3.FORWARD
 	hit_direction.y = 0.0
 
-	var hit_result = area.take_damage(damage, knockback_force * hit_direction, damage_type, valid_owner)
+	var hit_result = area.take_damage(damage, knockback_force * hit_direction, damage_type, valid_owner, source_team)
 	if hit_result == false:
 		return
 

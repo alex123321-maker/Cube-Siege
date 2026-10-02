@@ -200,6 +200,11 @@ func test_player_faction_entities_protected_from_friendly_fire() -> void:
 	# Decoy dummy CAN be damaged by enemies
 	assert_true(CombatRules.can_damage(enemy, decoy), "Enemy must be able to damage decoy dummy")
 
+	# Decoy dummy CAN receive scripted damage (null source) or neutral damage
+	assert_true(CombatRules.can_damage(null, decoy), "Scripted null attacker must be able to damage decoy dummy")
+	assert_true(CombatRules.can_damage(null, decoy, CombatRules.Team.NEUTRAL), "Neutral source must be able to damage decoy dummy")
+	assert_false(CombatRules.can_damage(null, decoy, CombatRules.Team.PLAYER), "Delayed player attack (null source with Team.PLAYER) must NOT damage decoy dummy")
+
 func test_freed_node_resilience_in_can_damage() -> void:
 	var tower = BuildingBase.new()
 	add_child(tower)
