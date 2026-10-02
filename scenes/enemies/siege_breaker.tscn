@@ -13,7 +13,7 @@ size = Vector3(1.6, 2.5, 1.6)
 [node name="SiegeBreaker" type="CharacterBody3D" groups=["enemies", "siege"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0)
 collision_layer = 4
-collision_mask = 1
+collision_mask = 5
 script = ExtResource("1_breaker")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]

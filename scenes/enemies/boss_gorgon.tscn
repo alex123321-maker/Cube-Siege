@@ -40,7 +40,7 @@ size = Vector3(2.6, 3.2, 2.6)
 
 [node name="BossGorgon" type="CharacterBody3D" groups=["boss", "enemies"]]
 collision_layer = 4
-collision_mask = 3
+collision_mask = 7
 script = ExtResource("1_boss")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]

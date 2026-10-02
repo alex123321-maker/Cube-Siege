@@ -91,6 +91,12 @@ func generate_world() -> void:
 	else:
 		actual_seed = custom_seed
 
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if reg and "monster_flowfield" in reg and reg.monster_flowfield:
+		reg.monster_flowfield.world_seed = actual_seed
+		reg.monster_flowfield.set_height_lookup(Callable(self, "get_voxel_height"))
+		reg.monster_flowfield.invalidate()
+
 	# Clear previous loaded chunks
 	for coord in active_chunks.keys():
 		_free_chunk(coord)

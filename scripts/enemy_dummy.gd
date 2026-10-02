@@ -36,17 +36,29 @@ func _custom_physics(delta: float) -> void:
 		var dist: float = to_player.length()
 
 		if dist > 0.1:
-			var move_dir: Vector3 = to_player.normalized()
-			look_at(global_position + move_dir, Vector3.UP)
+			var path_dir: Vector3 = to_player.normalized()
+			var reg = get_node_or_null("/root/EntityRegistry")
+			if reg and "monster_flowfield" in reg and reg.monster_flowfield:
+				path_dir = reg.monster_flowfield.get_flow_direction(global_position, target_player.global_position, radius)
 
+			var pref_vel: Vector3 = Vector3.ZERO
 			if dist > 1.3:
-				velocity.x = move_dir.x * move_speed
-				velocity.z = move_dir.z * move_speed
+				pref_vel = path_dir * move_speed
 			else:
-				velocity.x = 0.0
-				velocity.z = 0.0
 				if attack_timer <= 0.0:
 					perform_attack()
+
+			var final_vel: Vector3 = pref_vel
+			if reg and reg.has_method("get_nearby_enemies"):
+				var neighbors = reg.get_nearby_enemies(global_position, radius + 1.2, self)
+				final_vel = MonsterAvoidance.compute_avoidance_velocity(self, pref_vel, move_speed, radius, neighbors)
+
+			desired_velocity_h = final_vel
+			if final_vel.length_squared() > 0.01:
+				var face_dir = Vector3(final_vel.x, 0, final_vel.z).normalized()
+				look_at(global_position + face_dir, Vector3.UP)
+			else:
+				look_at(global_position + to_player.normalized(), Vector3.UP)
 
 	# Check if blocked by a building/wall and attack it
 	for i in range(get_slide_collision_count()):

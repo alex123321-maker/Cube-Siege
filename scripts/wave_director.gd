@@ -80,10 +80,6 @@ func try_spawn_wave_enemy() -> void:
 	var radius: float = randf_range(20.0, 28.0)
 	var spawn_pos: Vector3 = player.global_position + Vector3(cos(angle) * radius, 0.0, sin(angle) * radius)
 
-	# Resolve surface height at spawn point without fixed arena clamp
-	var terrain_y: float = get_terrain_surface_y(spawn_pos)
-	spawn_pos.y = terrain_y + 0.9
-
 	# If inside SafeZone, reject spawn!
 	var cell: Vector2i = TerrainCombatRules.world_pos_to_voxel(spawn_pos)
 	if safe_zone_cells.has(cell):
@@ -92,19 +88,29 @@ func try_spawn_wave_enemy() -> void:
 	# Select mob archetype based on wave index and roll
 	var roll: float = randf()
 	var mob_scene: PackedScene = ENEMY_GRUNT
+	var mob_half_height: float = 0.9
 
 	if current_wave == 1:
 		if roll < 0.25:
 			mob_scene = ENEMY_RANGED
+			mob_half_height = 0.9
 		else:
 			mob_scene = ENEMY_GRUNT
+			mob_half_height = 0.9
 	else:
 		if roll < 0.25:
 			mob_scene = ENEMY_SIEGE
+			mob_half_height = 1.2
 		elif roll < 0.50:
 			mob_scene = ENEMY_RANGED
+			mob_half_height = 0.9
 		else:
 			mob_scene = ENEMY_GRUNT
+			mob_half_height = 0.9
+
+	# Resolve surface height at spawn point without fixed arena clamp
+	var terrain_y: float = get_terrain_surface_y(spawn_pos)
+	spawn_pos.y = MonsterLocomotion.calculate_spawn_y(terrain_y, mob_half_height)
 
 	var enemy_instance: Node3D = mob_scene.instantiate()
 	get_parent().add_child(enemy_instance)

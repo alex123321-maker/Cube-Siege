@@ -8,9 +8,13 @@ signal boss_defeated()
 @export var charge_speed: float = 22.0
 @export var melee_damage: float = 35.0
 @export var charge_damage: float = 55.0
+@export var radius: float = 1.2
+@export var half_height: float = 1.5
 
 var current_health: float = 2000.0
 var target_player: Node3D = null
+var desired_velocity_h: Vector3 = Vector3.ZERO
+var step_smooth_offset_y: float = 0.0
 
 enum BossState { CHASE, TELEGRAPH, CHARGING, RECOVERY }
 var current_state: BossState = BossState.CHASE
@@ -85,13 +89,22 @@ func _physics_process(delta: float) -> void:
 		BossState.RECOVERY:
 			process_recovery(delta)
 
-	if not is_on_floor():
-		velocity.y -= 25.0 * delta
-	else:
-		if velocity.y < 0.0:
-			velocity.y = 0.0
+	step_smooth_offset_y = MonsterLocomotion.process_locomotion(
+		self,
+		delta,
+		desired_velocity_h,
+		half_height,
+		radius,
+		step_smooth_offset_y
+	)
 
-	move_and_slide()
+	if visuals:
+		visuals.position.y = step_smooth_offset_y
+
+	if current_state == BossState.CHARGING:
+		post_charge_collision_check()
+
+	desired_velocity_h = Vector3.ZERO
 
 func process_chase(delta: float) -> void:
 	var to_player: Vector3 = target_player.global_position - global_position
@@ -110,12 +123,19 @@ func process_chase(delta: float) -> void:
 
 	# Movement
 	if dist > 3.0:
-		var dir: Vector3 = to_player.normalized()
-		velocity.x = dir.x * base_speed
-		velocity.z = dir.z * base_speed
+		var nav_dir: Vector3 = to_player.normalized()
+		var reg = get_node_or_null("/root/EntityRegistry")
+		if reg and "monster_flowfield" in reg and reg.monster_flowfield:
+			nav_dir = reg.monster_flowfield.get_flow_direction(global_position, target_player.global_position, radius)
+
+		var pref_vel: Vector3 = nav_dir * base_speed
+		var final_vel: Vector3 = pref_vel
+		if reg and reg.has_method("get_nearby_enemies"):
+			var neighbors = reg.get_nearby_enemies(global_position, radius + 1.2, self)
+			final_vel = MonsterAvoidance.compute_avoidance_velocity(self, pref_vel, base_speed, radius, neighbors)
+		desired_velocity_h = final_vel
 	else:
-		velocity.x = 0.0
-		velocity.z = 0.0
+		desired_velocity_h = Vector3.ZERO
 
 	# Melee hit against player (contact range 3.4m)
 	if dist <= 3.4 and melee_attack_timer <= 0.0:
@@ -137,12 +157,14 @@ func start_telegraph(dir: Vector3) -> void:
 	state_timer = 1.4 # 1.4s warning
 	charge_direction = dir
 	has_hit_player_in_charge = false
+	desired_velocity_h = Vector3.ZERO
 	velocity = Vector3.ZERO
 	if telegraph_mesh:
 		telegraph_mesh.visible = true
 	spawn_damage_text(0, "!! TRAMPLE CHARGE !!", Color.RED)
 
 func process_telegraph(delta: float) -> void:
+	desired_velocity_h = Vector3.ZERO
 	velocity = Vector3.ZERO
 	state_timer -= delta
 	# Slight rumble shake
@@ -152,15 +174,14 @@ func process_telegraph(delta: float) -> void:
 
 	if state_timer <= 0.0:
 		if visuals:
-			visuals.position = Vector3.ZERO
+			visuals.position = Vector3(0.0, step_smooth_offset_y, 0.0)
 		if telegraph_mesh:
 			telegraph_mesh.visible = false
 		current_state = BossState.CHARGING
 		charge_distance_traveled = 0.0
 
 func process_charging(delta: float) -> void:
-	velocity.x = charge_direction.x * charge_speed
-	velocity.z = charge_direction.z * charge_speed
+	desired_velocity_h = charge_direction * charge_speed
 	charge_distance_traveled += charge_speed * delta
 
 	# 1. Damage and launch player if close
@@ -182,6 +203,16 @@ func process_charging(delta: float) -> void:
 				if b.has_method("destroy_building"):
 					b.destroy_building()
 
+	if charge_distance_traveled >= 16.0:
+		# End charge into recovery
+		current_state = BossState.RECOVERY
+		state_timer = 1.8 # 1.8s vulnerability window
+		desired_velocity_h = Vector3.ZERO
+		velocity = Vector3.ZERO
+		charge_cooldown_timer = 7.0
+		spawn_damage_text(0, "STUNNED!", Color.GOLD)
+
+func post_charge_collision_check() -> void:
 	# 3. Check physical slide collisions
 	for i in range(get_slide_collision_count()):
 		var col: KinematicCollision3D = get_slide_collision(i)
@@ -197,15 +228,8 @@ func process_charging(delta: float) -> void:
 					if node.has_method("take_damage"):
 						node.take_damage(charge_damage, self)
 
-	if charge_distance_traveled >= 16.0:
-		# End charge into recovery
-		current_state = BossState.RECOVERY
-		state_timer = 1.8 # 1.8s vulnerability window
-		velocity = Vector3.ZERO
-		charge_cooldown_timer = 7.0
-		spawn_damage_text(0, "STUNNED!", Color.GOLD)
-
 func process_recovery(delta: float) -> void:
+	desired_velocity_h = Vector3.ZERO
 	velocity = Vector3.ZERO
 	state_timer -= delta
 	if state_timer <= 0.0:

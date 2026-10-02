@@ -9,6 +9,8 @@ const ARROW_SCENE = preload("res://scenes/prefabs/arrow_projectile.tscn")
 func _ready() -> void:
 	max_health = 60.0
 	move_speed = 3.6
+	radius = 0.3
+	half_height = 0.9
 	super._ready()
 
 func _get_xp_reward() -> float:
@@ -32,20 +34,29 @@ func _custom_physics(delta: float) -> void:
 			look_at(global_position + aim_dir, Vector3.UP)
 
 			# Kiting behavior (unless in duel!)
+			var pref_vel: Vector3 = Vector3.ZERO
 			if is_in_duel:
-				velocity.x = aim_dir.x * (move_speed * 1.2)
-				velocity.z = aim_dir.z * (move_speed * 1.2)
+				pref_vel = aim_dir * (move_speed * 1.2)
 			elif dist < preferred_distance - 1.5:
 				# Retreat from player
-				velocity.x = -aim_dir.x * move_speed
-				velocity.z = -aim_dir.z * move_speed
+				pref_vel = -aim_dir * move_speed
 			elif dist > preferred_distance + 2.0:
-				# Approach player
-				velocity.x = aim_dir.x * move_speed
-				velocity.z = aim_dir.z * move_speed
+				# Approach player (using flowfield around obstacles!)
+				var reg = get_node_or_null("/root/EntityRegistry")
+				var approach_dir: Vector3 = aim_dir
+				if reg and "monster_flowfield" in reg and reg.monster_flowfield:
+					approach_dir = reg.monster_flowfield.get_flow_direction(global_position, target_player.global_position, radius)
+				pref_vel = approach_dir * move_speed
 			else:
-				velocity.x = move_toward(velocity.x, 0.0, move_speed)
-				velocity.z = move_toward(velocity.z, 0.0, move_speed)
+				pref_vel = Vector3.ZERO
+
+			var final_vel: Vector3 = pref_vel
+			var reg = get_node_or_null("/root/EntityRegistry")
+			if reg and reg.has_method("get_nearby_enemies") and pref_vel.length_squared() > 0.01:
+				var neighbors = reg.get_nearby_enemies(global_position, radius + 1.0, self)
+				final_vel = MonsterAvoidance.compute_avoidance_velocity(self, pref_vel, move_speed, radius, neighbors)
+
+			desired_velocity_h = final_vel
 
 			if dist <= preferred_distance + 3.0:
 				# Start attack windup ahead of release if within windup window
