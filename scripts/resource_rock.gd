@@ -80,6 +80,9 @@ func _ready() -> void:
 	_make_collision_shapes_local()
 	add_to_group("interactables")
 	add_to_group("resource_nodes")
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if reg and reg.has_method("register_resource"):
+		reg.register_resource(self)
 	if not visual_seed_is_explicit:
 		visual_seed = variation_index
 
@@ -96,6 +99,11 @@ func _ready() -> void:
 
 	_apply_tier_and_variation()
 	_ensure_interaction_zone()
+
+func _exit_tree() -> void:
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if reg and reg.has_method("unregister_resource"):
+		reg.unregister_resource(self)
 
 func _make_collision_shapes_local() -> void:
 	if body_collision_shape and body_collision_shape.shape:

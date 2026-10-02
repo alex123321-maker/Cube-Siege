@@ -89,14 +89,16 @@ func _physics_process(delta: float) -> void:
 		BossState.RECOVERY:
 			process_recovery(delta)
 
-	step_smooth_offset_y = MonsterLocomotion.process_locomotion(
+	var loc_result: Dictionary = MonsterLocomotion.process_locomotion(
 		self,
 		delta,
 		desired_velocity_h,
+		Vector3.ZERO,
 		half_height,
 		radius,
 		step_smooth_offset_y
 	)
+	step_smooth_offset_y = float(loc_result.get("smooth_offset_y", 0.0))
 
 	if visuals:
 		visuals.position.y = step_smooth_offset_y

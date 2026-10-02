@@ -62,9 +62,16 @@ func _input(event: InputEvent) -> void:
 func spawn_boss_gorgon() -> void:
 	var boss_scene = preload("res://scenes/enemies/boss_gorgon.tscn")
 	var boss = boss_scene.instantiate()
-	add_child(boss)
+	var spawn_pos: Vector3 = Vector3.ZERO
 	if player:
-		boss.global_position = player.global_position + Vector3(0, 0, -18)
+		spawn_pos = player.global_position + Vector3(0, 0, -18)
+	var map_gen = get_tree().get_first_node_in_group("map_generator") if is_inside_tree() else null
+	var terrain_y: float = 0.0
+	if map_gen and map_gen.has_method("get_voxel_height"):
+		terrain_y = float(map_gen.get_voxel_height(TerrainCombatRules.world_to_voxel(spawn_pos.x), TerrainCombatRules.world_to_voxel(spawn_pos.z)))
+	spawn_pos.y = MonsterLocomotion.calculate_spawn_y(terrain_y, boss)
+	boss.position = spawn_pos
+	add_child(boss)
 	if hud and hud.has_method("show_boss_bar"):
 		hud.show_boss_bar(boss)
 	var eb = get_node_or_null("/root/EventBus")

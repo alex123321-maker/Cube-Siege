@@ -74,47 +74,60 @@ func try_spawn_wave_enemy() -> void:
 			player = players[0] as Node3D
 		else:
 			return
-
-	# Annular ring outside camera FOV: Radius 20m - 28m
-	var angle: float = randf() * TAU
-	var radius: float = randf_range(20.0, 28.0)
-	var spawn_pos: Vector3 = player.global_position + Vector3(cos(angle) * radius, 0.0, sin(angle) * radius)
-
-	# If inside SafeZone, reject spawn!
-	var cell: Vector2i = TerrainCombatRules.world_pos_to_voxel(spawn_pos)
-	if safe_zone_cells.has(cell):
-		return
-
 	# Select mob archetype based on wave index and roll
 	var roll: float = randf()
 	var mob_scene: PackedScene = ENEMY_GRUNT
-	var mob_half_height: float = 0.9
 
 	if current_wave == 1:
 		if roll < 0.25:
 			mob_scene = ENEMY_RANGED
-			mob_half_height = 0.9
 		else:
 			mob_scene = ENEMY_GRUNT
-			mob_half_height = 0.9
 	else:
 		if roll < 0.25:
 			mob_scene = ENEMY_SIEGE
-			mob_half_height = 1.2
 		elif roll < 0.50:
 			mob_scene = ENEMY_RANGED
-			mob_half_height = 0.9
 		else:
 			mob_scene = ENEMY_GRUNT
-			mob_half_height = 0.9
-
-	# Resolve surface height at spawn point without fixed arena clamp
-	var terrain_y: float = get_terrain_surface_y(spawn_pos)
-	spawn_pos.y = MonsterLocomotion.calculate_spawn_y(terrain_y, mob_half_height)
 
 	var enemy_instance: Node3D = mob_scene.instantiate()
+	var space_state: PhysicsDirectSpaceState3D = player.get_world_3d().direct_space_state if (player and player.is_inside_tree()) else null
+
+	var found_valid_spawn: bool = false
+	var valid_spawn_pos: Vector3 = Vector3.ZERO
+
+	# Test up to 8 candidate positions in the annular ring (20m - 28m)
+	for attempt in range(8):
+		var angle: float = randf() * TAU
+		var ring_radius: float = randf_range(20.0, 28.0)
+		var candidate_pos: Vector3 = player.global_position + Vector3(cos(angle) * ring_radius, 0.0, sin(angle) * ring_radius)
+
+		# Reject candidate if inside safe zone
+		var cell: Vector2i = TerrainCombatRules.world_pos_to_voxel(candidate_pos)
+		if safe_zone_cells.has(cell):
+			continue
+
+		var terrain_y: float = get_terrain_surface_y(candidate_pos)
+		candidate_pos.y = MonsterLocomotion.calculate_spawn_y(terrain_y, enemy_instance)
+
+		# Validate physical clearance and ground support
+		if space_state and enemy_instance is CharacterBody3D:
+			if not MonsterLocomotion.validate_safe_spawn_point(space_state, enemy_instance as CharacterBody3D, candidate_pos):
+				continue
+
+		valid_spawn_pos = candidate_pos
+		found_valid_spawn = true
+		break
+
+	if not found_valid_spawn:
+		# All candidate positions occupied or invalid: safely postpone spawn
+		enemy_instance.queue_free()
+		return
+
+	# Set position prior to entering tree so _enter_tree registers at authoritative position
+	enemy_instance.position = valid_spawn_pos
 	get_parent().add_child(enemy_instance)
-	enemy_instance.global_position = spawn_pos
 	if reg:
 		reg.register_enemy(enemy_instance)
 

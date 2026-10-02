@@ -55,19 +55,18 @@ func _physics_process(delta: float) -> void:
 
 	_custom_physics(delta)
 
-	if knockback_velocity.length_squared() > 0.01:
-		desired_velocity_h += knockback_velocity
-		knockback_velocity = knockback_velocity.lerp(Vector3.ZERO, 10.0 * delta)
-
-	# Locomotion with authoritative voxel step-up/down and cliff avoidance
-	step_smooth_offset_y = MonsterLocomotion.process_locomotion(
+	# Locomotion with authoritative voxel step-up/down, cliff avoidance, and 3D knockback preservation
+	var loc_result: Dictionary = MonsterLocomotion.process_locomotion(
 		self,
 		delta,
 		desired_velocity_h,
+		knockback_velocity,
 		half_height,
 		radius,
 		step_smooth_offset_y
 	)
+	step_smooth_offset_y = float(loc_result.get("smooth_offset_y", 0.0))
+	knockback_velocity = loc_result.get("knockback", Vector3.ZERO)
 
 	presentation.update(delta, velocity, move_speed)
 

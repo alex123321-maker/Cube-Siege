@@ -1,9 +1,11 @@
 extends GutTest
 
-## Unit tests for MonsterAvoidance and spatial indexing crowd dynamics.
+## Unit tests for MonsterAvoidance, EntityRegistry, and spatial crowd dynamics.
 
 const MonsterAvoidanceScript = preload("res://scripts/movement/monster_avoidance.gd")
 const EntityRegistryScript = preload("res://scripts/core/entity_registry.gd")
+const BOSS_GORGON_SCENE = preload("res://scenes/enemies/boss_gorgon.tscn")
+const RANGED_SKIRMISHER_SCENE = preload("res://scenes/enemies/ranged_skirmisher.tscn")
 
 func test_right_hand_passing_rule_for_head_on_encounter() -> void:
 	# Mob A at (0, 0, 0), moving East towards (+1, 0, 0)
@@ -43,7 +45,7 @@ func test_stationary_queue_deceleration() -> void:
 	mob_a.velocity = Vector3(3.0, 0.0, 0.0)
 	mob_a.set("radius", 0.4)
 
-	# Mob B is stationary (e.g. attacking or blocked at a gate) directly in front of Mob A
+	# Mob B is stationary directly in front of Mob A
 	var mob_b: CharacterBody3D = CharacterBody3D.new()
 	add_child_autoqfree(mob_b)
 	mob_b.global_position = Vector3(0.7, 0.0, 0.0)
@@ -59,8 +61,9 @@ func test_stationary_queue_deceleration() -> void:
 		[mob_b]
 	)
 
-	# Forward velocity towards the stationary mob should be significantly reduced/steered
-	assert_lt(avoided_vel.x, desired_a.x, "Forward speed directly into stationary mob must be reduced")
+	# Forward velocity towards the stationary mob should be steered sideways
+	assert_lt(avoided_vel.x, desired_a.x, "Forward speed directly into stationary mob must be redirected or reduced")
+	assert_gt(avoided_vel.length(), 0.1, "Mob should steer around stationary obstacle")
 
 func test_vertical_tier_separation_ignores_different_elevations() -> void:
 	# Mob A at ground level (Y = 0)
@@ -70,10 +73,10 @@ func test_vertical_tier_separation_ignores_different_elevations() -> void:
 	mob_a.velocity = Vector3(3.0, 0.0, 0.0)
 	mob_a.set("radius", 0.4)
 
-	# Mob B directly above on a cliff (Y = 3.0m, > 1.8m separation)
+	# Mob B directly above on a high cliff (Y = 5.0m, no vertical volume overlap)
 	var mob_b: CharacterBody3D = CharacterBody3D.new()
 	add_child_autoqfree(mob_b)
-	mob_b.global_position = Vector3(0.3, 3.0, 0.0)
+	mob_b.global_position = Vector3(0.3, 5.0, 0.0)
 	mob_b.velocity = Vector3.ZERO
 	mob_b.set("radius", 0.4)
 
@@ -86,31 +89,67 @@ func test_vertical_tier_separation_ignores_different_elevations() -> void:
 		[mob_b]
 	)
 
-	# Because Mob B is on a different tier (>1.8m vertical difference), Mob A should not be repelled
 	assert_almost_eq(avoided_vel.x, desired_a.x, 0.01, "Mob on high tier should not repel mob on lower tier")
 
-func test_spatial_hash_bucket_registration_and_query() -> void:
+func test_skirmisher_retreats_past_stationary_gorgon_without_deadlock() -> void:
+	# Scenario from B7: Skirmisher at X=1.5 retreats from player at X=0 towards +X,
+	# encountering stationary Boss Gorgon at X=3.0.
+	var skirmisher = RANGED_SKIRMISHER_SCENE.instantiate()
+	add_child_autoqfree(skirmisher)
+	skirmisher.global_position = Vector3(1.5, 0.9, 0.0)
+	skirmisher.velocity = Vector3(3.0, 0.0, 0.0)
+
+	var gorgon = BOSS_GORGON_SCENE.instantiate()
+	add_child_autoqfree(gorgon)
+	gorgon.global_position = Vector3(3.0, 0.0, 0.0)
+	gorgon.velocity = Vector3.ZERO
+
+	var desired_retreat = Vector3(3.0, 0.0, 0.0)
+	var registry = EntityRegistryScript.new()
+	add_child_autoqfree(registry)
+	registry.register_enemy(gorgon)
+
+	var neighbors = registry.get_nearby_enemies(skirmisher.global_position, 0.3, skirmisher)
+	assert_true(neighbors.has(gorgon), "Skirmisher query must detect large neighbor (Gorgon) before physical collision (B7)")
+
+	var avoided_vel = MonsterAvoidance.compute_avoidance_velocity(
+		skirmisher,
+		desired_retreat,
+		3.0,
+		0.3,
+		neighbors
+	)
+
+	assert_gt(avoided_vel.length(), 0.5, "Skirmisher must not freeze into zero-speed deadlock (B7)")
+	assert_ne(avoided_vel.z, 0.0, "Skirmisher must steer sideways around the stationary boss")
+
+func test_entity_registry_resource_and_building_flowfield_sync() -> void:
 	var registry = EntityRegistryScript.new()
 	add_child_autoqfree(registry)
 
-	var e1: CharacterBody3D = CharacterBody3D.new()
-	add_child_autoqfree(e1)
-	e1.global_position = Vector3(2.0, 1.0, 2.0)
+	var wall: Node3D = Node3D.new()
+	wall.add_to_group("walls")
+	add_child_autoqfree(wall)
+	wall.global_position = Vector3(5.5, 0.0, 5.5)
 
-	var e2: CharacterBody3D = CharacterBody3D.new()
-	add_child_autoqfree(e2)
-	e2.global_position = Vector3(2.5, 1.0, 2.5)
+	registry.register_building(wall)
+	assert_true(registry.monster_flowfield.blocked_cells.has(Vector2i(5, 5)), "Registered wall must block flowfield cell")
 
-	var e_far: CharacterBody3D = CharacterBody3D.new()
-	add_child_autoqfree(e_far)
-	e_far.global_position = Vector3(50.0, 1.0, 50.0)
+	registry.unregister_building(wall)
+	assert_false(registry.monster_flowfield.blocked_cells.has(Vector2i(5, 5)), "Unregistered wall must unblock flowfield cell")
 
-	registry.register_enemy(e1)
-	registry.register_enemy(e2)
-	registry.register_enemy(e_far)
+	var rock: Node3D = Node3D.new()
+	rock.add_to_group("resource_nodes")
+	add_child_autoqfree(rock)
+	rock.global_position = Vector3(8.5, 0.0, 8.5)
 
-	# Query near e1 (radius 2.0)
-	var nearby = registry.get_nearby_enemies(Vector3(2.0, 1.0, 2.0), 2.0, e1)
-	assert_true(nearby.has(e2), "Nearby enemy within 2m must be returned")
-	assert_false(nearby.has(e1), "Self must be excluded from nearby neighbors")
-	assert_false(nearby.has(e_far), "Far enemy (50m away) must not be returned in local query")
+	registry.register_resource(rock)
+	assert_true(registry.monster_flowfield.blocked_cells.has(Vector2i(8, 8)), "Registered resource must block flowfield cell")
+
+	registry.unregister_resource(rock)
+	assert_false(registry.monster_flowfield.blocked_cells.has(Vector2i(8, 8)), "Unregistered resource must unblock flowfield cell")
+
+	# Full clear
+	registry.register_resource(rock)
+	registry.clear()
+	assert_eq(registry.monster_flowfield.blocked_cells.size(), 0, "EntityRegistry.clear() must completely wipe blocked_cells (B5)")

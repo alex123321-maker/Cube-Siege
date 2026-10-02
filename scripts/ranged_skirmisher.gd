@@ -53,7 +53,7 @@ func _custom_physics(delta: float) -> void:
 			var final_vel: Vector3 = pref_vel
 			var reg = get_node_or_null("/root/EntityRegistry")
 			if reg and reg.has_method("get_nearby_enemies") and pref_vel.length_squared() > 0.01:
-				var neighbors = reg.get_nearby_enemies(global_position, radius + 1.0, self)
+				var neighbors = reg.get_nearby_enemies(global_position, radius + 1.85, self)
 				final_vel = MonsterAvoidance.compute_avoidance_velocity(self, pref_vel, move_speed, radius, neighbors)
 
 			desired_velocity_h = final_vel

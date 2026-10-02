@@ -1,26 +1,26 @@
 extends Node
 
-## Centralized runtime entity registry for buildings, enemies, and bosses.
-## Avoids full SceneTree traversals on hot physics frames.
+## Centralized runtime entity registry for buildings, enemies, bosses, and resources.
+## Avoids full SceneTree traversals on hot physics frames and keeps navigation state synchronized.
 
 var buildings: Array[Node3D] = []
 var enemies: Array[Node] = []
 var bosses: Array[Node] = []
 var monster_flowfield: MonsterFlowfield = MonsterFlowfield.new()
 
+var building_to_cell: Dictionary = {} # Node3D -> Vector2i
+var resource_to_cell: Dictionary = {} # Node3D -> Vector2i
+
 func _ready() -> void:
 	var eb = get_node_or_null("/root/EventBus")
 	if eb:
-		eb.building_placed.connect(func(_id, cell, b):
+		eb.building_placed.connect(func(_id, _cell, b):
 			if b is Node3D:
-				register_building(b)
-				if b.is_in_group("walls") or (b.is_in_group("buildings") and not b.is_in_group("traps")):
-					monster_flowfield.set_cell_blocked(cell, true)
+				register_building(b as Node3D)
 		)
-		eb.building_destroyed.connect(func(cell, b):
+		eb.building_destroyed.connect(func(_cell, b):
 			if b is Node3D:
-				unregister_building(b)
-			monster_flowfield.set_cell_blocked(cell, false)
+				unregister_building(b as Node3D)
 		)
 		eb.boss_spawned.connect(func(boss): register_boss(boss))
 		eb.boss_defeated.connect(func(boss): unregister_boss(boss))
@@ -34,17 +34,44 @@ func _scan_existing_entities() -> void:
 	for b in get_tree().get_nodes_in_group("buildings"):
 		if b is Node3D:
 			register_building(b as Node3D)
+	for r in get_tree().get_nodes_in_group("resource_nodes"):
+		if r is Node3D:
+			register_resource(r as Node3D)
 	for e in get_tree().get_nodes_in_group("enemies"):
 		register_enemy(e)
 	for boss in get_tree().get_nodes_in_group("boss"):
 		register_boss(boss)
 
 func register_building(b: Node3D) -> void:
-	if b and not buildings.has(b):
+	if not b or not is_instance_valid(b):
+		return
+	if not buildings.has(b):
 		buildings.append(b)
+	# Check if building is blocking (walls and solid structures, excluding non-blocking traps)
+	if b.is_in_group("walls") or (b.is_in_group("buildings") and not b.is_in_group("traps")):
+		var cell: Vector2i = Vector2i(int(floorf(b.global_position.x)), int(floorf(b.global_position.z)))
+		building_to_cell[b] = cell
+		monster_flowfield.set_cell_blocked(cell, true)
 
 func unregister_building(b: Node3D) -> void:
 	buildings.erase(b)
+	if building_to_cell.has(b):
+		var cell: Vector2i = building_to_cell[b]
+		building_to_cell.erase(b)
+		monster_flowfield.set_cell_blocked(cell, false)
+
+func register_resource(r: Node3D) -> void:
+	if not r or not is_instance_valid(r):
+		return
+	var cell: Vector2i = Vector2i(int(floorf(r.global_position.x)), int(floorf(r.global_position.z)))
+	resource_to_cell[r] = cell
+	monster_flowfield.set_cell_blocked(cell, true)
+
+func unregister_resource(r: Node3D) -> void:
+	if resource_to_cell.has(r):
+		var cell: Vector2i = resource_to_cell[r]
+		resource_to_cell.erase(r)
+		monster_flowfield.set_cell_blocked(cell, false)
 
 func get_buildings() -> Array[Node3D]:
 	_cleanup_buildings()
@@ -54,7 +81,7 @@ func get_nearest_building(pos: Vector3) -> Node3D:
 	var nearest: Node3D = null
 	var min_dist_sq: float = INF
 	for i in range(buildings.size() - 1, -1, -1):
-		var b = buildings[i]
+		var b: Node3D = buildings[i]
 		if not is_instance_valid(b):
 			buildings.remove_at(i)
 			continue
@@ -94,8 +121,11 @@ func clear() -> void:
 	buildings.clear()
 	enemies.clear()
 	bosses.clear()
+	building_to_cell.clear()
+	resource_to_cell.clear()
 	_spatial_buckets.clear()
 	_last_spatial_frame = -1
+	monster_flowfield.clear_all()
 
 const BUCKET_SIZE: float = 2.5
 var _spatial_buckets: Dictionary = {} # Vector2i -> Array[Node3D]
@@ -123,15 +153,26 @@ func update_spatial_buckets_if_needed() -> void:
 			_spatial_buckets[key].append(node3d)
 
 ## Queries nearby active enemies within radius on the horizontal plane.
-## Excludes enemies on different vertical tiers (> 1.8m height separation).
+## Automatically expands query radius to cover large neighbors (e.g. Boss Gorgon radius 1.2m)
+## and evaluates actual 3D vertical volume overlap rather than asymmetric root offsets.
 func get_nearby_enemies(pos: Vector3, radius: float, self_node: Node = null) -> Array[Node3D]:
 	update_spatial_buckets_if_needed()
 	var results: Array[Node3D] = []
-	var min_bx: int = int(floorf((pos.x - radius) / BUCKET_SIZE))
-	var max_bx: int = int(floorf((pos.x + radius) / BUCKET_SIZE))
-	var min_bz: int = int(floorf((pos.z - radius) / BUCKET_SIZE))
-	var max_bz: int = int(floorf((pos.z + radius) / BUCKET_SIZE))
-	var r_sq: float = radius * radius
+
+	# Maximum neighbor radius across archetypes is 1.2m (Boss Gorgon) + 0.65m avoidance margin.
+	# Query radius must cover self_radius + 1.85m to ensure large neighbors are detected before contact.
+	var query_radius: float = maxf(radius + 1.85, 2.5)
+
+	var min_bx: int = int(floorf((pos.x - query_radius) / BUCKET_SIZE))
+	var max_bx: int = int(floorf((pos.x + query_radius) / BUCKET_SIZE))
+	var min_bz: int = int(floorf((pos.z - query_radius) / BUCKET_SIZE))
+	var max_bz: int = int(floorf((pos.z + query_radius) / BUCKET_SIZE))
+
+	var self_bounds: Vector2
+	if self_node and self_node is CharacterBody3D:
+		self_bounds = MonsterLocomotion.get_body_vertical_bounds(self_node as CharacterBody3D)
+	else:
+		self_bounds = Vector2(pos.y - 0.9, pos.y + 0.9)
 
 	for bx in range(min_bx, max_bx + 1):
 		for bz in range(min_bz, max_bz + 1):
@@ -141,18 +182,33 @@ func get_nearby_enemies(pos: Vector3, radius: float, self_node: Node = null) -> 
 				for other in bucket:
 					if other == self_node:
 						continue
-					var dy: float = absf(other.global_position.y - pos.y)
-					if dy > 1.8:
-						continue
+
+					# Check 3D vertical volume overlap (immune to different root-to-feet authored offsets)
+					var other_bounds: Vector2
+					if other is CharacterBody3D:
+						other_bounds = MonsterLocomotion.get_body_vertical_bounds(other as CharacterBody3D)
+					else:
+						other_bounds = Vector2(other.global_position.y - 0.9, other.global_position.y + 0.9)
+
+					if maxf(self_bounds.x, other_bounds.x) > minf(self_bounds.y, other_bounds.y) + 0.3:
+						continue # Separate vertical tiers (no volume overlap)
+
+					var other_radius: float = float(other.get("radius")) if other.get("radius") != null else 0.4
+					var max_interact_dist: float = radius + other_radius + 0.65
 					var dx: float = other.global_position.x - pos.x
 					var dz: float = other.global_position.z - pos.z
-					if (dx * dx + dz * dz) <= r_sq:
+					if (dx * dx + dz * dz) <= (max_interact_dist * max_interact_dist):
 						results.append(other)
 	return results
 
 func _cleanup_buildings() -> void:
 	for i in range(buildings.size() - 1, -1, -1):
-		if not is_instance_valid(buildings[i]):
+		var b: Node3D = buildings[i]
+		if not is_instance_valid(b):
+			if building_to_cell.has(b):
+				var cell: Vector2i = building_to_cell[b]
+				building_to_cell.erase(b)
+				monster_flowfield.set_cell_blocked(cell, false)
 			buildings.remove_at(i)
 
 func _cleanup_enemies() -> void:

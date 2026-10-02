@@ -4,7 +4,7 @@ class_name MonsterAvoidance
 ## Authoritative local crowd avoidance and steering for monsters.
 ## Prevents mutual penetration before physical contact, provides stable
 ## time-consistent passing (right-hand rule for head-on encounters),
-## handles stationary queues without pushing, and respects vertical tiers.
+## handles stationary queues and obstacles without deadlocks, and respects vertical tiers.
 
 ## Computes crowd-avoided horizontal velocity given desired path velocity and nearby neighbors.
 static func compute_avoidance_velocity(
@@ -26,15 +26,24 @@ static func compute_avoidance_velocity(
 
 	var avoidance_force: Vector2 = Vector2.ZERO
 	var front_blocked: bool = false
-	var nearest_front_dist: float = INF
+
+	var self_bounds: Vector2 = MonsterLocomotion.get_body_vertical_bounds(self_node)
 
 	for other in neighbors:
 		if not is_instance_valid(other) or other == self_node:
 			continue
 
 		var other_pos: Vector3 = other.global_position
-		# Enforce vertical separation: monsters on different height tiers do not push each other
-		if absf(other_pos.y - self_pos.y) > 1.8:
+
+		# Enforce vertical separation via actual 3D volume overlap:
+		# Monsters on different height tiers do not push each other
+		var other_bounds: Vector2
+		if other is CharacterBody3D:
+			other_bounds = MonsterLocomotion.get_body_vertical_bounds(other as CharacterBody3D)
+		else:
+			other_bounds = Vector2(other_pos.y - 0.9, other_pos.y + 0.9)
+
+		if maxf(self_bounds.x, other_bounds.x) > minf(self_bounds.y, other_bounds.y) + 0.3:
 			continue
 
 		var other_radius: float = float(other.get("radius")) if other.get("radius") != null else 0.4
@@ -54,13 +63,13 @@ static func compute_avoidance_velocity(
 			var away_dir: Vector2 = diff_2d / dist
 			var penetration_weight: float = clampf((avoid_zone - dist) / avoid_zone, 0.0, 1.0)
 			# Strong exponential repulsion as distance approaches combined radius
-			var rep_strength: float = penetration_weight * penetration_weight * 2.5
+			var rep_strength: float = penetration_weight * penetration_weight * 2.8
 			avoidance_force += away_dir * rep_strength
 
 			# Time-consistent passing convention for approaching encounters (Right-hand rule):
 			var other_vel_2d: Vector2 = Vector2.ZERO
 			if other is CharacterBody3D:
-				var other_body = other as CharacterBody3D
+				var other_body: CharacterBody3D = other as CharacterBody3D
 				other_vel_2d = Vector2(other_body.velocity.x, other_body.velocity.z)
 
 			if desired_speed > 0.1 and other_vel_2d.length_squared() > 0.01:
@@ -74,21 +83,22 @@ static func compute_avoidance_velocity(
 			# Stationary neighbor detection in front sector:
 			var to_other_dir: Vector2 = -away_dir
 			var is_other_stationary: bool = other_vel_2d.length_squared() < 0.04
-			if desired_speed > 0.1 and desired_dir_2d.dot(to_other_dir) > 0.6:
-				if dist < combined_radius + 0.35:
+			if desired_speed > 0.1 and desired_dir_2d.dot(to_other_dir) > 0.4:
+				if dist < combined_radius + 0.5:
 					front_blocked = true
-					nearest_front_dist = minf(nearest_front_dist, dist)
 					if is_other_stationary:
-						# Steer around stationary obstacle
-						var tangent: Vector2 = Vector2(-to_other_dir.y, to_other_dir.x)
-						avoidance_force += tangent * 1.2
+						# Steer cleanly around stationary obstacle (pick open tangent)
+						var t1: Vector2 = Vector2(-to_other_dir.y, to_other_dir.x)
+						var t2: Vector2 = -t1
+						var chosen_t: Vector2 = t1 if desired_dir_2d.dot(t1) >= desired_dir_2d.dot(t2) else t2
+						avoidance_force += chosen_t * 2.2
 
 	# Combine desired velocity with avoidance force
 	var final_dir_2d: Vector2 = desired_dir_2d + avoidance_force
 	var final_speed: float = desired_speed
 
-	# If directly blocked by a stationary neighbor or queue ahead with nowhere to go, decelerate
-	if front_blocked and final_dir_2d.dot(desired_dir_2d) < 0.1:
+	# Decelerate only if trapped in complete deadlock with opposing forces cancelling out
+	if front_blocked and final_dir_2d.length_squared() < 0.04:
 		final_speed = 0.0
 
 	if final_dir_2d.length_squared() > 0.001:
