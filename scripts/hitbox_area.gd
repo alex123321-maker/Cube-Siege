@@ -41,8 +41,10 @@ func _on_area_entered(area: Area3D) -> void:
 	if not area.has_method("take_damage"):
 		return
 
+	var valid_owner: Node = owner_entity if is_instance_valid(owner_entity) else null
+
 	var target: Node = area.get_target_node() if area.has_method("get_target_node") else area.get_parent()
-	if not is_instance_valid(target) or target == owner_entity:
+	if not is_instance_valid(target) or (valid_owner != null and target == valid_owner):
 		return
 
 	# Rejection: already dying targets cannot receive damage and must not consume hit quota or emit hit_confirmed
@@ -54,7 +56,7 @@ func _on_area_entered(area: Area3D) -> void:
 		return
 
 	# Unified combat validation rule: cannot damage target (friendly buildings, allies, etc.)
-	if not CombatRules.can_damage(owner_entity, target, source_team):
+	if not CombatRules.can_damage(valid_owner, target, source_team):
 		return
 
 	if frontal_radius > 0.0 and target is Node3D:
@@ -67,7 +69,7 @@ func _on_area_entered(area: Area3D) -> void:
 
 	# Height connectivity check for terrain-dependent melee attacks
 	if terrain_mode == TerrainCombatRules.TerrainMode.TERRAIN_DEPENDENT:
-		var source_pos: Vector3 = owner_entity.global_position if (owner_entity and owner_entity is Node3D) else global_position
+		var source_pos: Vector3 = valid_owner.global_position if (valid_owner and valid_owner is Node3D) else global_position
 		var target_pos: Vector3 = target.global_position if (target is Node3D) else area.global_position
 		var height_lookup: Callable = Callable()
 		var map_gen: Node = get_tree().get_first_node_in_group("map_generator") if is_inside_tree() else null
@@ -81,9 +83,8 @@ func _on_area_entered(area: Area3D) -> void:
 
 	var hit_direction: Vector3 = (target.global_position - global_position).normalized() if (target is Node3D) else Vector3.FORWARD
 	hit_direction.y = 0.0
-	var attacker = owner_entity if is_instance_valid(owner_entity) else null
 
-	var hit_result = area.take_damage(damage, knockback_force * hit_direction, damage_type, attacker)
+	var hit_result = area.take_damage(damage, knockback_force * hit_direction, damage_type, valid_owner)
 	if hit_result == false:
 		return
 

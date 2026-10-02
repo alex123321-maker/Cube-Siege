@@ -176,3 +176,51 @@ func test_deleted_attacker_delayed_attack() -> void:
 		CombatRules.can_damage(null, enemy, CombatRules.Team.PLAYER),
 		"Delayed ally attack with deleted source MUST damage enemy"
 	)
+
+func test_player_faction_entities_protected_from_friendly_fire() -> void:
+	var player = Node3D.new()
+	player.add_to_group("player")
+	add_child_autoqfree(player)
+
+	var decoy = Node3D.new()
+	decoy.add_to_group("decoy")
+	add_child_autoqfree(decoy)
+
+	var spikes = BuildingBase.new()
+	add_child_autoqfree(spikes)
+
+	var enemy = Node3D.new()
+	enemy.add_to_group("enemies")
+	add_child_autoqfree(enemy)
+
+	# Decoy dummy cannot be damaged by player or buildings/traps
+	assert_false(CombatRules.can_damage(player, decoy), "Player cannot damage decoy dummy")
+	assert_false(CombatRules.can_damage(spikes, decoy), "Spikes cannot damage decoy dummy")
+
+	# Decoy dummy CAN be damaged by enemies
+	assert_true(CombatRules.can_damage(enemy, decoy), "Enemy must be able to damage decoy dummy")
+
+func test_freed_node_resilience_in_can_damage() -> void:
+	var tower = BuildingBase.new()
+	add_child(tower)
+
+	var enemy = Node3D.new()
+	enemy.add_to_group("enemies")
+	add_child_autoqfree(enemy)
+
+	var wall = BuildingBase.new()
+	add_child_autoqfree(wall)
+
+	tower.queue_free()
+	await wait_physics_frames(2)
+	assert_false(is_instance_valid(tower), "Tower node must be completely freed")
+
+	# Passing freed tower reference directly to can_damage with Team.PLAYER provenance
+	assert_false(
+		CombatRules.can_damage(tower, wall, CombatRules.Team.PLAYER),
+		"can_damage must safely handle freed attacker without engine crash and reject friendly wall"
+	)
+	assert_true(
+		CombatRules.can_damage(tower, enemy, CombatRules.Team.PLAYER),
+		"can_damage must safely handle freed attacker without engine crash and permit damaging enemy"
+	)

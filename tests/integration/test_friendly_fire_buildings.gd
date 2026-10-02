@@ -7,6 +7,8 @@ const FLOOR_SPIKES_SCENE = preload("res://scenes/prefabs/floor_spikes.tscn")
 const IRON_WALL_SCENE = preload("res://scenes/prefabs/iron_wall.tscn")
 const ARROW_PROJECTILE_SCENE = preload("res://scenes/prefabs/arrow_projectile.tscn")
 const ENEMY_DUMMY_SCENE = preload("res://scenes/enemy_dummy.tscn")
+const RESOURCE_TREE_SCENE = preload("res://scenes/resource_tree.tscn")
+const DECOY_DUMMY_SCENE = preload("res://scenes/prefabs/decoy_dummy.tscn")
 const PLAYER_SCENE = preload("res://scenes/player.tscn")
 const CombatRules = preload("res://scripts/combat/combat_rules.gd")
 
@@ -143,34 +145,56 @@ func test_floor_spikes_overlapping_own_hurtbox_and_adjacent_buildings() -> void:
 
 	var wall = WOOD_WALL_SCENE.instantiate()
 	add_child_autoqfree(wall)
-	wall.global_position = Vector3(0.5, 0, 0)
+	wall.global_position = Vector3(0, 0, 0)
+
+	var tree = RESOURCE_TREE_SCENE.instantiate()
+	add_child_autoqfree(tree)
+	tree.global_position = Vector3(0, 0, 0)
+
+	var decoy = DECOY_DUMMY_SCENE.instantiate()
+	add_child_autoqfree(decoy)
+	decoy.global_position = Vector3(0, 0, 0)
 
 	var enemy = ENEMY_DUMMY_SCENE.instantiate()
 	add_child_autoqfree(enemy)
 	enemy.global_position = Vector3(0, 0, 0)
+	enemy.attack_timer = 999.0
 
-	# Verify CombatRules rejects spikes damaging spikes hurtbox or wall hurtbox
+	# Verify CombatRules rejects spikes damaging spikes hurtbox or wall hurtbox or decoy dummy
 	assert_false(CombatRules.can_damage(spikes, spikes), "Spikes cannot damage itself")
 	assert_false(CombatRules.can_damage(spikes, wall), "Spikes cannot damage adjacent wall")
+	assert_false(CombatRules.can_damage(spikes, decoy), "Spikes cannot damage decoy dummy")
 	assert_true(CombatRules.can_damage(spikes, enemy), "Spikes can damage enemy")
+
+	# Wait for physics tick to register physical Area3D overlaps
+	await wait_physics_frames(2)
+
+	var overlapping: Array[Area3D] = spikes.damage_area.get_overlapping_areas()
+	assert_true(overlapping.size() >= 4, "DamageArea must detect overlapping hurtboxes")
 
 	var initial_spikes_hp: float = spikes.current_health
 	var initial_wall_hp: float = wall.current_health
+	var initial_tree_hp: float = tree.current_health
+	var initial_decoy_hp: float = decoy.current_health
 	var initial_enemy_hp: float = enemy.current_health
 
-	# Trigger spikes damage check with mock overlapping areas
-	var enemy_hurtbox: Area3D = enemy.get_node("Hurtbox") as Area3D
-	var wall_hurtbox: Area3D = wall.get_node("Hurtbox") as Area3D
-	var spikes_hurtbox: Area3D = spikes.hurtbox
+	# 1st trigger of check_and_damage_enemies()
+	spikes.check_and_damage_enemies()
 
-	for hurt in [spikes_hurtbox, wall_hurtbox, enemy_hurtbox]:
-		var target: Node = hurt.get_target_node() if hurt.has_method("get_target_node") else hurt.get_parent()
-		if target and CombatRules.can_damage(spikes, target):
-			hurt.take_damage(spikes.spike_damage, Vector3.UP * 2.0, "spikes", spikes)
+	assert_eq(spikes.current_health, initial_spikes_hp, "Spikes HP must not change (cannot damage self)")
+	assert_eq(wall.current_health, initial_wall_hp, "Wall HP must not change (cannot damage friendly buildings)")
+	assert_eq(tree.current_health, initial_tree_hp, "Tree HP must not change (spikes only target enemies)")
+	assert_eq(decoy.current_health, initial_decoy_hp, "Decoy HP must not change (spikes only target enemies / friendly fire protected)")
+	assert_eq(enemy.current_health, initial_enemy_hp - spikes.spike_damage, "Enemy must receive spike damage on first trigger")
 
-	assert_eq(spikes.current_health, initial_spikes_hp, "Spikes HP must not change")
-	assert_eq(wall.current_health, initial_wall_hp, "Wall HP must not change")
-	assert_eq(enemy.current_health, initial_enemy_hp - spikes.spike_damage, "Enemy must take spike damage")
+	# 2nd trigger of check_and_damage_enemies() (multiple cycles)
+	spikes.check_and_damage_enemies()
+
+	assert_eq(spikes.current_health, initial_spikes_hp, "Spikes HP must remain intact after multiple triggers")
+	assert_eq(wall.current_health, initial_wall_hp, "Wall HP must remain intact after multiple triggers")
+	assert_eq(tree.current_health, initial_tree_hp, "Tree HP must remain intact after multiple triggers")
+	assert_eq(decoy.current_health, initial_decoy_hp, "Decoy HP must remain intact after multiple triggers")
+	assert_eq(enemy.current_health, initial_enemy_hp - (spikes.spike_damage * 2.0), "Enemy must take spike damage again on second trigger")
 
 func test_iron_wall_thorns_reflection_only_against_enemies() -> void:
 	var wall = IRON_WALL_SCENE.instantiate()
@@ -203,34 +227,50 @@ func test_iron_wall_thorns_reflection_only_against_enemies() -> void:
 
 func test_delayed_attack_after_source_destruction() -> void:
 	var tower = ARCHER_TOWER_SCENE.instantiate()
-	add_child_autoqfree(tower)
+	add_child(tower)
 
 	var wall = WOOD_WALL_SCENE.instantiate()
 	add_child_autoqfree(wall)
 
 	var enemy = ENEMY_DUMMY_SCENE.instantiate()
 	add_child_autoqfree(enemy)
+	enemy.global_position = Vector3(10.0, 0, 0)
+	enemy.attack_timer = 999.0
 
 	var arrow = ARROW_PROJECTILE_SCENE.instantiate()
 	add_child_autoqfree(arrow)
 	arrow.setup(Vector3.FORWARD, 30.0, tower, 1)
 
-	# Delete the tower that shot the arrow
+	# Delete the tower that shot the arrow and wait for Godot to completely free it
 	tower.queue_free()
+	await wait_physics_frames(2)
+	assert_false(is_instance_valid(tower), "Tower must be completely freed")
 
-	# Simulate physics tick where tower becomes invalid
 	assert_eq(arrow.source_team, CombatRules.Team.PLAYER, "Arrow must preserve Team.PLAYER provenance")
 
-	# Arrow hits friendly wall: must be rejected
-	var wall_hurtbox: Area3D = wall.get_node("Hurtbox") as Area3D
-	arrow.hitbox._on_area_entered(wall_hurtbox)
-	assert_eq(wall.current_health, wall.max_health, "Friendly wall must not take damage from orphaned arrow")
+	# Track hit_confirmed signals emitted by arrow.hitbox
+	var hits_confirmed: Array = []
+	arrow.hitbox.hit_confirmed.connect(func(target, _dir): hits_confirmed.append(target))
 
-	# Arrow hits enemy: must damage enemy
+	# Arrow hits friendly wall: must be rejected without errors, no pierce loss, no hit_confirmed
+	var wall_hurtbox: Area3D = wall.get_node("Hurtbox") as Area3D
+	arrow._on_hitbox_area_entered(wall_hurtbox)
+	assert_eq(wall.current_health, wall.max_health, "Friendly wall must not take damage from orphaned arrow")
+	assert_eq(arrow.pierce_count, 1, "Arrow pierce count must NOT decrease when hitting friendly wall")
+	assert_eq(hits_confirmed.size(), 0, "No hit_confirmed signal on friendly wall hit")
+
+	# Arrow hits enemy: must damage enemy, decrement pierce, emit hit_confirmed
 	var enemy_hurtbox: Area3D = enemy.get_node("Hurtbox") as Area3D
 	var initial_enemy_hp: float = enemy.current_health
-	arrow.hitbox._on_area_entered(enemy_hurtbox)
+	arrow._on_hitbox_area_entered(enemy_hurtbox)
 	assert_eq(enemy.current_health, initial_enemy_hp - 30.0, "Enemy must take damage from orphaned ally arrow")
+	assert_eq(arrow.pierce_count, 0, "Arrow pierce count must decrease to 0 on confirmed hit")
+	assert_eq(hits_confirmed.size(), 1, "hit_confirmed must be emitted on hitting enemy")
+
+	# Repeat hit event on enemy (competing area entered / second trigger): must NOT deal double damage
+	arrow._on_hitbox_area_entered(enemy_hurtbox)
+	assert_eq(enemy.current_health, initial_enemy_hp - 30.0, "Enemy must not take double damage on repeat hit event")
+	assert_eq(hits_confirmed.size(), 1, "hit_confirmed must not be emitted again for already-hit target")
 
 func test_building_repair_and_demolish() -> void:
 	var wall = WOOD_WALL_SCENE.instantiate()

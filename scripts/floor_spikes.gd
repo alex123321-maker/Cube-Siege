@@ -29,7 +29,7 @@ func check_and_damage_enemies() -> void:
 	for area in overlapping_areas:
 		if area.has_method("take_damage"):
 			var target: Node = area.get_target_node() if area.has_method("get_target_node") else area.get_parent()
-			if target and CombatRules.can_damage(self, target):
+			if target and (target.is_in_group("enemies") or target.is_in_group("enemy")) and CombatRules.can_damage(self, target):
 				var hit_result = area.take_damage(spike_damage, Vector3.UP * 2.0, "spikes", self)
 				if hit_result != false:
 					triggered = true
