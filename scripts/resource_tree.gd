@@ -314,11 +314,12 @@ func _ensure_interaction_zone() -> void:
 	add_child(zone)
 
 func spawn_damage_text(amount: float, custom_text: String = "", custom_color: Color = Color.WHITE) -> void:
+	if not get_parent():
+		return
 	var popup: Node3D = FLOATING_TEXT_SCENE.instantiate()
 	get_parent().add_child(popup)
 	popup.global_position = global_position + Vector3(0, 2.2, 0)
 	if custom_text != "":
-		popup.get_node("Label3D").text = custom_text
-		popup.get_node("Label3D").modulate = custom_color
+		popup.setup_text(custom_text, custom_color)
 	else:
 		popup.setup(amount, false, Color(0.9, 0.8, 0.4))
