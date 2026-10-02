@@ -202,6 +202,9 @@ var _is_harvesting: bool = false
 
 func fell_tree() -> void:
 	is_destroyed = true
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if reg and reg.has_method("unregister_resource"):
+		reg.unregister_resource(self)
 	# Disable solid obstacle collision so player can walk through felled tree / stump.
 	# InteractionZone continues to detect interaction on dedicated Layer 6 (mask 32).
 	collision_layer = 0

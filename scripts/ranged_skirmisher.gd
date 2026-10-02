@@ -46,6 +46,10 @@ func _custom_physics(delta: float) -> void:
 				var approach_dir: Vector3 = aim_dir
 				if reg and "monster_flowfield" in reg and reg.monster_flowfield:
 					approach_dir = reg.monster_flowfield.get_flow_direction(global_position, target_player.global_position, radius)
+					if approach_dir.length_squared() < 0.001:
+						var nearest_b: Node3D = reg.get_nearest_building(global_position)
+						if nearest_b:
+							approach_dir = reg.monster_flowfield.get_flow_direction(global_position, nearest_b.global_position, radius)
 				pref_vel = approach_dir * move_speed
 			else:
 				pref_vel = Vector3.ZERO

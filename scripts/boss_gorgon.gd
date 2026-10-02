@@ -129,6 +129,15 @@ func process_chase(delta: float) -> void:
 		var reg = get_node_or_null("/root/EntityRegistry")
 		if reg and "monster_flowfield" in reg and reg.monster_flowfield:
 			nav_dir = reg.monster_flowfield.get_flow_direction(global_position, target_player.global_position, radius)
+			if nav_dir.length_squared() < 0.001 and dist > 3.4:
+				var nearest_b: Node3D = reg.get_nearest_building(global_position)
+				if nearest_b:
+					nav_dir = reg.monster_flowfield.get_flow_direction(global_position, nearest_b.global_position, radius)
+					if nav_dir.length_squared() < 0.001:
+						var to_b: Vector3 = nearest_b.global_position - global_position
+						to_b.y = 0.0
+						if to_b.length_squared() > 0.01:
+							nav_dir = to_b.normalized()
 
 		var pref_vel: Vector3 = nav_dir * base_speed
 		var final_vel: Vector3 = pref_vel

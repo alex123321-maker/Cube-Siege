@@ -118,11 +118,17 @@ static func process_locomotion(
 		current_kb = current_kb.lerp(Vector3.ZERO, 10.0 * delta)
 
 	# 3. Physical movement
+	var pos_before: Vector3 = body.global_position
 	body.move_and_slide()
+	var pos_after: Vector3 = body.global_position
+
+	var moved_h: float = Vector2(pos_after.x - pos_before.x, pos_after.z - pos_before.z).length()
+	var total_budget_h: float = voluntary_speed * delta
+	var remaining_budget_h: float = maxf(0.0, total_budget_h - moved_h)
 
 	# 4. Voxel Step-Up Assist
 	# Only triggers when on floor and moving voluntarily into an obstacle (forbidden while airborne / knocked back)
-	if voluntary_speed > 0.01 and body.is_on_floor() and current_kb.length_squared() < 0.1:
+	if voluntary_speed > 0.01 and body.is_on_floor() and current_kb.length_squared() < 0.1 and remaining_budget_h > 0.0001:
 		var intended_dir: Vector3 = voluntary_h / voluntary_speed
 		var collision_count: int = body.get_slide_collision_count()
 		for i in range(collision_count):
@@ -143,7 +149,7 @@ static func process_locomotion(
 			var normal: Vector3 = col.get_normal()
 			# Check if collision face is near-vertical and opposing our movement
 			if absf(normal.y) < 0.35 and normal.dot(intended_dir) < -0.2:
-				var step_result: Dictionary = try_step_up(body, intended_dir, voluntary_speed * delta, half_height, radius)
+				var step_result: Dictionary = try_step_up(body, intended_dir, remaining_budget_h, half_height, radius)
 				if step_result.get("success", false):
 					new_smooth_offset_y -= float(step_result.get("step_delta", 0.0))
 					break
@@ -230,7 +236,10 @@ static func try_step_up(
 
 	# 3. Test forward sweep at the elevated height
 	# Advance horizontally by at most the frame's remaining movement budget (prevent horizontal speed boost)
-	var advance_dist: float = maxf(0.01, frame_budget_dist)
+	if frame_budget_dist <= 0.0001:
+		return {"success": false, "step_delta": 0.0}
+
+	var advance_dist: float = frame_budget_dist
 	var forward_motion: Vector3 = move_dir.normalized() * advance_dist
 
 	# Provide a slight vertical clearance (+0.03m) so horizontal test_move does not scrape against floor surface
@@ -324,9 +333,31 @@ static func validate_safe_spawn_point(
 	if floor_normal.y < 0.65:
 		return false
 
-	# 2. Physical volume clearance check: ensure no overlap with terrain, walls, resources, player, or enemies
-	var candidate_xform: Transform3D = Transform3D(Basis.IDENTITY, candidate_pos)
-	if body.test_move(candidate_xform, Vector3.ZERO, null, 0.001, true):
+	# 2. Physical volume clearance check: query space state using actual collision shape
+	var col_node: CollisionShape3D = body.get_node_or_null("CollisionShape3D") as CollisionShape3D
+	var shape: Shape3D = null
+	var local_shape_pos: Vector3 = Vector3(0.0, fallback_half_height, 0.0)
+	if col_node and col_node.shape:
+		shape = col_node.shape
+		local_shape_pos = col_node.position
+	else:
+		var capsule: CapsuleShape3D = CapsuleShape3D.new()
+		capsule.radius = get_body_radius(body, 0.4)
+		capsule.height = fallback_half_height * 2.0
+		shape = capsule
+
+	var shape_query: PhysicsShapeQueryParameters3D = PhysicsShapeQueryParameters3D.new()
+	shape_query.shape = shape
+	# Provide 0.04m lift so shape does not intersect the supporting floor block directly beneath feet
+	shape_query.transform = Transform3D(Basis.IDENTITY, candidate_pos + local_shape_pos + Vector3(0.0, 0.04, 0.0))
+	shape_query.collision_mask = 0xFFFFFFFF # All layers: terrain, buildings, resources, enemies, player
+	shape_query.collide_with_bodies = true
+	shape_query.collide_with_areas = false
+	if body.is_inside_tree():
+		shape_query.exclude = [body.get_rid()]
+
+	var intersections: Array[Dictionary] = space_state.intersect_shape(shape_query, 1)
+	if not intersections.is_empty():
 		return false
 
 	return true

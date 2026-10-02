@@ -50,6 +50,10 @@ func register_building(b: Node3D) -> void:
 	# Check if building is blocking (walls and solid structures, excluding non-blocking traps)
 	if b.is_in_group("walls") or (b.is_in_group("buildings") and not b.is_in_group("traps")):
 		var cell: Vector2i = Vector2i(int(floorf(b.global_position.x)), int(floorf(b.global_position.z)))
+		if building_to_cell.has(b):
+			var old_cell: Vector2i = building_to_cell[b]
+			if old_cell != cell:
+				monster_flowfield.set_cell_blocked(old_cell, false)
 		building_to_cell[b] = cell
 		monster_flowfield.set_cell_blocked(cell, true)
 
@@ -64,6 +68,10 @@ func register_resource(r: Node3D) -> void:
 	if not r or not is_instance_valid(r):
 		return
 	var cell: Vector2i = Vector2i(int(floorf(r.global_position.x)), int(floorf(r.global_position.z)))
+	if resource_to_cell.has(r):
+		var old_cell: Vector2i = resource_to_cell[r]
+		if old_cell != cell:
+			monster_flowfield.set_cell_blocked(old_cell, false)
 	resource_to_cell[r] = cell
 	monster_flowfield.set_cell_blocked(cell, true)
 

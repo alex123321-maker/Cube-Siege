@@ -116,7 +116,8 @@ func test_warrior_basic_attack_target_exit_and_reentry_during_active_window() ->
 
 	player.combat.attack_cooldown_timer = 0.0
 	player.perform_attack()
-	await wait_seconds(0.10)
+	await wait_seconds(0.12)
+	await wait_physics_frames(2)
 
 	assert_eq(enemy.current_health, 55.0, "Target receives initial hit")
 	assert_eq(player.slash_area.hits_landed, 1)
@@ -270,7 +271,8 @@ func test_deletion_of_first_hit_target_during_swing_does_not_affect_quota() -> v
 
 	player.combat.attack_cooldown_timer = 0.0
 	player.perform_attack()
-	await wait_seconds(0.10)
+	await wait_seconds(0.12)
+	await wait_physics_frames(2)
 
 	assert_eq(enemy_a.current_health, 55.0, "Enemy A took the hit")
 	assert_eq(player.slash_area.hits_landed, 1)

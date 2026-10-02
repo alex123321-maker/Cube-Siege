@@ -126,3 +126,99 @@ func test_step_smooth_offset_decays_over_time() -> void:
 
 	assert_gt(smooth_offset, initial_offset, "Negative smooth offset must decay towards zero")
 	assert_lt(absf(smooth_offset), 0.1, "After 0.5s, smooth offset should be nearly zero")
+
+func test_step_up_budget_never_exceeds_frame_speed_allowance() -> void:
+	# Build step: floor at Y=0, step at Y=1
+	var floor_body: StaticBody3D = StaticBody3D.new()
+	floor_body.collision_layer = 1
+	var f_col: CollisionShape3D = CollisionShape3D.new()
+	var f_box: BoxShape3D = BoxShape3D.new()
+	f_box.size = Vector3(10.0, 1.0, 10.0)
+	f_col.shape = f_box
+	floor_body.add_child(f_col)
+	add_child_autoqfree(floor_body)
+	floor_body.global_position = Vector3(0.0, -0.5, 0.0)
+
+	var step_body: StaticBody3D = StaticBody3D.new()
+	step_body.collision_layer = 1
+	var s_col: CollisionShape3D = CollisionShape3D.new()
+	var s_box: BoxShape3D = BoxShape3D.new()
+	s_box.size = Vector3(2.0, 1.0, 2.0)
+	s_col.shape = s_box
+	step_body.add_child(s_col)
+	add_child_autoqfree(step_body)
+	step_body.global_position = Vector3(1.4, 0.5, 0.0)
+
+	var body: CharacterBody3D = CharacterBody3D.new()
+	var col: CollisionShape3D = CollisionShape3D.new()
+	var box: BoxShape3D = BoxShape3D.new()
+	box.size = Vector3(0.8, 1.8, 0.8)
+	col.shape = box
+	body.add_child(col)
+	add_child_autoqfree(body)
+	# Place body with small 0.02m gap in front of step
+	# Step face is at X = 1.4 - 1.0 = 0.4. Body radius is 0.4.
+	# When body is at X = -0.02, body front is at 0.38, gap is exactly 0.02m!
+	body.global_position = Vector3(-0.02, 0.9, 0.0)
+
+	var delta: float = 1.0 / 60.0
+	var speed: float = 3.2
+	var max_allowed_budget: float = speed * delta # approx 0.05333m
+
+	await wait_physics_frames(2)
+
+	var pos_before = body.global_position
+	MonsterLocomotion.process_locomotion(
+		body,
+		delta,
+		Vector3(speed, 0, 0),
+		Vector3.ZERO,
+		0.9,
+		0.4,
+		0.0
+	)
+	var pos_after = body.global_position
+	var moved_h: float = Vector2(pos_after.x - pos_before.x, pos_after.z - pos_before.z).length()
+
+	assert_lte(moved_h, max_allowed_budget + 0.0001, "Total horizontal displacement in single frame must not exceed speed * delta")
+
+func test_validate_safe_spawn_point_outside_tree() -> void:
+	# Add ground
+	var ground: StaticBody3D = StaticBody3D.new()
+	ground.collision_layer = 1
+	var g_col: CollisionShape3D = CollisionShape3D.new()
+	var g_box: BoxShape3D = BoxShape3D.new()
+	g_box.size = Vector3(20.0, 1.0, 20.0)
+	g_col.shape = g_box
+	ground.add_child(g_col)
+	add_child_autoqfree(ground)
+	ground.global_position = Vector3(0.0, -0.5, 0.0)
+
+	# Add an obstacle in world
+	var obstacle: StaticBody3D = StaticBody3D.new()
+	obstacle.collision_layer = 1
+	var o_col: CollisionShape3D = CollisionShape3D.new()
+	var o_box: BoxShape3D = BoxShape3D.new()
+	o_box.size = Vector3(1.0, 2.0, 1.0)
+	o_col.shape = o_box
+	obstacle.add_child(o_col)
+	add_child_autoqfree(obstacle)
+	obstacle.global_position = Vector3(5.0, 1.0, 0.0)
+
+	await wait_physics_frames(2)
+
+	var space_state: PhysicsDirectSpaceState3D = get_viewport().find_world_3d().direct_space_state
+	var unparented_mob = ENEMY_DUMMY_SCENE.instantiate()
+	# DO NOT add unparented_mob to tree - this specifically tests B8 fix!
+
+	# 1. Clear supported spot
+	var clear_pos = Vector3(0.0, 0.9, 0.0)
+	var is_clear = MonsterLocomotion.validate_safe_spawn_point(space_state, unparented_mob, clear_pos)
+	assert_true(is_clear, "Valid supported spot must pass safe spawn validation even when body is outside scene tree")
+
+	# 2. Occupied spot (overlapping obstacle at X=5.0)
+	var occupied_pos = Vector3(5.0, 0.9, 0.0)
+	var is_occupied = MonsterLocomotion.validate_safe_spawn_point(space_state, unparented_mob, occupied_pos)
+	assert_false(is_occupied, "Occupied spot must be rejected by safe spawn validation")
+
+	unparented_mob.queue_free()

@@ -7,7 +7,7 @@ class_name MonsterFlowfield
 ## dynamic walls, loaded chunk boundaries, and static resources, and provides O(1) directional
 ## queries with multi-target caching, building perimeter seeding, and clearance support.
 
-const DEFAULT_RADIUS: int = 24
+const DEFAULT_RADIUS: int = 36
 const CELL_SIZE: float = 1.0
 const RECALC_INTERVAL_SEC: float = 0.25
 const TARGET_MOVE_THRESHOLD_SQ: float = 2.25 # 1.5m squared
@@ -66,12 +66,15 @@ func invalidate() -> void:
 	target_cell = Vector2i(2147483647, 2147483647)
 	target_position = Vector3.INF
 
-## Clears all state including blocked cells and cached fields.
+## Clears all state including blocked cells and cached fields, while preserving world lookups.
 func clear_all() -> void:
 	blocked_cells.clear()
+	invalidate()
+
+## Explicitly clears custom lookups if needed.
+func clear_lookups() -> void:
 	height_lookup = Callable()
 	chunk_loaded_lookup = Callable()
-	invalidate()
 
 func get_rebuild_count() -> int:
 	return _rebuild_count
@@ -357,15 +360,21 @@ func _check_line_of_sight(from_pos: Vector3, target_pos: Vector3, clearance_radi
 	if not _is_direct_line_passable(from_pos, target_pos):
 		return false
 
-	if clearance_radius > 0.5:
+	if clearance_radius > 0.4:
 		var diff: Vector3 = target_pos - from_pos
 		var dir_h: Vector2 = Vector2(diff.x, diff.z).normalized()
-		var perp: Vector2 = Vector2(-dir_h.y, dir_h.x) * (clearance_radius * 0.75)
+		var perp: Vector2 = Vector2(-dir_h.y, dir_h.x) * clearance_radius
 		var perp_3d: Vector3 = Vector3(perp.x, 0.0, perp.y)
 		if not _is_direct_line_passable(from_pos + perp_3d, target_pos + perp_3d):
 			return false
 		if not _is_direct_line_passable(from_pos - perp_3d, target_pos - perp_3d):
 			return false
+		if clearance_radius > 0.8:
+			var half_perp_3d: Vector3 = perp_3d * 0.5
+			if not _is_direct_line_passable(from_pos + half_perp_3d, target_pos + half_perp_3d):
+				return false
+			if not _is_direct_line_passable(from_pos - half_perp_3d, target_pos - half_perp_3d):
+				return false
 
 	return true
 
@@ -401,39 +410,45 @@ func _resolve_clearance_direction(
 	clearance_radius: float,
 	field: FieldCache
 ) -> Vector2:
-	var perp: Vector2 = Vector2(-dir_2d.y, dir_2d.x)
 	var from_cell: Vector2i = Vector2i(int(floorf(from_pos.x)), int(floorf(from_pos.z)))
-	var side1_cell: Vector2i = Vector2i(int(floorf(from_pos.x + perp.x * clearance_radius)), int(floorf(from_pos.z + perp.y * clearance_radius)))
-	var side2_cell: Vector2i = Vector2i(int(floorf(from_pos.x - perp.x * clearance_radius)), int(floorf(from_pos.z - perp.y * clearance_radius)))
 
-	var side1_blocked: bool = blocked_cells.has(side1_cell)
-	var side2_blocked: bool = blocked_cells.has(side2_cell)
+	# Check whether proposed dir_2d has full lateral clearance currently and 1 step ahead
+	if _has_lateral_clearance(from_pos, dir_2d, clearance_radius):
+		var next_pos: Vector3 = from_pos + Vector3(dir_2d.x, 0.0, dir_2d.y) * 1.0
+		if _has_lateral_clearance(next_pos, dir_2d, clearance_radius):
+			return dir_2d
 
-	if not side1_blocked and not side2_blocked:
-		return dir_2d
-
-	if side1_blocked and not side2_blocked:
-		return (dir_2d - perp * 0.5).normalized()
-	elif side2_blocked and not side1_blocked:
-		return (dir_2d + perp * 0.5).normalized()
-	else:
-		# Both lateral sides blocked: check alternative neighbors in distance field with clearance
-		var neighbors_8: Array[Vector2i] = [
-			Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1),
-			Vector2i(1, 1), Vector2i(-1, 1), Vector2i(1, -1), Vector2i(-1, -1)
-		]
-		var best_alt: Vector2 = Vector2.ZERO
-		var best_dist: float = field.distance_field.get(from_cell, INF)
-		for d in neighbors_8:
-			var n: Vector2i = from_cell + d
-			if field.distance_field.has(n) and is_step_passable(from_cell, n):
-				var d_val: float = field.distance_field[n]
-				if d_val < best_dist:
-					var alt_dir: Vector2 = Vector2(d.x, d.y).normalized()
-					var alt_perp: Vector2 = Vector2(-alt_dir.y, alt_dir.x)
-					var alt_s1: Vector2i = Vector2i(int(floorf(from_pos.x + alt_perp.x * clearance_radius)), int(floorf(from_pos.z + alt_perp.y * clearance_radius)))
-					var alt_s2: Vector2i = Vector2i(int(floorf(from_pos.x - alt_perp.x * clearance_radius)), int(floorf(from_pos.z - alt_perp.y * clearance_radius)))
-					if not blocked_cells.has(alt_s1) or not blocked_cells.has(alt_s2):
+	# Proposed direction lacks clearance for body width (e.g. narrow corridor); search alternative neighbors
+	var neighbors_8: Array[Vector2i] = [
+		Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1),
+		Vector2i(1, 1), Vector2i(-1, 1), Vector2i(1, -1), Vector2i(-1, -1)
+	]
+	var best_alt: Vector2 = Vector2.ZERO
+	var best_dist: float = INF
+	for d in neighbors_8:
+		var n: Vector2i = from_cell + d
+		if field.distance_field.has(n) and is_step_passable(from_cell, n):
+			var d_val: float = field.distance_field[n]
+			if d_val < best_dist:
+				var alt_dir: Vector2 = Vector2(d.x, d.y).normalized()
+				if _has_lateral_clearance(from_pos, alt_dir, clearance_radius):
+					var next_alt_pos: Vector3 = from_pos + Vector3(alt_dir.x, 0.0, alt_dir.y) * 1.0
+					if _has_lateral_clearance(next_alt_pos, alt_dir, clearance_radius):
 						best_dist = d_val
 						best_alt = alt_dir
-		return best_alt
+	return best_alt
+
+func _has_lateral_clearance(pos: Vector3, dir: Vector2, clearance_radius: float) -> bool:
+	var perp: Vector2 = Vector2(-dir.y, dir.x) * clearance_radius
+	var offsets: Array[Vector2] = [perp, -perp]
+	if clearance_radius > 0.8:
+		offsets.append(perp * 0.5)
+		offsets.append(-perp * 0.5)
+
+	for off in offsets:
+		var check_cell: Vector2i = Vector2i(int(floorf(pos.x + off.x)), int(floorf(pos.z + off.y)))
+		if blocked_cells.has(check_cell):
+			return false
+		if chunk_loaded_lookup.is_valid() and not chunk_loaded_lookup.call(check_cell.x, check_cell.y):
+			return false
+	return true
