@@ -7,23 +7,40 @@ extends Node3D
 var direction: Vector3 = Vector3.FORWARD
 var lifetime: float = 2.5
 var shooter_entity: Node = null
+var source_team: CombatRules.Team = CombatRules.Team.NONE
 var hit_targets: Array[Node] = []
 var is_flying_over_drop: bool = false
 var _uses_archer_impact: bool = false
 
-@onready var hitbox: Area3D = $Hitbox
+@onready var hitbox: HitboxArea = $Hitbox as HitboxArea
+
+func _ready() -> void:
+	if has_node("Hitbox"):
+		hitbox = $Hitbox as HitboxArea
+		if not hitbox.hit_confirmed.is_connected(_on_hit_confirmed):
+			hitbox.hit_confirmed.connect(_on_hit_confirmed)
+		if source_team != CombatRules.Team.NONE:
+			hitbox.source_team = source_team
 
 func setup(p_direction: Vector3, p_damage: float, p_owner: Node, p_pierce: int = 1) -> void:
 	direction = p_direction.normalized()
 	damage = p_damage
 	shooter_entity = p_owner
+	source_team = CombatRules.get_team(p_owner) if is_instance_valid(p_owner) else CombatRules.Team.PLAYER
 	pierce_count = p_pierce
 	_uses_archer_impact = p_pierce == 1 and is_instance_valid(p_owner) and p_owner.is_in_group("player")
 	if direction.length_squared() > 0.01:
 		look_at(global_position + direction, Vector3.UP)
 	if has_node("Hitbox"):
-		$Hitbox.damage = damage
-		$Hitbox.set_owner_entity(p_owner)
+		hitbox = $Hitbox as HitboxArea
+		hitbox.damage = damage
+		hitbox.damage_type = "projectile"
+		hitbox.knockback_force = 4.0
+		hitbox.can_hit_multiple = pierce_count > 1
+		hitbox.terrain_mode = TerrainCombatRules.TerrainMode.TERRAIN_INDEPENDENT
+		hitbox.set_owner_entity(p_owner, source_team)
+		if not hitbox.hit_confirmed.is_connected(_on_hit_confirmed):
+			hitbox.hit_confirmed.connect(_on_hit_confirmed)
 
 	# Attach flight trail VFX
 	var vfx = get_node_or_null("/root/VFXManager")
@@ -88,25 +105,8 @@ func _on_terrain_collision(hit_pos: Vector3) -> void:
 	queue_free()
 
 
-func _on_hitbox_area_entered(area: Area3D) -> void:
-	if not area.has_method("take_damage"):
-		return
-
-	var target: Node = area.get_target_node() if area.has_method("get_target_node") else area.get_parent()
-	if not target or target == shooter_entity or hit_targets.has(target):
-		return
-
-	# Never hit friendly buildings or walls!
-	if target.is_in_group("buildings") or target.is_in_group("walls"):
-		return
-
+func _on_hit_confirmed(target: Node, _hit_dir: Vector3) -> void:
 	hit_targets.append(target)
-
-	# Direct damage dealing
-	var hit_direction: Vector3 = direction
-	hit_direction.y = 0.0
-	var attacker = shooter_entity if is_instance_valid(shooter_entity) else null
-	area.take_damage(damage, hit_direction * 4.0, "projectile", attacker)
 
 	# Hit feedback VFX
 	var vfx = get_node_or_null("/root/VFXManager")
@@ -121,3 +121,10 @@ func _on_hitbox_area_entered(area: Area3D) -> void:
 	pierce_count -= 1
 	if pierce_count <= 0:
 		call_deferred("queue_free")
+
+func _on_hitbox_area_entered(area: Area3D) -> void:
+	# Single authoritative path: delegate to HitboxArea.
+	# If area_entered was already handled by HitboxArea via signal,
+	# HitboxArea's target tracking will prevent duplicate execution.
+	if hitbox and is_instance_valid(hitbox):
+		hitbox._on_area_entered(area)

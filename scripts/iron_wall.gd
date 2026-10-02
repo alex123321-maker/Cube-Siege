@@ -13,11 +13,17 @@ func _ready() -> void:
 	add_to_group("walls")
 
 func _on_damaged(amount: float, knockback: Vector3, type: String, attacker: Node) -> void:
+	if not CombatRules.can_damage(attacker, self):
+		return
 	super._on_damaged(amount, knockback, type, attacker)
 
 	# Reflect 25% thorns damage back to attacker!
-	if attacker and is_instance_valid(attacker) and attacker.has_method("take_damage"):
+	if attacker and is_instance_valid(attacker):
 		var reflected: float = amount * reflect_percent
 		if reflected > 0.5:
-			attacker.take_damage(reflected)
-			spawn_damage_text(reflected, "%d REFLECT" % int(reflected), Color.INDIAN_RED)
+			if attacker.has_method("take_damage"):
+				attacker.take_damage(reflected)
+				spawn_damage_text(reflected, "%d REFLECT" % int(reflected), Color.INDIAN_RED)
+			elif attacker.has_method("_on_damaged"):
+				attacker._on_damaged(reflected, Vector3.ZERO, "physical", self)
+				spawn_damage_text(reflected, "%d REFLECT" % int(reflected), Color.INDIAN_RED)

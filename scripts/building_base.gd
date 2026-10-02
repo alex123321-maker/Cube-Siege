@@ -118,11 +118,18 @@ func demolish(player: Node = null) -> void:
 
 	destroy_building()
 
-func _on_damaged(amount: float, _knockback: Vector3, _type: String, attacker: Node) -> void:
-	# Buildings can only be damaged by enemies, NEVER by the player!
-	if attacker and (attacker.is_in_group("player") or attacker.name == "Player"):
-		return
+func take_damage(amount: float, attacker: Node = null, damage_type: String = "physical", knockback: Vector3 = Vector3.ZERO) -> bool:
+	if not CombatRules.can_damage(attacker, self):
+		return false
+	_on_damaged(amount, knockback, damage_type, attacker)
+	return true
 
+func _on_damaged(amount: float, knockback: Vector3, type: String, attacker: Node) -> void:
+	if not CombatRules.can_damage(attacker, self):
+		return
+	_apply_damage(amount, knockback, type, attacker)
+
+func _apply_damage(amount: float, _knockback: Vector3, _type: String, _attacker: Node) -> void:
 	current_health -= amount
 	update_hp_label()
 	spawn_damage_text(amount)

@@ -34,10 +34,18 @@ func _ready() -> void:
 	flash_material.shader = HIT_HIGHLIGHT
 
 func get_target_node() -> Node:
+	if not is_instance_valid(target_node):
+		target_node = get_node_or_null(target_node_path) if has_node(target_node_path) else get_parent()
 	return target_node
 
-func take_damage(amount: float, knockback: Vector3, damage_type: String, attacker: Node) -> bool:
-	if target_node and "is_dying" in target_node and target_node.is_dying:
+func take_damage(amount: float, knockback: Vector3 = Vector3.ZERO, damage_type: String = "physical", attacker: Node = null, attacker_team: CombatRules.Team = CombatRules.Team.NONE) -> bool:
+	var target: Node = get_target_node()
+	if target and "is_dying" in target and target.is_dying:
+		return false
+	var eff_team: CombatRules.Team = attacker_team
+	if eff_team == CombatRules.Team.NONE and is_instance_valid(attacker):
+		eff_team = CombatRules.get_team(attacker)
+	if not CombatRules.can_damage(attacker, target, eff_team):
 		return false
 	emit_signal("damaged", amount, knockback, damage_type, attacker)
 	flash_hit()
