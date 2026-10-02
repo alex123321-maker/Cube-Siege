@@ -47,6 +47,32 @@ func _wait_for_popup_cleanup(popup: Node3D, timeout_seconds: float = 1.2) -> boo
 		elapsed += step
 	return not is_instance_valid(popup) or popup.is_queued_for_deletion()
 
+func _verify_notification_lifecycle(popup: Node3D, expected_text: String, expected_color: Color) -> void:
+	var label = popup.get_node("Label3D") as Label3D
+	assert_not_null(label, "FloatingText must contain Label3D")
+	if not label:
+		return
+
+	assert_eq(label.text, expected_text, "Popup text must match expected resource harvest text")
+	assert_eq(label.modulate, expected_color, "Initial popup color must match expected resource color")
+
+	var start_y: float = popup.global_position.y
+	var initial_alpha: float = label.modulate.a
+	assert_gt(initial_alpha, 0.0, "Initial alpha must be greater than zero")
+
+	# Wait until rising and fading are actively underway
+	# (FloatingText setup_text starts fading after 0.2s delay and completes at 0.8s)
+	await wait_seconds(0.45)
+
+	assert_true(is_instance_valid(popup) and not popup.is_queued_for_deletion(), "Popup must still be active mid-animation")
+	if is_instance_valid(popup) and not popup.is_queued_for_deletion():
+		assert_gt(popup.global_position.y, start_y + 0.2, "Popup must rise upward during animation")
+		assert_lt(label.modulate.a, initial_alpha, "Popup label alpha must decrease during fading animation")
+		assert_gt(label.modulate.a, 0.0, "Popup label alpha must still be greater than zero mid-animation")
+
+	var cleaned_up = await _wait_for_popup_cleanup(popup, 1.0)
+	assert_true(cleaned_up, "Popup must be freed (queue_free) after animation finishes")
+
 func test_tree_harvest_notification_lifecycle() -> void:
 	var tree = TREE_SCENE.instantiate() as ResourceTree
 	_world.add_child(tree)
@@ -64,20 +90,7 @@ func test_tree_harvest_notification_lifecycle() -> void:
 	if popups.is_empty():
 		return
 
-	var popup = popups[0]
-	var label = popup.get_node("Label3D") as Label3D
-	assert_not_null(label, "FloatingText must contain Label3D")
-	assert_eq(label.text, "+4 WOOD", "Popup text must reflect harvested wood yield")
-	assert_eq(label.modulate, Color.GREEN, "Popup color must be Color.GREEN for wood")
-
-	var start_y: float = popup.global_position.y
-	await wait_seconds(0.3)
-
-	assert_true(is_instance_valid(popup), "Popup must still be active mid-animation")
-	assert_gt(popup.global_position.y, start_y + 0.2, "Popup must rise upward during animation")
-
-	var cleaned_up = await _wait_for_popup_cleanup(popup, 1.0)
-	assert_true(cleaned_up, "Popup must be freed (queue_free) after animation finishes")
+	await _verify_notification_lifecycle(popups[0], "+4 WOOD", Color.GREEN)
 
 func test_stone_rock_harvest_notification_lifecycle() -> void:
 	var stone = STONE_SCENE.instantiate() as ResourceRock
@@ -96,18 +109,7 @@ func test_stone_rock_harvest_notification_lifecycle() -> void:
 	if popups.is_empty():
 		return
 
-	var popup = popups[0]
-	var label = popup.get_node("Label3D") as Label3D
-	assert_not_null(label, "FloatingText must contain Label3D")
-	assert_eq(label.text, "+4 STONE", "Popup text must reflect harvested stone yield")
-	assert_eq(label.modulate, Color(0.7, 0.75, 0.8), "Popup color must match stone harvest color")
-
-	var start_y: float = popup.global_position.y
-	await wait_seconds(0.3)
-	assert_gt(popup.global_position.y, start_y + 0.2, "Stone popup must rise upward")
-
-	var cleaned_up = await _wait_for_popup_cleanup(popup, 1.0)
-	assert_true(cleaned_up, "Stone popup must be freed after animation finishes")
+	await _verify_notification_lifecycle(popups[0], "+4 STONE", Color(0.7, 0.75, 0.8))
 
 func test_iron_rock_harvest_notification_lifecycle() -> void:
 	var iron = IRON_SCENE.instantiate() as ResourceRock
@@ -126,14 +128,7 @@ func test_iron_rock_harvest_notification_lifecycle() -> void:
 	if popups.is_empty():
 		return
 
-	var popup = popups[0]
-	var label = popup.get_node("Label3D") as Label3D
-	assert_not_null(label, "FloatingText must contain Label3D")
-	assert_eq(label.text, "+2 IRON", "Popup text must reflect iron yield")
-	assert_eq(label.modulate, Color(1.0, 0.7, 0.3), "Popup color must match iron harvest color")
-
-	var cleaned_up = await _wait_for_popup_cleanup(popup, 1.0)
-	assert_true(cleaned_up, "Iron popup must be freed after animation finishes")
+	await _verify_notification_lifecycle(popups[0], "+2 IRON", Color(1.0, 0.7, 0.3))
 
 func test_resource_multiplier_affects_notification_and_wallet() -> void:
 	_player.set("resource_multiplier", 3)
