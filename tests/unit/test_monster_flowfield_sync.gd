@@ -386,3 +386,62 @@ func test_blocked_siege_goal_anti_corner_cutting_cliff() -> void:
 	# Direction must NOT point diagonally into the corner between the two height-3 cliffs
 	var cuts_diagonal: bool = (dir.x > 0.5 and dir.z > 0.5)
 	assert_false(cuts_diagonal, "Goal exception must NOT bypass corner-cutting check into closed corner")
+
+func test_blocked_goal_gorgon_huge_body_perimeter_clearance() -> void:
+	# B4-C: Standalone wall at (10, 10). Boss Gorgon (radius 1.2) approaching from (0.5, 0, 10.5).
+	# Perimeter seeding must NOT reject all approach cells, and field must contain reachable cells.
+	var ff = FlowfieldScript.new(12345)
+	ff.set_height_lookup(func(_x: int, _z: int) -> int: return 0)
+	ff.set_cell_blocked(Vector2i(10, 10), true)
+
+	var start_pos = Vector3(0.5, 0.0, 10.5)
+	var wall_pos = Vector3(10.5, 0.0, 10.5)
+
+	var dir: Vector3 = ff.get_flow_direction(start_pos, wall_pos, 1.2)
+	assert_gt(dir.length_squared(), 0.001, "Boss Gorgon (1.2) must receive valid non-zero flow direction to blocked wall")
+	assert_gt(dir.x, 0.5, "Boss Gorgon flow direction must point directly towards the wall (+X)")
+
+	var field = ff.get_or_update_field(wall_pos, 36, 1.2)
+	assert_not_null(field, "FieldCache must be generated")
+	assert_gt(field.distance_field.size(), 0, "Distance field must contain reachable cells for huge body")
+
+func test_cache_isolation_between_distinct_goal_cells_player_and_wall() -> void:
+	# B4-D: Review counterexample.
+	# Single row corridor at z=10 with height 0; height 3 in all other rows.
+	# Wall at (10, 10). Player at (11.5, 0.9, 10.5) behind wall. Zombie at (7.5, 0.9, 10.5).
+	var ff = FlowfieldScript.new(12345)
+	ff.set_height_lookup(func(_x: int, z: int) -> int:
+		if z != 10:
+			return 3
+		return 0
+	)
+	ff.set_cell_blocked(Vector2i(10, 10), true)
+
+	var zombie_pos = Vector3(7.5, 0.9, 10.5)
+	var player_pos = Vector3(11.5, 0.9, 10.5)
+	var wall_pos = Vector3(10.5, 0.0, 10.5)
+
+	# Query 1: Zombie to Player -> Player is walled in, no valid path, must return Vector3.ZERO
+	var dir_to_player: Vector3 = ff.get_flow_direction(zombie_pos, player_pos, 0.4)
+	assert_eq(dir_to_player, Vector3.ZERO, "Zombie cannot reach player behind wall")
+
+	# Query 2: Zombie to Wall -> Wall has open approach at (9, 10). Must return +X, NOT borrow player's field!
+	var dir_to_wall: Vector3 = ff.get_flow_direction(zombie_pos, wall_pos, 0.4)
+	assert_gt(dir_to_wall.length_squared(), 0.001, "Zombie must receive valid approach direction to blocking wall")
+	assert_gt(dir_to_wall.x, 0.5, "Zombie approach direction must point towards the wall (+X)")
+
+	# Query 3: Reverse query order on a fresh flowfield instance to ensure order invariance
+	var ff_rev = FlowfieldScript.new(54321)
+	ff_rev.set_height_lookup(func(_x: int, z: int) -> int:
+		if z != 10:
+			return 3
+		return 0
+	)
+	ff_rev.set_cell_blocked(Vector2i(10, 10), true)
+
+	var dir_wall_first: Vector3 = ff_rev.get_flow_direction(zombie_pos, wall_pos, 0.4)
+	assert_gt(dir_wall_first.length_squared(), 0.001, "Wall query first must succeed")
+	assert_gt(dir_wall_first.x, 0.5, "Wall query first must point towards wall (+X)")
+
+	var dir_player_second: Vector3 = ff_rev.get_flow_direction(zombie_pos, player_pos, 0.4)
+	assert_eq(dir_player_second, Vector3.ZERO, "Player query second must not borrow wall field and must return ZERO")

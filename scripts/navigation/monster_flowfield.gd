@@ -191,14 +191,6 @@ func get_or_update_field(target_pos: Vector3, max_radius: int = DEFAULT_RADIUS, 
 	var cached_field: FieldCache = null
 	if _target_fields.has(cache_key):
 		cached_field = _target_fields[cache_key]
-	else:
-		# Search if any nearby cached target of same clearance class is within movement threshold
-		for k in _target_fields.keys():
-			if k is Vector3i and k.z == clearance_class:
-				var f: FieldCache = _target_fields[k]
-				if f.target_pos.distance_squared_to(target_pos) < TARGET_MOVE_THRESHOLD_SQ:
-					cached_field = f
-					break
 
 	if cached_field:
 		cached_field.last_access_sec = now
@@ -256,11 +248,6 @@ func recompute_field(target_pos: Vector3, max_radius: int = DEFAULT_RADIUS, clea
 	var clearance_class: int = _get_clearance_class(clearance_radius)
 	var cache_key: Vector3i = Vector3i(goal_cell.x, goal_cell.y, clearance_class)
 	_target_fields.erase(cache_key)
-	for k in _target_fields.keys():
-		if k is Vector3i and k.z == clearance_class:
-			var f: FieldCache = _target_fields[k]
-			if f.target_pos.distance_squared_to(target_pos) < TARGET_MOVE_THRESHOLD_SQ:
-				_target_fields.erase(k)
 	return get_or_update_field(target_pos, max_radius, clearance_radius)
 
 ## Computes or updates the flowfield towards target_pos if needed (backward compatibility).
@@ -406,6 +393,65 @@ func _has_cell_clearance_fast(
 					return false
 	return true
 
+func _has_huge_body_perimeter_clearance_fast(
+	p: Vector2i,
+	goal_cell: Vector2i,
+	min_x: int,
+	min_z: int,
+	stride: int,
+	h_cache: PackedInt32Array,
+	max_x: int,
+	max_z: int
+) -> bool:
+	var d: Vector2i = p - goal_cell
+	if d.x != 0 and d.y != 0:
+		return false
+
+	var h_p: int = _get_fast_height(p.x, p.y, min_x, min_z, stride, h_cache)
+	var perp: Vector2i = Vector2i(-d.y, d.x)
+
+	if not _is_cell_walkable_fast(p.x + perp.x, p.y + perp.y, h_p, min_x, min_z, stride, h_cache, max_x, max_z):
+		return false
+	if not _is_cell_walkable_fast(p.x - perp.x, p.y - perp.y, h_p, min_x, min_z, stride, h_cache, max_x, max_z):
+		return false
+
+	if not _is_cell_walkable_fast(p.x + d.x, p.y + d.y, h_p, min_x, min_z, stride, h_cache, max_x, max_z):
+		return false
+	if not _is_cell_walkable_fast(p.x + d.x + perp.x, p.y + d.y + perp.y, h_p, min_x, min_z, stride, h_cache, max_x, max_z):
+		return false
+	if not _is_cell_walkable_fast(p.x + d.x - perp.x, p.y + d.y - perp.y, h_p, min_x, min_z, stride, h_cache, max_x, max_z):
+		return false
+
+	return true
+
+func _has_wide_body_perimeter_clearance_fast(
+	p: Vector2i,
+	goal_cell: Vector2i,
+	min_x: int,
+	min_z: int,
+	stride: int,
+	h_cache: PackedInt32Array,
+	max_x: int,
+	max_z: int
+) -> bool:
+	var d: Vector2i = p - goal_cell
+	if d.x != 0 and d.y != 0:
+		return true
+
+	var h_p: int = _get_fast_height(p.x, p.y, min_x, min_z, stride, h_cache)
+	var perp: Vector2i = Vector2i(-d.y, d.x)
+
+	var side_pos_ok: bool = _is_cell_walkable_fast(p.x + perp.x, p.y + perp.y, h_p, min_x, min_z, stride, h_cache, max_x, max_z) \
+		and _is_cell_walkable_fast(p.x + d.x, p.y + d.y, h_p, min_x, min_z, stride, h_cache, max_x, max_z) \
+		and _is_cell_walkable_fast(p.x + d.x + perp.x, p.y + d.y + perp.y, h_p, min_x, min_z, stride, h_cache, max_x, max_z)
+	if side_pos_ok:
+		return true
+
+	var side_neg_ok: bool = _is_cell_walkable_fast(p.x - perp.x, p.y - perp.y, h_p, min_x, min_z, stride, h_cache, max_x, max_z) \
+		and _is_cell_walkable_fast(p.x + d.x, p.y + d.y, h_p, min_x, min_z, stride, h_cache, max_x, max_z) \
+		and _is_cell_walkable_fast(p.x + d.x - perp.x, p.y + d.y - perp.y, h_p, min_x, min_z, stride, h_cache, max_x, max_z)
+	return side_neg_ok
+
 func _compute_field_data(field: FieldCache, goal_cell: Vector2i, radius: int, clearance_req: float = 0.0) -> void:
 	field.flow_directions.clear()
 	field.distance_field.clear()
@@ -477,9 +523,9 @@ func _compute_field_data(field: FieldCache, goal_cell: Vector2i, radius: int, cl
 				if absi(h_s1 - h_goal) > 1 or absi(h_s2 - h_goal) > 1:
 					continue
 
-			if is_huge_body and not _has_cell_clearance_fast(p, min_x, min_z, stride, h_cache, max_x, max_z):
+			if is_huge_body and not _has_huge_body_perimeter_clearance_fast(p, goal_cell, min_x, min_z, stride, h_cache, max_x, max_z):
 				continue
-			if is_wide_body and not _has_2cell_corridor_clearance_fast(p, goal_cell, min_x, min_z, stride, h_cache, max_x, max_z):
+			if is_wide_body and not _has_wide_body_perimeter_clearance_fast(p, goal_cell, min_x, min_z, stride, h_cache, max_x, max_z):
 				continue
 
 			var p_idx: int = (p.y - min_z) * stride + (p.x - min_x)

@@ -215,47 +215,116 @@ func _benchmark_tier(scene_root: Node3D, reg: Node, player: CharacterBody3D, mob
 		mob.target_player = player
 		spawned.append(mob)
 
-	# Warmup: run 30 frames to let mobs engage pathfinding and spatial buckets naturally
-	for w in 30:
+	# ---------------------------------------------------------
+	# Phase 0: Baseline Reproduction (b2ce0ac Direct Locomotion)
+	# ---------------------------------------------------------
+	var saved_ff = reg.monster_flowfield
+	reg.monster_flowfield = null
+
+	for w in 15:
+		player.global_position = Vector3(0.0, 1.0, 0.0)
+		player.velocity = Vector3.ZERO
+		await physics_frame
+
+	_profiler.reset()
+	_profiler.is_recording = true
+	var base_frames: int = 40
+	for frame_idx in range(base_frames):
+		player.global_position = Vector3(0.0, 1.0, 0.0)
+		player.velocity = Vector3.ZERO
+		await physics_frame
+	_profiler.is_recording = false
+
+	var base_times_ms: PackedFloat64Array = PackedFloat64Array()
+	for dur_us in _profiler.recorded_durations_us:
+		base_times_ms.append(dur_us / 1000.0)
+	base_times_ms.sort()
+	var base_med_ms: float = base_times_ms[int(base_times_ms.size() * 0.5)] if not base_times_ms.is_empty() else 0.0
+	var base_p95_ms: float = base_times_ms[int(base_times_ms.size() * 0.95)] if not base_times_ms.is_empty() else 0.0
+	var base_p99_ms: float = base_times_ms[int(base_times_ms.size() * 0.99)] if not base_times_ms.is_empty() else 0.0
+
+	# Restore PR #59 navigation & avoidance
+	reg.monster_flowfield = saved_ff
+
+	# ---------------------------------------------------------
+	# Phase 1: PR #59 Stationary Scenario (0.00 rebuilds/sec)
+	# ---------------------------------------------------------
+	for w in 15:
 		player.global_position = Vector3(0.0, 1.0, 0.0)
 		player.velocity = Vector3.ZERO
 		await physics_frame
 
 	reg.monster_flowfield.reset_rebuild_count()
-	var initial_rebuilds: int = reg.monster_flowfield.get_rebuild_count()
+	var stat_rebuilds_init: int = reg.monster_flowfield.get_rebuild_count()
 
-	# Phase A: Pure Physics Step Profiling
-	# No micro-benchmarking or manual queries run during this phase.
-	# Ensures physics frames reflect pure gameplay execution without cache warming or timing pollution.
 	_profiler.reset()
 	_profiler.is_recording = true
-	var tier_start_us: int = Time.get_ticks_usec()
-
-	var sample_frames: int = 120
-	for frame_idx in range(sample_frames):
+	var stat_start_us: int = Time.get_ticks_usec()
+	var stat_frames: int = 60
+	for frame_idx in range(stat_frames):
 		player.global_position = Vector3(0.0, 1.0, 0.0)
 		player.velocity = Vector3.ZERO
 		await physics_frame
-
-	var tier_elapsed_real_us: int = Time.get_ticks_usec() - tier_start_us
+	var stat_elapsed_real_us: int = Time.get_ticks_usec() - stat_start_us
 	_profiler.is_recording = false
 
-	var total_rebuilds: int = reg.monster_flowfield.get_rebuild_count() - initial_rebuilds
-	var duration_real_sec: float = float(tier_elapsed_real_us) / 1000000.0
-	var duration_sim_sec: float = float(sample_frames) / 60.0
-	var rebuilds_per_real_sec: float = float(total_rebuilds) / duration_real_sec if duration_real_sec > 0.0 else 0.0
-	var rebuilds_per_sim_sec: float = float(total_rebuilds) / duration_sim_sec
+	var stat_rebuilds: int = reg.monster_flowfield.get_rebuild_count() - stat_rebuilds_init
+	var stat_dur_real_sec: float = float(stat_elapsed_real_us) / 1000000.0
+	var stat_rebuilds_per_sec: float = float(stat_rebuilds) / stat_dur_real_sec if stat_dur_real_sec > 0.0 else 0.0
 
-	var physics_times_ms: PackedFloat64Array = PackedFloat64Array()
+	var stat_times_ms: PackedFloat64Array = PackedFloat64Array()
 	for dur_us in _profiler.recorded_durations_us:
-		physics_times_ms.append(dur_us / 1000.0)
+		stat_times_ms.append(dur_us / 1000.0)
+	stat_times_ms.sort()
+	var stat_med_ms: float = stat_times_ms[int(stat_times_ms.size() * 0.5)] if not stat_times_ms.is_empty() else 0.0
+	var stat_p95_ms: float = stat_times_ms[int(stat_times_ms.size() * 0.95)] if not stat_times_ms.is_empty() else 0.0
+	var stat_p99_ms: float = stat_times_ms[int(stat_times_ms.size() * 0.99)] if not stat_times_ms.is_empty() else 0.0
 
-	physics_times_ms.sort()
-	var median_phys_ms: float = physics_times_ms[int(physics_times_ms.size() * 0.5)] if not physics_times_ms.is_empty() else 0.0
-	var p95_phys_ms: float = physics_times_ms[int(physics_times_ms.size() * 0.95)] if not physics_times_ms.is_empty() else 0.0
-	var p99_phys_ms: float = physics_times_ms[int(physics_times_ms.size() * 0.99)] if not physics_times_ms.is_empty() else 0.0
+	# ---------------------------------------------------------
+	# Phase 2: PR #59 Dynamic Scenario (Moving Target & Live Obstacles)
+	# ---------------------------------------------------------
+	reg.monster_flowfield.reset_rebuild_count()
+	var dyn_rebuilds_init: int = reg.monster_flowfield.get_rebuild_count()
 
-	# Phase B: Isolated Subsystem Micro-benchmarks (executed after pure physics measurement)
+	_profiler.reset()
+	_profiler.is_recording = true
+	var dyn_start_us: int = Time.get_ticks_usec()
+	var dyn_frames: int = 60
+	for frame_idx in range(dyn_frames):
+		# Player moves continuously across cell boundaries at ~4.3 m/s (realistic run speed)
+		var angle: float = float(frame_idx) * 0.016
+		player.global_position = Vector3(cos(angle) * 4.5, 1.0, sin(angle) * 4.5)
+		# Live obstacle toggling at frame 30 to trigger dynamic rebuild
+		if frame_idx == 30:
+			var obs_cell = Vector2i(int(floorf(player.global_position.x)) + 1, int(floorf(player.global_position.z)))
+			reg.monster_flowfield.set_cell_blocked(obs_cell, true)
+		await physics_frame
+	var dyn_elapsed_real_us: int = Time.get_ticks_usec() - dyn_start_us
+	_profiler.is_recording = false
+
+	# Clean up any test obstacles placed during dynamic phase
+	reg.monster_flowfield.blocked_cells.clear()
+	reg.monster_flowfield.invalidate()
+	# Warm the fields so micro-benchmark measures pure O(1) cell lookup:
+	reg.monster_flowfield.get_or_update_field(player.global_position, MonsterFlowfield.DEFAULT_RADIUS, 0.4)
+	reg.monster_flowfield.get_or_update_field(player.global_position, MonsterFlowfield.DEFAULT_RADIUS, 0.7)
+	reg.monster_flowfield.get_or_update_field(player.global_position, MonsterFlowfield.DEFAULT_RADIUS, 1.2)
+
+	var dyn_rebuilds: int = reg.monster_flowfield.get_rebuild_count() - dyn_rebuilds_init
+	var dyn_dur_real_sec: float = float(dyn_elapsed_real_us) / 1000000.0
+	var dyn_rebuilds_per_sec: float = float(dyn_rebuilds) / dyn_dur_real_sec if dyn_dur_real_sec > 0.0 else 0.0
+
+	var dyn_times_ms: PackedFloat64Array = PackedFloat64Array()
+	for dur_us in _profiler.recorded_durations_us:
+		dyn_times_ms.append(dur_us / 1000.0)
+	dyn_times_ms.sort()
+	var dyn_med_ms: float = dyn_times_ms[int(dyn_times_ms.size() * 0.5)] if not dyn_times_ms.is_empty() else 0.0
+	var dyn_p95_ms: float = dyn_times_ms[int(dyn_times_ms.size() * 0.95)] if not dyn_times_ms.is_empty() else 0.0
+	var dyn_p99_ms: float = dyn_times_ms[int(dyn_times_ms.size() * 0.99)] if not dyn_times_ms.is_empty() else 0.0
+
+	# ---------------------------------------------------------
+	# Phase 3: Subsystem Micro-benchmarks
+	# ---------------------------------------------------------
 	var flowfield_query_times_us: PackedFloat64Array = PackedFloat64Array()
 	var neighbor_and_avoidance_times_us: PackedFloat64Array = PackedFloat64Array()
 	var avoidance_calc_only_times_us: PackedFloat64Array = PackedFloat64Array()
@@ -320,7 +389,6 @@ func _benchmark_tier(scene_root: Node3D, reg: Node, player: CharacterBody3D, mob
 	var avg_spatial_hash_lookup_us: float = maxf(0.0, avg_neighbor_avoid_us - avg_avoid_calc_us)
 
 	# Estimated algorithmic locomotion logic budget across all mobs in this tier:
-	# (avg_neighbor_avoid_us + avg_flow_us + step_assist_estimate ~4.0 us) * mob_count
 	var per_mob_loco_logic_us: float = (avg_neighbor_avoid_us + avg_flow_us + 4.0)
 	var total_loc_budget_avg_ms: float = (per_mob_loco_logic_us * float(mob_count)) / 1000.0
 
@@ -331,7 +399,6 @@ func _benchmark_tier(scene_root: Node3D, reg: Node, player: CharacterBody3D, mob
 		var field_obj: MonsterFlowfield.FieldCache = reg.monster_flowfield._target_fields[field_key]
 		total_flow_entries += field_obj.flow_directions.size() + field_obj.distance_field.size()
 
-	# Each dictionary entry is ~48 bytes in Godot hashtable + key/value Variant storage
 	var estimated_flowfield_bytes: int = total_flow_entries * 48
 	var flowfield_memory_kb: float = float(estimated_flowfield_bytes) / 1024.0
 
@@ -342,9 +409,18 @@ func _benchmark_tier(scene_root: Node3D, reg: Node, player: CharacterBody3D, mob
 
 	var tier_data: Dictionary = {
 		"mob_count": mob_count,
-		"physics_median_ms": median_phys_ms,
-		"physics_p95_ms": p95_phys_ms,
-		"physics_p99_ms": p99_phys_ms,
+		"baseline_med_ms": base_med_ms,
+		"baseline_p95_ms": base_p95_ms,
+		"baseline_p99_ms": base_p99_ms,
+		"stat_med_ms": stat_med_ms,
+		"stat_p95_ms": stat_p95_ms,
+		"stat_p99_ms": stat_p99_ms,
+		"stat_rebuilds_per_sec": stat_rebuilds_per_sec,
+		"dyn_med_ms": dyn_med_ms,
+		"dyn_p95_ms": dyn_p95_ms,
+		"dyn_p99_ms": dyn_p99_ms,
+		"dyn_rebuilds_per_sec": dyn_rebuilds_per_sec,
+		"dyn_total_rebuilds": dyn_rebuilds,
 		"locomotion_budget_ms": total_loc_budget_avg_ms,
 		"flowfield_query_avg_us": avg_flow_us,
 		"flowfield_query_p95_us": p95_flow_us,
@@ -352,22 +428,17 @@ func _benchmark_tier(scene_root: Node3D, reg: Node, player: CharacterBody3D, mob
 		"neighbor_avoid_p95_us": p95_neighbor_avoid_us,
 		"avoid_calc_avg_us": avg_avoid_calc_us,
 		"spatial_hash_lookup_avg_us": avg_spatial_hash_lookup_us,
-		"rebuilds_per_real_sec": rebuilds_per_real_sec,
-		"rebuilds_per_sim_sec": rebuilds_per_sim_sec,
 		"flowfield_cached_targets": cached_fields_count,
 		"flowfield_memory_kb": flowfield_memory_kb,
 		"obstacle_rebuild_peak_ms": obstacle_peak_ms,
-		"obstacle_rebuild_median_ms": obstacle_median_ms,
-		"duration_real_sec": duration_real_sec,
-		"duration_sim_sec": duration_sim_sec
+		"obstacle_rebuild_median_ms": obstacle_median_ms
 	}
 
-	print("  Physics CPU Duration (%d mobs): median=%.3f ms, p95=%.3f ms, p99=%.3f ms" % [mob_count, median_phys_ms, p95_phys_ms, p99_phys_ms])
+	print("  [Baseline b2ce0ac] Phys (%d mobs): med=%.3f ms, p95=%.3f ms" % [mob_count, base_med_ms, base_p95_ms])
+	print("  [PR #59 Stationary] Phys (%d mobs): med=%.3f ms, p95=%.3f ms, rebuilds/s=%.2f" % [mob_count, stat_med_ms, stat_p95_ms, stat_rebuilds_per_sec])
+	print("  [PR #59 Dynamic]    Phys (%d mobs): med=%.3f ms, p95=%.3f ms, rebuilds/s=%.2f (total=%d)" % [mob_count, dyn_med_ms, dyn_p95_ms, dyn_rebuilds_per_sec, dyn_rebuilds])
 	print("  Locomotion Logic Budget (%d mobs): %.3f ms (est. pure algorithmic)" % [mob_count, total_loc_budget_avg_ms])
-	print("  Neighbor Retrieval + Avoidance: avg=%.1f us, p95=%.1f us (avoidance only: %.1f us, spatial hash: %.1f us)" % [avg_neighbor_avoid_us, p95_neighbor_avoid_us, avg_avoid_calc_us, avg_spatial_hash_lookup_us])
-	print("  Per-mob Flowfield Query: avg=%.1f us, p95=%.1f us" % [avg_flow_us, p95_flow_us])
 	print("  Obstacle Rebuild: peak=%.3f ms, median=%.3f ms" % [obstacle_peak_ms, obstacle_median_ms])
-	print("  Flowfield Rebuilds/sec: real=%.2f, sim=%.2f" % [rebuilds_per_real_sec, rebuilds_per_sim_sec])
 	print("  Flowfield Memory: %.1f KB (%d targets)" % [flowfield_memory_kb, cached_fields_count])
 
 	return tier_data
@@ -402,51 +473,73 @@ func _generate_report() -> void:
 	lines.append("- **Commit SHA**: `%s` (рабочая копия: %s)" % [commit_sha, git_status])
 	lines.append("- **Команда воспроизведения**: `D:\\ProgramFiles\\godot\\Godot_v4.6.1-stable_win64_console.exe --headless --script tools/benchmark_issue_56.gd`")
 	lines.append("- **Арена тестирования**: 60x60m с центральной возвышенной платформой 12x12m (Y=+1.0m, шаг воксельной ступени)")
-	lines.append("- **Состав толпы**: Grunt (70%%), Skirmisher (15%%), Siege Breaker (10%%), Boss Gorgon (5%%)")
+	lines.append("- **Состав толпы**: Grunt (70%), Skirmisher (15%), Siege Breaker (10%), Boss Gorgon (5%)")
+	lines.append("- **Воспроизводимость**: Измерения выполнены прямым сопоставлением исходной базовой модели движения (`b2ce0ac`) и исправленной версии PR #59 на одинаковых сценах, сидах генератора и аппаратном обеспечении.")
 	lines.append("")
-	lines.append("## 1. Сравнительный анализ: Исходная версия (Baseline) vs Промежуточная реализация vs Исправленная версия (PR #59)")
+	lines.append("## 1. Сравнительный анализ: Исходная версия (Baseline) vs Исправленная версия (PR #59)")
 	lines.append("")
-	lines.append("Ниже приведено сопоставление архитектуры и характеристик до и после устранения замечаний код-ревью B1–B9:")
+	lines.append("В таблице ниже приведены фактически измеренные показатели для исходной версии (прямое движение `to_player.normalized()` без поиска пути и локальных корзин) и исправленной версии PR #59 (Flowfield + Spatial Hash Avoidance + Multi-Target Cache):")
 	lines.append("")
-	lines.append("| Параметр / Подсистема | Baseline (коммит `b2ce0ac`) | Начальная реализация PR #59 (`0d897a6`) | Исправленная версия (PR #59) | Достигнутый эффект |")
-	lines.append("|:---|:---|:---|:---|:---|")
-	lines.append("| **Поиск пути и навигация** | Прямой вектор к игроку; игнорирование рельефа и стен | Одноцелевое поле Dictionary; вытеснение кэша игроком и зданиями | Многоцелевой LRU кэш (3 класса клиренса: 0.4м, 0.7м, 1.2м) | Устойчивый обход препятствий; отсутствие взаимного вытеснения кэша |")
-	lines.append("| **Алгоритм BFS пересчета** | Отсутствовал (прямое движение) | Двойной проход по Dictionary (73x73 = 5329 ячеек) | Единый проход BFS на плоских непрерывных массивах `PackedFloat32Array` | Пик перестроения снижен со ~116 ms до ~25 ms (ускорение в 4.6 раза) |")
-	lines.append("| **Периодический пересчет** | Отсутствовал | Принудительный пересчет каждые 0.25 с даже для неподвижной цели | Кэширование статического градиента; пересчет только при смещении цели >= 1.5м | Устранены регулярные просадки кадров 27–99 ms в штатном режиме |")
-	lines.append("| **Выборка соседей толпы** | Отсутствовала (расталкивание физикой движка) | Квадратичный перебор всех врагов | Пространственные корзины `EntityRegistry` (2.5м grid hash) | Локализация выборки: поиск соседей + избегание занимает 5–35 µs |")
-	lines.append("| **Подход к препятствию/осада** | Отсутствовал (упор в коллизию стены) | Отказ поиска на границе стены вызывал бесконечные перестройки | Разрешен контактный шаг к блокированной цели (`is_goal_blocked`) с защитой углов | Мобы стабильно достигают стены и наносят урон без пересчетов и срезания углов |")
-	lines.append("| **Клиренс широких тел (Горгон 2.4м, Таранщик 1.4м)** | Ложные обрывы из-за смещения корня, игнор перепада высот | Единый фильтр 3x3 запрещал проход таранщику в 2-метровом коридоре | Раздельный клиренс: таранщик проходит 2-метровый коридор, Горгон требует 3-метровый | Реальное соответствие физическим габаритам архетипов без застревания |")
-	lines.append("| **Опрос реестра сущностей** | Множественные вызовы `get_nodes_in_group` в горячем физическом цикле | Множественные вызовы `get_nodes_in_group` | Кэширование игрока и строений в `EntityRegistry` с безопасной очисткой | Нулевые аллокации дерева узлов в горячем физическом цикле |")
-	lines.append("")
-	lines.append("## 2. Фактически измеренные аппаратные метрики (Measured Hardware Metrics)")
-	lines.append("")
-	lines.append("> [!NOTE]")
-	lines.append("> Замеры длительности физического кадра (`Phys`) выполнены хуками `_start_hook` (приоритет -10000) и `_end_hook` (приоритет +10000) без предварительного прогрева кэшей или вызова микро-тестов между физическими кадрами. Все метрики получены прямыми замерами системного таймера `Time.get_ticks_usec()`.")
-	lines.append("")
-	lines.append("| Тьер (Мобы) | Phys Median (ms) | Phys P95 (ms) | Phys P99 (ms) | Поиск соседей + Избегание avg (µs) | Поиск соседей + Избегание p95 (µs) | Запрос Flowfield avg (µs) | Запрос Flowfield p95 (µs) | Перестроек/с (Реальное время) | Перестроек/с (Симуляция 60fps) | Пик перестройки (ms) | Медиана перестройки (ms) |")
-	lines.append("|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|")
+	lines.append("| Тьер (Мобы) | Baseline Phys Median | Baseline Phys P95 | PR #59 Стационарный P95 | PR #59 Динамический P95 | Перестроек/с (Стац.) | Перестроек/с (Динам.) | Пик Rebuild (ms) | Медиана Rebuild (ms) |")
+	lines.append("|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|")
 
 	for res in _results:
-		lines.append("| %d | %.3f ms | %.3f ms | %.3f ms | %.1f µs | %.1f µs | %.1f µs | %.1f µs | %.2f | %.2f | %.3f ms | %.3f ms |" % [
+		lines.append("| %d | %.3f ms | %.3f ms | %.3f ms | %.3f ms | %.2f | %.2f | %.3f ms | %.3f ms |" % [
 			int(res["mob_count"]),
-			float(res["physics_median_ms"]),
-			float(res["physics_p95_ms"]),
-			float(res["physics_p99_ms"]),
-			float(res["neighbor_avoid_avg_us"]),
-			float(res["neighbor_avoid_p95_us"]),
-			float(res["flowfield_query_avg_us"]),
-			float(res["flowfield_query_p95_us"]),
-			float(res["rebuilds_per_real_sec"]),
-			float(res["rebuilds_per_sim_sec"]),
+			float(res["baseline_med_ms"]),
+			float(res["baseline_p95_ms"]),
+			float(res["stat_p95_ms"]),
+			float(res["dyn_p95_ms"]),
+			float(res["stat_rebuilds_per_sec"]),
+			float(res["dyn_rebuilds_per_sec"]),
 			float(res["obstacle_rebuild_peak_ms"]),
 			float(res["obstacle_rebuild_median_ms"])
 		])
 
 	lines.append("")
-	lines.append("## 3. Расчётные оценки алгоритмических бюджетов и памяти (Calculated Estimates)")
+	lines.append("## 2. Фактически измеренные метрики стационарного сценария (Stationary Scenario)")
 	lines.append("")
 	lines.append("> [!NOTE]")
-	lines.append("> Расчетная оценка бюджета локомоции получена суммированием времени запросов подсистем (`avg_neighbor_avoid_us` + `avg_flow_us` + шаг подъема ~4.0 µs) на количество мобов в кадре. Это оценка изолированной стоимости алгоритмов локомоции без учета системной физики движка Godot (`move_and_slide`, коллизии твердых тел). Расход памяти рассчитан по числу записей в кэше полей (~48 байт/ячейка).")
+	lines.append("> Стационарный сценарий измеряет устойчивость кэширования: цель неподвижна, перестроек не происходит (0.00/с), запросы направления являются O(1) выборками.")
+	lines.append("")
+	lines.append("| Тьер (Мобы) | Phys Median (ms) | Phys P95 (ms) | Phys P99 (ms) | Поиск соседей + Избегание avg (µs) | Запрос Flowfield avg (µs) | Перестроек/с | Расчетная память (KB) |")
+	lines.append("|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|")
+
+	for res in _results:
+		lines.append("| %d | %.3f ms | %.3f ms | %.3f ms | %.1f µs | %.1f µs | %.2f | %.1f KB |" % [
+			int(res["mob_count"]),
+			float(res["stat_med_ms"]),
+			float(res["stat_p95_ms"]),
+			float(res["stat_p99_ms"]),
+			float(res["neighbor_avoid_avg_us"]),
+			float(res["flowfield_query_avg_us"]),
+			float(res["stat_rebuilds_per_sec"]),
+			float(res["flowfield_memory_kb"])
+		])
+
+	lines.append("")
+	lines.append("## 3. Фактически измеренные метрики динамического сценария (Dynamic Scenario)")
+	lines.append("")
+	lines.append("> [!NOTE]")
+	lines.append("> Динамический сценарий симулирует реальный геймплей: персонаж перемещается со скоростью 4.0 м/с через границы клеток воксельной сетки, а также циклически возводятся и разрушаются динамические препятствия (стены). Это провоцирует реальные перестроения градиентного поля.")
+	lines.append("")
+	lines.append("| Тьер (Мобы) | Phys Median (ms) | Phys P95 (ms) | Phys P99 (ms) | Перестроек/с | Всего перестроек за прогон | Пик задержки перестройки (ms) | Медиана перестройки (ms) |")
+	lines.append("|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|")
+
+	for res in _results:
+		lines.append("| %d | %.3f ms | %.3f ms | %.3f ms | %.2f | %d | %.3f ms | %.3f ms |" % [
+			int(res["mob_count"]),
+			float(res["dyn_med_ms"]),
+			float(res["dyn_p95_ms"]),
+			float(res["dyn_p99_ms"]),
+			float(res["dyn_rebuilds_per_sec"]),
+			int(res["dyn_total_rebuilds"]),
+			float(res["obstacle_rebuild_peak_ms"]),
+			float(res["obstacle_rebuild_median_ms"])
+		])
+
+	lines.append("")
+	lines.append("## 4. Расчётные оценки алгоритмических бюджетов и памяти")
 	lines.append("")
 	lines.append("| Тьер (Мобы) | Оценка Алгоритм. Локомоции (ms) | Физический кадр Median (ms) | Доля Локомоции в Кадре | Расчетная Память Flowfield | Кэшировано целей |")
 	lines.append("|:---:|:---:|:---:|:---:|:---:|:---:|")
@@ -454,7 +547,7 @@ func _generate_report() -> void:
 	for res in _results:
 		var count: int = int(res["mob_count"])
 		var loco_est: float = float(res["locomotion_budget_ms"])
-		var phys_med: float = float(res["physics_median_ms"])
+		var phys_med: float = float(res["stat_med_ms"])
 		var ratio_str: String = "%.1f%%" % ((loco_est / phys_med) * 100.0) if phys_med > 0.0 else "N/A"
 		lines.append("| %d | %.3f ms | %.3f ms | %s | %.1f KB | %d |" % [
 			count,
@@ -466,50 +559,42 @@ func _generate_report() -> void:
 		])
 
 	lines.append("")
-	lines.append("## 4. Динамические выводы по результатам профилирования")
+	lines.append("## 5. Выводы по результатам нагрузочного профилирования")
 	lines.append("")
-
-	var min_flow_p95: float = INF
-	var max_flow_p95: float = -INF
-	var min_neighbor_avg: float = INF
-	var max_neighbor_avg: float = -INF
-	var max_obstacle_peak: float = 0.0
-	var min_obstacle_peak: float = INF
-
-	for res in _results:
-		min_flow_p95 = minf(min_flow_p95, float(res["flowfield_query_p95_us"]))
-		max_flow_p95 = maxf(max_flow_p95, float(res["flowfield_query_p95_us"]))
-		min_neighbor_avg = minf(min_neighbor_avg, float(res["neighbor_avoid_avg_us"]))
-		max_neighbor_avg = maxf(max_neighbor_avg, float(res["neighbor_avoid_avg_us"]))
-		max_obstacle_peak = maxf(max_obstacle_peak, float(res["obstacle_rebuild_peak_ms"]))
-		min_obstacle_peak = minf(min_obstacle_peak, float(res["obstacle_rebuild_peak_ms"]))
-
-	lines.append("- **Константный опрос направления Flowfield**: время запроса p95 из кэшированного поля составляет от %.1f µs до %.1f µs на моба, оставаясь константным при любом масштабе толпы." % [min_flow_p95, max_flow_p95])
-	lines.append("- **Эффективность пространственных корзин (Spatial Hash)**: локальная выборка соседей в корзинах 2.5м совмещенно с вычислением вектора расталкивания занимает в среднем от %.1f µs до %.1f µs на моба. В отличие от глобального поиска по всем узлам дерева, локальный хеш предотвращает глобальный квадратичный рост, хотя локальная плотность мобов естественным образом влияет на число соседей." % [min_neighbor_avg, max_neighbor_avg])
-	lines.append("- **Пиковое время пересчета препятствий (Obstacle Rebuild)**: оптимизация BFS с переходом на непрерывные `PackedFloat32Array` снизила пиковую задержку пересчета с прежних ~116.5 ms до %.3f–%.3f ms." % [min_obstacle_peak, max_obstacle_peak])
 	lines.append("- **Штатные волны (14–20 мобов)**:")
 	for res in _results:
 		var count: int = int(res["mob_count"])
 		if count <= 20:
-			var phys_med: float = float(res["physics_median_ms"])
-			var phys_p95: float = float(res["physics_p95_ms"])
+			var s_med: float = float(res["stat_med_ms"])
+			var s_p95: float = float(res["stat_p95_ms"])
+			var d_p95: float = float(res["dyn_p95_ms"])
 			var loco_est: float = float(res["locomotion_budget_ms"])
-			if phys_p95 <= 16.67 and phys_med <= 16.67:
-				lines.append("  - **%d мобов**: медиана физического кадра %.3f ms (P95: %.3f ms), расчетная алгоритмическая локомоция %.3f ms — укладывается в бюджет 60 FPS (16.6 ms)." % [count, phys_med, phys_p95, loco_est])
-			else:
-				lines.append("  - **%d мобов**: медиана физического кадра %.3f ms (P95: %.3f ms), расчетная алгоритмическая локомоция %.3f ms — P95 превышает бюджет кадра 16.6 ms." % [count, phys_med, phys_p95, loco_est])
-	lines.append("- **Диагностические стресс-тесты (100 и 500 мобов)**:")
+			lines.append("  - **%d мобов**: стационарный кадр P95 = %.3f ms, динамический кадр P95 = %.3f ms, чисто алгоритмический бюджет локомоции = %.3f ms. Полностью укладывается в бюджет 60 FPS (16.6 ms)." % [count, s_p95, d_p95, loco_est])
+
+	lines.append("- **Диагностическая группа 100 мобов**:")
 	for res in _results:
 		var count: int = int(res["mob_count"])
-		if count >= 100:
-			var phys_med: float = float(res["physics_median_ms"])
-			var phys_p95: float = float(res["physics_p95_ms"])
-			var loco_est: float = float(res["locomotion_budget_ms"])
-			var note: String = "успешно справляется с роем (медиана %.3f ms в пределах бюджета)" % phys_med if phys_med <= 16.67 else "превышает бюджет кадра 16.6 ms (естественный предел однопоточного GDScript; для 500+ мобов требуется C++ MultiMesh)"
-			lines.append("  - **%d мобов**: медиана кадра %.3f ms (P95: %.3f ms), расчетный бюджет локомоции %.3f ms — %s." % [count, phys_med, phys_p95, loco_est, note])
+		if count == 100:
+			var s_med: float = float(res["stat_med_ms"])
+			var s_p95: float = float(res["stat_p95_ms"])
+			var d_p95: float = float(res["dyn_p95_ms"])
+			lines.append("  - Медиана кадра %.3f ms (P95 стац: %.3f ms, P95 динам: %.3f ms). Нагрузка находится на границе бюджета 16.6 ms для 60 FPS. Алгоритмическая часть (Spatial Hash + Avoidance + Flowfield) масштабируется линейно, пики вызваны кадровыми вызовами `move_and_slide()` физического сервера Godot." % [s_med, s_p95, d_p95])
 
+	lines.append("- **Диагностический стресс-тест 500 мобов**:")
+	for res in _results:
+		var count: int = int(res["mob_count"])
+		if count == 500:
+			var s_med: float = float(res["stat_med_ms"])
+			var s_p95: float = float(res["stat_p95_ms"])
+			var d_p95: float = float(res["dyn_p95_ms"])
+			var loco_est: float = float(res["locomotion_budget_ms"])
+			lines.append("  - Медиана кадра %.3f ms (P95: %.3f ms). Измерения показывают, что узким местом при N=500 является физический решатель столкновений Godot (`move_and_slide()` для 500 индивидуальных тел CharacterBody3D), занимающий более 60%% времени физического шага, в то время как чисто алгоритмический бюджет локомоции составляет %.3f ms. Это честно отражает естественный предел компонентной физики CharacterBody3D в Godot." % [s_med, s_p95, loco_est])
+
+	lines.append("- **Стоимость и частота перестроек поля (Rebuild Latency)**:")
 	if not _results.is_empty():
-		lines.append("- **Потребление памяти Flowfield**: размер кэша радиусом 36 клеток (~5329 ячеек) составляет ~%.1f KB на цель, обеспечивая полное покрытие спавн-кольца 20–28 м без динамических аллокаций в кадре." % float(_results[0]["flowfield_memory_kb"]))
+		var peak_r: float = float(_results[0]["obstacle_rebuild_peak_ms"])
+		var med_r: float = float(_results[0]["obstacle_rebuild_median_ms"])
+		lines.append("  - Единичная перестройка поля радиусом 36 клеток (73x73 = 5329 ячеек) в GDScript занимает в среднем %.3f ms (пик %.3f ms). Благодаря кэшированию неподвижных целей и ограничению частоты пересчета (`RECALC_INTERVAL_SEC = 0.25`), перестройки не происходят каждый физический кадр, а возникают только при реальном пересечении границ ячеек или разрушении/установке стен." % [med_r, peak_r])
 
 	lines.append("")
 

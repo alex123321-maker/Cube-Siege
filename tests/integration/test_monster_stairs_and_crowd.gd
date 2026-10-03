@@ -279,8 +279,8 @@ func test_siege_breaker_physically_advances_through_2m_corridor() -> void:
 		return 3
 	)
 
-	# Physical obstacle walls flanking the 2m corridor (Z <= -0.5 and Z >= 2.5)
-	for z_pos in [-1.5, 3.5]:
+	# Physical obstacle walls flanking the 2m corridor: exact 2.0m gap between Z=0.0 and Z=2.0
+	for z_pos in [-1.0, 3.0]:
 		var wall_body: StaticBody3D = StaticBody3D.new()
 		wall_body.collision_layer = 1
 		var col: CollisionShape3D = CollisionShape3D.new()
@@ -378,3 +378,62 @@ func test_zombie_routes_around_corner_cliffs_to_attack_wall() -> void:
 
 	var rebuild_count: int = reg.monster_flowfield.get_rebuild_count()
 	assert_lt(rebuild_count, 10, "Flowfield rebuilds must stay minimal when routing around corner (rebuilds=%d)" % rebuild_count)
+
+func test_boss_gorgon_attacks_blocking_wall_and_destroys_it() -> void:
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if not reg:
+		return
+
+	# Arena Floor
+	var ground: StaticBody3D = StaticBody3D.new()
+	ground.collision_layer = 1
+	var g_col: CollisionShape3D = CollisionShape3D.new()
+	var g_box: BoxShape3D = BoxShape3D.new()
+	g_box.size = Vector3(40.0, 1.0, 40.0)
+	g_col.shape = g_box
+	ground.add_child(g_col)
+	add_child_autoqfree(ground)
+	ground.global_position = Vector3(10.0, -0.5, 10.0)
+
+	# Terrain: flat everywhere except cliff at X >= 20 blocking direct path to player
+	reg.monster_flowfield.set_height_lookup(func(x: int, _z: int) -> int:
+		if x >= 20:
+			return 3
+		return 0
+	)
+
+	# Wood wall placed at (10.5, 0.0, 10.5)
+	var wood_wall_scene = preload("res://scenes/prefabs/wood_wall.tscn")
+	var wall = wood_wall_scene.instantiate()
+	add_child_autoqfree(wall)
+	wall.global_position = Vector3(10.5, 0.0, 10.5)
+	reg.register_building(wall)
+
+	# Player placed behind cliff at (25.0, 0.9, 10.5)
+	var player: CharacterBody3D = CharacterBody3D.new()
+	player.add_to_group("player")
+	add_child_autoqfree(player)
+	player.global_position = Vector3(25.0, 0.9, 10.5)
+	reg.register_player(player)
+
+	# Boss Gorgon (radius 1.2) spawned at (5.0, 0.0, 10.5)
+	var gorgon: CharacterBody3D = BOSS_GORGON_SCENE.instantiate()
+	add_child_autoqfree(gorgon)
+	gorgon.global_position = Vector3(5.0, 0.0, 10.5)
+	gorgon.target_player = player
+
+	await wait_physics_frames(5)
+
+	# Gorgon must receive non-zero flowfield direction towards the wall candidate
+	var b_dir: Vector3 = reg.monster_flowfield.get_flow_direction(gorgon.global_position, wall.global_position, 1.2)
+	assert_gt(b_dir.length_squared(), 0.001, "Gorgon must receive non-zero flowfield direction to candidate wall")
+	assert_gt(b_dir.x, 0.5, "Flow direction must point toward the blocking wall (+X)")
+
+	# Run simulation frames for Gorgon to advance to the wall and trigger smash
+	await wait_physics_frames(60)
+
+	# Gorgon must physically advance towards the wall
+	assert_gt(gorgon.global_position.x, 6.5, "Boss Gorgon must physically advance towards the blocking wall (x=%.2f)" % gorgon.global_position.x)
+	# Wall must be damaged or destroyed
+	var wall_destroyed_or_damaged: bool = not is_instance_valid(wall) or wall.is_queued_for_deletion() or wall.current_health < 100.0
+	assert_true(wall_destroyed_or_damaged, "Boss Gorgon must reach and smash/damage the blocking wall")
