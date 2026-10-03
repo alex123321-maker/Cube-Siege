@@ -12,6 +12,7 @@ const CELL_SIZE: float = 1.0
 const RECALC_INTERVAL_SEC: float = 0.25
 const TARGET_MOVE_THRESHOLD_SQ: float = 2.25 # 1.5m squared
 const MAX_CACHED_FIELDS: int = 16
+const MAX_CACHED_HEIGHTS: int = 16384
 
 class FieldCache extends RefCounted:
 	var goal_cell: Vector2i = Vector2i.ZERO
@@ -30,6 +31,25 @@ var chunk_loaded_lookup: Callable = Callable()
 # Multi-target cache: Vector3i(goal_cell.x, goal_cell.y, clearance_class) -> FieldCache
 var _target_fields: Dictionary = {}
 var _rebuild_count: int = 0
+var _profile_update_sec: Dictionary[int, float] = {}
+var _simulation_time: float = 0.0
+var _build_used_this_tick: bool = false
+var _height_cache: Dictionary[Vector2i, int] = {}
+var _native_solver: MonsterFieldSolver = MonsterFieldSolver.new()
+var _compute_time_us: int = 0
+
+## Called once by the registry per physics tick. Pauses do not advance the cadence.
+func advance(delta: float) -> void:
+	_simulation_time += maxf(delta, 0.0)
+	_build_used_this_tick = false
+
+func get_compute_time_us() -> int:
+	return _compute_time_us
+
+## Pending work is distinct from a completed field that establishes no route.
+func is_query_pending(goal: Vector3, clearance_radius: float = 0.4) -> bool:
+	var cell: Vector2i = Vector2i(int(floorf(goal.x)), int(floorf(goal.z)))
+	return not _target_fields.has(Vector3i(cell.x, cell.y, _get_clearance_class(clearance_radius)))
 
 # Backward compatibility / active field inspectability
 var target_position: Vector3 = Vector3.INF
@@ -47,10 +67,13 @@ func _init(seed_val: int = 0, custom_height_lookup: Callable = Callable()) -> vo
 ## Sets or updates custom height lookup (e.g. from MapGenerator or BiomeSystem).
 func set_height_lookup(lookup: Callable) -> void:
 	height_lookup = lookup
+	_height_cache.clear()
+	invalidate()
 
 ## Sets or updates chunk loaded predicate lookup.
 func set_chunk_loaded_lookup(lookup: Callable) -> void:
 	chunk_loaded_lookup = lookup
+	invalidate()
 
 ## Marks a cell as blocked by a building, wall, or resource node.
 func set_cell_blocked(cell: Vector2i, is_blocked: bool) -> void:
@@ -71,18 +94,23 @@ func invalidate() -> void:
 ## Clears all state including blocked cells and cached fields, while preserving world lookups.
 func clear_all() -> void:
 	blocked_cells.clear()
+	_height_cache.clear()
+	_profile_update_sec.clear()
+	_build_used_this_tick = false
 	invalidate()
 
 ## Explicitly clears custom lookups if needed.
 func clear_lookups() -> void:
 	height_lookup = Callable()
 	chunk_loaded_lookup = Callable()
+	_height_cache.clear()
 
 func get_rebuild_count() -> int:
 	return _rebuild_count
 
 func reset_rebuild_count() -> void:
 	_rebuild_count = 0
+	_compute_time_us = 0
 
 ## Resolves the voxel height at cell (x, z).
 func get_cell_height(x: int, z: int) -> int:
@@ -186,7 +214,7 @@ func get_or_update_field(target_pos: Vector3, max_radius: int = DEFAULT_RADIUS, 
 	var goal_cell: Vector2i = Vector2i(int(floorf(target_pos.x)), int(floorf(target_pos.z)))
 	var clearance_class: int = _get_clearance_class(clearance_radius)
 	var cache_key: Vector3i = Vector3i(goal_cell.x, goal_cell.y, clearance_class)
-	var now: float = float(Time.get_ticks_msec()) / 1000.0
+	var now: float = _simulation_time
 
 	var cached_field: FieldCache = null
 	if _target_fields.has(cache_key):
@@ -212,6 +240,13 @@ func get_or_update_field(target_pos: Vector3, max_radius: int = DEFAULT_RADIUS, 
 			target_cell = cached_field.goal_cell
 			return cached_field
 
+	# A cold cell, a new profile, and obstacle invalidation all share the same budget.
+	# Never substitute another target's field while waiting: no field means no route.
+	if _build_used_this_tick or now - _profile_update_sec.get(clearance_class, -999.0) < RECALC_INTERVAL_SEC:
+		return cached_field
+	_build_used_this_tick = true
+	_profile_update_sec[clearance_class] = now
+
 	# Evict LRU field if cache capacity reached
 	if _target_fields.size() >= MAX_CACHED_FIELDS and not _target_fields.has(cache_key):
 		var oldest_key = null
@@ -232,7 +267,9 @@ func get_or_update_field(target_pos: Vector3, max_radius: int = DEFAULT_RADIUS, 
 	new_field.clearance_radius = clearance_radius
 
 	_rebuild_count += 1
+	var compute_start_us: int = Time.get_ticks_usec()
 	_compute_field_data(new_field, goal_cell, max_radius, clearance_radius)
+	_compute_time_us += Time.get_ticks_usec() - compute_start_us
 	_target_fields[cache_key] = new_field
 
 	flow_directions = new_field.flow_directions
@@ -453,6 +490,43 @@ func _has_wide_body_perimeter_clearance_fast(
 	return side_neg_ok
 
 func _compute_field_data(field: FieldCache, goal_cell: Vector2i, radius: int, clearance_req: float = 0.0) -> void:
+	# Only immutable compact cell snapshots cross the native boundary. Height/loaded
+	# lookups, obstacle lifecycle and all target/attack decisions remain in GDScript.
+	var width: int = radius * 2 + 3
+	if _height_cache.size() > MAX_CACHED_HEIGHTS:
+		_height_cache.clear()
+	var min_cell: Vector2i = goal_cell - Vector2i(radius + 1, radius + 1)
+	var heights: PackedInt32Array = PackedInt32Array()
+	var blocked: PackedByteArray = PackedByteArray()
+	var loaded: PackedByteArray = PackedByteArray()
+	heights.resize(width * width)
+	blocked.resize(width * width)
+	loaded.resize(width * width)
+	for z in range(width):
+		for x in range(width):
+			var cell: Vector2i = min_cell + Vector2i(x, z)
+			var idx: int = z * width + x
+			if not _height_cache.has(cell):
+				_height_cache[cell] = get_cell_height(cell.x, cell.y)
+			heights[idx] = _height_cache[cell]
+			blocked[idx] = 1 if blocked_cells.has(cell) else 0
+			loaded[idx] = 1 if not chunk_loaded_lookup.is_valid() or chunk_loaded_lookup.call(cell.x, cell.y) else 0
+	var data: PackedFloat32Array = _native_solver.build(heights, blocked, loaded, width, _get_clearance_class(clearance_req), 1)
+	field.is_goal_blocked = blocked_cells.has(goal_cell)
+	field.flow_directions.clear()
+	field.distance_field.clear()
+	if data.size() != width * width * 3:
+		return
+	for z in range(1, width - 1):
+		for x in range(1, width - 1):
+			var idx: int = (z * width + x) * 3
+			if data[idx] >= 0.0:
+				var cell: Vector2i = min_cell + Vector2i(x, z)
+				field.distance_field[cell] = data[idx]
+				field.flow_directions[cell] = Vector2(data[idx + 1], data[idx + 2])
+
+## Retained reference implementation for regression parity; production uses the batch solver.
+func _compute_field_data_reference(field: FieldCache, goal_cell: Vector2i, radius: int, clearance_req: float = 0.0) -> void:
 	field.flow_directions.clear()
 	field.distance_field.clear()
 
@@ -607,10 +681,6 @@ func get_flow_direction(
 	if dist < 0.1:
 		return Vector3.ZERO
 
-	var field: FieldCache = get_or_update_field(target_pos, DEFAULT_RADIUS, clearance_radius)
-	if not field:
-		return Vector3.ZERO
-
 	var from_cell: Vector2i = Vector2i(int(floorf(from_pos.x)), int(floorf(from_pos.z)))
 
 	# Ensure origin cell is loaded and not blocked
@@ -623,6 +693,9 @@ func get_flow_direction(
 	if dist < 8.0:
 		if _check_line_of_sight(from_pos, target_pos, clearance_radius):
 			return diff.normalized()
+	var field: FieldCache = get_or_update_field(target_pos, DEFAULT_RADIUS, clearance_radius)
+	if not field:
+		return Vector3.ZERO
 
 	# 2. Flowfield lookup:
 	if field.flow_directions.has(from_cell):

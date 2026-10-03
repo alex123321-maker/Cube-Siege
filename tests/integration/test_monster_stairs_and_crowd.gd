@@ -422,7 +422,9 @@ func test_boss_gorgon_attacks_blocking_wall_and_destroys_it() -> void:
 	gorgon.global_position = Vector3(5.0, 0.0, 10.5)
 	gorgon.target_player = player
 
-	await wait_physics_frames(5)
+	# The failed player field and candidate wall field share the huge-body cadence.
+	# Wait real physics time for the second target rather than forcing a cold build.
+	await wait_physics_frames(20)
 
 	# Gorgon must receive non-zero flowfield direction towards the wall candidate
 	var b_dir: Vector3 = reg.monster_flowfield.get_flow_direction(gorgon.global_position, wall.global_position, 1.2)

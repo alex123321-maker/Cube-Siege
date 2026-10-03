@@ -40,7 +40,7 @@ func _custom_physics(delta: float) -> void:
 			var reg = get_node_or_null("/root/EntityRegistry")
 			if reg and "monster_flowfield" in reg and reg.monster_flowfield:
 				path_dir = reg.monster_flowfield.get_flow_direction(global_position, target_player.global_position, radius)
-				if path_dir.length_squared() < 0.001 and dist > 1.3 and not is_in_duel:
+				if path_dir.length_squared() < 0.001 and dist > 1.3 and not is_in_duel and not reg.monster_flowfield.is_query_pending(target_player.global_position, radius):
 					var buildings = reg.get_buildings()
 					if not buildings.is_empty():
 						var candidates: Array[Node3D] = []

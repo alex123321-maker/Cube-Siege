@@ -138,7 +138,7 @@ func process_chase(delta: float) -> void:
 		if reg and "monster_flowfield" in reg and reg.monster_flowfield:
 			nav_dir = reg.monster_flowfield.get_flow_direction(global_position, target_player.global_position, radius)
 			# Fallback when player is enclosed by walls: approach nearest candidate blocking building via flowfield
-			if nav_dir.length_squared() < 0.001 and dist > 3.4 and reg.has_method("get_buildings"):
+			if nav_dir.length_squared() < 0.001 and dist > 3.4 and reg.has_method("get_buildings") and not reg.monster_flowfield.is_query_pending(target_player.global_position, radius):
 				var buildings: Array[Node3D] = reg.get_buildings()
 				if not buildings.is_empty():
 					var candidates: Array[Node3D] = []

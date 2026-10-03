@@ -12,6 +12,9 @@ var monster_flowfield: MonsterFlowfield = MonsterFlowfield.new()
 var building_to_cell: Dictionary = {} # Node3D -> Vector2i
 var resource_to_cell: Dictionary = {} # Node3D -> Vector2i
 
+func _physics_process(delta: float) -> void:
+	monster_flowfield.advance(delta)
+
 func _ready() -> void:
 	var eb = get_node_or_null("/root/EventBus")
 	if eb:

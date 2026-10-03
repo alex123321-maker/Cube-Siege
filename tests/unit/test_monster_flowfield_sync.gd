@@ -148,6 +148,7 @@ func test_zombie_approaches_wall_when_player_walled_in() -> void:
 	assert_not_null(nearest_b, "Zombie must find nearest blocking perimeter building")
 
 	# Flowfield towards the blocking building perimeter must yield reachable approach vector
+	reg.monster_flowfield.advance(MonsterFlowfield.RECALC_INTERVAL_SEC)
 	var dir_to_building = reg.monster_flowfield.get_flow_direction(zombie_pos, nearest_b.global_position, 0.4)
 	assert_gt(dir_to_building.length_squared(), 0.001, "Zombie must receive active flow vector approaching perimeter building")
 	assert_lt(dir_to_building.x, -0.5, "Approach vector must lead zombie westward towards wall perimeter")
@@ -332,6 +333,7 @@ func test_siege_breaker_navigates_2m_corridor_while_gorgon_rejected() -> void:
 	assert_gt(dir_siege.x, 0.5, "Siege Breaker must navigate east (+X) through 2m corridor")
 
 	# Boss Gorgon (clearance 1.2, width 2.4m) exceeds 2m corridor and must be rejected (Vector3.ZERO)
+	ff.advance(1.0 / 60.0)
 	var dir_gorgon: Vector3 = ff.get_flow_direction(start_pos, goal_pos, 1.2)
 	assert_almost_eq(dir_gorgon.length_squared(), 0.0, 0.001, "Boss Gorgon (radius 1.2) must NOT pass through 2m corridor")
 
@@ -362,6 +364,7 @@ func test_boss_gorgon_routes_around_narrow_corridor_via_wide_detour() -> void:
 	assert_gt(dir_siege.x, 0.5, "Siege Breaker must take direct +X corridor")
 
 	# Boss Gorgon (1.2) rejects narrow corridor and routes diagonally towards wide detour (+Z)
+	ff.advance(1.0 / 60.0)
 	var dir_gorgon: Vector3 = ff.get_flow_direction(start_pos, goal_pos, 1.2)
 	assert_gt(dir_gorgon.length_squared(), 0.001, "Boss Gorgon must find path through wide detour")
 	assert_gt(dir_gorgon.z, 0.5, "Boss Gorgon must route towards wide detour in +Z direction")
@@ -426,6 +429,8 @@ func test_cache_isolation_between_distinct_goal_cells_player_and_wall() -> void:
 	assert_eq(dir_to_player, Vector3.ZERO, "Zombie cannot reach player behind wall")
 
 	# Query 2: Zombie to Wall -> Wall has open approach at (9, 10). Must return +X, NOT borrow player's field!
+	assert_true(ff.is_query_pending(wall_pos, 0.4))
+	ff.advance(MonsterFlowfield.RECALC_INTERVAL_SEC)
 	var dir_to_wall: Vector3 = ff.get_flow_direction(zombie_pos, wall_pos, 0.4)
 	assert_gt(dir_to_wall.length_squared(), 0.001, "Zombie must receive valid approach direction to blocking wall")
 	assert_gt(dir_to_wall.x, 0.5, "Zombie approach direction must point towards the wall (+X)")
@@ -443,5 +448,6 @@ func test_cache_isolation_between_distinct_goal_cells_player_and_wall() -> void:
 	assert_gt(dir_wall_first.length_squared(), 0.001, "Wall query first must succeed")
 	assert_gt(dir_wall_first.x, 0.5, "Wall query first must point towards wall (+X)")
 
+	ff_rev.advance(MonsterFlowfield.RECALC_INTERVAL_SEC)
 	var dir_player_second: Vector3 = ff_rev.get_flow_direction(zombie_pos, player_pos, 0.4)
 	assert_eq(dir_player_second, Vector3.ZERO, "Player query second must not borrow wall field and must return ZERO")
