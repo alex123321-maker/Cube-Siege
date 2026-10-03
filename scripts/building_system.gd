@@ -182,9 +182,10 @@ func place_building(snapped_pos: Vector3, cell: Vector2i, type: PrefabType) -> v
 	if not b_scene:
 		return
 	var building: Node3D = b_scene.instantiate()
+	building.position = snapped_pos
+	building.grid_coord = cell
 	get_parent().add_child(building)
 	building.global_position = snapped_pos
-	building.grid_coord = cell
 	placed_buildings[cell] = building
 
 	# Keep transparent while still in building mode

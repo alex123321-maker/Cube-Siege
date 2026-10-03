@@ -200,6 +200,9 @@ const FLOATING_TEXT_SCENE = preload("res://scenes/floating_text.tscn")
 
 func _ready() -> void:
 	add_to_group("player")
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if reg and reg.has_method("register_player"):
+		reg.register_player(self)
 	presentation.setup(self)
 
 	if orientation_settings:
@@ -271,6 +274,11 @@ func _ready() -> void:
 
 	if portal_path and not portal_path.is_empty():
 		portal = get_node_or_null(portal_path) as Node3D
+
+func _exit_tree() -> void:
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if reg and reg.has_method("unregister_player"):
+		reg.unregister_player(self)
 
 func _physics_process(delta: float) -> void:
 	presentation.update_portal_compass(self)

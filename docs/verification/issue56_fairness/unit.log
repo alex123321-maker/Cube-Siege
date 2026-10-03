@@ -1,0 +1,91 @@
+Godot Engine v4.6.1.stable.official.14d19694e - https://godotengine.org
+
+---  GUT  ---
+[1m[INFO]:  [0musing [C:/Users/alexa/AppData/Roaming/Godot/app_userdata/Cube Siege] for temporary output.
+Godot version:  4.6.1
+GUT version:  9.6.1
+[4m
+
+res://tests/unit/test_monster_field_budget.gd
+[0m* test_new_cell_keys_cannot_bypass_profile_cadence
+* test_multiple_profiles_share_one_build_per_tick
+* test_obstacle_invalidation_does_not_reset_cadence_or_reuse_other_goal
+* test_stationary_cached_target_never_rebuilds_and_pause_does_not_advance
+* test_native_batch_matches_reference_geometry_and_perimeter_for_each_profile
+* test_native_batch_rejects_malformed_inputs_and_keeps_border_outside_routes
+* test_waiting_wall_is_served_while_unreachable_player_keeps_crossing_cells
+* test_pending_fifo_is_bounded_and_moving_target_keeps_place_and_latest_cell
+[1m8/8 passed.
+[0m[4m
+
+res://tests/unit/test_monster_flowfield_sync.gd
+[0m* test_flowfield_radius_36_covers_spawn_ring
+* test_clear_all_preserves_height_and_chunk_lookups
+* test_building_reregistration_unblocks_old_cell
+* test_resource_tree_felling_unblocks_flowfield_cell
+* test_wide_boss_clearance_rejects_narrow_corridor
+* test_zombie_approaches_wall_when_player_walled_in
+* test_resource_stone_and_iron_break_unblocks_flowfield_cells
+* test_chunk_unload_prevents_stale_flowfield_transition
+* test_small_mob_lateral_clearance_respects_wall_boundary
+* test_unreachable_target_returns_zero_without_straight_fallback
+* test_duel_mode_ignores_buildings_on_unreachable_player
+* test_lateral_clearance_near_elevated_terrain_steers_away
+* test_siege_breaker_navigates_2m_corridor_while_gorgon_rejected
+* test_boss_gorgon_routes_around_narrow_corridor_via_wide_detour
+* test_blocked_siege_goal_anti_corner_cutting_cliff
+* test_blocked_goal_gorgon_huge_body_perimeter_clearance
+* test_cache_isolation_between_distinct_goal_cells_player_and_wall
+[1m17/17 passed.
+[0m[4m
+
+res://tests/unit/test_monster_locomotion.gd
+[0m* test_spawn_y_calculation_for_all_archetypes
+* test_boss_gorgon_and_grunt_vertical_bounds
+* test_locomotion_constants_match_design_specification
+* test_vertical_knockback_preservation_from_spikes
+* test_no_height_accumulation_on_flat_ground
+* test_step_smooth_offset_decays_over_time
+* test_step_up_budget_never_exceeds_frame_speed_allowance
+* test_validate_safe_spawn_point_outside_tree
+* test_align_starting_entities_success_and_failure_handling
+[1m9/9 passed.
+[0m[4m
+
+res://tests/unit/test_monster_navigation.gd
+[0m* test_height_transition_rule_passable_within_one_block
+* test_wall_blocks_step_and_dynamic_toggle
+* test_diagonal_corner_cutting_is_prevented_in_step_and_los
+* test_unreachable_target_returns_zero_vector
+* test_building_target_perimeter_seeding
+* test_multi_target_cache_prevents_ping_pong_rebuild
+[1m6/6 passed.
+[0m[4m
+
+res://tests/unit/test_monster_spatial_avoidance.gd
+[0m* test_right_hand_passing_rule_for_head_on_encounter
+* test_stationary_queue_deceleration
+* test_vertical_tier_separation_ignores_different_elevations
+* test_skirmisher_retreats_past_stationary_gorgon_without_deadlock
+* test_entity_registry_resource_and_building_flowfield_sync
+[1m5/5 passed.
+[0m
+
+
+
+[33m==============================================
+[0m[33m= Run Summary
+[0m[33m==============================================
+[0m
+Totals
+------
+Scripts               5
+Tests                45
+Passing Tests        45
+Asserts            5335
+Time              2.793s
+
+
+Ran Scripts matching "test_monster"
+[32m---- All tests passed! ----
+[0m

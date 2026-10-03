@@ -1,0 +1,46 @@
+Godot Engine v4.6.1.stable.official.14d19694e - https://godotengine.org
+
+---  GUT  ---
+[1m[INFO]:  [0musing [C:/Users/alexa/AppData/Roaming/Godot/app_userdata/Cube Siege] for temporary output.
+Godot version:  4.6.1
+GUT version:  9.6.1
+[4m
+
+res://tests/integration/test_monster_stairs_and_crowd.gd
+[0m* test_actual_zombie_reaches_and_damages_wall_while_unreachable_player_moves
+[33m    --- Awaiting 240 physics frames  ---
+[0m* test_grunt_ascends_one_block_step_staircase
+[33m    --- Awaiting 40 physics frames  ---
+[0m* test_boss_gorgon_ascends_one_block_stairs_without_false_cliff
+[33m    --- Awaiting 40 physics frames  ---
+[0m* test_multi_mob_crowd_no_mutual_penetration
+* test_gorgon_chase_and_crowd_separation
+* test_zombie_attacks_blocking_wall_and_deals_damage_without_rebuilding_flowfield
+[33m    --- Awaiting 70 physics frames  ---
+[0m* test_siege_breaker_physically_advances_through_2m_corridor
+[33m    --- Awaiting 40 physics frames  ---
+[0m* test_zombie_routes_around_corner_cliffs_to_attack_wall
+[33m    --- Awaiting 90 physics frames  ---
+[0m* test_boss_gorgon_attacks_blocking_wall_and_destroys_it
+[33m    --- Awaiting 60 physics frames  ---
+[0m[1m9/9 passed.
+[0m
+
+
+
+[33m==============================================
+[0m[33m= Run Summary
+[0m[33m==============================================
+[0m
+Totals
+------
+Scripts               1
+Tests                 9
+Passing Tests         9
+Asserts              31
+Time              12.56s
+
+
+Ran Scripts matching "test_monster_stairs_and_crowd"
+[32m---- All tests passed! ----
+[0m

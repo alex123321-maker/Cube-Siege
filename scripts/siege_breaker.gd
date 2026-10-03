@@ -12,6 +12,8 @@ const RETARGET_INTERVAL: float = 0.8
 func _ready() -> void:
 	max_health = 220.0
 	move_speed = 2.4
+	radius = 0.7
+	half_height = 1.2
 	super._ready()
 
 func _get_xp_reward() -> float:
@@ -36,17 +38,29 @@ func _custom_physics(delta: float) -> void:
 		var dist: float = to_target.length()
 
 		if dist > 0.1:
-			var move_dir: Vector3 = to_target.normalized()
-			look_at(global_position + move_dir, Vector3.UP)
+			var path_dir: Vector3 = to_target.normalized()
+			var reg = get_node_or_null("/root/EntityRegistry")
+			if reg and "monster_flowfield" in reg and reg.monster_flowfield:
+				path_dir = reg.monster_flowfield.get_flow_direction(global_position, target_entity.global_position, radius, target_entity.get_instance_id())
 
+			var pref_vel: Vector3 = Vector3.ZERO
 			if dist > 1.8:
-				velocity.x = move_dir.x * move_speed
-				velocity.z = move_dir.z * move_speed
+				pref_vel = path_dir * move_speed
 			else:
-				velocity.x = 0.0
-				velocity.z = 0.0
 				if attack_timer <= 0.0:
 					perform_attack()
+
+			var final_vel: Vector3 = pref_vel
+			if reg and reg.has_method("get_nearby_enemies") and pref_vel.length_squared() > 0.01:
+				var neighbors = reg.get_nearby_enemies(global_position, radius + 1.2, self)
+				final_vel = MonsterAvoidance.compute_avoidance_velocity(self, pref_vel, move_speed, radius, neighbors)
+
+			desired_velocity_h = final_vel
+			if final_vel.length_squared() > 0.01:
+				var face_dir = Vector3(final_vel.x, 0, final_vel.z).normalized()
+				look_at(global_position + face_dir, Vector3.UP)
+			else:
+				look_at(global_position + to_target.normalized(), Vector3.UP)
 
 func _on_duel_started() -> void:
 	target_entity = duel_opponent as Node3D
@@ -66,9 +80,9 @@ func find_target() -> void:
 	# Priority 1: Nearest player building
 	var reg = get_node_or_null("/root/EntityRegistry")
 	var nearest_b: Node3D = null
-	if reg and not reg.buildings.is_empty():
+	if reg and reg.has_method("get_nearest_building"):
 		nearest_b = reg.get_nearest_building(global_position)
-	else:
+	if not nearest_b and is_inside_tree():
 		var buildings: Array[Node] = get_tree().get_nodes_in_group("buildings")
 		var min_b_dist_sq: float = INF
 		for b in buildings:
@@ -83,9 +97,18 @@ func find_target() -> void:
 		return
 
 	# Priority 2: Player
-	var players: Array[Node] = get_tree().get_nodes_in_group("player")
-	if not players.is_empty() and is_instance_valid(players[0]):
-		target_entity = players[0] as Node3D
+	var p: Node3D = null
+	if reg and reg.has_method("get_player"):
+		var p_cand = reg.get_player()
+		if is_instance_valid(p_cand) and p_cand is Node3D and p_cand.is_inside_tree():
+			p = p_cand as Node3D
+	if not p and is_inside_tree():
+		var players: Array[Node] = get_tree().get_nodes_in_group("player")
+		for candidate in players:
+			if is_instance_valid(candidate) and candidate is Node3D and candidate.is_inside_tree():
+				p = candidate as Node3D
+				break
+	target_entity = p
 
 func perform_attack() -> void:
 	attack_timer = attack_cooldown

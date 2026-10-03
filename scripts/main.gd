@@ -1,12 +1,12 @@
 extends Node3D
 
-@onready var building_system: Node = $BuildingSystem
-@onready var radial_menu: Control = $HUD/Margin/RadialMenu
-@onready var player: Node = $Player
-@onready var overlay: Control = $HUD/Margin/GameOverOverlay
+@onready var building_system: Node = get_node_or_null("BuildingSystem")
+@onready var radial_menu: Control = get_node_or_null("HUD/Margin/RadialMenu")
+@onready var player: Node = get_node_or_null("Player")
+@onready var overlay: Control = get_node_or_null("HUD/Margin/GameOverOverlay")
 @onready var save_manager: Node = get_node_or_null("/root/SaveManager")
-@onready var day_night: Node = $DayNightCycle
-@onready var hud: CanvasLayer = $HUD
+@onready var day_night: Node = get_node_or_null("DayNightCycle")
+@onready var hud: CanvasLayer = get_node_or_null("HUD")
 @onready var map_generator: Node = get_node_or_null("MapGenerator")
 @onready var enemies_container: Node = get_node_or_null("Enemies")
 
@@ -32,6 +32,7 @@ func _on_map_generated(_seed: int) -> void:
 func _align_starting_entities() -> void:
 	if not map_generator or not enemies_container:
 		return
+	var space_state: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state if is_inside_tree() else null
 	for enemy in enemies_container.get_children():
 		if enemy is Node3D:
 			var ex: int = int(floorf(enemy.global_position.x))
@@ -41,7 +42,38 @@ func _align_starting_entities() -> void:
 				y_floor = map_generator.get_voxel_height(ex, ez)
 			elif "actual_seed" in map_generator:
 				y_floor = BiomeSystem.get_voxel_height(ex, ez, map_generator.actual_seed)
-			enemy.global_position.y = float(y_floor) + 0.9
+			var candidate_pos: Vector3 = enemy.global_position
+			var valid_pos_found: bool = true
+			if enemy is CharacterBody3D:
+				candidate_pos.y = MonsterLocomotion.calculate_spawn_y(float(y_floor), enemy as CharacterBody3D)
+				if space_state:
+					if not MonsterLocomotion.validate_safe_spawn_point(space_state, enemy as CharacterBody3D, candidate_pos):
+						valid_pos_found = false
+						for offset in [
+							Vector3(1, 0, 0), Vector3(-1, 0, 0), Vector3(0, 0, 1), Vector3(0, 0, -1),
+							Vector3(1, 0, 1), Vector3(-1, 0, 1), Vector3(1, 0, -1), Vector3(-1, 0, -1)
+						]:
+							var alt_pos: Vector3 = candidate_pos + offset
+							var alt_y: float = float(y_floor)
+							if map_generator.has_method("get_voxel_height"):
+								alt_y = float(map_generator.get_voxel_height(int(floorf(alt_pos.x)), int(floorf(alt_pos.z))))
+							alt_pos.y = MonsterLocomotion.calculate_spawn_y(alt_y, enemy as CharacterBody3D)
+							if MonsterLocomotion.validate_safe_spawn_point(space_state, enemy as CharacterBody3D, alt_pos):
+								candidate_pos = alt_pos
+								valid_pos_found = true
+								break
+			else:
+				candidate_pos.y = float(y_floor) + 0.9
+
+			if valid_pos_found:
+				enemy.global_position = candidate_pos
+			else:
+				var reg = get_node_or_null("/root/EntityRegistry")
+				if reg and reg.has_method("unregister_enemy"):
+					reg.unregister_enemy(enemy)
+				if enemy.get_parent():
+					enemy.get_parent().remove_child(enemy)
+				enemy.queue_free()
 
 func _exit_tree() -> void:
 	var eb = get_node_or_null("/root/EventBus")
@@ -62,9 +94,39 @@ func _input(event: InputEvent) -> void:
 func spawn_boss_gorgon() -> void:
 	var boss_scene = preload("res://scenes/enemies/boss_gorgon.tscn")
 	var boss = boss_scene.instantiate()
-	add_child(boss)
+	var spawn_pos: Vector3 = Vector3.ZERO
 	if player:
-		boss.global_position = player.global_position + Vector3(0, 0, -18)
+		spawn_pos = player.global_position + Vector3(0, 0, -18)
+	var map_gen = get_tree().get_first_node_in_group("map_generator") if is_inside_tree() else null
+	var space_state: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state if is_inside_tree() else null
+
+	var valid_spawn_pos: Vector3 = spawn_pos
+	var found_valid: bool = false
+	var candidate_offsets: Array[Vector3] = [
+		Vector3.ZERO,
+		Vector3(2, 0, 0), Vector3(-2, 0, 0), Vector3(0, 0, 2), Vector3(0, 0, -2),
+		Vector3(2, 0, 2), Vector3(-2, 0, 2), Vector3(2, 0, -2), Vector3(-2, 0, -2)
+	]
+
+	for offset in candidate_offsets:
+		var cand: Vector3 = spawn_pos + offset
+		var terrain_y: float = 0.0
+		if map_gen and map_gen.has_method("get_voxel_height"):
+			terrain_y = float(map_gen.get_voxel_height(TerrainCombatRules.world_to_voxel(cand.x), TerrainCombatRules.world_to_voxel(cand.z)))
+		cand.y = MonsterLocomotion.calculate_spawn_y(terrain_y, boss)
+		if space_state and boss is CharacterBody3D:
+			if not MonsterLocomotion.validate_safe_spawn_point(space_state, boss as CharacterBody3D, cand, 1.5):
+				continue
+		valid_spawn_pos = cand
+		found_valid = true
+		break
+
+	if not found_valid:
+		boss.queue_free()
+		return
+
+	boss.position = valid_spawn_pos
+	add_child(boss)
 	if hud and hud.has_method("show_boss_bar"):
 		hud.show_boss_bar(boss)
 	var eb = get_node_or_null("/root/EventBus")

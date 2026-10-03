@@ -32,6 +32,10 @@ const TREE_VARIANTS: Array[PackedScene] = [
 ]
 
 func _ready() -> void:
+	add_to_group("resource_nodes")
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if reg and reg.has_method("register_resource"):
+		reg.register_resource(self)
 	_make_collision_shapes_local()
 	current_health = max_health
 	if pickup_prompt:
@@ -41,6 +45,11 @@ func _ready() -> void:
 	_apply_variation()
 	_setup_canopy_occlusion()
 	_ensure_interaction_zone()
+
+func _exit_tree() -> void:
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if reg and reg.has_method("unregister_resource"):
+		reg.unregister_resource(self)
 
 func _make_collision_shapes_local() -> void:
 	if body_collision_shape and body_collision_shape.shape:
@@ -193,6 +202,9 @@ var _is_harvesting: bool = false
 
 func fell_tree() -> void:
 	is_destroyed = true
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if reg and reg.has_method("unregister_resource"):
+		reg.unregister_resource(self)
 	# Disable solid obstacle collision so player can walk through felled tree / stump.
 	# InteractionZone continues to detect interaction on dedicated Layer 6 (mask 32).
 	collision_layer = 0

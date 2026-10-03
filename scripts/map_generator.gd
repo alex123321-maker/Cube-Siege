@@ -72,6 +72,10 @@ func _exit_tree() -> void:
 		_free_chunk(coord)
 	active_chunks.clear()
 	chunk_resources.clear()
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if reg and "monster_flowfield" in reg and reg.monster_flowfield:
+		reg.monster_flowfield.set_height_lookup(Callable())
+		reg.monster_flowfield.set_chunk_loaded_lookup(Callable())
 
 func setup_materials() -> void:
 	## Load production terrain materials from authored asset resources.
@@ -90,6 +94,13 @@ func generate_world() -> void:
 		actual_seed = randi()
 	else:
 		actual_seed = custom_seed
+
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if reg and "monster_flowfield" in reg and reg.monster_flowfield:
+		reg.monster_flowfield.clear_all()
+		reg.monster_flowfield.world_seed = actual_seed
+		reg.monster_flowfield.set_height_lookup(Callable(self, "get_voxel_height"))
+		reg.monster_flowfield.set_chunk_loaded_lookup(Callable(self, "is_cell_loaded"))
 
 	# Clear previous loaded chunks
 	for coord in active_chunks.keys():
@@ -234,6 +245,15 @@ func load_chunk(cx: int, cz: int) -> void:
 	_spawn_chunk_resources(cx, cz, spawned_nodes)
 	chunk_resources[coord] = spawned_nodes
 
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if reg and "monster_flowfield" in reg and reg.monster_flowfield:
+		reg.monster_flowfield.invalidate()
+
+func is_cell_loaded(wx: int, wz: int) -> bool:
+	var cx: int = int(floorf(float(wx) / float(ChunkBuilder.CHUNK_SIZE)))
+	var cz: int = int(floorf(float(wz) / float(ChunkBuilder.CHUNK_SIZE)))
+	return active_chunks.has(Vector2i(cx, cz))
+
 func unload_chunk(cx: int, cz: int) -> void:
 	var coord: Vector2i = Vector2i(cx, cz)
 	if not active_chunks.has(coord):
@@ -241,6 +261,10 @@ func unload_chunk(cx: int, cz: int) -> void:
 	_free_chunk(coord)
 	active_chunks.erase(coord)
 	chunk_resources.erase(coord)
+
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if reg and "monster_flowfield" in reg and reg.monster_flowfield:
+		reg.monster_flowfield.invalidate()
 
 func _free_chunk(coord: Vector2i) -> void:
 	if active_chunks.has(coord):

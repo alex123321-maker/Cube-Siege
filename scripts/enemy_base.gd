@@ -44,41 +44,37 @@ func _ready() -> void:
 	presentation.setup(self)
 	_find_player()
 
+@export var radius: float = 0.4
+@export var half_height: float = 0.9
+var step_smooth_offset_y: float = 0.0
+var desired_velocity_h: Vector3 = Vector3.ZERO
+
 func _physics_process(delta: float) -> void:
 	if is_dying:
 		return
 
 	_custom_physics(delta)
 
-	if knockback_velocity.length_squared() > 0.01:
-		velocity += knockback_velocity
-		knockback_velocity = knockback_velocity.lerp(Vector3.ZERO, 10.0 * delta)
-	
-	# Gravity
-	if not is_on_floor():
-		velocity.y -= 25.0 * delta
-	else:
-		if velocity.y < 0.0:
-			velocity.y = 0.0
-			
-	move_and_slide()
+	# Locomotion with authoritative voxel step-up/down, cliff avoidance, and 3D knockback preservation
+	var loc_result: Dictionary = MonsterLocomotion.process_locomotion(
+		self,
+		delta,
+		desired_velocity_h,
+		knockback_velocity,
+		half_height,
+		radius,
+		step_smooth_offset_y
+	)
+	step_smooth_offset_y = float(loc_result.get("smooth_offset_y", 0.0))
+	knockback_velocity = loc_result.get("knockback", Vector3.ZERO)
+
 	presentation.update(delta, velocity, move_speed)
-	
-	# Voxel Step-Up Assist
-	var move_h: Vector3 = Vector3(velocity.x, 0.0, velocity.z)
-	if move_h.length_squared() > 0.01:
-		for i in range(get_slide_collision_count()):
-			var col: KinematicCollision3D = get_slide_collision(i)
-			var collider: Object = col.get_collider()
-			if collider and collider is Node:
-				var node: Node = collider as Node
-				if node.is_in_group("buildings") or node.is_in_group("walls") or node.is_in_group("resource_nodes"):
-					continue
-			if col.get_normal().y < 0.3 and col.get_normal().y > -0.3:
-				var step_transform: Transform3D = Transform3D(global_transform.basis, global_position + Vector3(0, 1.05, 0))
-				if not test_move(step_transform, move_h.normalized() * 0.35):
-					global_position.y += 1.05
-					break
+
+	var visuals: Node3D = get_node_or_null("Visuals") as Node3D
+	if visuals:
+		visuals.position.y = step_smooth_offset_y
+
+	desired_velocity_h = Vector3.ZERO
 
 func _custom_physics(_delta: float) -> void:
 	pass
@@ -86,9 +82,17 @@ func _custom_physics(_delta: float) -> void:
 func _find_player() -> void:
 	if not is_inside_tree():
 		return
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if reg and reg.has_method("get_player"):
+		var p_cand = reg.get_player()
+		if is_instance_valid(p_cand) and p_cand is Node3D and p_cand.is_inside_tree():
+			target_player = p_cand as Node3D
+			return
 	var players: Array[Node] = get_tree().get_nodes_in_group("player")
-	if not players.is_empty():
-		target_player = players[0] as Node3D
+	for candidate in players:
+		if is_instance_valid(candidate) and candidate is Node3D and candidate.is_inside_tree():
+			target_player = candidate as Node3D
+			return
 
 func _on_damaged(amount: float, knockback: Vector3, _type: String, _attacker: Node) -> void:
 	if is_dying:
@@ -149,11 +153,21 @@ func die() -> void:
 
 	_on_death_effects()
 
-	var players: Array[Node] = get_tree().get_nodes_in_group("player")
-	if not players.is_empty() and is_instance_valid(players[0]) and players[0].has_method("add_xp"):
-		players[0].add_xp(_get_xp_reward())
-
 	var reg = get_node_or_null("/root/EntityRegistry")
+	var award_player: Node3D = null
+	if reg and reg.has_method("get_player"):
+		var p_cand = reg.get_player()
+		if is_instance_valid(p_cand) and p_cand is Node3D:
+			award_player = p_cand as Node3D
+	if not award_player:
+		var players: Array[Node] = get_tree().get_nodes_in_group("player")
+		for candidate in players:
+			if is_instance_valid(candidate) and candidate is Node3D:
+				award_player = candidate as Node3D
+				break
+	if award_player and is_instance_valid(award_player) and award_player.has_method("add_xp"):
+		award_player.add_xp(_get_xp_reward())
+
 	if reg:
 		reg.unregister_enemy(self)
 

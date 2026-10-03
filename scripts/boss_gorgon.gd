@@ -8,9 +8,13 @@ signal boss_defeated()
 @export var charge_speed: float = 22.0
 @export var melee_damage: float = 35.0
 @export var charge_damage: float = 55.0
+@export var radius: float = 1.2
+@export var half_height: float = 1.5
 
 var current_health: float = 2000.0
 var target_player: Node3D = null
+var desired_velocity_h: Vector3 = Vector3.ZERO
+var step_smooth_offset_y: float = 0.0
 
 enum BossState { CHASE, TELEGRAPH, CHARGING, RECOVERY }
 var current_state: BossState = BossState.CHASE
@@ -61,9 +65,17 @@ func _ready() -> void:
 	find_player()
 
 func find_player() -> void:
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if reg and reg.has_method("get_player"):
+		var p_cand = reg.get_player()
+		if is_instance_valid(p_cand) and p_cand is Node3D and p_cand.is_inside_tree():
+			target_player = p_cand as Node3D
+			return
 	var players: Array[Node] = get_tree().get_nodes_in_group("player")
-	if not players.is_empty() and is_instance_valid(players[0]):
-		target_player = players[0] as Node3D
+	for candidate in players:
+		if is_instance_valid(candidate) and candidate is Node3D and candidate.is_inside_tree():
+			target_player = candidate as Node3D
+			return
 
 func _physics_process(delta: float) -> void:
 	if not target_player or not is_instance_valid(target_player):
@@ -85,13 +97,24 @@ func _physics_process(delta: float) -> void:
 		BossState.RECOVERY:
 			process_recovery(delta)
 
-	if not is_on_floor():
-		velocity.y -= 25.0 * delta
-	else:
-		if velocity.y < 0.0:
-			velocity.y = 0.0
+	var loc_result: Dictionary = MonsterLocomotion.process_locomotion(
+		self,
+		delta,
+		desired_velocity_h,
+		Vector3.ZERO,
+		half_height,
+		radius,
+		step_smooth_offset_y
+	)
+	step_smooth_offset_y = float(loc_result.get("smooth_offset_y", 0.0))
 
-	move_and_slide()
+	if visuals:
+		visuals.position.y = step_smooth_offset_y
+
+	if current_state == BossState.CHARGING:
+		post_charge_collision_check()
+
+	desired_velocity_h = Vector3.ZERO
 
 func process_chase(delta: float) -> void:
 	var to_player: Vector3 = target_player.global_position - global_position
@@ -110,12 +133,37 @@ func process_chase(delta: float) -> void:
 
 	# Movement
 	if dist > 3.0:
-		var dir: Vector3 = to_player.normalized()
-		velocity.x = dir.x * base_speed
-		velocity.z = dir.z * base_speed
+		var nav_dir: Vector3 = Vector3.ZERO
+		var reg = get_node_or_null("/root/EntityRegistry")
+		if reg and "monster_flowfield" in reg and reg.monster_flowfield:
+			nav_dir = reg.monster_flowfield.get_flow_direction(global_position, target_player.global_position, radius, target_player.get_instance_id())
+			# Fallback when player is enclosed by walls: approach nearest candidate blocking building via flowfield
+			if nav_dir.length_squared() < 0.001 and dist > 3.4 and reg.has_method("get_buildings") and not reg.monster_flowfield.is_query_pending(target_player.global_position, radius):
+				var buildings: Array[Node3D] = reg.get_buildings()
+				if not buildings.is_empty():
+					var candidates: Array[Node3D] = []
+					for b in buildings:
+						if is_instance_valid(b) and b is Node3D:
+							candidates.append(b as Node3D)
+					candidates.sort_custom(func(a: Node3D, b_node: Node3D) -> bool:
+						return global_position.distance_squared_to(a.global_position) < global_position.distance_squared_to(b_node.global_position)
+					)
+					var check_count: int = mini(4, candidates.size())
+					for idx in range(check_count):
+						var b_cand: Node3D = candidates[idx]
+						var b_dir: Vector3 = reg.monster_flowfield.get_flow_direction(global_position, b_cand.global_position, radius, b_cand.get_instance_id())
+						if b_dir.length_squared() > 0.001:
+							nav_dir = b_dir
+							break
+
+		var pref_vel: Vector3 = nav_dir * base_speed
+		var final_vel: Vector3 = pref_vel
+		if reg and reg.has_method("get_nearby_enemies"):
+			var neighbors = reg.get_nearby_enemies(global_position, radius + 1.2, self)
+			final_vel = MonsterAvoidance.compute_avoidance_velocity(self, pref_vel, base_speed, radius, neighbors)
+		desired_velocity_h = final_vel
 	else:
-		velocity.x = 0.0
-		velocity.z = 0.0
+		desired_velocity_h = Vector3.ZERO
 
 	# Melee hit against player (contact range 3.4m)
 	if dist <= 3.4 and melee_attack_timer <= 0.0:
@@ -125,24 +173,28 @@ func process_chase(delta: float) -> void:
 			spawn_damage_text(melee_damage, "BOSS SMASH! (-%d HP)" % int(melee_damage), Color.RED)
 
 	# Smash any buildings blocking melee path
-	var buildings: Array[Node] = get_tree().get_nodes_in_group("buildings")
-	for b in buildings:
-		if b and is_instance_valid(b) and b is Node3D:
-			if global_position.distance_to((b as Node3D).global_position) <= 3.2:
-				if b.has_method("destroy_building"):
-					b.destroy_building()
+	var reg_b = get_node_or_null("/root/EntityRegistry")
+	if reg_b and reg_b.has_method("get_buildings"):
+		var buildings: Array[Node3D] = reg_b.get_buildings()
+		for b in buildings:
+			if b and is_instance_valid(b):
+				if global_position.distance_to(b.global_position) <= 3.2:
+					if b.has_method("destroy_building"):
+						b.destroy_building()
 
 func start_telegraph(dir: Vector3) -> void:
 	current_state = BossState.TELEGRAPH
 	state_timer = 1.4 # 1.4s warning
 	charge_direction = dir
 	has_hit_player_in_charge = false
+	desired_velocity_h = Vector3.ZERO
 	velocity = Vector3.ZERO
 	if telegraph_mesh:
 		telegraph_mesh.visible = true
 	spawn_damage_text(0, "!! TRAMPLE CHARGE !!", Color.RED)
 
 func process_telegraph(delta: float) -> void:
+	desired_velocity_h = Vector3.ZERO
 	velocity = Vector3.ZERO
 	state_timer -= delta
 	# Slight rumble shake
@@ -152,15 +204,14 @@ func process_telegraph(delta: float) -> void:
 
 	if state_timer <= 0.0:
 		if visuals:
-			visuals.position = Vector3.ZERO
+			visuals.position = Vector3(0.0, step_smooth_offset_y, 0.0)
 		if telegraph_mesh:
 			telegraph_mesh.visible = false
 		current_state = BossState.CHARGING
 		charge_distance_traveled = 0.0
 
 func process_charging(delta: float) -> void:
-	velocity.x = charge_direction.x * charge_speed
-	velocity.z = charge_direction.z * charge_speed
+	desired_velocity_h = charge_direction * charge_speed
 	charge_distance_traveled += charge_speed * delta
 
 	# 1. Damage and launch player if close
@@ -182,6 +233,16 @@ func process_charging(delta: float) -> void:
 				if b.has_method("destroy_building"):
 					b.destroy_building()
 
+	if charge_distance_traveled >= 16.0:
+		# End charge into recovery
+		current_state = BossState.RECOVERY
+		state_timer = 1.8 # 1.8s vulnerability window
+		desired_velocity_h = Vector3.ZERO
+		velocity = Vector3.ZERO
+		charge_cooldown_timer = 7.0
+		spawn_damage_text(0, "STUNNED!", Color.GOLD)
+
+func post_charge_collision_check() -> void:
 	# 3. Check physical slide collisions
 	for i in range(get_slide_collision_count()):
 		var col: KinematicCollision3D = get_slide_collision(i)
@@ -197,15 +258,8 @@ func process_charging(delta: float) -> void:
 					if node.has_method("take_damage"):
 						node.take_damage(charge_damage, self)
 
-	if charge_distance_traveled >= 16.0:
-		# End charge into recovery
-		current_state = BossState.RECOVERY
-		state_timer = 1.8 # 1.8s vulnerability window
-		velocity = Vector3.ZERO
-		charge_cooldown_timer = 7.0
-		spawn_damage_text(0, "STUNNED!", Color.GOLD)
-
 func process_recovery(delta: float) -> void:
+	desired_velocity_h = Vector3.ZERO
 	velocity = Vector3.ZERO
 	state_timer -= delta
 	if state_timer <= 0.0:
@@ -242,12 +296,23 @@ func die() -> void:
 	emit_signal("boss_defeated")
 
 	# Massive XP explosion and resource drop
-	var players: Array[Node] = get_tree().get_nodes_in_group("player")
-	if not players.is_empty() and is_instance_valid(players[0]):
-		if players[0].has_method("add_xp"):
-			players[0].add_xp(250.0)
-		if "building_system" in players[0] and players[0].building_system:
-			var bs: BuildingSystem = players[0].building_system as BuildingSystem
+	var reg = get_node_or_null("/root/EntityRegistry")
+	var award_player: Node3D = null
+	if reg and reg.has_method("get_player"):
+		var p_cand = reg.get_player()
+		if is_instance_valid(p_cand) and p_cand is Node3D:
+			award_player = p_cand as Node3D
+	if not award_player:
+		var players: Array[Node] = get_tree().get_nodes_in_group("player")
+		for candidate in players:
+			if is_instance_valid(candidate) and candidate is Node3D:
+				award_player = candidate as Node3D
+				break
+	if award_player and is_instance_valid(award_player):
+		if award_player.has_method("add_xp"):
+			award_player.add_xp(250.0)
+		if "building_system" in award_player and award_player.building_system:
+			var bs: BuildingSystem = award_player.building_system as BuildingSystem
 			if bs:
 				bs.add_resource(20, 20, 10)
 
