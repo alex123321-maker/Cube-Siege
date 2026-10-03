@@ -7,10 +7,16 @@ class RegenerationSource extends RefCounted:
 	var remaining: float
 	var strength: float
 	var radius: float
-	func _init(seconds: float, hp_per_second: float, aura_radius: float) -> void:
+	var eligibility_check: Callable
+	var requires_eligibility_check: bool
+	func _init(seconds: float, hp_per_second: float, aura_radius: float, can_apply: Callable) -> void:
 		remaining = seconds
 		strength = hp_per_second
 		radius = aura_radius
+		eligibility_check = can_apply
+		requires_eligibility_check = not can_apply.is_null()
+	func is_eligible() -> bool:
+		return not requires_eligibility_check or (eligibility_check.is_valid() and bool(eligibility_check.call()))
 
 var _player: PlayerPrototype
 var _regeneration: Dictionary[int, RegenerationSource] = {}
@@ -21,13 +27,13 @@ func setup(player: PlayerPrototype) -> void:
 	_finished = false
 	_regeneration.clear()
 
-func refresh_regeneration(source_id: int, heal_per_second: float, refresh_duration: float = 0.6, radius: float = 5.0) -> void:
+func refresh_regeneration(source_id: int, heal_per_second: float, refresh_duration: float = 0.6, radius: float = 5.0, eligibility_check: Callable = Callable()) -> void:
 	if _finished:
 		return
 	if heal_per_second <= 0.0 or refresh_duration <= 0.0:
 		remove_source(source_id)
 		return
-	_regeneration[source_id] = RegenerationSource.new(refresh_duration, heal_per_second, radius)
+	_regeneration[source_id] = RegenerationSource.new(refresh_duration, heal_per_second, radius, eligibility_check)
 
 func remove_source(source_id: int) -> void:
 	_regeneration.erase(source_id)
@@ -54,6 +60,11 @@ func advance(delta: float) -> void:
 	var expired: Array[int] = []
 	for source_id: int in _regeneration:
 		var source: RegenerationSource = _regeneration[source_id]
+		# Validate at the point of healing, independent of the aura's refresh
+		# interval or physics order. A freed guarded source is also ineligible.
+		if not source.is_eligible():
+			expired.append(source_id)
+			continue
 		# A large frame only heals for time during which each source was alive.
 		heal_amount += source.strength * minf(maxf(delta, 0.0), source.remaining)
 		source.remaining -= maxf(delta, 0.0)

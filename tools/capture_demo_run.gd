@@ -102,6 +102,13 @@ func _capture() -> void:
 	var bus: Node = root.get_node("EventBus")
 	bus.player_health_changed.emit(player.current_health, player.max_health)
 	var before: float = player.current_health
+	var inside_position: Vector3 = player.global_position
+	var outside_health: float = 0.0
+	var fire: Campfire = get_first_node_in_group("campfires") as Campfire
+	if fire == null:
+		push_error("The staged campfire is missing.")
+		quit(1)
+		return
 	for frame: int in range(480):
 		if frame == 60:
 			if player.current_health <= before:
@@ -109,11 +116,33 @@ func _capture() -> void:
 				quit(1)
 				return
 			await _save("day_campfire.png")
+		if frame == 75:
+			var outside_position: Vector3 = fire.global_position + Vector3(5.01, 0.9, 0.0)
+			var ground: float = float(map.get_voxel_height(floori(outside_position.x), floori(outside_position.z)))
+			if not is_equal_approx(ground, fire.global_position.y):
+				push_error("The campfire boundary capture needs the same meadow height.")
+				quit(1)
+				return
+			outside_health = player.current_health
+			player.global_position = outside_position
+			player.velocity = Vector3.ZERO
+			player.reset_physics_interpolation()
+		if frame == 95:
+			if fire.contains_player(player.global_position) or not fire.aura_area.overlaps_body(player) or not is_equal_approx(player.current_health, outside_health):
+				push_error("Campfire healing must stop immediately outside its exact center radius.")
+				quit(1)
+				return
+			await _save("campfire_exit.png")
+			print("CAMPFIRE_EXACT_BOUNDARY_CAPTURE_PASS distance=", Vector2(player.global_position.x - fire.global_position.x, player.global_position.z - fire.global_position.z).length(), " health=", player.current_health)
 		if frame == 100:
 			var settings: Control = main.get_node("HUD/Margin/SettingsModal") as Control
 			settings.open_modal()
 			await _save("audio_settings.png")
 			settings.close_modal()
+		if frame == 105:
+			player.global_position = inside_position
+			player.velocity = Vector3.ZERO
+			player.reset_physics_interpolation()
 		if frame == 150:
 			cycle.skip_to_night()
 		if frame == 280:

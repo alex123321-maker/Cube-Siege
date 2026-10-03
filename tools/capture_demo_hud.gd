@@ -54,6 +54,7 @@ func _capture() -> void:
 	status_bar.refresh()
 	bar._refresh_action_set()
 	await _hover_and_save(bar.get_node("SlotRMB") as Control, "warrior_ability.png")
+	await _hover_and_save(bar.get_node("SlotSpace") as Control, "dash_ability.png")
 	await _hover_and_save(status_bar.get_child(0) as Control, "regeneration_effect.png")
 	await _hover_and_save(status_bar.get_node("HotBlood") as Control, "hot_blood_effect.png")
 	await _hover_and_save(status_bar.get_node("Parry") as Control, "counter_effect.png")

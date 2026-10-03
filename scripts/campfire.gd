@@ -33,19 +33,25 @@ func _physics_process(delta: float) -> void:
 	if _extinguished or _regeneration_stopped:
 		return
 	_refresh_timer -= delta
-	if _refresh_timer > 0.0:
-		return
-	_refresh_timer = refresh_interval
+	var refresh_due: bool = _refresh_timer <= 0.0
+	if refresh_due:
+		_refresh_timer = refresh_interval
 	var in_range: bool = false
 	for player: PlayerPrototype in _players:
 		if not is_instance_valid(player) or not is_instance_valid(player.status_effects):
 			continue
-		if contains_player(player.global_position) and player.current_health > 0.0:
-			player.status_effects.refresh_regeneration(get_instance_id(), heal_per_second, effect_refresh_duration, aura_radius)
+		if _can_regenerate(player):
+			if refresh_due:
+				player.status_effects.refresh_regeneration(get_instance_id(), heal_per_second, effect_refresh_duration, aura_radius, _can_regenerate.bind(player))
 			in_range = true
 		else:
 			player.status_effects.remove_source(get_instance_id())
 	fire_visual.set_aura_visible(_focused or in_range)
+
+func _can_regenerate(player: PlayerPrototype) -> bool:
+	return not _extinguished and not _regeneration_stopped and is_inside_tree() \
+		and is_instance_valid(player) and player.current_health > 0.0 \
+		and contains_player(player.global_position)
 
 func contains_player(world_position: Vector3) -> bool:
 	var offset: Vector3 = world_position - global_position

@@ -100,7 +100,7 @@ static func describe(player: PlayerPrototype, slot: int) -> String:
 					_arrow_rows(rows, PlayerCombat.PIERCING_SPEED, values.arrow_duration, PlayerCombat.PIERCING_TARGETS)
 		2:
 			rows.append(["Боевой рывок [SPACE]", "Кувырок [SPACE]", "Тактический рывок [SPACE]"][c])
-			rows.append("Перемещение по WASD; без ввода — по направлению взгляда. Стены и обрывы блокируют путь.")
+			rows.append("Перемещение по WASD; без ввода — по направлению взгляда. Столкновения со стенами ограничивают путь.")
 			rows.append(_attribute("Перезарядка", player.dash_cooldown, "с"))
 			rows.append(_attribute("Длительность", player.dash_duration, "с"))
 			rows.append(_attribute("Скорость", player.dash_speed, "м/с"))
