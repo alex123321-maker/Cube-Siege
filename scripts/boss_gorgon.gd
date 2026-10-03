@@ -325,5 +325,5 @@ func die() -> void:
 	spawn_damage_text(0, "BOSS DEFEATED! (+250 XP)", Color.GOLD)
 
 	var tween: Tween = create_tween()
-	tween.tween_property(self, "scale", Vector3.ZERO, 0.4)
+	tween.tween_property(self, "scale", Vector3.ONE * 0.001, 0.4)
 	tween.chain().tween_callback(queue_free)

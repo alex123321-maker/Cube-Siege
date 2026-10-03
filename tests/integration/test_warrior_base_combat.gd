@@ -30,8 +30,7 @@ func after_each() -> void:
 # ==============================================================================
 
 func test_warrior_basic_attack_single_target_via_perform_attack() -> void:
-	var player = PLAYER_SCENE.instantiate()
-	add_child_autoqfree(player)
+	var player = _base_player()
 	player.set_class(player.CharacterClass.WARRIOR, false)
 	player.global_position = Vector3.ZERO
 	player.look_at(Vector3(0, 0, -10), Vector3.UP)
@@ -64,8 +63,7 @@ func test_warrior_basic_attack_single_target_via_perform_attack() -> void:
 	assert_eq(get_signal_emit_count(player.slash_area, "hit_confirmed"), 1, "hit_confirmed emitted exactly once")
 
 func test_warrior_basic_attack_late_entry_during_active_window() -> void:
-	var player = PLAYER_SCENE.instantiate()
-	add_child_autoqfree(player)
+	var player = _base_player()
 	player.set_class(player.CharacterClass.WARRIOR, false)
 	player.global_position = Vector3.ZERO
 	player.look_at(Vector3(0, 0, -10), Vector3.UP)
@@ -99,8 +97,7 @@ func test_warrior_basic_attack_late_entry_during_active_window() -> void:
 	assert_eq(player.slash_area.hits_landed, 1)
 
 func test_warrior_basic_attack_target_exit_and_reentry_during_active_window() -> void:
-	var player = PLAYER_SCENE.instantiate()
-	add_child_autoqfree(player)
+	var player = _base_player()
 	player.set_class(player.CharacterClass.WARRIOR, false)
 	player.global_position = Vector3.ZERO
 	player.look_at(Vector3(0, 0, -10), Vector3.UP)
@@ -136,8 +133,7 @@ func test_warrior_basic_attack_target_exit_and_reentry_during_active_window() ->
 	assert_eq(get_signal_emit_count(player.slash_area, "hit_confirmed"), 1, "hit_confirmed emitted exactly once")
 
 func test_warrior_basic_attack_multiple_hurtboxes_same_target() -> void:
-	var player = PLAYER_SCENE.instantiate()
-	add_child_autoqfree(player)
+	var player = _base_player()
 	player.set_class(player.CharacterClass.WARRIOR, false)
 	player.global_position = Vector3.ZERO
 	player.look_at(Vector3(0, 0, -10), Vector3.UP)
@@ -172,8 +168,7 @@ func test_warrior_basic_attack_multiple_hurtboxes_same_target() -> void:
 	assert_eq(get_signal_emit_count(player.slash_area, "hit_confirmed"), 1)
 
 func test_warrior_basic_attack_repeat_swing_after_cooldown() -> void:
-	var player = PLAYER_SCENE.instantiate()
-	add_child_autoqfree(player)
+	var player = _base_player()
 	player.set_class(player.CharacterClass.WARRIOR, false)
 	player.global_position = Vector3.ZERO
 	player.look_at(Vector3(0, 0, -10), Vector3.UP)
@@ -197,8 +192,7 @@ func test_warrior_basic_attack_repeat_swing_after_cooldown() -> void:
 	assert_eq(enemy.current_health, 30.0, "Second swing deals 25 damage to surviving target")
 
 func test_already_dying_target_does_not_consume_quota() -> void:
-	var player = PLAYER_SCENE.instantiate()
-	add_child_autoqfree(player)
+	var player = _base_player()
 	player.set_class(player.CharacterClass.WARRIOR, false)
 	player.global_position = Vector3.ZERO
 	player.look_at(Vector3(0, 0, -10), Vector3.UP)
@@ -223,8 +217,7 @@ func test_already_dying_target_does_not_consume_quota() -> void:
 	assert_eq(player.slash_area.hits_landed, 1)
 
 func test_lethal_first_hit_does_not_restore_quota_for_second_target() -> void:
-	var player = PLAYER_SCENE.instantiate()
-	add_child_autoqfree(player)
+	var player = _base_player()
 	player.set_class(player.CharacterClass.WARRIOR, false)
 	player.global_position = Vector3.ZERO
 	player.look_at(Vector3(0, 0, -10), Vector3.UP)
@@ -249,8 +242,7 @@ func test_lethal_first_hit_does_not_restore_quota_for_second_target() -> void:
 	assert_eq(player.slash_area.hits_landed, 1)
 
 func test_deletion_of_first_hit_target_during_swing_does_not_affect_quota() -> void:
-	var player = PLAYER_SCENE.instantiate()
-	add_child_autoqfree(player)
+	var player = _base_player()
 	player.set_class(player.CharacterClass.WARRIOR, false)
 	player.global_position = Vector3.ZERO
 	player.look_at(Vector3(0, 0, -10), Vector3.UP)
@@ -290,8 +282,7 @@ func test_deletion_of_first_hit_target_during_swing_does_not_affect_quota() -> v
 	assert_eq(player.slash_area.hits_landed, 1)
 
 func test_rejected_height_difference_does_not_consume_quota() -> void:
-	var player = PLAYER_SCENE.instantiate()
-	add_child_autoqfree(player)
+	var player = _base_player()
 	player.set_class(player.CharacterClass.WARRIOR, false)
 	player.global_position = Vector3.ZERO
 	player.look_at(Vector3(0, 0, -10), Vector3.UP)
@@ -339,8 +330,7 @@ func test_rejected_height_difference_does_not_consume_quota() -> void:
 	assert_eq(get_signal_emit_count(player.slash_area, "hit_confirmed"), 1, "Exactly one hit_confirmed emitted for the ground enemy")
 
 func test_rejected_friendly_building_does_not_consume_quota() -> void:
-	var player = PLAYER_SCENE.instantiate()
-	add_child_autoqfree(player)
+	var player = _base_player()
 	player.set_class(player.CharacterClass.WARRIOR, false)
 	player.global_position = Vector3.ZERO
 	player.look_at(Vector3(0, 0, -10), Vector3.UP)
@@ -376,8 +366,7 @@ func test_alternating_lmb_rmb_actual_damage() -> void:
 	floor_body.add_child(floor_shape)
 	floor_body.position.y = -0.5
 	add_child_autoqfree(floor_body)
-	var player = PLAYER_SCENE.instantiate()
-	add_child_autoqfree(player)
+	var player = _base_player()
 	player.set_class(player.CharacterClass.WARRIOR, false)
 	player.global_position = Vector3.ZERO
 	player.look_at(Vector3(0, 0, -10), Vector3.UP)
@@ -435,8 +424,7 @@ func test_alternating_lmb_rmb_actual_damage() -> void:
 	assert_true(a_took_hit_3 != b_took_hit_3, "LMB damages exactly one target again with two live targets: before=%s/%s after=%s/%s hits=%s player=%s targets=%s/%s" % [hp_a_2, hp_b_2, enemy_a.current_health, enemy_b.current_health, player.slash_area.hits_landed, player.global_position, enemy_a.global_position, enemy_b.global_position])
 
 func test_engineer_hammer_multi_target_actual_damage() -> void:
-	var player = PLAYER_SCENE.instantiate()
-	add_child_autoqfree(player)
+	var player = _base_player()
 	player.set_class(player.CharacterClass.ENGINEER, false)
 	player.global_position = Vector3.ZERO
 	player.look_at(Vector3(0, 0, -10), Vector3.UP)
@@ -460,8 +448,7 @@ func test_engineer_hammer_multi_target_actual_damage() -> void:
 	assert_eq(player.slash_area.hits_landed, 2, "Engineer hammer hits multiple targets")
 
 func test_archer_projectile_behavior_preserved() -> void:
-	var player = PLAYER_SCENE.instantiate()
-	add_child_autoqfree(player)
+	var player = _base_player()
 	player.set_class(player.CharacterClass.ARCHER, false)
 	player.global_position = Vector3.ZERO
 	player.look_at(Vector3(0, 0, -10), Vector3.UP)
@@ -483,8 +470,7 @@ func test_archer_projectile_behavior_preserved() -> void:
 # ==============================================================================
 
 func test_parry_absorbs_single_hit_aoe_stuns_zero_counter_damage_zero_knockback() -> void:
-	var player = PLAYER_SCENE.instantiate()
-	add_child_autoqfree(player)
+	var player = _base_player()
 	watch_signals(player)
 
 	var enemy_attacker = ENEMY_DUMMY_SCENE.instantiate()
@@ -537,8 +523,7 @@ func test_parry_absorbs_single_hit_aoe_stuns_zero_counter_damage_zero_knockback(
 	assert_eq(get_signal_emit_count(player, "parry_triggered"), 2, "parry_triggered [true] not emitted again for second hit")
 
 func test_parry_window_expiration_and_cooldowns() -> void:
-	var player = PLAYER_SCENE.instantiate()
-	add_child_autoqfree(player)
+	var player = _base_player()
 
 	var enemy = ENEMY_DUMMY_SCENE.instantiate()
 	add_child_autoqfree(enemy)
@@ -568,8 +553,7 @@ func test_parry_window_expiration_and_cooldowns() -> void:
 	assert_gt(player.health.parry_cooldown_timer, 2.5, "Cooldown timer active around 3.0s")
 
 func test_parry_with_mixed_enemy_group_including_siege_breaker() -> void:
-	var player = PLAYER_SCENE.instantiate()
-	add_child_autoqfree(player)
+	var player = _base_player()
 	player.set_class(player.CharacterClass.WARRIOR, false)
 	player.global_position = Vector3.ZERO
 	watch_signals(player)
@@ -616,8 +600,7 @@ func test_parry_with_mixed_enemy_group_including_siege_breaker() -> void:
 # ==============================================================================
 
 func test_warrior_dash_damage_timing_before_during_after() -> void:
-	var player = PLAYER_SCENE.instantiate()
-	add_child_autoqfree(player)
+	var player = _base_player()
 	player.set_class(player.CharacterClass.WARRIOR, false)
 	player.global_position = Vector3.ZERO
 	player.look_at(Vector3(0, 0, -10), Vector3.UP)
@@ -653,8 +636,7 @@ func test_warrior_dash_damage_timing_before_during_after() -> void:
 	assert_eq(player.current_health, hp - 20.0, "Warrior takes damage after dash")
 
 func test_archer_and_engineer_retain_dash_immunity() -> void:
-	var player = PLAYER_SCENE.instantiate()
-	add_child_autoqfree(player)
+	var player = _base_player()
 
 	# Archer
 	player.set_class(player.CharacterClass.ARCHER, false)
@@ -688,8 +670,7 @@ func test_archer_and_engineer_retain_dash_immunity() -> void:
 	assert_false(player.movement.is_dashing)
 
 func test_warrior_dash_with_duel_modifiers() -> void:
-	var player = PLAYER_SCENE.instantiate()
-	add_child_autoqfree(player)
+	var player = _base_player()
 	player.set_class(player.CharacterClass.WARRIOR, false)
 
 	var duel_target = ENEMY_DUMMY_SCENE.instantiate()
@@ -710,15 +691,14 @@ func test_warrior_dash_with_duel_modifiers() -> void:
 	var player_hp_before = player.current_health
 	var third_party_hp_before = third_party.current_health
 
-	# 20 damage incoming from third party: 40% reduction applied (takes 12), 20% reflected (deals 4 to attacker)
+	# 20 incoming becomes 12 actual health loss; 20% reflection returns 2.4.
 	player.take_damage(20.0, third_party)
 
 	assert_eq(player.current_health, player_hp_before - 12.0, "Takes 60% of damage from third-party during duel dash")
-	assert_eq(third_party.current_health, third_party_hp_before - 4.0, "Reflects 20% damage back to third-party attacker")
+	assert_eq(third_party.current_health, third_party_hp_before - 2.4, "Reflects 20% of actual health damage back to third-party attacker")
 
 func test_warrior_dash_combined_with_parry() -> void:
-	var player = PLAYER_SCENE.instantiate()
-	add_child_autoqfree(player)
+	var player = _base_player()
 	player.set_class(player.CharacterClass.WARRIOR, false)
 
 	await wait_physics_frames(2)
@@ -735,3 +715,10 @@ func test_warrior_dash_combined_with_parry() -> void:
 	# Hit 2: Parry is now spent, warrior still dashing -> takes damage
 	player.take_damage(25.0)
 	assert_eq(player.current_health, initial_hp - 25.0, "Warrior takes damage during dash once parry is spent")
+
+func _base_player() -> PlayerPrototype:
+	var actor: PlayerPrototype = PLAYER_SCENE.instantiate() as PlayerPrototype
+	add_child_autoqfree(actor)
+	# These regressions exercise the bare kit, without permanent profile bonuses.
+	actor.talents.reset_for_viewer()
+	return actor

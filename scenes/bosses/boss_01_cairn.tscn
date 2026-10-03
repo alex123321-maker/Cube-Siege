@@ -1,0 +1,49 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/bosses/siege_boss.gd" id="boss"]
+
+[ext_resource type="Script" path="res://scripts/hurtbox_area.gd" id="hurt"]
+
+[ext_resource type="PackedScene" path="res://assets/models/bosses/cairn.tscn" id="model"]
+
+[sub_resource type="BoxShape3D" id="body"]
+
+size = Vector3(2.2, 3.0, 2.2)
+
+[sub_resource type="BoxShape3D" id="hurtshape"]
+
+size = Vector3(2.4, 3.1, 2.4)
+
+[node name="BossCairn" type="CharacterBody3D" groups=["boss", "enemies"]]
+
+collision_layer = 4
+
+collision_mask = 5
+
+script = ExtResource("boss")
+
+stage = 1
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+
+shape = SubResource("body")
+
+[node name="Visuals" type="Node3D" parent="."]
+
+[node name="Model" parent="Visuals" instance=ExtResource("model")]
+
+position = Vector3(0, -1.5, 0)
+
+[node name="Hurtbox" type="Area3D" parent="."]
+
+collision_layer = 8
+
+collision_mask = 0
+
+script = ExtResource("hurt")
+
+mesh_to_flash_path = NodePath("../Visuals/Model/Body/Torso")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Hurtbox"]
+
+shape = SubResource("hurtshape")

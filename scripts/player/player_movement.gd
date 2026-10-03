@@ -15,6 +15,10 @@ var is_dashing: bool = false
 var dash_timer: float = 0.0
 var dash_cooldown_timer: float = 0.0
 var dash_direction: Vector3 = Vector3.ZERO
+var is_lunging: bool = false
+var lunge_timer: float = 0.0
+var lunge_direction: Vector3 = Vector3.ZERO
+var lunge_speed: float = 0.0
 
 var forced_target: Variant = null
 var last_movement_basis_forward: Vector3 = PlayerMovementMath.DEFAULT_SCREEN_FORWARD
@@ -73,6 +77,12 @@ func perform_dash(facing_dir: Vector3, explicit_move_dir: Vector3 = Vector3.ZERO
 	dash_performed.emit()
 	return true
 
+func start_lunge(direction: Vector3, distance: float, duration: float) -> void:
+	lunge_direction = Vector3(direction.x, 0.0, direction.z).normalized()
+	lunge_speed = distance / maxf(0.01, duration)
+	lunge_timer = duration
+	is_lunging = true
+
 ## Dedicated automatic motion handler for Warrior ultimate Duel.
 func process_duel_movement(body: CharacterBody3D, delta: float, target: Variant) -> Vector3:
 	var move_dir: Vector3 = Vector3.ZERO
@@ -108,8 +118,17 @@ func process_movement(
 		return process_duel_movement(body, delta, target)
 
 	var move_dir: Vector3 = Vector3.ZERO
+	var lunge_elapsed: float = 0.0
 
-	if is_dashing:
+	if is_lunging:
+		# move_and_slide integrates the full physics tick. Scale only horizontal
+		# lunge velocity for its final partial tick, then consume elapsed time.
+		lunge_elapsed = minf(maxf(delta, 0.0), maxf(lunge_timer, 0.0))
+		var fraction: float = lunge_elapsed / delta if delta > 0.0 else 0.0
+		body.velocity.x = lunge_direction.x * lunge_speed * fraction
+		body.velocity.z = lunge_direction.z * lunge_speed * fraction
+		move_dir = lunge_direction
+	elif is_dashing:
 		body.velocity.x = dash_direction.x * dash_speed
 		body.velocity.z = dash_direction.z * dash_speed
 		move_dir = dash_direction
@@ -129,6 +148,12 @@ func process_movement(
 			body.velocity.z = move_toward(body.velocity.z, 0.0, speed)
 
 	_apply_gravity_and_step_up(body, delta, move_dir)
+	if is_lunging:
+		lunge_timer = maxf(0.0, lunge_timer - lunge_elapsed)
+		is_lunging = lunge_timer > 0.000001
+		if not is_lunging:
+			body.velocity.x = 0.0
+			body.velocity.z = 0.0
 	current_move_direction = move_dir
 	return move_dir
 

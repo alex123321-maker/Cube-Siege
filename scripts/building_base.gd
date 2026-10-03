@@ -173,7 +173,8 @@ func spawn_damage_text(amount: float, custom_text: String = "", custom_color: Co
 func destroy_building() -> void:
 	emit_signal("building_destroyed", self)
 	var tween: Tween = create_tween()
-	tween.tween_property(self, "scale", Vector3.ZERO, 0.15)
+	# Keep the collision transform invertible until the node is removed.
+	tween.tween_property(self, "scale", Vector3.ONE * 0.001, 0.15)
 	tween.chain().tween_callback(queue_free)
 
 func set_transparency(alpha_trans: float) -> void:

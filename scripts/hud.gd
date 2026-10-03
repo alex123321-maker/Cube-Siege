@@ -27,6 +27,8 @@ var day_night_cycle: DayNightCycle
 var camera: Camera3D
 var _last_night_state: Variant = null
 var _event_bus: Node
+var build_panel: WarriorBuildPanel
+var _build_button: Button
 
 func _ready() -> void:
 	if not player_path.is_empty() and has_node(player_path):
@@ -56,6 +58,17 @@ func _ready() -> void:
 			day_night_cycle.time_updated.connect(_on_cycle_time_updated_legacy)
 
 	if player:
+		build_panel = WarriorBuildPanel.new()
+		$Margin.add_child(build_panel)
+		build_panel.bind_player(player)
+		_build_button = Button.new()
+		_build_button.text = "Специализации · P"
+		_build_button.position = Vector2(24, 180)
+		_build_button.pressed.connect(build_panel.open_specializations)
+		$Margin.add_child(_build_button)
+		$Margin.move_child(build_panel, $Margin.get_child_count() - 1)
+		player.progression.run_build.build_changed.connect(_update_build_button)
+		_update_build_button()
 		_on_health_changed(player.current_health, player.max_health)
 		_on_xp_changed(player.current_xp, player.xp_to_next_level, player.player_level)
 		hero_portrait.set_class(int(player.current_class))
@@ -63,6 +76,8 @@ func _ready() -> void:
 	if building_system:
 		var wallet: ResourceWallet = building_system.wallet
 		_on_resources_changed(wallet.get_wood(), wallet.get_stone(), wallet.get_iron(), wallet.get_magic_stone())
+	if day_night_cycle:
+		_update_day_night_label(day_night_cycle.time_left, day_night_cycle.is_night, day_night_cycle.current_day)
 
 func _process(_delta: float) -> void:
 	if not is_instance_valid(player) or not is_instance_valid(player_floating_hp):
@@ -139,17 +154,29 @@ func _update_day_night_label(seconds_left: float, is_night: bool, day_number: in
 	day_night_phase_label.modulate = tint
 	day_night_phase_label.tooltip_text = day_night_phase_label.text
 	day_night_timer_label.text = "%02d:%02d" % [minutes, seconds]
+	if is_night and day_night_cycle and day_night_cycle.boss_pending:
+		day_night_timer_label.text = "ПОБЕДИТЕ БОССА"
 	day_night_timer_label.modulate = tint
 
 func _on_player_class_changed(new_class: int) -> void:
 	hero_portrait.set_class(new_class)
 
 func _on_level_up_reached(new_level: int) -> void:
-	card_draft_popup.open_draft(player, new_level)
+	_update_build_button()
+	if player:
+		player.spawn_popup_text("УРОВЕНЬ %d · +1 СПЕЦИАЛИЗАЦИЯ [P]" % new_level, Color.GOLD)
+
+func _update_build_button() -> void:
+	if _build_button and player:
+		_build_button.visible = player.progression.run_build.active
+		_build_button.text = "Специализации · %d очков [P] · Таланты %d/6" % [player.progression.run_build.unspent_specialization_points, player.progression.run_build.selected_talents.size()]
 
 func show_boss_bar(boss: Node) -> void:
 	var boss_container: Control = $Margin/BossBarContainer
 	boss_container.visible = true
+	if boss is SiegeBoss:
+		boss_container.tooltip_text = (boss as SiegeBoss).display_name
+		$Margin/BossBarContainer/BossTitle.text = (boss as SiegeBoss).display_name
 	if boss.has_signal("boss_health_changed"):
 		boss.connect("boss_health_changed", Callable(self, "_on_boss_health_changed"))
 	if boss.has_signal("boss_defeated"):

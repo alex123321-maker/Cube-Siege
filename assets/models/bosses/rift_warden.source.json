@@ -1,0 +1,576 @@
+{
+  "name": "rift_warden",
+  "stage": 5,
+  "palette": [
+    "3e425f",
+    "7c7398",
+    "bbb4d4",
+    "24263d",
+    "bf76ff",
+    "655679"
+  ],
+  "parts": [
+    {
+      "bone": "Body",
+      "name": "Pelvis",
+      "position": [
+        0,
+        -0.35,
+        0
+      ],
+      "size": [
+        1.15,
+        0.5,
+        0.7
+      ],
+      "material": 3,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "Body",
+      "name": "Torso",
+      "position": [
+        0,
+        0.3,
+        0
+      ],
+      "size": [
+        1.55,
+        1.35,
+        0.85
+      ],
+      "material": 0,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "Body",
+      "name": "Core",
+      "position": [
+        0,
+        0.45,
+        -0.46
+      ],
+      "size": [
+        0.4,
+        0.48,
+        0.12
+      ],
+      "material": 4,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "Head",
+      "name": "Face",
+      "position": [
+        0,
+        0.13,
+        0
+      ],
+      "size": [
+        0.8,
+        0.7,
+        0.65
+      ],
+      "material": 1,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "Head",
+      "name": "Brow",
+      "position": [
+        0,
+        0.31,
+        -0.35
+      ],
+      "size": [
+        0.9,
+        0.16,
+        0.14
+      ],
+      "material": 0,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "Head",
+      "name": "EyeL",
+      "position": [
+        -0.22,
+        0.13,
+        -0.34
+      ],
+      "size": [
+        0.19,
+        0.1,
+        0.1
+      ],
+      "material": 4,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "ArmL",
+      "name": "UpperArmL",
+      "position": [
+        -0.08,
+        -0.25,
+        0
+      ],
+      "size": [
+        0.46,
+        0.68,
+        0.6
+      ],
+      "material": 0,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "ArmL",
+      "name": "ForearmL",
+      "position": [
+        -0.1,
+        -0.78,
+        0
+      ],
+      "size": [
+        0.54,
+        0.55,
+        0.66
+      ],
+      "material": 1,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "LegL",
+      "name": "ShinL",
+      "position": [
+        0,
+        -0.35,
+        0
+      ],
+      "size": [
+        0.47,
+        0.85,
+        0.54
+      ],
+      "material": 0,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "LegL",
+      "name": "FootL",
+      "position": [
+        0,
+        -0.78,
+        -0.12
+      ],
+      "size": [
+        0.63,
+        0.28,
+        0.84
+      ],
+      "material": 1,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "Head",
+      "name": "EyeR",
+      "position": [
+        0.22,
+        0.13,
+        -0.34
+      ],
+      "size": [
+        0.19,
+        0.1,
+        0.1
+      ],
+      "material": 4,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "ArmR",
+      "name": "UpperArmR",
+      "position": [
+        0.08,
+        -0.25,
+        0
+      ],
+      "size": [
+        0.46,
+        0.68,
+        0.6
+      ],
+      "material": 0,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "ArmR",
+      "name": "ForearmR",
+      "position": [
+        0.1,
+        -0.78,
+        0
+      ],
+      "size": [
+        0.54,
+        0.55,
+        0.66
+      ],
+      "material": 1,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "LegR",
+      "name": "ShinR",
+      "position": [
+        0,
+        -0.35,
+        0
+      ],
+      "size": [
+        0.47,
+        0.85,
+        0.54
+      ],
+      "material": 0,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "LegR",
+      "name": "FootR",
+      "position": [
+        0,
+        -0.78,
+        -0.12
+      ],
+      "size": [
+        0.63,
+        0.28,
+        0.84
+      ],
+      "material": 1,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "Body",
+      "name": "CrystalPauldron-1",
+      "position": [
+        -0.93,
+        0.77,
+        0.03
+      ],
+      "size": [
+        0.76,
+        0.56,
+        0.97
+      ],
+      "material": 1,
+      "rotation": [
+        0,
+        0,
+        -12
+      ]
+    },
+    {
+      "bone": "Head",
+      "name": "CrownPoint-1",
+      "position": [
+        -0.38,
+        0.64,
+        0
+      ],
+      "size": [
+        0.2,
+        0.62,
+        0.24
+      ],
+      "material": 2,
+      "rotation": [
+        0,
+        0,
+        15
+      ]
+    },
+    {
+      "bone": "Body",
+      "name": "CrystalPauldron1",
+      "position": [
+        0.93,
+        0.77,
+        0.03
+      ],
+      "size": [
+        0.76,
+        0.56,
+        0.97
+      ],
+      "material": 1,
+      "rotation": [
+        0,
+        0,
+        12
+      ]
+    },
+    {
+      "bone": "Head",
+      "name": "CrownPoint1",
+      "position": [
+        0.38,
+        0.64,
+        0
+      ],
+      "size": [
+        0.2,
+        0.62,
+        0.24
+      ],
+      "material": 2,
+      "rotation": [
+        0,
+        0,
+        -15
+      ]
+    },
+    {
+      "bone": "ArmR",
+      "name": "Greatblade",
+      "position": [
+        0.05,
+        -1.63,
+        -0.05
+      ],
+      "size": [
+        0.42,
+        1.9,
+        0.19
+      ],
+      "material": 2,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "ArmR",
+      "name": "BladeCore",
+      "position": [
+        0.05,
+        -1.63,
+        -0.16
+      ],
+      "size": [
+        0.12,
+        1.65,
+        0.05
+      ],
+      "material": 4,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "ArmR",
+      "name": "SwordGuard",
+      "position": [
+        0.05,
+        -0.64,
+        -0.05
+      ],
+      "size": [
+        0.85,
+        0.16,
+        0.3
+      ],
+      "material": 1,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "ArmL",
+      "name": "ShieldTop",
+      "position": [
+        -0.19,
+        -0.38,
+        -0.43
+      ],
+      "size": [
+        1.04,
+        0.83,
+        0.22
+      ],
+      "material": 1,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "ArmL",
+      "name": "ShieldBottom",
+      "position": [
+        -0.19,
+        -1.07,
+        -0.43
+      ],
+      "size": [
+        0.7,
+        0.65,
+        0.22
+      ],
+      "material": 0,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "ArmL",
+      "name": "ShieldSeal",
+      "position": [
+        -0.19,
+        -0.66,
+        -0.58
+      ],
+      "size": [
+        0.27,
+        0.6,
+        0.09
+      ],
+      "material": 4,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "Body",
+      "name": "Cloak0",
+      "position": [
+        0,
+        0.45,
+        0.61
+      ],
+      "size": [
+        1.38,
+        0.51,
+        0.15
+      ],
+      "material": 5,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "Body",
+      "name": "Cloak1",
+      "position": [
+        0,
+        0.06,
+        0.61
+      ],
+      "size": [
+        1.2599999999999998,
+        0.51,
+        0.15
+      ],
+      "material": 5,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "Body",
+      "name": "Cloak2",
+      "position": [
+        0,
+        -0.33,
+        0.61
+      ],
+      "size": [
+        1.14,
+        0.51,
+        0.15
+      ],
+      "material": 5,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "author": "Original Cube Siege code-native geometry authored for this request; no downloaded media",
+  "units": "meters; bottom-center model pivot; faces -Z; gameplay root at half_height"
+}

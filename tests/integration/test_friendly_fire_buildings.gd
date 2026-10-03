@@ -292,9 +292,16 @@ func test_building_repair_and_demolish() -> void:
 
 	# 2. Demolish destroys building
 	var destroyed_emitted: Array = []
+	var exit_determinants: Array[float] = []
 	wall.building_destroyed.connect(func(b): destroyed_emitted.append(b))
+	wall.tree_exiting.connect(func() -> void: exit_determinants.append(wall.transform.basis.determinant()))
 	wall.demolish()
 	assert_eq(destroyed_emitted.size(), 1, "building_destroyed signal must be emitted on demolish")
+	await wait_seconds(0.25)
+	assert_eq(exit_determinants.size(), 1)
+	if not exit_determinants.is_empty():
+		assert_gt(exit_determinants[0], 0.0, "A disappearing physical building never has a singular transform")
+	assert_false(is_instance_valid(wall))
 
 func test_decoy_dummy_hurtbox_damage_sources() -> void:
 	var decoy = DECOY_DUMMY_SCENE.instantiate()

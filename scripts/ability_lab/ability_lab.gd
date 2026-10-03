@@ -64,7 +64,7 @@ func _build_ui() -> void:
 	_list.custom_minimum_size.y = 175
 	_list.add_theme_constant_override("v_separation", 12)
 	left.add_child(_list)
-	_list.item_selected.connect(func(index: int) -> void: select_ability(_class_picker.selected * 5 + index))
+	_list.item_selected.connect(func(index: int) -> void: select_ability(int(_list.get_item_metadata(index))))
 	_label(left, "ВАРИАНТ ДЕМОНСТРАЦИИ")
 	_variants = OptionButton.new()
 	_variants.fit_to_longest_item = false
@@ -112,8 +112,10 @@ func _build_ui() -> void:
 func _select_class(class_id: int) -> void:
 	_class_picker.select(class_id)
 	_list.clear()
-	for i: int in range(5):
-		_list.add_item(catalogue[class_id * 5 + i].title)
+	for i: int in range(catalogue.size()):
+		if catalogue[i].class_id == class_id:
+			var row: int = _list.add_item(catalogue[i].title)
+			_list.set_item_metadata(row, i)
 	select_ability(class_id * 5)
 
 func select_ability(index: int) -> void:
@@ -123,9 +125,13 @@ func select_ability(index: int) -> void:
 	if _class_picker.selected != entry.class_id:
 		_class_picker.select(entry.class_id)
 		_list.clear()
-		for i: int in range(5):
-			_list.add_item(catalogue[entry.class_id * 5 + i].title)
-	_list.select(selected_index % 5)
+		for i: int in range(catalogue.size()):
+			if catalogue[i].class_id == entry.class_id:
+				var row: int = _list.add_item(catalogue[i].title)
+				_list.set_item_metadata(row, i)
+	for row: int in range(_list.item_count):
+		if int(_list.get_item_metadata(row)) == selected_index:
+			_list.select(row)
 	_title.text = entry.title
 	_variants.clear()
 	for variant: AbilityViewerCatalog.VariantKind in AbilityViewerCatalog.variants(entry):

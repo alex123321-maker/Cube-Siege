@@ -5,6 +5,10 @@ class_name EnemyBase
 @export var move_speed: float = 3.0
 
 var current_health: float = 60.0
+var shield_health: float = 0.0
+var last_health_damage: float = 0.0
+var last_damage_type: String = ""
+var status_effects: StatusEffectState = StatusEffectState.new()
 var knockback_velocity: Vector3 = Vector3.ZERO
 var target_player: Node3D = null
 
@@ -53,7 +57,10 @@ func _physics_process(delta: float) -> void:
 	if is_dying:
 		return
 
-	_custom_physics(delta)
+	status_effects.advance(delta)
+	if not status_effects.is_stunned():
+		_custom_physics(delta)
+	desired_velocity_h *= status_effects.movement_multiplier()
 
 	# Locomotion with authoritative voxel step-up/down, cliff avoidance, and 3D knockback preservation
 	var loc_result: Dictionary = MonsterLocomotion.process_locomotion(
@@ -97,16 +104,33 @@ func _find_player() -> void:
 func _on_damaged(amount: float, knockback: Vector3, _type: String, _attacker: Node) -> void:
 	if is_dying:
 		return
-	current_health -= amount
+	var receipt: DamageReceipt = DamageReceipt.resolve(amount, current_health, shield_health)
+	current_health = receipt.remaining_health
+	shield_health = receipt.remaining_shield
+	last_health_damage = receipt.health_loss
+	last_damage_type = _type
+	if _attacker is PlayerPrototype:
+		(_attacker as PlayerPrototype).talents.on_damage_dealt(receipt.health_loss, self, _type)
 	_apply_knockback(knockback)
 	update_hp_label()
-	_spawn_damage_text_on_damaged(amount)
+	_spawn_damage_text_on_damaged(receipt.health_loss + receipt.shield_loss)
 
 	if current_health <= 0.0:
+		if _attacker is PlayerPrototype:
+			(_attacker as PlayerPrototype).talents.on_enemy_killed(self, _type)
 		die()
 	else:
 		if presentation:
 			presentation.play_hit()
+
+func apply_slow(source_id: String, strength: float, duration: float) -> void:
+	status_effects.apply_slow(source_id, strength, duration)
+
+func apply_stun(duration: float) -> void:
+	if is_in_group("boss"):
+		return
+	status_effects.apply_stun("parry", duration)
+	desired_velocity_h = Vector3.ZERO
 
 func _apply_knockback(knockback: Vector3) -> void:
 	knockback_velocity = knockback
@@ -117,6 +141,11 @@ func _spawn_damage_text_on_damaged(amount: float) -> void:
 func update_hp_label() -> void:
 	if hp_label:
 		hp_label.text = "%d/%d" % [max(0, int(current_health)), int(max_health)]
+		if shield_health > 0.0:
+			hp_label.text += "\nЩИТ: %d" % int(ceilf(shield_health))
+			hp_label.modulate = Color(0.4, 0.8, 1.0)
+		else:
+			hp_label.modulate = Color.WHITE
 
 func spawn_damage_text(amount: float, custom_text: String = "", custom_color: Color = Color.WHITE) -> void:
 	var popup: Node3D = FLOATING_TEXT_SCENE.instantiate()
@@ -194,9 +223,9 @@ func die() -> void:
 	var death_anim_len: float = presentation.get_animation_length(&"death") if presentation else 0.2
 	if death_anim_len > 0.3:
 		tween.tween_interval(death_anim_len * 0.75)
-		tween.tween_property(self, "scale", Vector3.ZERO, 0.2)
+		tween.tween_property(self, "scale", Vector3.ONE * 0.001, 0.2)
 	else:
-		tween.tween_property(self, "scale", Vector3.ZERO, 0.2)
+		tween.tween_property(self, "scale", Vector3.ONE * 0.001, 0.2)
 	tween.chain().tween_callback(queue_free)
 
 func _get_xp_reward() -> float:

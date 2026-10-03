@@ -1,0 +1,556 @@
+{
+  "name": "cairn",
+  "stage": 1,
+  "palette": [
+    "59645f",
+    "89938b",
+    "c4b993",
+    "222d2a",
+    "ffb438",
+    "605040"
+  ],
+  "parts": [
+    {
+      "bone": "Body",
+      "name": "Pelvis",
+      "position": [
+        0,
+        -0.35,
+        0
+      ],
+      "size": [
+        1.15,
+        0.5,
+        0.7
+      ],
+      "material": 3,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "Body",
+      "name": "Torso",
+      "position": [
+        0,
+        0.3,
+        0
+      ],
+      "size": [
+        1.55,
+        1.35,
+        0.85
+      ],
+      "material": 0,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "Body",
+      "name": "Core",
+      "position": [
+        0,
+        0.45,
+        -0.46
+      ],
+      "size": [
+        0.4,
+        0.48,
+        0.12
+      ],
+      "material": 4,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "Head",
+      "name": "Face",
+      "position": [
+        0,
+        0.13,
+        0
+      ],
+      "size": [
+        0.8,
+        0.7,
+        0.65
+      ],
+      "material": 1,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "Head",
+      "name": "Brow",
+      "position": [
+        0,
+        0.31,
+        -0.35
+      ],
+      "size": [
+        0.9,
+        0.16,
+        0.14
+      ],
+      "material": 0,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "Head",
+      "name": "EyeL",
+      "position": [
+        -0.22,
+        0.13,
+        -0.34
+      ],
+      "size": [
+        0.19,
+        0.1,
+        0.1
+      ],
+      "material": 4,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "ArmL",
+      "name": "UpperArmL",
+      "position": [
+        -0.08,
+        -0.25,
+        0
+      ],
+      "size": [
+        0.46,
+        0.68,
+        0.6
+      ],
+      "material": 0,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "ArmL",
+      "name": "ForearmL",
+      "position": [
+        -0.1,
+        -0.78,
+        0
+      ],
+      "size": [
+        0.54,
+        0.55,
+        0.66
+      ],
+      "material": 1,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "LegL",
+      "name": "ShinL",
+      "position": [
+        0,
+        -0.35,
+        0
+      ],
+      "size": [
+        0.47,
+        0.85,
+        0.54
+      ],
+      "material": 0,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "LegL",
+      "name": "FootL",
+      "position": [
+        0,
+        -0.78,
+        -0.12
+      ],
+      "size": [
+        0.63,
+        0.28,
+        0.84
+      ],
+      "material": 1,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "Head",
+      "name": "EyeR",
+      "position": [
+        0.22,
+        0.13,
+        -0.34
+      ],
+      "size": [
+        0.19,
+        0.1,
+        0.1
+      ],
+      "material": 4,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "ArmR",
+      "name": "UpperArmR",
+      "position": [
+        0.08,
+        -0.25,
+        0
+      ],
+      "size": [
+        0.46,
+        0.68,
+        0.6
+      ],
+      "material": 0,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "ArmR",
+      "name": "ForearmR",
+      "position": [
+        0.1,
+        -0.78,
+        0
+      ],
+      "size": [
+        0.54,
+        0.55,
+        0.66
+      ],
+      "material": 1,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "LegR",
+      "name": "ShinR",
+      "position": [
+        0,
+        -0.35,
+        0
+      ],
+      "size": [
+        0.47,
+        0.85,
+        0.54
+      ],
+      "material": 0,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "LegR",
+      "name": "FootR",
+      "position": [
+        0,
+        -0.78,
+        -0.12
+      ],
+      "size": [
+        0.63,
+        0.28,
+        0.84
+      ],
+      "material": 1,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "Body",
+      "name": "CairnPlate-1_0",
+      "position": [
+        -0.6,
+        0.75,
+        0.1
+      ],
+      "size": [
+        0.8,
+        0.24,
+        0.95
+      ],
+      "material": 1,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "Body",
+      "name": "CairnPlate-1_1",
+      "position": [
+        -0.78,
+        0.5700000000000001,
+        0.1
+      ],
+      "size": [
+        0.8,
+        0.24,
+        0.95
+      ],
+      "material": 2,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "Body",
+      "name": "CairnPlate-1_2",
+      "position": [
+        -0.96,
+        0.39,
+        0.1
+      ],
+      "size": [
+        0.8,
+        0.24,
+        0.95
+      ],
+      "material": 1,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "ArmL",
+      "name": "MassiveFist-1",
+      "position": [
+        -0.05,
+        -1.02,
+        -0.08
+      ],
+      "size": [
+        0.9,
+        0.62,
+        0.98
+      ],
+      "material": 2,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "Body",
+      "name": "CairnPlate1_0",
+      "position": [
+        0.6,
+        0.75,
+        0.1
+      ],
+      "size": [
+        0.8,
+        0.24,
+        0.95
+      ],
+      "material": 1,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "Body",
+      "name": "CairnPlate1_1",
+      "position": [
+        0.78,
+        0.5700000000000001,
+        0.1
+      ],
+      "size": [
+        0.8,
+        0.24,
+        0.95
+      ],
+      "material": 2,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "Body",
+      "name": "CairnPlate1_2",
+      "position": [
+        0.96,
+        0.39,
+        0.1
+      ],
+      "size": [
+        0.8,
+        0.24,
+        0.95
+      ],
+      "material": 1,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "ArmR",
+      "name": "MassiveFist1",
+      "position": [
+        0.05,
+        -1.02,
+        -0.08
+      ],
+      "size": [
+        0.9,
+        0.62,
+        0.98
+      ],
+      "material": 2,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "Head",
+      "name": "StoneCrest",
+      "position": [
+        0,
+        0.57,
+        0.03
+      ],
+      "size": [
+        0.37,
+        0.52,
+        0.49
+      ],
+      "material": 2,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "Body",
+      "name": "Seal0",
+      "position": [
+        0,
+        0.76,
+        -0.48
+      ],
+      "size": [
+        0.22,
+        0.12,
+        0.1
+      ],
+      "material": 4,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "Body",
+      "name": "Seal1",
+      "position": [
+        0,
+        0.49,
+        -0.48
+      ],
+      "size": [
+        0.22,
+        0.12,
+        0.1
+      ],
+      "material": 4,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "Body",
+      "name": "Seal2",
+      "position": [
+        0,
+        0.21999999999999997,
+        -0.48
+      ],
+      "size": [
+        0.22,
+        0.12,
+        0.1
+      ],
+      "material": 4,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "author": "Original Cube Siege code-native geometry authored for this request; no downloaded media",
+  "units": "meters; bottom-center model pivot; faces -Z; gameplay root at half_height"
+}

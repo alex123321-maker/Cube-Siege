@@ -3,8 +3,10 @@ extends "res://scripts/enemy_base.gd"
 @export var attack_damage: float = 12.0
 @export var attack_cooldown: float = 1.5
 
-var is_stunned: bool = false
-var stun_timer: float = 0.0
+var is_stunned: bool:
+	get: return status_effects.is_stunned()
+var stun_timer: float:
+	get: return status_effects.stuns[0].remaining if not status_effects.stuns.is_empty() else 0.0
 var attack_timer: float = 0.0
 
 @onready var body_mesh: MeshInstance3D = $Visuals/Body if has_node("Visuals/Body") else null
@@ -19,9 +21,6 @@ func _get_xp_reward() -> float:
 
 func _custom_physics(delta: float) -> void:
 	if is_stunned:
-		stun_timer -= delta
-		if stun_timer <= 0.0:
-			is_stunned = false
 		return
 
 	if attack_timer > 0.0:
@@ -93,7 +92,7 @@ func perform_attack() -> void:
 	if presentation:
 		presentation.play_attack()
 	if target_player and target_player.has_method("take_damage"):
-		target_player.take_damage(attack_damage)
+		target_player.take_damage(attack_damage, self)
 
 func attack_building(b: Node) -> void:
 	attack_timer = attack_cooldown
@@ -105,8 +104,7 @@ func attack_building(b: Node) -> void:
 			h.take_damage(attack_damage, Vector3.ZERO, "siege", self)
 
 func apply_stun(duration: float) -> void:
-	is_stunned = true
-	stun_timer = duration
+	super.apply_stun(duration)
 	velocity = Vector3.ZERO
 	spawn_damage_text(0, "STUNNED!", Color.GOLD)
 

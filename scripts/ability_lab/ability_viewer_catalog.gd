@@ -11,6 +11,7 @@ class Entry extends RefCounted:
 	var title: String
 	var description: String
 	var planned: String
+	var preview_talents: Array[String] = []
 	func _init(owner_class: int, action: Slot, caption: String, detail: String, future: String = "") -> void:
 		class_id = owner_class
 		slot = action
@@ -30,9 +31,9 @@ class Property extends RefCounted:
 		explanation = detail
 
 static func entries() -> Array[Entry]:
-	return [
+	var result: Array[Entry] = [
 		Entry.new(0, Slot.ATTACK, "Удар мечом", "Ближний удар настоящим SlashHitbox. Направление и попадания определяет игровой код."),
-		Entry.new(0, Slot.SPECIAL, "Рассечение", "Широкий взмах с усиленным уроном и отбрасыванием.", "Вихрь 360°, оглушение о стену и кровотечение описаны в GDD; в игровом коде пока не реализованы."),
+		Entry.new(0, Slot.SPECIAL, "Рассечение", "Широкий взмах с усиленным уроном и отбрасыванием. Таланты доступны ниже как отдельные игровые демонстрации."),
 		Entry.new(0, Slot.UTILITY, "Парирование", "Защитная стойка. В варианте успеха зомби атакует во время защитного окна."),
 		Entry.new(0, Slot.ULTIMATE, "Вызов на дуэль", "Выбранный зомби становится целью дуэли. Воин сближается с ним; атаки получают бонус."),
 		Entry.new(0, Slot.DASH, "Боевой рывок", "Рывок Воина без неуязвимости к урону: Воин получает входящий урон во время перемещения."),
@@ -47,9 +48,24 @@ static func entries() -> Array[Entry]:
 		Entry.new(2, Slot.ULTIMATE, "Орбитальный удар", "Телеграф, взрыв и периодический урон горящей области. Используется игровой обработчик удара."),
 		Entry.new(2, Slot.DASH, "Тактический отскок", "Сейчас использует общий механизм рывка.", "Отскок назад и замедляющие шипы из GDD пока не реализованы.")
 	]
+	var slots: Array[Slot] = [Slot.ATTACK, Slot.UTILITY, Slot.SPECIAL, Slot.ULTIMATE, Slot.UTILITY, Slot.ATTACK, Slot.SPECIAL, Slot.ULTIMATE, Slot.DASH]
+	var definitions: Array[WarriorTalentDefinition] = WarriorTalentCatalog.get_all()
+	for index: int in range(definitions.size()):
+		var entry: Entry = Entry.new(0, slots[index], definitions[index].title, definitions[index].description)
+		entry.preview_talents.append(definitions[index].id)
+		result.append(entry)
+	# Recipes are confined to the diagnostic viewer, never the player talent tree.
+	for id: String in WarriorTalentCatalog.SYNERGY_PAIRS:
+		var entry: Entry = Entry.new(0, Slot.UTILITY if id == "blood_tempering" else (Slot.SPECIAL if id == "carnage" else Slot.DASH), "Комбинация: " + WarriorTalentCatalog.SYNERGY_TITLES[id], "Проверка автоматической комбинации на настоящем боевом коде.")
+		for talent: String in WarriorTalentCatalog.SYNERGY_PAIRS[id]:
+			entry.preview_talents.append(talent)
+		result.append(entry)
+	return result
 
 static func variants(entry: Entry) -> Array[VariantKind]:
 	var result: Array[VariantKind] = [VariantKind.BASE]
+	if not entry.preview_talents.is_empty():
+		return result
 	if entry.slot == Slot.ATTACK or (entry.slot == Slot.SPECIAL and entry.class_id != 2):
 		result.append(VariantKind.SHARP_EDGE)
 	if (entry.class_id == 0 and entry.slot in [Slot.ATTACK, Slot.SPECIAL]) or (entry.class_id == 2 and entry.slot == Slot.ATTACK):
@@ -80,6 +96,10 @@ static func variant_explanation(kind: VariantKind) -> String:
 
 static func properties(entry: Entry, player: CharacterBody3D, variant: VariantKind) -> Array[Property]:
 	var rows: Array[Property] = []
+	if not entry.preview_talents.is_empty():
+		for talent: String in entry.preview_talents:
+			var definition: WarriorTalentDefinition = WarriorTalentCatalog.get_talent(talent)
+			rows.append(Property.new(definition.title, "Не выбран", "Взят в этом просмотре", definition.description))
 	var base_combat: PlayerCombat = PlayerCombat.new()
 	var base_movement: PlayerMovement = PlayerMovement.new()
 	var c: int = entry.class_id
@@ -112,9 +132,10 @@ static func properties(entry: Entry, player: CharacterBody3D, variant: VariantKi
 					_value(rows, "Предел целей", targets, targets, "", "После этого числа попаданий стрела исчезает.")
 				else:
 					_value(rows, "Активное окно", PlayerCombat.SLASH_ACTIVE_DURATION, PlayerCombat.SLASH_ACTIVE_DURATION, "с", "В это время SlashHitbox принимает столкновения.")
-					var shape: BoxShape3D = player.get_node("SlashHitbox/CollisionShape3D").shape as BoxShape3D
+					var shape: Shape3D = player.get_node("SlashHitbox/CollisionShape3D").shape
 					var shape_desc: String = "Размеры игрового прямоугольного хитбокса в метрах. Базовый взмах Воина поражает строго 1 цель за окно; Рассечение поражает несколько целей." if c == 0 else "Размеры игрового прямоугольного хитбокса в метрах. Визуальная дуга не задаёт сектор попадания."
-					rows.append(Property.new("Форма попадания", str(shape.size), str(shape.size), shape_desc))
+					var shape_text: String = str((shape as BoxShape3D).size) if shape is BoxShape3D else "Цилиндр"
+					rows.append(Property.new("Форма попадания", shape_text, shape_text, shape_desc))
 					_value(rows, "Параметр лечения", 0.0, player.vampirism_heal, "HP", "Значение карты. Проверка ранних попаданий в текущем коде может пропустить поздний контакт; фактические HP показаны под сценой.")
 		Slot.DASH:
 			_value(rows, "Перезарядка", base_movement.dash_cooldown, player.dash_cooldown, "с", "Карта Ветроход сокращает ожидание следующего рывка.")

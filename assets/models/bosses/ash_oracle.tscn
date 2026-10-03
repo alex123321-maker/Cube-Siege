@@ -1,0 +1,411 @@
+[gd_scene format=3]
+
+[sub_resource type="StandardMaterial3D" id="Mat0"]
+albedo_color = Color(0.25098039215686274, 0.20392156862745098, 0.28627450980392155, 1)
+roughness = 0.8
+
+[sub_resource type="StandardMaterial3D" id="Mat1"]
+albedo_color = Color(0.4117647058823529, 0.3176470588235294, 0.35294117647058826, 1)
+roughness = 0.8
+
+[sub_resource type="StandardMaterial3D" id="Mat2"]
+albedo_color = Color(0.7137254901960784, 0.6392156862745098, 0.6039215686274509, 1)
+roughness = 0.8
+
+[sub_resource type="StandardMaterial3D" id="Mat3"]
+albedo_color = Color(0.12941176470588237, 0.11764705882352941, 0.17254901960784313, 1)
+roughness = 0.8
+
+[sub_resource type="StandardMaterial3D" id="Mat4"]
+albedo_color = Color(1.0, 0.5176470588235295, 0.24313725490196078, 1)
+roughness = 0.8
+emission_enabled = true
+emission = Color(1.0, 0.5176470588235295, 0.24313725490196078, 1)
+emission_energy_multiplier = 1.5
+
+[sub_resource type="StandardMaterial3D" id="Mat5"]
+albedo_color = Color(0.4588235294117647, 0.25098039215686274, 0.1803921568627451, 1)
+roughness = 0.8
+
+[sub_resource type="BoxMesh" id="Mesh0"]
+material = SubResource("Mat3")
+size = Vector3(1.15000, 0.50000, 0.70000)
+
+[sub_resource type="BoxMesh" id="Mesh1"]
+material = SubResource("Mat0")
+size = Vector3(1.55000, 1.35000, 0.85000)
+
+[sub_resource type="BoxMesh" id="Mesh2"]
+material = SubResource("Mat4")
+size = Vector3(0.40000, 0.48000, 0.12000)
+
+[sub_resource type="BoxMesh" id="Mesh3"]
+material = SubResource("Mat1")
+size = Vector3(0.80000, 0.70000, 0.65000)
+
+[sub_resource type="BoxMesh" id="Mesh4"]
+material = SubResource("Mat0")
+size = Vector3(0.90000, 0.16000, 0.14000)
+
+[sub_resource type="BoxMesh" id="Mesh5"]
+material = SubResource("Mat4")
+size = Vector3(0.19000, 0.10000, 0.10000)
+
+[sub_resource type="BoxMesh" id="Mesh6"]
+material = SubResource("Mat0")
+size = Vector3(0.46000, 0.68000, 0.60000)
+
+[sub_resource type="BoxMesh" id="Mesh7"]
+material = SubResource("Mat1")
+size = Vector3(0.54000, 0.55000, 0.66000)
+
+[sub_resource type="BoxMesh" id="Mesh8"]
+material = SubResource("Mat0")
+size = Vector3(0.47000, 0.85000, 0.54000)
+
+[sub_resource type="BoxMesh" id="Mesh9"]
+material = SubResource("Mat1")
+size = Vector3(0.63000, 0.28000, 0.84000)
+
+[sub_resource type="BoxMesh" id="Mesh10"]
+material = SubResource("Mat4")
+size = Vector3(0.19000, 0.10000, 0.10000)
+
+[sub_resource type="BoxMesh" id="Mesh11"]
+material = SubResource("Mat0")
+size = Vector3(0.46000, 0.68000, 0.60000)
+
+[sub_resource type="BoxMesh" id="Mesh12"]
+material = SubResource("Mat1")
+size = Vector3(0.54000, 0.55000, 0.66000)
+
+[sub_resource type="BoxMesh" id="Mesh13"]
+material = SubResource("Mat0")
+size = Vector3(0.47000, 0.85000, 0.54000)
+
+[sub_resource type="BoxMesh" id="Mesh14"]
+material = SubResource("Mat1")
+size = Vector3(0.63000, 0.28000, 0.84000)
+
+[sub_resource type="BoxMesh" id="Mesh15"]
+material = SubResource("Mat0")
+size = Vector3(1.18000, 0.27000, 0.80000)
+
+[sub_resource type="BoxMesh" id="Mesh16"]
+material = SubResource("Mat1")
+size = Vector3(1.30000, 0.27000, 0.90000)
+
+[sub_resource type="BoxMesh" id="Mesh17"]
+material = SubResource("Mat0")
+size = Vector3(1.42000, 0.27000, 1.00000)
+
+[sub_resource type="BoxMesh" id="Mesh18"]
+material = SubResource("Mat1")
+size = Vector3(1.54000, 0.27000, 1.10000)
+
+[sub_resource type="BoxMesh" id="Mesh19"]
+material = SubResource("Mat0")
+size = Vector3(1.03000, 0.30000, 0.82000)
+
+[sub_resource type="BoxMesh" id="Mesh20"]
+material = SubResource("Mat0")
+size = Vector3(0.23000, 0.78000, 0.80000)
+
+[sub_resource type="BoxMesh" id="Mesh21"]
+material = SubResource("Mat2")
+size = Vector3(0.35000, 0.66000, 0.57000)
+
+[sub_resource type="BoxMesh" id="Mesh22"]
+material = SubResource("Mat0")
+size = Vector3(0.23000, 0.78000, 0.80000)
+
+[sub_resource type="BoxMesh" id="Mesh23"]
+material = SubResource("Mat2")
+size = Vector3(0.35000, 0.66000, 0.57000)
+
+[sub_resource type="BoxMesh" id="Mesh24"]
+material = SubResource("Mat5")
+size = Vector3(0.16000, 2.80000, 0.16000)
+
+[sub_resource type="BoxMesh" id="Mesh25"]
+material = SubResource("Mat2")
+size = Vector3(0.75000, 0.40000, 0.62000)
+
+[sub_resource type="BoxMesh" id="Mesh26"]
+material = SubResource("Mat4")
+size = Vector3(0.31000, 0.49000, 0.31000)
+
+[sub_resource type="BoxMesh" id="Mesh27"]
+material = SubResource("Mat2")
+size = Vector3(0.69000, 0.13000, 0.70000)
+
+[sub_resource type="Animation" id="Anim_idle"]
+resource_name = "idle"
+length = 1.0
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/path = NodePath("Body:position")
+tracks/0/interp = 1
+tracks/0/keys = {"times": PackedFloat32Array(0, 0.5, 1), "transitions": PackedFloat32Array(1, 1, 1), "update": 0, "values": [Vector3(0.00000, 1.50000, 0.00000), Vector3(0.00000, 1.55500, 0.00000), Vector3(0.00000, 1.50000, 0.00000)]}
+
+[sub_resource type="Animation" id="Anim_move"]
+resource_name = "move"
+length = 1.0
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/path = NodePath("LegL:rotation")
+tracks/0/interp = 1
+tracks/0/keys = {"times": PackedFloat32Array(0, 0.25, 0.75, 1), "transitions": PackedFloat32Array(1, 1, 1, 1), "update": 0, "values": [Vector3(0.00000, 0.00000, 0.00000), Vector3(0.27000, 0.00000, 0.00000), Vector3(-0.27000, 0.00000, 0.00000), Vector3(0.00000, 0.00000, 0.00000)]}
+tracks/1/type = "value"
+tracks/1/path = NodePath("LegR:rotation")
+tracks/1/interp = 1
+tracks/1/keys = {"times": PackedFloat32Array(0, 0.25, 0.75, 1), "transitions": PackedFloat32Array(1, 1, 1, 1), "update": 0, "values": [Vector3(0.00000, 0.00000, 0.00000), Vector3(-0.27000, 0.00000, 0.00000), Vector3(0.27000, 0.00000, 0.00000), Vector3(0.00000, 0.00000, 0.00000)]}
+tracks/2/type = "value"
+tracks/2/path = NodePath("ArmL:rotation")
+tracks/2/interp = 1
+tracks/2/keys = {"times": PackedFloat32Array(0, 0.25, 0.75, 1), "transitions": PackedFloat32Array(1, 1, 1, 1), "update": 0, "values": [Vector3(0.00000, 0.00000, 0.00000), Vector3(-0.27000, 0.00000, 0.00000), Vector3(0.27000, 0.00000, 0.00000), Vector3(0.00000, 0.00000, 0.00000)]}
+tracks/3/type = "value"
+tracks/3/path = NodePath("ArmR:rotation")
+tracks/3/interp = 1
+tracks/3/keys = {"times": PackedFloat32Array(0, 0.25, 0.75, 1), "transitions": PackedFloat32Array(1, 1, 1, 1), "update": 0, "values": [Vector3(0.00000, 0.00000, 0.00000), Vector3(0.27000, 0.00000, 0.00000), Vector3(-0.27000, 0.00000, 0.00000), Vector3(0.00000, 0.00000, 0.00000)]}
+
+[sub_resource type="Animation" id="Anim_attack_0"]
+resource_name = "attack_0"
+length = 1.0
+tracks/0/type = "value"
+tracks/0/path = NodePath("Body:rotation")
+tracks/0/interp = 1
+tracks/0/keys = {"times": PackedFloat32Array(0, 0.5, 0.65, 0.72, 0.8, 1), "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1), "update": 0, "values": [Vector3(0.00000, 0.00000, 0.00000), Vector3(-0.12000, 0.00000, 0.04000), Vector3(-0.18000, 0.00000, 0.04000), Vector3(0.23000, 0.00000, -0.04000), Vector3(0.14000, 0.00000, 0.00000), Vector3(0.00000, 0.00000, 0.00000)]}
+tracks/1/type = "value"
+tracks/1/path = NodePath("ArmL:rotation")
+tracks/1/interp = 1
+tracks/1/keys = {"times": PackedFloat32Array(0, 0.5, 0.65, 0.72, 0.8, 1), "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1), "update": 0, "values": [Vector3(0.00000, 0.00000, 0.00000), Vector3(1.09432, -0.10000, -0.18000), Vector3(1.09432, -0.10000, -0.20000), Vector3(0.20000, 0.10000, -0.08000), Vector3(0.08000, 0.00000, 0.00000), Vector3(0.00000, 0.00000, 0.00000)]}
+tracks/2/type = "value"
+tracks/2/path = NodePath("ArmR:rotation")
+tracks/2/interp = 1
+tracks/2/keys = {"times": PackedFloat32Array(0, 0.5, 0.65, 0.72, 0.8, 1), "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1), "update": 0, "values": [Vector3(0.00000, 0.00000, 0.00000), Vector3(1.98968, 0.10000, 0.18000), Vector3(1.98968, 0.10000, 0.20000), Vector3(0.20000, -0.10000, 0.08000), Vector3(0.08000, 0.00000, 0.00000), Vector3(0.00000, 0.00000, 0.00000)]}
+tracks/3/type = "value"
+tracks/3/path = NodePath("Body/Head:rotation")
+tracks/3/interp = 1
+tracks/3/keys = {"times": PackedFloat32Array(0, 0.5, 0.65, 0.72, 1), "transitions": PackedFloat32Array(1, 1, 1, 1, 1), "update": 0, "values": [Vector3(0.00000, 0.00000, 0.00000), Vector3(-0.14000, 0.00000, 0.00000), Vector3(-0.17000, 0.00000, 0.00000), Vector3(0.17000, 0.00000, 0.00000), Vector3(0.00000, 0.00000, 0.00000)]}
+
+[sub_resource type="Animation" id="Anim_attack_1"]
+resource_name = "attack_1"
+length = 1.0
+tracks/0/type = "value"
+tracks/0/path = NodePath("Body:rotation")
+tracks/0/interp = 1
+tracks/0/keys = {"times": PackedFloat32Array(0, 0.5, 0.65, 0.72, 0.8, 1), "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1), "update": 0, "values": [Vector3(0.00000, 0.00000, 0.00000), Vector3(-0.12000, 0.00000, 0.04000), Vector3(-0.18000, 0.00000, 0.04000), Vector3(0.23000, 0.00000, -0.04000), Vector3(0.14000, 0.00000, 0.00000), Vector3(0.00000, 0.00000, 0.00000)]}
+tracks/1/type = "value"
+tracks/1/path = NodePath("ArmL:rotation")
+tracks/1/interp = 1
+tracks/1/keys = {"times": PackedFloat32Array(0, 0.5, 0.65, 0.72, 0.8, 1), "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1), "update": 0, "values": [Vector3(0.00000, 0.00000, 0.00000), Vector3(0.61436, -0.24000, -0.18000), Vector3(0.61436, -0.24000, -0.20000), Vector3(0.20000, 0.24000, -0.08000), Vector3(0.08000, 0.00000, 0.00000), Vector3(0.00000, 0.00000, 0.00000)]}
+tracks/2/type = "value"
+tracks/2/path = NodePath("ArmR:rotation")
+tracks/2/interp = 1
+tracks/2/keys = {"times": PackedFloat32Array(0, 0.5, 0.65, 0.72, 0.8, 1), "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1), "update": 0, "values": [Vector3(0.00000, 0.00000, 0.00000), Vector3(1.11701, 0.24000, 0.18000), Vector3(1.11701, 0.24000, 0.20000), Vector3(0.20000, -0.24000, 0.08000), Vector3(0.08000, 0.00000, 0.00000), Vector3(0.00000, 0.00000, 0.00000)]}
+tracks/3/type = "value"
+tracks/3/path = NodePath("Body/Head:rotation")
+tracks/3/interp = 1
+tracks/3/keys = {"times": PackedFloat32Array(0, 0.5, 0.65, 0.72, 1), "transitions": PackedFloat32Array(1, 1, 1, 1, 1), "update": 0, "values": [Vector3(0.00000, 0.00000, 0.00000), Vector3(-0.14000, 0.00000, 0.00000), Vector3(-0.17000, 0.00000, 0.00000), Vector3(0.17000, 0.00000, 0.00000), Vector3(0.00000, 0.00000, 0.00000)]}
+
+[sub_resource type="Animation" id="Anim_attack_2"]
+resource_name = "attack_2"
+length = 1.0
+tracks/0/type = "value"
+tracks/0/path = NodePath("Body:rotation")
+tracks/0/interp = 1
+tracks/0/keys = {"times": PackedFloat32Array(0, 0.5, 0.65, 0.72, 0.8, 1), "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1), "update": 0, "values": [Vector3(0.00000, 0.00000, 0.00000), Vector3(-0.12000, 0.00000, 0.04000), Vector3(-0.18000, 0.00000, 0.04000), Vector3(0.23000, 0.00000, -0.04000), Vector3(0.14000, 0.00000, 0.00000), Vector3(0.00000, 0.00000, 0.00000)]}
+tracks/1/type = "value"
+tracks/1/path = NodePath("ArmL:rotation")
+tracks/1/interp = 1
+tracks/1/keys = {"times": PackedFloat32Array(0, 0.5, 0.65, 0.72, 0.8, 1), "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1), "update": 0, "values": [Vector3(0.00000, 0.00000, 0.00000), Vector3(0.90234, -0.10000, -0.18000), Vector3(0.90234, -0.10000, -0.20000), Vector3(0.20000, 0.10000, -0.08000), Vector3(0.08000, 0.00000, 0.00000), Vector3(0.00000, 0.00000, 0.00000)]}
+tracks/2/type = "value"
+tracks/2/path = NodePath("ArmR:rotation")
+tracks/2/interp = 1
+tracks/2/keys = {"times": PackedFloat32Array(0, 0.5, 0.65, 0.72, 0.8, 1), "transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1), "update": 0, "values": [Vector3(0.00000, 0.00000, 0.00000), Vector3(1.64061, 0.10000, 0.18000), Vector3(1.64061, 0.10000, 0.20000), Vector3(0.20000, -0.10000, 0.08000), Vector3(0.08000, 0.00000, 0.00000), Vector3(0.00000, 0.00000, 0.00000)]}
+tracks/3/type = "value"
+tracks/3/path = NodePath("Body/Head:rotation")
+tracks/3/interp = 1
+tracks/3/keys = {"times": PackedFloat32Array(0, 0.5, 0.65, 0.72, 1), "transitions": PackedFloat32Array(1, 1, 1, 1, 1), "update": 0, "values": [Vector3(0.00000, 0.00000, 0.00000), Vector3(-0.14000, 0.00000, 0.00000), Vector3(-0.17000, 0.00000, 0.00000), Vector3(0.17000, 0.00000, 0.00000), Vector3(0.00000, 0.00000, 0.00000)]}
+
+[sub_resource type="Animation" id="Anim_death"]
+resource_name = "death"
+length = 1.0
+tracks/0/type = "value"
+tracks/0/path = NodePath("Body:rotation")
+tracks/0/interp = 1
+tracks/0/keys = {"times": PackedFloat32Array(0, 0.3, 1), "transitions": PackedFloat32Array(1, 1, 1), "update": 0, "values": [Vector3(0.00000, 0.00000, 0.00000), Vector3(0.20000, 0.00000, 0.12000), Vector3(1.10000, 0.00000, 0.40000)]}
+
+[sub_resource type="AnimationLibrary" id="Library"]
+_data = {
+"idle": SubResource("Anim_idle"),
+"move": SubResource("Anim_move"),
+"attack_0": SubResource("Anim_attack_0"),
+"attack_1": SubResource("Anim_attack_1"),
+"attack_2": SubResource("Anim_attack_2"),
+"death": SubResource("Anim_death")
+}
+
+[node name="AshOracle" type="Node3D"]
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+libraries = {"": SubResource("Library")}
+
+[node name="Body" type="Node3D" parent="."]
+position = Vector3(0.00000, 1.50000, 0.00000)
+
+[node name="Pelvis" type="MeshInstance3D" parent="Body"]
+position = Vector3(0.00000, -0.35000, 0.00000)
+rotation = Vector3(0.00000, 0.00000, 0.00000)
+mesh = SubResource("Mesh0")
+
+[node name="Torso" type="MeshInstance3D" parent="Body"]
+position = Vector3(0.00000, 0.30000, 0.00000)
+rotation = Vector3(0.00000, 0.00000, 0.00000)
+mesh = SubResource("Mesh1")
+
+[node name="Core" type="MeshInstance3D" parent="Body"]
+position = Vector3(0.00000, 0.45000, -0.46000)
+rotation = Vector3(0.00000, 0.00000, 0.00000)
+mesh = SubResource("Mesh2")
+
+[node name="RobeTier0" type="MeshInstance3D" parent="Body"]
+position = Vector3(0.00000, -0.33000, 0.00000)
+rotation = Vector3(0.00000, 0.00000, 0.00000)
+mesh = SubResource("Mesh15")
+
+[node name="RobeTier1" type="MeshInstance3D" parent="Body"]
+position = Vector3(0.00000, -0.51000, 0.00000)
+rotation = Vector3(0.00000, 0.00000, 0.00000)
+mesh = SubResource("Mesh16")
+
+[node name="RobeTier2" type="MeshInstance3D" parent="Body"]
+position = Vector3(0.00000, -0.69000, 0.00000)
+rotation = Vector3(0.00000, 0.00000, 0.00000)
+mesh = SubResource("Mesh17")
+
+[node name="RobeTier3" type="MeshInstance3D" parent="Body"]
+position = Vector3(0.00000, -0.87000, 0.00000)
+rotation = Vector3(0.00000, 0.00000, 0.00000)
+mesh = SubResource("Mesh18")
+
+[node name="Collar-1" type="MeshInstance3D" parent="Body"]
+position = Vector3(-0.60000, 0.82000, -0.05000)
+rotation = Vector3(0.00000, 0.00000, -0.34907)
+mesh = SubResource("Mesh21")
+
+[node name="Collar1" type="MeshInstance3D" parent="Body"]
+position = Vector3(0.60000, 0.82000, -0.05000)
+rotation = Vector3(0.00000, 0.00000, 0.34907)
+mesh = SubResource("Mesh23")
+
+[node name="Head" type="Node3D" parent="Body"]
+position = Vector3(0.00000, 1.05000, -0.08000)
+
+[node name="Face" type="MeshInstance3D" parent="Body/Head"]
+position = Vector3(0.00000, 0.13000, 0.00000)
+rotation = Vector3(0.00000, 0.00000, 0.00000)
+mesh = SubResource("Mesh3")
+
+[node name="Brow" type="MeshInstance3D" parent="Body/Head"]
+position = Vector3(0.00000, 0.31000, -0.35000)
+rotation = Vector3(0.00000, 0.00000, 0.00000)
+mesh = SubResource("Mesh4")
+
+[node name="EyeL" type="MeshInstance3D" parent="Body/Head"]
+position = Vector3(-0.22000, 0.13000, -0.34000)
+rotation = Vector3(0.00000, 0.00000, 0.00000)
+mesh = SubResource("Mesh5")
+
+[node name="EyeR" type="MeshInstance3D" parent="Body/Head"]
+position = Vector3(0.22000, 0.13000, -0.34000)
+rotation = Vector3(0.00000, 0.00000, 0.00000)
+mesh = SubResource("Mesh10")
+
+[node name="HoodTop" type="MeshInstance3D" parent="Body/Head"]
+position = Vector3(0.00000, 0.51000, 0.04000)
+rotation = Vector3(0.00000, 0.00000, 0.00000)
+mesh = SubResource("Mesh19")
+
+[node name="HoodSide-1" type="MeshInstance3D" parent="Body/Head"]
+position = Vector3(-0.46000, 0.15000, 0.05000)
+rotation = Vector3(0.00000, 0.00000, 0.00000)
+mesh = SubResource("Mesh20")
+
+[node name="HoodSide1" type="MeshInstance3D" parent="Body/Head"]
+position = Vector3(0.46000, 0.15000, 0.05000)
+rotation = Vector3(0.00000, 0.00000, 0.00000)
+mesh = SubResource("Mesh22")
+
+[node name="ArmL" type="Node3D" parent="."]
+position = Vector3(-1.06000, 2.25000, 0.00000)
+
+[node name="UpperArmL" type="MeshInstance3D" parent="ArmL"]
+position = Vector3(-0.08000, -0.25000, 0.00000)
+rotation = Vector3(0.00000, 0.00000, 0.00000)
+mesh = SubResource("Mesh6")
+
+[node name="ForearmL" type="MeshInstance3D" parent="ArmL"]
+position = Vector3(-0.10000, -0.78000, 0.00000)
+rotation = Vector3(0.00000, 0.00000, 0.00000)
+mesh = SubResource("Mesh7")
+
+[node name="AshBook" type="MeshInstance3D" parent="ArmL"]
+position = Vector3(-0.15000, -0.95000, -0.27000)
+rotation = Vector3(0.20944, 0.00000, -0.20944)
+mesh = SubResource("Mesh27")
+
+[node name="ArmR" type="Node3D" parent="."]
+position = Vector3(1.06000, 2.25000, 0.00000)
+
+[node name="UpperArmR" type="MeshInstance3D" parent="ArmR"]
+position = Vector3(0.08000, -0.25000, 0.00000)
+rotation = Vector3(0.00000, 0.00000, 0.00000)
+mesh = SubResource("Mesh11")
+
+[node name="ForearmR" type="MeshInstance3D" parent="ArmR"]
+position = Vector3(0.10000, -0.78000, 0.00000)
+rotation = Vector3(0.00000, 0.00000, 0.00000)
+mesh = SubResource("Mesh12")
+
+[node name="StaffShaft" type="MeshInstance3D" parent="ArmR"]
+position = Vector3(0.05000, -0.62000, -0.48000)
+rotation = Vector3(0.00000, 0.00000, 0.00000)
+mesh = SubResource("Mesh24")
+
+[node name="StaffCenser" type="MeshInstance3D" parent="ArmR"]
+position = Vector3(0.05000, 0.88000, -0.48000)
+rotation = Vector3(0.00000, 0.00000, 0.00000)
+mesh = SubResource("Mesh25")
+
+[node name="StaffFlame" type="MeshInstance3D" parent="ArmR"]
+position = Vector3(0.05000, 1.28000, -0.48000)
+rotation = Vector3(0.00000, 0.00000, 0.00000)
+mesh = SubResource("Mesh26")
+
+[node name="LegL" type="Node3D" parent="."]
+position = Vector3(-0.43000, 0.95000, 0.00000)
+
+[node name="ShinL" type="MeshInstance3D" parent="LegL"]
+position = Vector3(0.00000, -0.35000, 0.00000)
+rotation = Vector3(0.00000, 0.00000, 0.00000)
+mesh = SubResource("Mesh8")
+
+[node name="FootL" type="MeshInstance3D" parent="LegL"]
+position = Vector3(0.00000, -0.78000, -0.12000)
+rotation = Vector3(0.00000, 0.00000, 0.00000)
+mesh = SubResource("Mesh9")
+
+[node name="LegR" type="Node3D" parent="."]
+position = Vector3(0.43000, 0.95000, 0.00000)
+
+[node name="ShinR" type="MeshInstance3D" parent="LegR"]
+position = Vector3(0.00000, -0.35000, 0.00000)
+rotation = Vector3(0.00000, 0.00000, 0.00000)
+mesh = SubResource("Mesh13")
+
+[node name="FootR" type="MeshInstance3D" parent="LegR"]
+position = Vector3(0.00000, -0.78000, -0.12000)
+rotation = Vector3(0.00000, 0.00000, 0.00000)
+mesh = SubResource("Mesh14")

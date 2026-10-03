@@ -1,6 +1,7 @@
-[gd_scene load_steps=6 format=3 uid="uid://cmainmenu01"]
+[gd_scene load_steps=7 format=3 uid="uid://cmainmenu01"]
 
 [ext_resource type="Script" path="res://scripts/main_menu.gd" id="1_menu"]
+[ext_resource type="Script" path="res://scripts/ui/warrior_talent_tree.gd" id="2_tree"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bg"]
 bg_color = Color(0.07, 0.08, 0.12, 1)
@@ -464,90 +465,7 @@ anchor_bottom = 1.0
 offset_top = 130.0
 grow_horizontal = 2
 grow_vertical = 2
-
-[node name="Panel" type="Panel" parent="ViewTalents"]
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -320.0
-offset_top = -180.0
-offset_right = 320.0
-offset_bottom = 180.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="VBox" type="VBoxContainer" parent="ViewTalents"]
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -300.0
-offset_top = -160.0
-offset_right = 300.0
-offset_bottom = 160.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/separation = 14
-
-[node name="CharTitle" type="Label" parent="ViewTalents/VBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.3, 0.9, 1, 1)
-theme_override_font_sizes/font_size = 18
-text = "ДЕРЕВО ТАЛАНТОВ: ВОИН"
-horizontal_alignment = 1
-
-[node name="PointsLabel" type="Label" parent="ViewTalents/VBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
-theme_override_font_sizes/font_size = 16
-text = "ДОСТУПНО ОЧКОВ: 5"
-horizontal_alignment = 1
-
-[node name="Grid" type="GridContainer" parent="ViewTalents/VBox"]
-layout_mode = 2
-theme_override_constants/h_separation = 16
-theme_override_constants/v_separation = 14
-columns = 2
-
-[node name="BtnBlood" type="Button" parent="ViewTalents/VBox/Grid"]
-custom_minimum_size = Vector2(290, 52)
-layout_mode = 2
-text = "🩸 Кровожадность (0/25)\n[+2% Урона per rank]"
-
-[node name="BtnSurv" type="Button" parent="ViewTalents/VBox/Grid"]
-custom_minimum_size = Vector2(290, 52)
-layout_mode = 2
-text = "🛡 Выживаемость (0/25)\n[+4 HP, +1% Защита]"
-
-[node name="BtnAgil" type="Button" parent="ViewTalents/VBox/Grid"]
-custom_minimum_size = Vector2(290, 52)
-layout_mode = 2
-text = "⚡ Проворство (0/25)\n[+1.5% Скорость, -1.5% Откат]"
-
-[node name="BtnCraft" type="Button" parent="ViewTalents/VBox/Grid"]
-custom_minimum_size = Vector2(290, 52)
-layout_mode = 2
-text = "🔨 Ремесло (0/25)\n[+3% Сбор, +4% HP Зданий]"
-
-[node name="HBoxActions" type="HBoxContainer" parent="ViewTalents/VBox"]
-layout_mode = 2
-theme_override_constants/separation = 16
-alignment = 1
-
-[node name="BtnReset" type="Button" parent="ViewTalents/VBox/HBoxActions"]
-custom_minimum_size = Vector2(200, 40)
-layout_mode = 2
-text = "СБРОСИТЬ ОЧКИ"
-
-[node name="BtnBackToChars" type="Button" parent="ViewTalents/VBox/HBoxActions"]
-custom_minimum_size = Vector2(200, 40)
-layout_mode = 2
-text = "⮌ К ПЕРСОНАЖАМ"
+script = ExtResource("2_tree")
 
 [connection signal="pressed" from="ViewMain/VBox/BtnPlay" to="." method="_on_btn_play_pressed"]
 [connection signal="pressed" from="ViewMain/VBox/BtnSettings" to="." method="_on_btn_settings_pressed"]
@@ -560,9 +478,3 @@ text = "⮌ К ПЕРСОНАЖАМ"
 [connection signal="pressed" from="ViewCharacters/HBox/Slot2/VBox/BtnStart" to="." method="_on_btn_start_2_pressed"]
 [connection signal="pressed" from="ViewCharacters/HBox/Slot2/VBox/BtnTalents" to="." method="_on_btn_talents_2_pressed"]
 [connection signal="pressed" from="ViewCharacters/BtnBackFromChars" to="." method="_on_btn_back_to_main_pressed"]
-[connection signal="pressed" from="ViewTalents/VBox/Grid/BtnBlood" to="." method="_on_invest_blood_pressed"]
-[connection signal="pressed" from="ViewTalents/VBox/Grid/BtnSurv" to="." method="_on_invest_surv_pressed"]
-[connection signal="pressed" from="ViewTalents/VBox/Grid/BtnAgil" to="." method="_on_invest_agil_pressed"]
-[connection signal="pressed" from="ViewTalents/VBox/Grid/BtnCraft" to="." method="_on_invest_craft_pressed"]
-[connection signal="pressed" from="ViewTalents/VBox/HBoxActions/BtnReset" to="." method="_on_reset_talents_pressed"]
-[connection signal="pressed" from="ViewTalents/VBox/HBoxActions/BtnBackToChars" to="." method="_on_btn_back_to_chars_pressed"]

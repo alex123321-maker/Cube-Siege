@@ -16,6 +16,8 @@ const COUNTER_STUN: float = 1.0
 
 var max_health: float = 100.0
 var current_health: float = 100.0
+var shield_health: float = 0.0
+var _death_sent: bool = false
 
 var is_parrying: bool = false
 var parry_timer: float = 0.0
@@ -41,18 +43,24 @@ func trigger_parry(duration: float = PARRY_WINDOW, cooldown: float = PARRY_COOLD
 	return true
 
 func take_damage(damage: float, attacker: Node = null, is_invulnerable: bool = false, is_dueling: bool = false, duel_target: Node = null, player_node: Node = null) -> void:
-	if is_invulnerable:
+	if is_invulnerable or current_health <= 0.0 or damage <= 0.0:
+		return
+	var runtime: WarriorTalentRuntime = player_node.talents if player_node is PlayerPrototype else null
+	if runtime and runtime.dodge():
+		player_node.spawn_popup_text("УКЛОНЕНИЕ", Color.CYAN)
 		return
 
 	if is_parrying:
-		is_parrying = false
-		parry_cooldown_timer = PARRY_SUCCESS_COOLDOWN
+		var counter: bool = runtime != null and runtime.has("counterattack")
+		is_parrying = counter
+		parry_cooldown_timer = PARRY_SUCCESS_COOLDOWN * (runtime.multiplier("parry_cooldown") if runtime else 1.0)
 		parry_triggered.emit(true)
 
 		if player_node and is_instance_valid(player_node):
 			var vfx = player_node.get_node_or_null("/root/VFXManager")
 			if vfx:
-				vfx.dismiss_parry_stance_aura(player_node)
+				if not counter:
+					vfx.dismiss_parry_stance_aura(player_node)
 				vfx.spawn_parry_clash(player_node.global_position)
 
 		# Stun nearby enemies on successful parry (counter attack damage/knockback removed per Issue 48)
@@ -66,28 +74,31 @@ func take_damage(damage: float, attacker: Node = null, is_invulnerable: bool = f
 						e.apply_stun(COUNTER_STUN)
 					if COUNTER_DAMAGE > 0.0 and e.has_method("_on_damaged"):
 						e._on_damaged(COUNTER_DAMAGE, (e.global_position - player_node.global_position).normalized() * 8.0, "counter", player_node)
+		if counter and is_instance_valid(attacker) and attacker.has_method("_on_damaged"):
+			attacker._on_damaged(runtime.attack_based_ability_damage(), Vector3.ZERO, "counter", player_node)
 		return
 
-	var final_damage: float = damage
-	if is_dueling and attacker and is_instance_valid(attacker) and attacker != duel_target:
-		final_damage *= 0.6
-		if attacker.has_method("_on_damaged"):
-			attacker._on_damaged(damage * 0.2, Vector3.ZERO, "reflected", player_node)
-
-	current_health -= final_damage
+	var health_multiplier: float = 1.0
+	var reflection_fraction: float = 0.0
+	# Projectiles keep their damage provenance after their shooter disappears.
+	# Duel defense still applies; only reflection needs a living recipient.
+	if is_dueling and (not is_instance_valid(attacker) or attacker != duel_target):
+		health_multiplier = 1.0 / (1.0 + (2.0 / 3.0) * (runtime.multiplier("duel_resistance") if runtime else 1.0))
+		reflection_fraction = minf(1.0, 0.2 * (runtime.multiplier("duel_reflection") if runtime else 1.0))
+	var receipt: DamageReceipt = DamageReceipt.resolve(damage, current_health, shield_health, health_multiplier)
+	current_health = receipt.remaining_health
+	shield_health = receipt.remaining_shield
+	if reflection_fraction > 0.0 and is_instance_valid(attacker) and attacker.has_method("_on_damaged"):
+		attacker._on_damaged(receipt.reflection_base() * reflection_fraction, Vector3.ZERO, "reflected", player_node)
 	health_changed.emit(current_health, max_health)
 
 	var bus = player_node.get_node_or_null("/root/EventBus") if player_node else null
 	if bus:
 		bus.player_health_changed.emit(current_health, max_health)
 
-	if current_health <= 0.0:
+	if current_health <= 0.0 and not _death_sent:
+		_death_sent = true
 		current_health = 0.0
-
-		var roster = player_node.get_node_or_null("/root/RosterManager") if player_node else null
-		if roster and roster.has_method("record_run_end"):
-			roster.record_run_end(false, current_day, 0)
-
 		player_died.emit()
 		if bus:
 			bus.player_died.emit()

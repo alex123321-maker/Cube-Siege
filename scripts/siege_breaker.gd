@@ -124,7 +124,7 @@ func perform_attack() -> void:
 			if h.has_method("take_damage"):
 				h.take_damage(building_damage, Vector3.ZERO, "siege", self)
 	elif target_entity.has_method("take_damage"):
-		target_entity.take_damage(player_damage)
+		target_entity.take_damage(player_damage, self)
 
 func spawn_damage_text(amount: float, custom_text: String = "", custom_color: Color = Color.WHITE) -> void:
 	if custom_text != "":

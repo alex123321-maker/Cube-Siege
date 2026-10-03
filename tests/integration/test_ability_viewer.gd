@@ -20,7 +20,7 @@ func _prepare(index: int, variant: AbilityViewerCatalog.VariantKind = AbilityVie
 	await wait_physics_frames(2)
 
 func test_catalogue_has_all_class_actions_and_always_uses_warrior_and_zombie_models() -> void:
-	assert_eq(entries.size(), 15)
+	assert_eq(entries.size(), 27, "15 legacy actions, nine production talents, three combinations")
 	for i: int in range(entries.size()):
 		await _prepare(i)
 		assert_eq(int(arena.actor.current_class), entries[i].class_id, "The gameplay class remains native")

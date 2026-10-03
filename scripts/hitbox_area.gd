@@ -18,6 +18,8 @@ var _hit_target_ids: Dictionary = {}
 ## Optional frontal sector inside the broad-phase shape. Zero radius disables it.
 var frontal_radius: float = 0.0
 var frontal_arc_degrees: float = 180.0
+var duel_target: Node = null
+var duel_damage_multiplier: float = 1.0
 
 func _ready() -> void:
 	area_entered.connect(_on_area_entered)
@@ -35,6 +37,8 @@ func reset_hits() -> void:
 	hit_entities.clear()
 
 func _on_area_entered(area: Area3D) -> void:
+	if is_inside_tree() and get_tree().paused:
+		return
 	if not can_hit_multiple and hits_landed >= 1:
 		return
 
@@ -42,6 +46,8 @@ func _on_area_entered(area: Area3D) -> void:
 		return
 
 	var valid_owner: Node = owner_entity if is_instance_valid(owner_entity) else null
+	if valid_owner is PlayerPrototype and (valid_owner.current_health <= 0.0 or not valid_owner.progression.run_build.active or valid_owner.is_queued_for_deletion()):
+		return
 
 	var target: Node = area.get_target_node() if area.has_method("get_target_node") else area.get_parent()
 	if not is_instance_valid(target) or (valid_owner != null and target == valid_owner):
@@ -84,7 +90,8 @@ func _on_area_entered(area: Area3D) -> void:
 	var hit_direction: Vector3 = (target.global_position - global_position).normalized() if (target is Node3D) else Vector3.FORWARD
 	hit_direction.y = 0.0
 
-	var hit_result = area.take_damage(damage, knockback_force * hit_direction, damage_type, valid_owner, source_team)
+	var dealt_damage: float = damage * (duel_damage_multiplier if is_instance_valid(duel_target) and target == duel_target else 1.0)
+	var hit_result = area.take_damage(dealt_damage, knockback_force * hit_direction, damage_type, valid_owner, source_team)
 	if hit_result == false:
 		return
 
