@@ -51,12 +51,18 @@ func before_each() -> void:
 	_coordinator.setup(_player, _cycle, _waves, _portal)
 
 func after_each() -> void:
+	for child: Node in get_children():
+		if child is EliteSkillHazard:
+			(child as EliteSkillHazard).cancel()
+		elif child.scene_file_path == "res://scenes/floating_text.tscn":
+			child.queue_free()
 	_save.restore_state(_snapshot)
 	_save.set_storage_dir(_storage)
 	get_node("/root/RosterManager").run_active = false
 	var file: String = "user://test_warrior_run_flow/cube_siege_save.json"
 	if FileAccess.file_exists(file):
 		DirAccess.remove_absolute(file)
+	await get_tree().process_frame
 
 func test_growing_nights_and_boss_gate_preserve_day_and_no_midrun_save() -> void:
 	assert_eq(_cycle.day_duration, 30.0)
@@ -165,3 +171,97 @@ func test_failed_final_save_preserves_victory_across_late_extraction_callback() 
 	assert_eq(_save.run_history[0].outcome, "victory")
 	assert_eq(int(_save.roster_slots[0].victories), 1)
 	assert_eq(_save.run_history.size(), 1)
+
+func _elite_cast(skill_id: String, point: Vector3) -> EliteSkillController:
+	_player.global_position = point + Vector3.UP * 0.9
+	var definition: EliteSkillSpec = EliteSkillCatalog.create_spec(skill_id)
+	var enemy: EnemyBase = (load(definition.scene_path) as PackedScene).instantiate() as EnemyBase
+	add_child_autoqfree(enemy)
+	enemy.set_physics_process(false)
+	enemy.global_position = point + Vector3(3.0, enemy.half_height, 0.0)
+	enemy.target_player = _player
+	var controller: EliteSkillController = EliteSkillController.attach(enemy, skill_id, func(_x: int, _z: int) -> int: return 0)
+	assert_true(controller.start_attack())
+	return controller
+
+func _check_terminal_elite_cleanup(outcome: String, fail_save: bool = false) -> void:
+	var registry: Node = get_node("/root/EntityRegistry")
+	var pending: EliteSkillController = _elite_cast("underground_spike", Vector3(12.5, 0.0, 12.5))
+	var warning: EliteSkillHazard = pending.hazards[0]
+	warning.warning_duration = 0.1
+	var active: EliteSkillController = _elite_cast("underground_spike", Vector3(18.5, 0.0, 18.5))
+	var spike: EliteSkillHazard = active.hazards[0]
+	spike._physics_process(spike.warning_duration)
+	assert_true(is_instance_valid(spike._solid))
+	assert_true(registry.monster_flowfield.blocked_cells.has(Vector2i(18, 18)))
+	var shooter: EliteSkillController = _elite_cast("triple_throw", Vector3(24.5, 0.0, 24.5))
+	var lob: EliteSkillHazard = shooter.hazards[0]
+	var valid_path: String = _save.save_file_path
+	if fail_save:
+		_save.save_file_path += "/missing/subfolder/save.json"
+	match outcome:
+		"evacuated":
+			_portal.current_state = PortalController.State.ACTIVE
+			_portal.evacuate_player(_player)
+		"victory":
+			_cycle.current_day = 30
+			_coordinator._on_wave_completed(30)
+		"defeat":
+			_coordinator._on_player_died()
+	if fail_save:
+		assert_push_error("Failed to open save file")
+	assert_eq(_coordinator.finished, not fail_save)
+	assert_false(_player.progression.run_build.active)
+	for hazard: EliteSkillHazard in [warning, spike, lob]:
+		assert_true(hazard.cancelled, "Terminal stop synchronously cancels sibling effects, including released projectiles")
+		var before: float = hazard.elapsed
+		hazard._physics_process(10.0)
+		assert_eq(hazard.elapsed, before)
+		assert_eq(hazard.hit_count, 0 if hazard == warning or hazard == lob else 1)
+	assert_null(warning._solid, "The pending spike must not create a collider after terminal stop")
+	assert_eq(spike._solid.collision_layer, 0)
+	assert_false(registry.monster_flowfield.blocked_cells.has(Vector2i(18, 18)))
+	for controller: EliteSkillController in [pending, active, shooter]:
+		assert_eq(controller.hazards.size(), 0)
+		assert_eq(controller.enemy.process_mode, Node.PROCESS_MODE_DISABLED)
+	var hp: float = _player.current_health
+	for frame: int in range(12):
+		await get_tree().physics_frame
+	assert_false(is_instance_valid(warning))
+	assert_false(is_instance_valid(spike))
+	assert_false(is_instance_valid(lob))
+	assert_false(registry.monster_flowfield.blocked_cells.has(Vector2i(12, 12)))
+	assert_false(registry.monster_flowfield.blocked_cells.has(Vector2i(18, 18)))
+	assert_eq(_player.current_health, hp)
+	if fail_save:
+		assert_eq(_save.run_history.size(), 0)
+		_save.save_file_path = valid_path
+		assert_true(_coordinator.retry_save())
+		await get_tree().physics_frame
+		assert_false(registry.monster_flowfield.blocked_cells.has(Vector2i(12, 12)))
+	assert_eq(_save.run_history.size(), 1)
+	assert_eq(_save.run_history[0].outcome, outcome)
+
+func test_evacuating_cancels_pending_and_active_elite_effects() -> void:
+	await _check_terminal_elite_cleanup("evacuated")
+
+func test_victory_cancels_pending_and_active_elite_effects() -> void:
+	await _check_terminal_elite_cleanup("victory")
+
+func test_death_cancels_pending_and_active_elite_effects() -> void:
+	await _check_terminal_elite_cleanup("defeat")
+
+func test_failed_terminal_save_cancels_elite_effects_before_retry() -> void:
+	await _check_terminal_elite_cleanup("victory", true)
+
+func test_lethal_spike_cannot_create_obstacle_after_its_damage_ends_the_run() -> void:
+	var controller: EliteSkillController = _elite_cast("underground_spike", Vector3(30.5, 0.0, 30.5))
+	var hazard: EliteSkillHazard = controller.hazards[0]
+	_player.current_health = 1.0
+	hazard._physics_process(hazard.warning_duration)
+	assert_true(_coordinator.finished)
+	assert_true(hazard.cancelled)
+	assert_null(hazard._solid, "A terminal callback during impact must stop the remainder of this same physics step")
+	assert_false(get_node("/root/EntityRegistry").monster_flowfield.blocked_cells.has(Vector2i(30, 30)))
+	await get_tree().physics_frame
+	assert_false(is_instance_valid(hazard))

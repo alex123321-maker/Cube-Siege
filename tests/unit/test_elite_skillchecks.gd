@@ -84,6 +84,99 @@ func test_triple_throw_locks_three_current_positions_and_never_arms_traps() -> v
 		assert_null(hazard._solid)
 		assert_true(hazard.cancelled)
 
+func test_triple_throw_target_freed_between_throws_returns_and_preserves_released_lob() -> void:
+	var target: Target = _target()
+	var enemy: EnemyBase = _actor("triple_throw", target)
+	var controller: EliteSkillController = enemy.elite_skill_controller
+	assert_true(controller.start_attack())
+	var released: EliteSkillHazard = controller.hazards[0]
+	released.set_physics_process(false)
+	assert_eq(controller._throws, 1)
+	target.free()
+	# Run this regression under an external process deadline: the old while
+	# loop never returned after _throw_lob rejected the freed target.
+	controller.advance(controller.spec.interval)
+	assert_eq(controller.state, EliteSkillController.State.RECOVERY)
+	assert_eq(controller._throws, 1)
+	assert_eq(controller.hazards.size(), 1)
+	assert_false(released.cancelled)
+	controller.advance(controller.spec.recovery + 0.01)
+	assert_eq(controller.state, EliteSkillController.State.COOLDOWN)
+	assert_false(controller.advance(controller.spec.cooldown + 0.01))
+	assert_eq(controller.cast_count, 1, "No replacement target or further throws are invented")
+	released._physics_process(controller.spec.flight_time + 0.3)
+	assert_true(released.cancelled, "The released projectile finishes safely without its old target")
+
+func test_triple_throw_rejects_queued_or_detached_target_without_new_releases() -> void:
+	for removal: String in ["queued", "detached"]:
+		var target: Target = _target()
+		var enemy: EnemyBase = _actor("triple_throw", target)
+		var controller: EliteSkillController = enemy.elite_skill_controller
+		controller.start_attack()
+		controller.hazards[0].set_physics_process(false)
+		if removal == "queued":
+			target.queue_free()
+		else:
+			remove_child(target)
+		controller.advance(controller.spec.interval)
+		assert_eq(controller._throws, 1)
+		assert_eq(controller.state, EliteSkillController.State.RECOVERY)
+		assert_eq(controller.hazards.size(), 1)
+		if removal == "detached":
+			target.free()
+
+func test_fire_terminal_callback_stops_remaining_cadence_doses_and_visual_updates() -> void:
+	var target: Target = _target(Vector3(0.0, 0.9, -2.0))
+	var enemy: EnemyBase = _actor("fire_breath", target)
+	var controller: EliteSkillController = enemy.elite_skill_controller
+	controller.start_attack()
+	var hazard: EliteSkillHazard = controller.hazards[0]
+	hazard.set_physics_process(false)
+	hazard.hit_confirmed.connect(func(_target: Node3D, _amount: float) -> void: controller.cancel_attack())
+	hazard._physics_process(hazard.warning_duration + 0.5)
+	assert_true(hazard.cancelled)
+	assert_eq(target.hits, 1, "The first terminal callback stops later doses in this same frame")
+	assert_almost_eq(target.total_damage, hazard.spec.damage * 0.1, 0.001)
+	hazard._physics_process(10.0)
+	assert_eq(target.hits, 1, "Cancellation cannot flush residual or future exposure")
+
+func test_released_blade_owner_free_during_first_hit_stops_second_pass() -> void:
+	var target: Target = _target(Vector3(0.0, 0.9, -4.0))
+	var enemy: EnemyBase = _actor("returning_blade", target)
+	var controller: EliteSkillController = enemy.elite_skill_controller
+	controller.start_attack()
+	var hazard: EliteSkillHazard = controller.hazards[0]
+	hazard.set_physics_process(false)
+	hazard.hit_confirmed.connect(func(_target: Node3D, _amount: float) -> void: enemy.free())
+	hazard._physics_process(hazard.warning_duration + 2.0 * hazard.spec.reach / hazard.spec.speed + hazard.spec.interval + 0.1)
+	assert_false(is_instance_valid(enemy))
+	assert_true(hazard.cancelled)
+	assert_eq(target.hits, 1)
+	assert_eq(hazard.hit_count, 1)
+
+func test_spit_contact_callback_can_remove_owner_or_target_without_stale_access() -> void:
+	for removal: String in ["owner", "target"]:
+		var target: Target = _target(Vector3(0.0, 0.9, -4.0))
+		var enemy: EnemyBase = _actor("spit_puddle", target)
+		var controller: EliteSkillController = enemy.elite_skill_controller
+		controller.start_attack()
+		var hazard: EliteSkillHazard = controller.hazards[0]
+		hazard.set_physics_process(false)
+		if removal == "owner":
+			hazard.hit_confirmed.connect(func(_target: Node3D, _amount: float) -> void: enemy.free())
+		else:
+			hazard.hit_confirmed.connect(func(_target: Node3D, _amount: float) -> void: target.free())
+		hazard._physics_process(hazard.warning_duration + 0.6)
+		assert_eq(hazard.hit_count, 1)
+		if removal == "owner":
+			assert_true(hazard.cancelled)
+			assert_false(hazard._spit_landed, "A terminal impact cannot create a new puddle")
+		else:
+			assert_true(hazard._spit_landed)
+			assert_false(is_instance_valid(target))
+			hazard._physics_process(hazard.spec.lifetime + 0.1)
+			assert_true(hazard.cancelled)
+
 func test_backswing_both_front_sectors_exist_from_start_and_hit_separately() -> void:
 	var target: Target = _target(Vector3(0.0, 0.9, -2.0))
 	var enemy: EnemyBase = _actor("backswing", target)

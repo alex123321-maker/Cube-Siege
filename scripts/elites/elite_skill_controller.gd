@@ -86,7 +86,9 @@ func advance(delta: float) -> bool:
 		match spec.kind:
 			EliteSkillSpec.Kind.TRIPLE_THROW:
 				while _throws < 3 and _active_elapsed >= float(_throws) * spec.interval:
-					_throw_lob()
+					if not _throw_lob():
+						_begin_recovery()
+						return true
 				if _active_elapsed >= 2.0 * spec.interval + spec.flight_time:
 					_begin_recovery()
 			EliteSkillSpec.Kind.LEAP_STRIKE:
@@ -180,7 +182,8 @@ func _release_attack() -> void:
 		enemy.presentation.play_attack()
 	match spec.kind:
 		EliteSkillSpec.Kind.TRIPLE_THROW:
-			_throw_lob()
+			if not _throw_lob():
+				_begin_recovery()
 		EliteSkillSpec.Kind.BACKSWING:
 			timer = spec.interval + 0.24
 		EliteSkillSpec.Kind.RETURNING_BLADE:
@@ -194,15 +197,16 @@ func _release_attack() -> void:
 		_:
 			timer = 0.25
 
-func _throw_lob() -> void:
-	if not is_instance_valid(target):
-		return
+func _throw_lob() -> bool:
+	if not is_instance_valid(target) or target.is_queued_for_deletion() or not target.is_inside_tree():
+		return false
 	var point: Vector3 = target.global_position
 	point.y = _ground_y(point)
 	_spawn(EliteSkillHazard.Mode.LOB, spec.footprint(BossAttackSpec.Shape.CIRCLE, spec.radius), point, spec.flight_time)
 	_throws += 1
 	if enemy.presentation:
 		enemy.presentation.play_attack()
+	return true
 
 func _spawn(mode: EliteSkillHazard.Mode, footprint: BossAttackSpec, point: Vector3, windup: float = -1.0) -> EliteSkillHazard:
 	var hazard: EliteSkillHazard = EliteSkillHazard.new()

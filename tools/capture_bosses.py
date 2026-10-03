@@ -19,7 +19,7 @@ def source_fingerprint(script: str) -> str:
     paths += [ROOT / "scripts/player_prototype.gd", ROOT / "scripts/player/player_enemy_carry.gd", ROOT / "scripts/player/player_combat.gd", ROOT / "scripts/player/player_presentation.gd", ROOT / "scripts/player/warrior_talent_runtime.gd", ROOT / "scripts/player/player_movement.gd", ROOT / "scripts/player/player_health.gd", ROOT / "scripts/hitbox_area.gd", ROOT / "scripts/enemy_base.gd", ROOT / "scripts/progression/warrior_talent_catalog.gd", ROOT / "scripts/progression/warrior_run_build.gd", ROOT / "scripts/save_manager.gd", ROOT / "scripts/roster_manager.gd", ROOT / "assets/abilities/warrior_cleave.tres", ROOT / script, ROOT / "tools/capture_bosses.gd", Path(__file__)]
     if Path(script).name == "capture_elites.gd":
         paths += list((ROOT / "scripts/elites").glob("*.gd"))
-        paths += [ROOT / "scripts/core/entity_registry.gd"]
+        paths += [ROOT / "scripts/core/entity_registry.gd", ROOT / "scripts/run/warrior_run_coordinator.gd", ROOT / "scripts/day_night_cycle.gd", ROOT / "scripts/wave_director.gd"]
     digest = hashlib.sha256()
     for path in sorted(set(paths)):
         digest.update(path.relative_to(ROOT).as_posix().encode())

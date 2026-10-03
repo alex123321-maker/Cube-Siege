@@ -153,6 +153,12 @@ func _halt_gameplay() -> void:
 	player.set_physics_process(false)
 	# Stop remaining actors and projectiles before showing a terminal screen.
 	for actor: Node in get_tree().get_nodes_in_group("enemies"):
+		# Elite effects are siblings of the actor. Disabling its subtree alone
+		# leaves their clocks, colliders and temporary navigation obstacles live.
+		if actor is EnemyBase:
+			var enemy: EnemyBase = actor as EnemyBase
+			if is_instance_valid(enemy.elite_skill_controller):
+				enemy.elite_skill_controller.cancel_attack()
 		actor.process_mode = Node.PROCESS_MODE_DISABLED
 	for projectile: Node in get_tree().get_nodes_in_group("projectiles"):
 		projectile.queue_free()

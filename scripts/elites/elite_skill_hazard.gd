@@ -100,7 +100,7 @@ func _exit_tree() -> void:
 	enemy = null
 
 func _physics_process(delta: float) -> void:
-	if cancelled or not is_instance_valid(enemy) or enemy.is_dying or enemy.is_queued_for_deletion() or not enemy.is_inside_tree():
+	if not _can_continue():
 		cancel()
 		return
 	var before: float = elapsed
@@ -127,6 +127,8 @@ func _physics_process(delta: float) -> void:
 				_impact_once()
 			Mode.SPIKE:
 				_impact_once()
+				if not _can_continue():
+					return
 				_create_spike()
 			Mode.MINE:
 				_armed = true
@@ -135,6 +137,8 @@ func _physics_process(delta: float) -> void:
 			Mode.BLADE, Mode.SPIT:
 				_visual.visible = true # The lane remains a harmless route guide.
 				_projectile.visible = true
+	if not _can_continue():
+		return
 	var active_time: float = elapsed - warning_duration
 	match mode:
 		Mode.IMPACT, Mode.LOB:
@@ -162,6 +166,8 @@ func _physics_process(delta: float) -> void:
 			if before - warning_duration < spec.duration:
 				var exposure: float = minf(active_delta, spec.duration - maxf(0.0, before - warning_duration)) if _contains(target.global_position if is_instance_valid(target) else Vector3.INF, true) else 0.0
 				_sample_continuous(exposure, spec.damage)
+				if not _can_continue():
+					return
 				_visual.set_impact_progress(0.2 + 0.12 * sin(elapsed * 18.0))
 			if active_time >= spec.duration:
 				_flush_continuous(spec.damage)
@@ -172,13 +178,15 @@ func _physics_process(delta: float) -> void:
 			_advance_spit(active_delta, active_time)
 		Mode.LUNGE:
 			_advance_lunge()
+	if not _can_continue():
+		return
 	if is_instance_valid(target):
 		_last_target = target.global_position
 	_last_enemy = enemy.global_position
 
 ## Leap landing is owned by the real CharacterBody motion, not a parallel clock.
 func trigger_impact() -> void:
-	if cancelled or activated or not is_instance_valid(enemy) or enemy.is_dying:
+	if not _can_continue() or activated:
 		return
 	activated = true
 	elapsed = warning_duration
@@ -188,6 +196,11 @@ func trigger_impact() -> void:
 func is_committed_independent() -> bool:
 	# A launched projectile is already an attack; stun only stops future releases.
 	return mode == Mode.LOB or (activated and mode in [Mode.BLADE, Mode.SPIT, Mode.SPIKE, Mode.MINE])
+
+func _can_continue() -> bool:
+	# An ordinary tree pause suspends time; terminal owner disable cancels it.
+	# Released effects remain valid during stun, but never after a run stop.
+	return is_instance_valid(self) and not cancelled and not is_queued_for_deletion() and is_inside_tree() and is_instance_valid(enemy) and not enemy.is_dying and not enemy.is_queued_for_deletion() and enemy.is_inside_tree() and enemy.process_mode != Node.PROCESS_MODE_DISABLED
 
 func _contains(point: Vector3, terrain_dependent: bool) -> bool:
 	if not footprint.contains_point(_origin, direction, point):
@@ -203,16 +216,20 @@ func _impact_once() -> void:
 	var terrain_dependent: bool = mode == Mode.IMPACT and spec.kind == EliteSkillSpec.Kind.BACKSWING
 	if is_instance_valid(target) and _contains(target.global_position, terrain_dependent):
 		_deal_damage(spec.damage)
+	if not _can_continue():
+		return
 	if is_instance_valid(_projectile):
 		_projectile.visible = false
 
 func _deal_damage(amount: float) -> void:
-	if cancelled or amount <= 0.0 or not is_instance_valid(target) or target.is_queued_for_deletion() or not is_instance_valid(enemy) or enemy.is_dying or enemy.is_queued_for_deletion():
+	if not _can_continue() or amount <= 0.0 or not is_instance_valid(target) or target.is_queued_for_deletion():
 		return
 	if target is PlayerPrototype:
 		var player: PlayerPrototype = target as PlayerPrototype
 		var before: float = player.current_health + player.health.shield_health
 		player.take_damage(amount, enemy)
+		if not _can_continue() or not is_instance_valid(player) or player.is_queued_for_deletion():
+			return
 		if player.current_health + player.health.shield_health >= before:
 			return
 	elif is_instance_valid(_hurtbox):
@@ -220,12 +237,14 @@ func _deal_damage(amount: float) -> void:
 			return
 	else:
 		return
+	if not _can_continue() or not is_instance_valid(target) or target.is_queued_for_deletion():
+		return
 	hit_count += 1
 	hit_confirmed.emit(target, amount)
 
 func _sample_continuous(exposure: float, damage_per_second: float) -> void:
 	for dose: float in _cadence.sample(exposure if exposure > 0.0000001 else 0.0):
-		if cancelled:
+		if not _can_continue():
 			return
 		_deal_damage(damage_per_second * dose)
 
@@ -235,6 +254,8 @@ func _flush_continuous(damage_per_second: float) -> void:
 		_deal_damage(damage_per_second * residual)
 
 func _create_spike() -> void:
+	if not _can_continue():
+		return
 	_solid = StaticBody3D.new()
 	_solid.collision_layer = 1
 	_solid.collision_mask = 0
@@ -303,6 +324,8 @@ func _advance_blade(before: float, active_time: float) -> void:
 			if not _hit_passes.has(pass_index) and _swept_contact(a, b, spec.width * 0.5):
 				_hit_passes.append(pass_index)
 				_deal_damage(spec.damage)
+				if not _can_continue():
+					return
 	projectile_position = _blade_position(minf(active_time, finished_at))
 	_projectile.global_position = projectile_position
 	_projectile.rotation.y += 0.3
@@ -341,9 +364,12 @@ func _advance_spit(active_delta: float, active_time: float) -> void:
 		projectile_position = next
 		_projectile.global_position = next
 		if contact:
+			var contact_target: Vector3 = target.global_position
 			_deal_damage(spec.damage)
+			if not _can_continue():
+				return
 			var offset: Vector3 = next - previous
-			var fraction: float = clampf((target.global_position - previous).dot(offset) / maxf(offset.length_squared(), 0.00001), 0.0, 1.0)
+			var fraction: float = clampf((contact_target - previous).dot(offset) / maxf(offset.length_squared(), 0.00001), 0.0, 1.0)
 			next = previous.lerp(next, fraction)
 		if contact or not environment_hit.is_empty() or active_time >= spec.reach / spec.speed:
 			_spit_landed = true
@@ -362,6 +388,8 @@ func _advance_spit(active_delta: float, active_time: float) -> void:
 	var inside: bool = is_instance_valid(target) and Vector2(target.global_position.x - _spit_land_position.x, target.global_position.z - _spit_land_position.z).length() <= spec.radius and absf(target.global_position.y - _spit_land_position.y) <= 2.0
 	var exposure: float = minf(active_delta, maxf(0.0, spec.lifetime - (puddle_time - active_delta))) if inside else 0.0
 	_sample_continuous(exposure, spec.residue_damage_per_second)
+	if not _can_continue():
+		return
 	_visual.set_impact_progress(clampf(puddle_time / spec.lifetime, 0.0, 1.0) * 0.65)
 	if puddle_time >= spec.lifetime:
 		_flush_continuous(spec.residue_damage_per_second)

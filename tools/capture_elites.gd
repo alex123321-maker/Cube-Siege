@@ -26,6 +26,8 @@ func _capture() -> void:
 		await _elite_case(EliteSkillCatalog.IDS[index], index + 1)
 	await _sustained_exit("fire_breath", 10)
 	await _sustained_exit("spit_puddle", 11)
+	await _terminal_cleanup_case()
+	await _lost_target_case()
 	_caption.text = "ELITE REVIEW COMPLETE"
 	_detail.text = "%d authoritative cases / %s" % [_checks.size(), "FAIL" if _failed else "PASS"]
 	await _save("99_complete")
@@ -36,6 +38,97 @@ func _capture() -> void:
 	print("ELITE_CAPTURE pass=", not _failed, " attack_samples=", _checks.size(), " seed=330519")
 	_world.queue_free()
 	await process_frame
+	await process_frame
+
+func _terminal_cleanup_case() -> void:
+	_reset_hero()
+	_lighting.apply_day_instant(_light, _environment)
+	_camera.global_position = Vector3(14.0, 18.0, 14.0)
+	_camera.look_at(Vector3.ZERO)
+	var cycle: DayNightCycle = DayNightCycle.new()
+	cycle.name = "LifecycleCycle"
+	_world.add_child(cycle)
+	cycle.set_process(false)
+	var waves: WaveDirector = WaveDirector.new()
+	waves.day_night_path = cycle.get_path()
+	waves.player_path = _player.get_path()
+	_world.add_child(waves)
+	waves.set_process(false)
+	var portal: PortalController = (load("res://scenes/portal.tscn") as PackedScene).instantiate() as PortalController
+	_world.add_child(portal)
+	portal.hide()
+	var coordinator: WarriorRunCoordinator = WarriorRunCoordinator.new()
+	_world.add_child(coordinator)
+	coordinator.setup(_player, cycle, waves, portal)
+	var pending_owner: EnemyBase = _spawn_elite("underground_spike")
+	pending_owner.global_position.x = 4.0
+	pending_owner.elite_skill_controller.start_attack()
+	var warning: EliteSkillHazard = pending_owner.elite_skill_controller.hazards[0]
+	warning.set_physics_process(false)
+	warning.warning_duration = 10.0
+	warning._physics_process(3.0)
+	_player.global_position.z = 3.0
+	var active_owner: EnemyBase = _spawn_elite("underground_spike")
+	active_owner.global_position.x = -4.0
+	active_owner.elite_skill_controller.start_attack()
+	var spike: EliteSkillHazard = active_owner.elite_skill_controller.hazards[0]
+	spike.set_physics_process(false)
+	spike._physics_process(spike.warning_duration)
+	var registry: RegistryScript = root.get_node("EntityRegistry") as RegistryScript
+	var obstacle_before: bool = registry.monster_flowfield.blocked_cells.has(Vector2i(0, 3))
+	_caption.text = "I1 / PENDING AND ACTIVE SPIKES / BEFORE RUN STOP"
+	_detail.text = "Real actors, real collider and navigation / warning has not emerged"
+	await _save("12_terminal_before")
+	for frame: int in range(20):
+		await process_frame
+	cycle.current_day = 30
+	coordinator._on_wave_completed(30)
+	var synchronous: bool = coordinator.finished and warning.cancelled and spike.cancelled and warning._solid == null and spike._solid.collision_layer == 0 and not registry.monster_flowfield.blocked_cells.has(Vector2i(0, 3))
+	var hp: float = _player.current_health
+	warning._physics_process(20.0)
+	spike._physics_process(20.0)
+	for frame: int in range(30):
+		await process_frame
+	var passed: bool = obstacle_before and synchronous and not is_instance_valid(warning) and not is_instance_valid(spike) and is_equal_approx(hp, _player.current_health) and not registry.monster_flowfield.blocked_cells.has(Vector2i(0, -3))
+	_caption.text = "I1 / REAL COORDINATOR / TERMINAL CLEANUP"
+	_detail.text = "Pending spike cancelled / active collider and nav released / %s" % ("PASS" if passed else "FAIL")
+	await _save("12_terminal_cleared")
+	_checks.append({"case": "terminal_coordinator_cancels_pending_and_active_spikes", "obstacle_before": obstacle_before, "synchronous_cleanup": synchronous, "passed": passed})
+	_failed = _failed or not passed
+	for node: Node in [coordinator, portal, waves, cycle, pending_owner, active_owner]:
+		node.queue_free()
+	await process_frame
+	await process_frame
+
+func _lost_target_case() -> void:
+	_reset_hero()
+	_player.talents.reset_for_viewer(WarriorTalentCatalog.TALENT_IDS)
+	_player.talents.build().selected_talents.clear()
+	var actor: EnemyBase = _spawn_elite("triple_throw")
+	var controller: EliteSkillController = actor.elite_skill_controller
+	controller.start_attack()
+	_caption.text = "B4 / FIRST LOB RELEASED / TARGET STILL PRESENT"
+	_detail.text = "Real controller / next throw is pending"
+	await _save("13_target_before")
+	_player.free()
+	controller.advance(controller.spec.interval)
+	var returned: bool = controller.state == EliteSkillController.State.RECOVERY and controller._throws == 1 and is_instance_valid(actor)
+	_caption.text = "B4 / TARGET FREED / CONTROLLER RETURNED"
+	_detail.text = "Shooter remains alive / no future throws / released lob keeps its finite flight"
+	await _save("13_target_removed")
+	for frame: int in range(60):
+		controller.advance(STEP)
+		await process_frame
+	var live_hazards: int = 0
+	for child: Node in _world.get_children():
+		if child is EliteSkillHazard and not child.is_queued_for_deletion():
+			live_hazards += 1
+	var passed: bool = returned and controller._throws == 1 and controller.cast_count == 1 and live_hazards == 0
+	_detail.text = "Finite return and released effect expiry / %s" % ("PASS" if passed else "FAIL")
+	await _save("13_target_expired")
+	_checks.append({"case": "target_free_between_lobs_returns_without_new_throws", "returned": returned, "throws": controller._throws, "casts": controller.cast_count, "live_hazards_at_end": live_hazards, "passed": passed})
+	_failed = _failed or not passed
+	actor.queue_free()
 	await process_frame
 	quit(2 if _failed else 0)
 
