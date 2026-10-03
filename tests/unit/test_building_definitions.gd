@@ -10,6 +10,7 @@ func test_building_catalog_costs_match_specification() -> void:
 	assert_true(cat.has(3), "Archer tower (id=3) must exist")
 	assert_true(cat.has(4), "Iron wall (id=4) must exist")
 	assert_true(cat.has(5), "Ballista (id=5) must exist")
+	assert_true(cat.has(6), "Campfire (id=6) must exist")
 
 	var wood_wall: BuildingDefinition = cat[1]
 	assert_eq(wood_wall.wood_cost, 4, "Wood wall cost 4 Wood")
@@ -31,6 +32,18 @@ func test_building_catalog_costs_match_specification() -> void:
 	var ballista: BuildingDefinition = cat[5]
 	assert_eq(ballista.stone_cost, 4, "Ballista cost 4 Stone")
 	assert_eq(ballista.iron_cost, 4, "Ballista cost 4 Iron")
+
+	var campfire: BuildingDefinition = cat[6]
+	assert_eq(campfire.wood_cost, 6)
+	assert_eq(campfire.stone_cost, 3)
+	assert_eq(campfire.scene_path, "res://scenes/prefabs/campfire.tscn")
+	assert_false(campfire.description.is_empty())
+
+func test_all_buildings_have_loadable_visuals_and_icons() -> void:
+	for definition: BuildingDefinition in BuildingDefinition.get_catalog().values():
+		assert_true(ResourceLoader.exists(definition.visual_scene_path), "%s has an imported model" % definition.type_name)
+		assert_true(ResourceLoader.exists(definition.icon_path), "%s has a menu icon" % definition.type_name)
+		assert_false(definition.description.is_empty(), "%s has a description" % definition.type_name)
 
 func test_character_catalog_classes_match_specification() -> void:
 	var warrior = CharacterDefinition.get_definition(0)

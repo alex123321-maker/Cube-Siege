@@ -1,0 +1,9 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="PackedScene" path="res://assets/models/enemies/boss_gorgon.gltf" id="1_model"]
+[ext_resource type="Script" path="res://scripts/enemies/gorgon_presentation.gd" id="2_pose"]
+
+[node name="GorgonModel" type="Node3D"]
+script = ExtResource("2_pose")
+
+[node name="StoneGorgon" parent="." instance=ExtResource("1_model")]

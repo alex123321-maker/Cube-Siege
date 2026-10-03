@@ -16,6 +16,9 @@ var _is_unavailable: bool = false
 var _is_on_cooldown: bool = false
 var _cooldown_seconds: float = 0.0
 
+func _make_custom_tooltip(for_text: String) -> Object:
+    return HUDTooltip.new(for_text)
+
 func _ready() -> void:
     if icon_texture != null or not action_name.is_empty():
         set_action(icon_texture, action_name, key_binding, tooltip_text)

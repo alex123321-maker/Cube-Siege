@@ -6,7 +6,7 @@ extends "res://scripts/building_base.gd"
 var trigger_timer: float = 0.0
 
 @onready var damage_area: Area3D = $DamageArea
-@onready var spikes_mesh: MeshInstance3D = $Visuals/SpikesMesh
+@onready var spikes_mesh: Node3D = $Visuals/Model/Spikes
 
 func _ready() -> void:
 	super._ready()
@@ -37,5 +37,5 @@ func check_and_damage_enemies() -> void:
 	if triggered and spikes_mesh:
 		# Quick visual pop animation
 		var tween: Tween = create_tween()
-		tween.tween_property(spikes_mesh, "position:y", 0.35, 0.06)
-		tween.chain().tween_property(spikes_mesh, "position:y", 0.05, 0.15)
+		tween.tween_property(spikes_mesh, "position:y", 0.20, 0.06)
+		tween.chain().tween_property(spikes_mesh, "position:y", 0.0, 0.15)

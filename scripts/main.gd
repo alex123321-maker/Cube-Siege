@@ -10,8 +10,13 @@ extends Node3D
 @onready var map_generator: Node = get_node_or_null("MapGenerator")
 @onready var enemies_container: Node = get_node_or_null("Enemies")
 var run_coordinator: WarriorRunCoordinator
+var run_audio: RunAudio
 
 func _ready() -> void:
+	run_audio = RunAudio.new()
+	run_audio.name = "RunAudio"
+	run_audio.setup(player as PlayerPrototype, day_night as DayNightCycle)
+	add_child(run_audio)
 	if radial_menu and building_system:
 		radial_menu.prefab_selected.connect(building_system.select_prefab)
 
@@ -85,6 +90,7 @@ func _on_portal_evacuated(_day: int, _xp: int) -> void:
 	pass # Kept for old capture scripts; coordinator owns the live event.
 
 func _on_run_finished(won: bool, extracted: bool, earned_xp: int) -> void:
+	run_audio.finish_run()
 	if not overlay:
 		return
 	if extracted:
@@ -93,6 +99,7 @@ func _on_run_finished(won: bool, extracted: bool, earned_xp: int) -> void:
 		overlay.show_game_over()
 
 func _on_persistence_failed(message: String) -> void:
+	run_audio.finish_run()
 	if overlay:
 		overlay.show_save_error(message)
 

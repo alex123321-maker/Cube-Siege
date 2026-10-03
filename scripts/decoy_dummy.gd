@@ -1,5 +1,7 @@
 extends CharacterBody3D
 
+const AGGRO_RADIUS: float = 7.0
+
 @export var max_health: float = 250.0
 var current_health: float = 250.0
 var lifetime: float = 3.5
@@ -18,7 +20,7 @@ func _ready() -> void:
 	var vfx = get_node_or_null("/root/VFXManager")
 	if vfx:
 		vfx.spawn_puff(global_position + Vector3(0, 0.5, 0), Color(0.85, 0.78, 0.45), 18, 4.0)
-		vfx.spawn_shockwave(global_position, 7.0, Color(0.3, 0.9, 0.4), 0.5)
+		vfx.spawn_shockwave(global_position, AGGRO_RADIUS, Color(0.3, 0.9, 0.4), 0.5)
 
 func _physics_process(delta: float) -> void:
 	lifetime -= delta
@@ -32,13 +34,13 @@ func _physics_process(delta: float) -> void:
 		aggro_pulse_timer = 1.0
 		var vfx = get_node_or_null("/root/VFXManager")
 		if vfx:
-			vfx.spawn_shockwave(global_position, 7.0, Color(0.2, 0.85, 0.35), 0.45)
+			vfx.spawn_shockwave(global_position, AGGRO_RADIUS, Color(0.2, 0.85, 0.35), 0.45)
 
 	# Force all nearby enemies within 7m to target this decoy
 	var enemies: Array[Node] = get_tree().get_nodes_in_group("enemies")
 	for e in enemies:
 		if e and is_instance_valid(e) and e is Node3D:
-			if global_position.distance_to((e as Node3D).global_position) <= 7.0:
+			if global_position.distance_to((e as Node3D).global_position) <= AGGRO_RADIUS:
 				if "target_player" in e:
 					e.target_player = self
 

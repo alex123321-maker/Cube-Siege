@@ -59,6 +59,16 @@ static func get_body_radius(body: CharacterBody3D, fallback_radius: float = 0.4)
 		return (col_node.shape as CylinderShape3D).radius
 	return fallback_radius
 
+## Support distance of the actual footprint along a world-space direction.
+## A box reaches farther along its diagonal than its cardinal half-width.
+static func get_body_forward_extent(body: CharacterBody3D, direction: Vector3, fallback_radius: float = 0.4) -> float:
+	var col_node: CollisionShape3D = body.get_node_or_null("CollisionShape3D") as CollisionShape3D
+	if col_node and col_node.shape is BoxShape3D:
+		var box: BoxShape3D = col_node.shape as BoxShape3D
+		var local_dir: Vector3 = col_node.global_basis.inverse() * direction.normalized()
+		return absf(local_dir.x) * box.size.x * 0.5 + absf(local_dir.z) * box.size.z * 0.5
+	return get_body_radius(body, fallback_radius)
+
 ## Main locomotion processing function for CharacterBody3D monsters.
 ## Preserves external 3D knockback (including vertical impulses from spikes/skills),
 ## enforces cliff rejection strictly on voluntary walking, executes authoritative
@@ -104,7 +114,7 @@ static func process_locomotion(
 
 	if voluntary_speed > 0.01 and body.is_on_floor():
 		var intended_dir: Vector3 = voluntary_h / voluntary_speed
-		var probe_dist: float = maxf(radius + 0.1, voluntary_speed * delta * 2.0)
+		var probe_dist: float = maxf(get_body_forward_extent(body, intended_dir, radius) + 0.1, voluntary_speed * delta * 2.0)
 		if is_cliff_ahead(body, intended_dir, probe_dist):
 			voluntary_h = Vector3.ZERO
 			voluntary_speed = 0.0
@@ -187,10 +197,10 @@ static func try_step_up(
 
 	var bounds: Vector2 = get_body_vertical_bounds(body, fallback_half_height)
 	var current_feet_y: float = bounds.x
-	var actual_radius: float = get_body_radius(body, radius)
+	var actual_extent: float = get_body_forward_extent(body, move_dir, radius)
 
 	# 2. Check ground support on top of the step: probe forward across obstacle face
-	var probe_offset: Vector3 = move_dir.normalized() * (actual_radius + 0.15)
+	var probe_offset: Vector3 = move_dir.normalized() * (actual_extent + 0.15)
 	var ray_down_start: Vector3 = Vector3(
 		body.global_position.x + probe_offset.x,
 		current_feet_y + MAX_STEP_HEIGHT + 0.2,

@@ -86,10 +86,6 @@ func _ready() -> void:
 	if not visual_seed_is_explicit:
 		visual_seed = variation_index
 
-	if rock_type == RockType.IRON:
-		max_health = 120.0
-		if resource_yield == 4:
-			resource_yield = 2
 	current_health = max_health
 
 	if prompt_label:

@@ -41,6 +41,7 @@ func setup_release(profile: CleaveVFXProfile, visual_duration: float) -> void:
 	if profile.release_sound and DisplayServer.get_name() != "headless":
 		var audio := AudioStreamPlayer3D.new()
 		audio.stream = profile.release_sound
+		audio.bus = &"SFX"
 		audio.volume_db = profile.volume_db
 		audio.unit_size = 14.0
 		audio.max_distance = 55.0

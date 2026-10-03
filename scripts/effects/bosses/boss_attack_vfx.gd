@@ -1,6 +1,8 @@
 extends Node3D
 class_name BossAttackVFX
 
+const GroundProjection = preload("res://scripts/effects/bosses/boss_ground_projection.gd")
+
 ## Code-native threat graphics. Footprint vertices use the same spec as real damage.
 var spec: BossAttackSpec
 var direction: Vector3 = Vector3.FORWARD
@@ -15,6 +17,7 @@ var _progress_mesh: MeshInstance3D
 var _progress_material: StandardMaterial3D
 var _ray_body: MeshInstance3D
 var _armed: bool = false
+var _ground_heights: Dictionary = {}
 
 func setup(p_spec: BossAttackSpec, p_direction: Vector3, p_tint: Color, p_height: Callable) -> void:
 	spec = p_spec
@@ -81,7 +84,7 @@ func _update_progress_geometry(progress: float, _active: bool) -> void:
 		return
 	var vertices: PackedVector3Array = _progress_vertices(clampf(progress, 0.0, 1.0))
 	_replace_mesh(_progress_mesh, vertices)
-	_replace_mesh(_ray_body, vertices)
+	_ray_body.mesh = _progress_mesh.mesh
 
 func _replace_mesh(instance: MeshInstance3D, vertices: PackedVector3Array) -> void:
 	var mesh: ArrayMesh = ArrayMesh.new()
@@ -189,14 +192,4 @@ func _quad(vertices: PackedVector3Array, a: Vector3, b: Vector3, c: Vector3, d: 
 	_triangle(vertices, a, c, d)
 
 func _triangle(vertices: PackedVector3Array, a: Vector3, b: Vector3, c: Vector3) -> void:
-	vertices.append(_ground_vertex(a))
-	vertices.append(_ground_vertex(b))
-	vertices.append(_ground_vertex(c))
-
-func _ground_vertex(point: Vector3) -> Vector3:
-	if height_lookup.is_valid():
-		var world: Vector3 = global_position + point
-		point.y = float(height_lookup.call(TerrainCombatRules.world_to_voxel(world.x), TerrainCombatRules.world_to_voxel(world.z))) - global_position.y + 0.06
-	else:
-		point.y = 0.06
-	return point
+	GroundProjection.append_triangle(vertices, a, b, c, global_position, height_lookup, _ground_heights)

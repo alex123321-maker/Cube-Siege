@@ -24,6 +24,7 @@ var presentation: PlayerPresentation = PlayerPresentation.new()
 var combat: PlayerCombat = PlayerCombat.new()
 var abilities: PlayerAbilities = PlayerAbilities.new()
 var orientation: PlayerOrientation = PlayerOrientation.new()
+var status_effects: PlayerStatusEffects = PlayerStatusEffects.new()
 var talents: WarriorTalentRuntime = WarriorTalentRuntime.new()
 var enemy_carry: PlayerEnemyCarry = PlayerEnemyCarry.new()
 var input_enabled: bool = true
@@ -203,6 +204,7 @@ const FLOATING_TEXT_SCENE = preload("res://scenes/floating_text.tscn")
 
 func _ready() -> void:
 	add_to_group("player")
+	status_effects.setup(self)
 	var reg = get_node_or_null("/root/EntityRegistry")
 	if reg and reg.has_method("register_player"):
 		reg.register_player(self)
@@ -298,6 +300,7 @@ func _physics_process(delta: float) -> void:
 	health.update_timers(delta)
 	combat.update_timers(delta)
 	abilities.update_timers(delta, self)
+	status_effects.advance(delta)
 
 	# Locomotion and aim directions computed before action inputs
 	var deadzone: float = orientation.settings.aim_deadzone if orientation.settings else 0.6

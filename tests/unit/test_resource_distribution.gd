@@ -89,3 +89,28 @@ func test_mountain_wood_has_no_big_trees() -> void:
 		if details["deposit_form"] == ResourceDist.DepositForm.FULL_DEPOSIT:
 			var v: int = details["variation_index"]
 			assert_true(v == 3 or v == 4, "Mountain trees must be small/young shrubs (variation 3 or 4), got %d" % v)
+
+func test_demo_resource_density_reductions_preserve_biome_composition() -> void:
+	assert_almost_eq(ResourceDist.get_attempt_rate({BiomeSystem.BiomeType.FOREST: 1.0}), 0.16 * 0.70, 0.00001)
+	assert_almost_eq(ResourceDist.get_attempt_rate({BiomeSystem.BiomeType.PLAINS: 1.0}), 0.16 * 0.60, 0.00001)
+	assert_almost_eq(ResourceDist.get_attempt_rate({BiomeSystem.BiomeType.MOUNTAINS: 1.0}), 0.16 * 0.50, 0.00001)
+	assert_almost_eq(ResourceDist.get_attempt_rate({BiomeSystem.BiomeType.FOREST: 0.5, BiomeSystem.BiomeType.PLAINS: 0.5}), 0.16 * 0.65, 0.00001)
+
+func test_tree_yield_increases_with_authored_deposit_size() -> void:
+	var yields: Array[int] = []
+	for variation in range(5):
+		var details: Dictionary = ResourceDist.resolve_spawn_details(ResourceDist.ResourceType.WOOD, BiomeSystem.BiomeType.FOREST, 0.0, 0.9, (float(variation) + 0.1) / 5.0)
+		assert_eq(details["variation_index"], variation)
+		yields.append(int(details["yield_amount"]))
+	assert_gt(yields[0], yields[3], "Adult standard oak contains more wood than a young oak")
+	assert_gt(yields[1], yields[0], "Tall oak contains more wood than standard oak")
+	assert_gt(yields[2], yields[1], "Broad oak contains the most wood")
+	assert_gt(yields[3], yields[4], "Young oak contains more wood than a shrub")
+
+func test_ore_yield_increases_with_tier() -> void:
+	for resource_type: ResourceDist.ResourceType in [ResourceDist.ResourceType.STONE, ResourceDist.ResourceType.IRON]:
+		var small: Dictionary = ResourceDist.resolve_spawn_details(resource_type, BiomeSystem.BiomeType.MOUNTAINS, 60.0, 0.9, 0.1)
+		var medium: Dictionary = ResourceDist.resolve_spawn_details(resource_type, BiomeSystem.BiomeType.MOUNTAINS, 60.0, 0.9, 0.5)
+		var large: Dictionary = ResourceDist.resolve_spawn_details(resource_type, BiomeSystem.BiomeType.MOUNTAINS, 60.0, 0.9, 0.9)
+		assert_gt(medium["yield_amount"], small["yield_amount"])
+		assert_gt(large["yield_amount"], medium["yield_amount"])

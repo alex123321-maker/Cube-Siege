@@ -4,8 +4,10 @@ class_name WaveDirector
 @export var day_night_path: NodePath
 @export var player_path: NodePath
 
-@export var spawn_interval: float = 1.6
-@export var max_concurrent_enemies: int = 20
+@export var spawn_interval: float = 1.0
+@export var max_concurrent_enemies: int = 32
+@export var enemies_per_spawn: int = 2
+@export var opening_wave_enemies: int = 6
 
 var is_active: bool = false
 var spawn_timer: float = 0.0
@@ -33,14 +35,20 @@ func _process(delta: float) -> void:
 	spawn_timer -= delta
 	if spawn_timer <= 0.0:
 		spawn_timer = spawn_interval
-		try_spawn_wave_enemy()
+		var reg = get_node_or_null("/root/EntityRegistry")
+		var has_boss: bool = reg.has_active_boss() if reg else not get_tree().get_nodes_in_group("boss").is_empty()
+		for _enemy_index in range(1 if has_boss else enemies_per_spawn):
+			try_spawn_wave_enemy()
 
 func _on_phase_changed(is_night: bool, day_number: int) -> void:
 	is_active = is_night
 	current_wave = day_number
-	spawn_timer = 0.0
-	spawn_interval = maxf(1.35, 3.2 - float(current_wave) * 0.06)
-	max_concurrent_enemies = mini(42, 10 + current_wave)
+	spawn_timer = spawn_interval
+	if is_night:
+		# Canonical boss encounters occur every five nights; reserve their slot.
+		var opening_count: int = mini(opening_wave_enemies, 3) if day_number % 5 == 0 else opening_wave_enemies
+		for _enemy_index in range(opening_count):
+			try_spawn_wave_enemy()
 
 	if not is_night:
 		# Morning sun burns surviving weak grunts
