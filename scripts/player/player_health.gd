@@ -43,7 +43,7 @@ func trigger_parry(duration: float = PARRY_WINDOW, cooldown: float = PARRY_COOLD
 	return true
 
 func take_damage(damage: float, attacker: Node = null, is_invulnerable: bool = false, is_dueling: bool = false, duel_target: Node = null, player_node: Node = null) -> void:
-	if is_invulnerable or current_health <= 0.0 or damage <= 0.0:
+	if is_invulnerable or current_health <= 0.0 or damage <= 0.0 or not _owner_available(player_node):
 		return
 	var runtime: WarriorTalentRuntime = player_node.talents if player_node is PlayerPrototype else null
 	if runtime and runtime.dodge():
@@ -55,6 +55,8 @@ func take_damage(damage: float, attacker: Node = null, is_invulnerable: bool = f
 		is_parrying = counter
 		parry_cooldown_timer = PARRY_SUCCESS_COOLDOWN * (runtime.multiplier("parry_cooldown") if runtime else 1.0)
 		parry_triggered.emit(true)
+		if not _owner_available(player_node):
+			return
 
 		if player_node and is_instance_valid(player_node):
 			var vfx = player_node.get_node_or_null("/root/VFXManager")
@@ -67,15 +69,19 @@ func take_damage(damage: float, attacker: Node = null, is_invulnerable: bool = f
 		if player_node and is_instance_valid(player_node):
 			var enemies: Array[Node] = player_node.get_tree().get_nodes_in_group("enemies")
 			for e in enemies:
+				if not _owner_available(player_node):
+					return
 				if not is_instance_valid(e) or e == player_node:
 					continue
 				if e is Node3D and player_node.global_position.distance_to(e.global_position) <= COUNTER_RADIUS:
 					if e.has_method("apply_stun"):
 						e.apply_stun(COUNTER_STUN)
-					if COUNTER_DAMAGE > 0.0 and e.has_method("_on_damaged"):
+					if not _owner_available(player_node):
+						return
+					if COUNTER_DAMAGE > 0.0 and is_instance_valid(e) and e.has_method("_on_damaged"):
 						e._on_damaged(COUNTER_DAMAGE, (e.global_position - player_node.global_position).normalized() * 8.0, "counter", player_node)
-		if counter and is_instance_valid(attacker) and attacker.has_method("_on_damaged"):
-			attacker._on_damaged(runtime.attack_based_ability_damage(), Vector3.ZERO, "counter", player_node)
+		if _owner_available(player_node) and counter and is_instance_valid(attacker) and not attacker.is_queued_for_deletion() and attacker.has_method("_on_damaged"):
+			attacker._on_damaged(runtime.attack_based_ability_damage(attacker), Vector3.ZERO, "counter", player_node)
 		return
 
 	var health_multiplier: float = 1.0
@@ -90,18 +96,33 @@ func take_damage(damage: float, attacker: Node = null, is_invulnerable: bool = f
 	shield_health = receipt.remaining_shield
 	if reflection_fraction > 0.0 and is_instance_valid(attacker) and attacker.has_method("_on_damaged"):
 		attacker._on_damaged(receipt.reflection_base() * reflection_fraction, Vector3.ZERO, "reflected", player_node)
+	if not _owner_available(player_node):
+		return
 	health_changed.emit(current_health, max_health)
+	if not _owner_available(player_node):
+		return
 
 	var bus = player_node.get_node_or_null("/root/EventBus") if player_node else null
 	if bus:
 		bus.player_health_changed.emit(current_health, max_health)
+	if not _owner_available(player_node):
+		return
 
 	if current_health <= 0.0 and not _death_sent:
 		_death_sent = true
 		current_health = 0.0
 		player_died.emit()
-		if bus:
+		# Ordinary death ends the run synchronously through the coordinator.
+		# Keep its one global notification, but never touch a deleted owner.
+		if _owner_available(player_node, false) and is_instance_valid(bus):
 			bus.player_died.emit()
+
+func _owner_available(owner: Variant, require_active_run: bool = true) -> bool:
+	if typeof(owner) == TYPE_NIL:
+		return true # Standalone health component has no actor lifecycle to cancel.
+	if not is_instance_valid(owner) or not owner is Node or not owner.is_inside_tree() or owner.is_queued_for_deletion():
+		return false
+	return not require_active_run or not owner is PlayerPrototype or (owner as PlayerPrototype).progression.run_build.active
 
 func heal(amount: float) -> void:
 	if current_health <= 0.0:

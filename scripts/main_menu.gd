@@ -62,6 +62,14 @@ func _on_btn_settings_pressed() -> void: show_view("settings")
 func _on_btn_quit_pressed() -> void: get_tree().quit()
 func _on_btn_back_to_main_pressed() -> void: show_view("main")
 
+func _on_btn_sandbox_pressed() -> void:
+	if not GameplaySandboxSession.begin(self):
+		return
+	var scene_error: Error = get_tree().change_scene_to_file("res://scenes/tools/gameplay_sandbox.tscn")
+	if scene_error != OK:
+		GameplaySandboxSession.leave(self)
+		push_error("Не удалось открыть песочницу: %s" % error_string(scene_error))
+
 func update_character_cards() -> void:
 	if not roster_mgr:
 		return

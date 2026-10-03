@@ -20,7 +20,7 @@ var _sword_contact: bool = false
 var _cleave: bool = false
 
 class PendingCast extends RefCounted:
-	enum Kind { ATTACK, SPECIAL }
+	enum Kind { ATTACK, SPECIAL, CLEAVE_AT_LUNGE_END }
 	var kind: Kind
 	var class_id: int
 	var remaining: float
@@ -134,7 +134,9 @@ func _advance_execution(player: CharacterBody3D, delta: float) -> void:
 		_close_slash()
 
 func _release_cast(player: CharacterBody3D, cast: PendingCast) -> void:
-	if cast.kind == PendingCast.Kind.ATTACK:
+	if cast.kind == PendingCast.Kind.CLEAVE_AT_LUNGE_END:
+		trigger_slash(player, special_damage, 12.0, 180.0, cast.dueling, true)
+	elif cast.kind == PendingCast.Kind.ATTACK:
 		match cast.class_id:
 			0: trigger_slash(player, attack_damage, 5.0, 90.0, cast.dueling, player.talents.has("sweeping_strike"))
 			1: trigger_arrow_shot(player, attack_damage, 1, ARROW_SPEED)
@@ -223,12 +225,20 @@ func perform_special_attack(player: CharacterBody3D, current_class: int, is_dash
 func _start_warrior_cleave(player: CharacterBody3D, is_dueling: bool) -> void:
 	if player.talents.has("wide_lunge"):
 		player.movement.start_lunge(-player.global_transform.basis.z, WarriorTalentCatalog.LUNGE_DISTANCE * player.talents.multiplier("lunge_distance"), WarriorTalentCatalog.LUNGE_DURATION)
+		if not player.talents.has("whirlwind_cleave"):
+			# Canonical Wide Lunge is harmless in transit and strikes once at
+			# the actual collision-limited endpoint. Only Whirlwind sweeps it.
+			_schedule_cast(player, PendingCast.Kind.CLEAVE_AT_LUNGE_END, 0, WarriorTalentCatalog.LUNGE_DURATION, is_dueling)
+			return
 	if player.talents.has("whirlwind_cleave") and player.presentation:
 		player.presentation.start_whirlwind_spin(WarriorTalentCatalog.LUNGE_DURATION if player.talents.has("wide_lunge") else SLASH_ACTIVE_DURATION)
 	trigger_slash(player, special_damage, 12.0, 360.0 if player.talents.has("whirlwind_cleave") else 180.0, is_dueling, true)
 
 func _uses_talent_cleave_visual(player: CharacterBody3D) -> bool:
 	return player is PlayerPrototype and player.current_class == 0 and (player.talents.has("whirlwind_cleave") or player.talents.has("wide_lunge") or not is_equal_approx(player.talents.multiplier("cleave_radius"), 1.0))
+
+func _uses_travelling_cleave(player: CharacterBody3D) -> bool:
+	return player is PlayerPrototype and player.current_class == 0 and player.talents.has("wide_lunge") and player.talents.has("whirlwind_cleave")
 
 func trigger_slash(player: CharacterBody3D, dmg: float, knockback: float, arc_degrees: float, is_dueling: bool, can_hit_multiple: bool = true) -> void:
 	if not _is_actor_alive(player):
@@ -261,7 +271,7 @@ func trigger_slash(player: CharacterBody3D, dmg: float, knockback: float, arc_de
 	if vfx:
 		if arc_degrees > 120.0:
 			if _uses_talent_cleave_visual(player):
-				TALENT_VFX.spawn_cleave(player, CLEAVE_SPEC.radius * player.talents.multiplier("cleave_radius"), arc_degrees, WarriorTalentCatalog.LUNGE_DURATION if player.talents.has("wide_lunge") else SLASH_ACTIVE_DURATION)
+				TALENT_VFX.spawn_cleave(player, CLEAVE_SPEC.radius * player.talents.multiplier("cleave_radius"), arc_degrees, WarriorTalentCatalog.LUNGE_DURATION if _uses_travelling_cleave(player) else SLASH_ACTIVE_DURATION)
 			else:
 				vfx.spawn_cleave_wave(player.global_position, aim_dir, 0.25)
 		elif player.current_class == 0:
@@ -271,7 +281,7 @@ func trigger_slash(player: CharacterBody3D, dmg: float, knockback: float, arc_de
 
 	_ensure_driver(player)
 	_active_slash = slash_area
-	_slash_remaining = WarriorTalentCatalog.LUNGE_DURATION if player.current_class == 0 and arc_degrees > 120.0 and player.talents.has("wide_lunge") else SLASH_ACTIVE_DURATION
+	_slash_remaining = WarriorTalentCatalog.LUNGE_DURATION if arc_degrees > 120.0 and _uses_travelling_cleave(player) else SLASH_ACTIVE_DURATION
 	_initial_sample_pending = true
 	_sword_contact = player.current_class == 0
 	_cleave = player.current_class == 0 and arc_degrees > 120.0

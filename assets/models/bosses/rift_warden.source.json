@@ -572,5 +572,10 @@
     }
   ],
   "author": "Original Cube Siege code-native geometry authored for this request; no downloaded media",
-  "units": "meters; bottom-center model pivot; faces -Z; gameplay root at half_height"
+  "units": "meters; bottom-center model pivot; faces -Z; gameplay root at half_height",
+  "canonical_attacks": [
+    "radial_centre_to_edges",
+    "line_beam",
+    "chase"
+  ]
 }

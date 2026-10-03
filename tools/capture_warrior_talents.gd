@@ -34,7 +34,7 @@ func _capture() -> void:
 		enemy.current_health = 10000.0
 		enemy.hp_label.hide()
 		_targets.append(enemy)
-	for variant: int in range(5):
+	for variant: int in range(6):
 		await _talent_case(variant)
 	_caption.text = "DISMEMBERMENT / ACTUAL DUEL VICTORY LOCATION"
 	_detail.text = "Original voxel breakup + morale pulse; enemies receive snapshot slow"
@@ -48,7 +48,7 @@ func _capture() -> void:
 	var real_victory: bool = victim.current_health <= 0.0 and victim.is_dying and not _player.is_dueling
 	for frame: int in range(45):
 		if frame in [3, 10, 20]:
-			await _save("05_dismember_%02d" % frame)
+			await _save("06_dismember_%02d" % frame)
 		await process_frame
 	var debris_pass: bool = real_victory and _player.talents.morale_remaining > 0.0 and bystander.status_effects.movement_multiplier() < 1.0
 	_failed = _failed or not debris_pass
@@ -79,11 +79,15 @@ func _talent_case(variant: int) -> void:
 	build.specializations.clear()
 	if variant == 2:
 		build.selected_talents.assign(["whirlwind_cleave"])
-	elif variant >= 3:
+	elif variant in [3, 4]:
 		build.selected_talents.assign(["whirlwind_cleave", "wide_lunge"])
 		build.specializations["cleave_radius"] = 3
+	elif variant == 5:
+		build.selected_talents.assign(["wide_lunge"])
 	_player.talents.refresh_stats()
 	var offsets: Array[Vector3] = [Vector3(0.0, 0.0, -1.8), Vector3(2.4, 0.0, -1.6), Vector3(0.0, 0.0, 2.5), Vector3(0.0, 0.0, -5.8), Vector3(0.0, 0.0, 8.0)]
+	if variant == 5:
+		offsets[0] = Vector3(0.0, 0.0, -1.2)
 	for index: int in range(_targets.size()):
 		_targets[index].current_health = 10000.0
 		_targets[index].global_position = _player.global_position + offsets[index] * (4.0 if variant == 4 else 1.0)
@@ -92,7 +96,7 @@ func _talent_case(variant: int) -> void:
 		_lighting.apply_day_instant(_light, _environment)
 	else:
 		_lighting.apply_night_instant(_light, _environment)
-	var titles: PackedStringArray = ["BASIC SWORD", "DEFAULT FRONTAL CLEAVE", "360° WHIRLWIND", "WHIRLWIND + LUNGE + RADIUS RANK 3", "WHIRLWIND + LUNGE / MISS"]
+	var titles: PackedStringArray = ["BASIC SWORD", "DEFAULT FRONTAL CLEAVE", "360° WHIRLWIND", "WHIRLWIND + LUNGE + RADIUS RANK 3", "WHIRLWIND + LUNGE / MISS", "WIDE LUNGE ALONE / ENDPOINT STRIKE"]
 	_caption.text = titles[variant]
 	_detail.text = "Real input entry point / same camera / stationary sentinels"
 	for frame: int in range(62):
@@ -114,6 +118,7 @@ func _talent_case(variant: int) -> void:
 		2: expected.assign([60.0, 60.0, 60.0, 0.0, 0.0])
 		3: expected.assign([60.0, 60.0, 60.0, 60.0, 0.0])
 		4: expected.assign([0.0, 0.0, 0.0, 0.0, 0.0])
+		5: expected.assign([0.0, 0.0, 0.0, 60.0, 0.0])
 	var passed: bool = losses == expected
 	var restored: bool = is_equal_approx(_player.presentation.active_model.rotation.y, PI)
 	passed = passed and restored

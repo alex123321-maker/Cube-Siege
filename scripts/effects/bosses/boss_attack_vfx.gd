@@ -11,6 +11,10 @@ var _edge: MeshInstance3D
 var _fill_material: StandardMaterial3D
 var _edge_material: StandardMaterial3D
 var _peak: MeshInstance3D
+var _progress_mesh: MeshInstance3D
+var _progress_material: StandardMaterial3D
+var _ray_body: MeshInstance3D
+var _armed: bool = false
 
 func setup(p_spec: BossAttackSpec, p_direction: Vector3, p_tint: Color, p_height: Callable) -> void:
 	spec = p_spec
@@ -29,22 +33,77 @@ func setup(p_spec: BossAttackSpec, p_direction: Vector3, p_tint: Color, p_height
 	_peak.position.y = 0.45
 	_peak.visible = false
 	add_child(_peak)
+	if spec.kind == BossAttackSpec.Kind.LINE_BEAM or spec.kind == BossAttackSpec.Kind.RADIAL_BEAM:
+		_progress_material = _material(Color(tint, 0.25), 0.9)
+		_progress_mesh = _mesh(_progress_vertices(0.0), _progress_material)
+		_ray_body = _mesh(_progress_vertices(0.0), _progress_material)
+		_ray_body.position.y = 0.8
+		_ray_body.visible = false
 
 func set_warning_progress(progress: float) -> void:
 	if _fill_material:
 		_fill_material.albedo_color.a = 0.10 + 0.20 * clampf(progress, 0.0, 1.0)
 		_edge_material.emission_energy_multiplier = 0.7 + progress * 0.6
+	_update_progress_geometry(progress, false)
 
 func show_impact() -> void:
+	_armed = false
 	_fill_material.albedo_color.a = 0.65
 	_edge_material.emission_energy_multiplier = 1.7
 	_peak.visible = true
 	_peak.scale = Vector3(1.0, 1.0, 1.0)
+	if _progress_mesh:
+		_fill_material.albedo_color.a = 0.08
+		_peak.visible = false
+		_ray_body.visible = true
+		_progress_material.albedo_color.a = 0.65
+		_progress_material.emission_energy_multiplier = 1.7
+
+func show_armed_trap() -> void:
+	_armed = true
+	_fill_material.albedo_color.a = 0.22
+	_peak.visible = true
+	_peak.scale = Vector3(0.7, 0.5, 0.7)
+	_edge_material.emission_energy_multiplier = 1.4
 
 func set_impact_progress(progress: float) -> void:
+	if _armed:
+		return
+	if _progress_mesh:
+		_update_progress_geometry(progress, true)
+		return
 	_fill_material.albedo_color.a = lerpf(0.65, 0.05, progress)
 	_peak.scale = Vector3(1.0 + progress * 1.5, 1.0 + progress * 2.0, 1.0 + progress * 1.5)
 	_peak.position.y = 0.45 + progress * 0.6
+
+func _update_progress_geometry(progress: float, _active: bool) -> void:
+	if not _progress_mesh:
+		return
+	var vertices: PackedVector3Array = _progress_vertices(clampf(progress, 0.0, 1.0))
+	_replace_mesh(_progress_mesh, vertices)
+	_replace_mesh(_ray_body, vertices)
+
+func _replace_mesh(instance: MeshInstance3D, vertices: PackedVector3Array) -> void:
+	var mesh: ArrayMesh = ArrayMesh.new()
+	var arrays: Array = []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	instance.mesh = mesh
+
+func _progress_vertices(progress: float) -> PackedVector3Array:
+	var vertices: PackedVector3Array = PackedVector3Array()
+	if spec.kind == BossAttackSpec.Kind.LINE_BEAM:
+		_rectangle(vertices, Vector3.ZERO, direction * spec.reach * maxf(progress, 0.0001), spec.width, false)
+	else:
+		for angle: float in spec.radial_angles(progress):
+			var first: float = maxf(-spec.arc_degrees * 0.5, angle - spec.ray_half_angle_degrees)
+			var last: float = minf(spec.arc_degrees * 0.5, angle + spec.ray_half_angle_degrees)
+			for index: int in range(4):
+				var a: Vector3 = direction.rotated(Vector3.UP, deg_to_rad(lerpf(first, last, float(index) / 4.0))) * spec.reach
+				var b: Vector3 = direction.rotated(Vector3.UP, deg_to_rad(lerpf(first, last, float(index + 1) / 4.0))) * spec.reach
+				_triangle(vertices, Vector3.ZERO, a, b)
+	return vertices
 
 func _material(color: Color, emission: float) -> StandardMaterial3D:
 	var material: StandardMaterial3D = StandardMaterial3D.new()

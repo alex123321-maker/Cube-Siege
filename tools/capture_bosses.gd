@@ -50,6 +50,7 @@ func _capture() -> void:
 			await _attack(boss, 0, 2 if stage == 5 else 3)
 		boss.queue_free()
 		await process_frame
+	await _trap_and_trail()
 	_caption.text = "BOSS REVIEW COMPLETE"
 	_detail.text = "%d authoritative attack samples / %s" % [_checks.size(), "FAIL" if _failed else "PASS"]
 	await _save("99_complete")
@@ -59,6 +60,18 @@ func _capture() -> void:
 	quit(2 if _failed else 0)
 
 func _build_arena() -> void:
+	var save: Node = root.get_node("SaveManager")
+	if not save.is_test_environment():
+		_failed = true
+		push_error("CAPTURE_PROFILE_FAIL: isolated storage is required before actor initialization")
+		quit(2)
+		return
+	# The wrapper supplies a fresh isolated profile before autoloads run. Reset
+	# its memory as well: actor ready must never inherit another capture's class.
+	save.reset_to_defaults()
+	var roster: Node = root.get_node("RosterManager")
+	roster.selected_slot_index = 0
+	roster.run_active = false
 	_world = Node3D.new()
 	root.add_child(_world)
 	current_scene = _world
@@ -108,8 +121,12 @@ func _build_arena() -> void:
 	_camera.current = true
 	_player = PLAYER.instantiate() as PlayerPrototype
 	_world.add_child(_player)
+	# Review damage numbers exclude permanent openings, and each derived
+	# capture selects its own talents through the ordinary runtime build.
+	_player.talents.reset_for_viewer(WarriorTalentCatalog.TALENT_IDS)
 	_player.set_physics_process(false)
-	_player.input_enabled = false
+	# Native input/locomotion are disabled by set_physics_process; carry still uses the real receiver.
+	_player.input_enabled = true
 	_player.get_node("PortalCompass").hide()
 	_player.max_health = 10000.0
 	_player.current_health = 10000.0
@@ -180,9 +197,21 @@ func _attack(boss: SiegeBoss, index: int, phase: int) -> void:
 	boss._attack_index = index - 1
 	boss.begin_next_attack()
 	var before: float = _player.current_health
-	var expected: float = boss._attack.damage
 	var warning_ok: bool = true
 	var spec: BossAttackSpec = boss._attack
+	var expected: float = spec.damage
+	match spec.kind:
+		BossAttackSpec.Kind.LINE_BEAM:
+			expected *= spec.active * (1.0 - 3.5 / spec.reach)
+		BossAttackSpec.Kind.RADIAL_BEAM:
+			expected *= 2.0 * spec.ray_half_angle_degrees / spec.angular_speed_degrees
+		BossAttackSpec.Kind.CHASE:
+			expected *= 6.0
+	var impact_time: float = spec.windup + 0.10
+	if spec.kind == BossAttackSpec.Kind.LINE_BEAM:
+		impact_time = spec.windup + spec.active * 0.65
+	elif spec.kind == BossAttackSpec.Kind.RADIAL_BEAM:
+		impact_time = spec.windup + spec.active * (0.5 if spec.radial_variant < 2 else (0.04 if spec.radial_variant == BossAttackSpec.RadialVariant.CENTRE_TO_EDGES else 0.96))
 	var frames: int = ceili((spec.windup + spec.active + 0.70) * 30.0)
 	var stem: String = "%02d_attack_%d_phase_%d" % [boss.stage, index, phase]
 	_caption.text = "WAVE %d / %s / PHASE %d" % [boss.stage * 5, boss.display_name, phase]
@@ -194,15 +223,71 @@ func _attack(boss: SiegeBoss, index: int, phase: int) -> void:
 		if frame == floori(spec.windup * 30.0 * 0.55):
 			warning_ok = is_equal_approx(before, _player.current_health)
 			await _save(stem + "_warning")
-		if frame == ceili(spec.windup * 30.0) + 3:
+		if frame == ceili(impact_time * 30.0):
 			await _save(stem + "_impact")
 		await process_frame
 	var loss: float = before - _player.current_health
-	var passed: bool = warning_ok and is_equal_approx(loss, expected)
-	_checks.append({"stage": boss.stage, "attack": index, "title": spec.title, "phase": phase, "warning_safe": warning_ok, "expected_damage": expected, "actual_health_loss": loss, "passed": passed})
+	var passed: bool = warning_ok and absf(loss - expected) <= 0.04
+	_checks.append({"stage": boss.stage, "attack": index, "title": spec.title, "canonical_kind": BossAttackSpec.Kind.keys()[spec.kind], "phase": phase, "warning_safe": warning_ok, "expected_damage": expected, "actual_health_loss": loss, "passed": passed})
 	_failed = _failed or not passed
 	print("BOSS_SAMPLE ", stem, " expected=", expected, " loss=", loss, " warning_safe=", warning_ok, " pass=", passed)
 
 func _save(stem: String) -> void:
 	await RenderingServer.frame_post_draw
-	root.get_texture().get_image().save_png(_output + stem + ".png")
+	var error: Error = root.get_texture().get_image().save_png(_output + stem + ".png")
+	if error != OK:
+		_failed = true
+		push_error("CAPTURE_FRAME_FAIL: %s (%s)" % [stem, error_string(error)])
+		quit(2)
+		return
+	print("CAPTURE_FRAME saved=", stem, ".png")
+
+func _trap_and_trail() -> void:
+	for case_index: int in range(2):
+		var stage: int = 1 if case_index == 0 else 5
+		var boss: SiegeBoss = (load(SCENES[stage - 1]) as PackedScene).instantiate() as SiegeBoss
+		boss.configure(stage, _player)
+		_world.add_child(boss)
+		boss.global_position = Vector3(0, 1.5, 0)
+		boss._height_lookup = Callable(self, "_flat_height")
+		boss.set_physics_process(false)
+		_player.global_position = Vector3(0, 0.9, -3.5)
+		boss._attack_index = 0 if case_index == 0 else 1
+		boss.begin_next_attack()
+		var spec: BossAttackSpec = boss._attack
+		var hazard: BossAttackHazard
+		for child: Node in boss.get_children():
+			if child is BossAttackHazard:
+				hazard = child as BossAttackHazard
+		var before: float = _player.current_health
+		var armed_seen: bool = false
+		var fixed_seen: bool = false
+		var observed_marks: int = 0
+		var duration: float = spec.windup + (1.0 if case_index == 0 else spec.active + 0.35)
+		_caption.text = "CANONICAL / " + ("EMPTY LANDING → TRAP → ENTRY" if case_index == 0 else "SIX REAL TRAIL SNAPSHOTS / KEEP MOVING")
+		for frame: int in range(ceili(duration * 30.0)):
+			var time: float = float(frame) / 30.0
+			if case_index == 0:
+				_player.global_position.x = 7.0 if time < spec.windup + 0.45 else 0.0
+			else:
+				_player.global_position.x = time * 3.5
+			boss._physics_process(1.0 / 30.0)
+			_player.health.update_timers(1.0 / 30.0)
+			if case_index == 1 and is_instance_valid(hazard):
+				observed_marks = maxi(observed_marks, hazard.marks.size())
+			_detail.text = "%s / %.2fs / %s" % [spec.title, time, "TRAP" if case_index == 0 else "MARKS %d/6" % observed_marks]
+			if case_index == 0 and frame == ceili((spec.windup + 0.20) * 30.0):
+				armed_seen = is_instance_valid(hazard) and hazard.armed_trap and is_equal_approx(before, _player.current_health)
+				await _save("07_lob_empty_armed")
+			if case_index == 0 and frame == ceili((spec.windup + 0.55) * 30.0):
+				await _save("07_lob_trap_entry")
+			if case_index == 1 and frame == ceili(spec.mark_gap * 4.0 * 30.0):
+				fixed_seen = hazard.marks[0].centre.is_equal_approx(Vector3(0, 0, -3.5)) and hazard.marks.size() >= 4
+				await _save("08_chase_moving_fixed_marks")
+			await process_frame
+		var loss: float = before - _player.current_health
+		var passed: bool = (armed_seen and absf(loss - spec.damage) < 0.04) if case_index == 0 else (fixed_seen and observed_marks == 6 and is_equal_approx(loss, 0.0))
+		_checks.append({"canonical_case": "empty_lob_then_trap_entry" if case_index == 0 else "moving_hero_fixed_six_marks", "expected_damage": spec.damage if case_index == 0 else 0.0, "actual_health_loss": loss, "armed_or_fixed_seen": armed_seen if case_index == 0 else fixed_seen, "observed_marks": observed_marks, "passed": passed})
+		_failed = _failed or not passed
+		boss.queue_free()
+		await process_frame

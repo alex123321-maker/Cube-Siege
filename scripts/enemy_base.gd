@@ -11,6 +11,7 @@ var last_damage_type: String = ""
 var status_effects: StatusEffectState = StatusEffectState.new()
 var knockback_velocity: Vector3 = Vector3.ZERO
 var target_player: Node3D = null
+var elite_skill_controller: EliteSkillController = null
 
 const EnemyPresentationClass = preload("res://scripts/enemy_presentation.gd")
 
@@ -30,6 +31,8 @@ func _enter_tree() -> void:
 		reg.register_enemy(self)
 
 func _exit_tree() -> void:
+	if is_instance_valid(elite_skill_controller):
+		elite_skill_controller.cancel_attack()
 	var reg = get_node_or_null("/root/EntityRegistry")
 	if reg:
 		reg.unregister_enemy(self)
@@ -58,22 +61,24 @@ func _physics_process(delta: float) -> void:
 		return
 
 	status_effects.advance(delta)
-	if not status_effects.is_stunned():
+	var elite_controls_motion: bool = is_instance_valid(elite_skill_controller) and elite_skill_controller.advance(delta)
+	if not elite_controls_motion and not status_effects.is_stunned():
 		_custom_physics(delta)
 	desired_velocity_h *= status_effects.movement_multiplier()
 
 	# Locomotion with authoritative voxel step-up/down, cliff avoidance, and 3D knockback preservation
-	var loc_result: Dictionary = MonsterLocomotion.process_locomotion(
-		self,
-		delta,
-		desired_velocity_h,
-		knockback_velocity,
-		half_height,
-		radius,
-		step_smooth_offset_y
-	)
-	step_smooth_offset_y = float(loc_result.get("smooth_offset_y", 0.0))
-	knockback_velocity = loc_result.get("knockback", Vector3.ZERO)
+	if not is_instance_valid(elite_skill_controller) or not elite_skill_controller.uses_custom_motion():
+		var loc_result: Dictionary = MonsterLocomotion.process_locomotion(
+			self,
+			delta,
+			desired_velocity_h,
+			knockback_velocity,
+			half_height,
+			radius,
+			step_smooth_offset_y
+		)
+		step_smooth_offset_y = float(loc_result.get("smooth_offset_y", 0.0))
+		knockback_velocity = loc_result.get("knockback", Vector3.ZERO)
 
 	presentation.update(delta, velocity, move_speed)
 
@@ -129,6 +134,9 @@ func apply_slow(source_id: String, strength: float, duration: float) -> void:
 func apply_stun(duration: float) -> void:
 	if is_in_group("boss"):
 		return
+	if is_instance_valid(elite_skill_controller):
+		elite_skill_controller.interrupt_attack()
+		duration *= 0.5
 	status_effects.apply_stun("parry", duration)
 	desired_velocity_h = Vector3.ZERO
 
@@ -174,6 +182,8 @@ func die() -> void:
 	if is_dying:
 		return
 	is_dying = true
+	if is_instance_valid(elite_skill_controller):
+		elite_skill_controller.cancel_attack()
 
 	remove_from_group("enemies")
 

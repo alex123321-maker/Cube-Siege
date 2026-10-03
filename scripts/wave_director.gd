@@ -150,12 +150,18 @@ func try_spawn_wave_enemy() -> void:
 			if visuals:
 				visuals.scale *= 1.20
 			enemy.shield_health = 35.0 + float(current_wave)
+			var skill_ids: PackedStringArray = EliteSkillCatalog.ids_for_scene(mob_scene.resource_path)
+			if not skill_ids.is_empty():
+				EliteSkillController.attach(enemy, skill_ids[randi_range(0, skill_ids.size() - 1)], Callable(self, "_get_elite_ground_height"))
 		enemy.update_hp_label()
 	if reg:
 		reg.register_enemy(enemy_instance)
 
 func stop() -> void:
 	is_active = false
+
+func _get_elite_ground_height(x: int, z: int) -> float:
+	return get_terrain_surface_y(Vector3(float(x), 0.0, float(z)))
 
 func spawn_boss(scene: PackedScene, stage: int) -> SiegeBoss:
 	if not player or not is_instance_valid(player):

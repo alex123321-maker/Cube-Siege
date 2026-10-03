@@ -46,10 +46,13 @@ func refresh_meta() -> void:
 	_meta = actor.progression.apply_mastery_stats(actor) if actor.uses_meta_progression() else {}
 	refresh_stats()
 
-func attack_based_ability_damage() -> float:
+func attack_based_ability_damage(target: Node = null) -> float:
 	# Permanent Bloodlust openings strengthen the basic attack only. Counter
 	# and dash retain their attack-property scaling without this meta bonus.
-	return actor.attack_damage / maxf(1.0, float(_meta.get("damage_mult", 1.0)))
+	var damage: float = actor.attack_damage / maxf(1.0, float(_meta.get("damage_mult", 1.0)))
+	if actor.is_dueling and is_instance_valid(actor.duel_target) and target == actor.duel_target:
+		damage *= 1.0 + 0.2 * multiplier("duel_bonus")
+	return damage
 
 func advance(delta: float) -> void:
 	statuses.advance(delta)
@@ -97,7 +100,9 @@ func _dismember(position: Vector3) -> void:
 	actor.spawn_popup_text("МОРАЛЬ ПОВЫШЕНА", Color(0.5, 0.9, 1.0))
 
 func _on_parry(success: bool) -> void:
-	if success and has("hot_blood"):
+	# A forwarded actor signal can synchronously delete/end the owner before
+	# this second component listener receives the same parry notification.
+	if success and is_instance_valid(actor) and actor.is_inside_tree() and not actor.is_queued_for_deletion() and build().active and has("hot_blood"):
 		regeneration_remaining = WarriorTalentCatalog.HOT_BLOOD_DURATION
 
 func _on_dash() -> void:
@@ -105,21 +110,31 @@ func _on_dash() -> void:
 	_previous_position = actor.global_position
 
 func after_movement() -> void:
-	if not actor.is_dashing or not build().has_synergy("dangerous_movement"):
-		_previous_position = actor.global_position
+	if not _dash_can_hit():
+		if is_instance_valid(actor) and actor.is_inside_tree():
+			_previous_position = actor.global_position
 		return
 	var registry: Node = actor.get_node_or_null("/root/EntityRegistry")
 	var finish: Vector3 = actor.global_position
 	if registry:
 		var distance: float = _previous_position.distance_to(finish)
 		for enemy: Node3D in registry.get_nearby_enemies((_previous_position + finish) * 0.5, distance * 0.5 + 2.0, null):
-			if not enemy is EnemyBase or _dash_hits.has(enemy.get_instance_id()):
+			# Damage callbacks can synchronously end the run or free its owner.
+			# Disabling future physics cannot stop the current contact loop.
+			if not _dash_can_hit():
+				return
+			if not is_instance_valid(enemy) or enemy.is_queued_for_deletion() or not enemy is EnemyBase or _dash_hits.has(enemy.get_instance_id()):
 				continue
 			var closest: Vector3 = Geometry3D.get_closest_point_to_segment(enemy.global_position, _previous_position, finish)
 			if closest.distance_to(enemy.global_position) <= 1.0 + (enemy as EnemyBase).radius:
 				_dash_hits[enemy.get_instance_id()] = true
-				(enemy as EnemyBase)._on_damaged(attack_based_ability_damage(), actor.movement.dash_direction * 5.0, "dash", actor)
+				(enemy as EnemyBase)._on_damaged(attack_based_ability_damage(enemy), actor.movement.dash_direction * 5.0, "dash", actor)
+				if not _dash_can_hit():
+					return
 	_previous_position = finish
+
+func _dash_can_hit() -> bool:
+	return is_instance_valid(actor) and actor.is_inside_tree() and not actor.is_queued_for_deletion() and actor.current_health > 0.0 and build().active and actor.is_dashing and build().has_synergy("dangerous_movement") and not actor.get_tree().paused
 
 func _on_synergy_discovered(id: String) -> void:
 	actor.spawn_popup_text("СИНЕРГИЯ: " + WarriorTalentCatalog.SYNERGY_TITLES[id], Color.GOLD)

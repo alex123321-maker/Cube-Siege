@@ -152,9 +152,12 @@ func test_sword_target_limit_properties_match_native_base_and_sweeping_hits() ->
 			assert_eq(limit.effective.to_int(), slash.hits_landed, "Displayed one-target limit matches the native sword hit")
 			assert_eq(slash.hits_landed, 1)
 
-func test_cleave_properties_match_native_sector_radius_and_moving_active_window() -> void:
-	for index: int in [1, 17, 21]:
+func test_cleave_properties_match_native_sector_radius_and_endpoint_or_travelling_windows() -> void:
+	for profile: int in range(4):
+		var index: int = [1, 17, 21, 21][profile]
 		await _prepare(index)
+		if profile == 3:
+			arena.actor.configure_talents(["wide_lunge", "whirlwind_cleave"])
 		var rows: Array[AbilityViewerCatalog.Property] = AbilityViewerCatalog.properties(entries[index], arena.actor, AbilityViewerCatalog.VariantKind.BASE)
 		var radius: AbilityViewerCatalog.Property = _property(rows, "Радиус")
 		var angle: AbilityViewerCatalog.Property = _property(rows, "Угол сектора")
@@ -175,6 +178,12 @@ func test_cleave_properties_match_native_sector_radius_and_moving_active_window(
 		assert_almost_eq(slash.frontal_arc_degrees, angle.effective.to_float(), 0.001)
 		assert_almost_eq(arena.actor.combat._slash_remaining, active.effective.to_float(), 0.02, "Displayed active window matches the released production cast within one physics tick")
 		assert_eq(shape.effective, "Круг" if index == 21 else "Полукруг")
+		if profile == 1:
+			assert_false(arena.actor.movement.is_lunging, "Standalone Lunge releases its frontal strike only at the endpoint")
+			assert_string_contains(active.explanation, "после завершения")
+		if profile == 3:
+			assert_true(arena.actor.movement.is_lunging, "Lunge plus Whirlwind has a real travelling hit window")
+			assert_string_contains(active.explanation, "по всей траектории")
 		await wait_seconds(0.4)
 		assert_gt(slash.hits_landed, 0)
 		if index == 17:

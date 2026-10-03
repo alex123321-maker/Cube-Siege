@@ -101,11 +101,11 @@ func _custom_physics(delta: float) -> void:
 				state = State.ACTIVE
 				_timer = _attack.active
 				_clock = 0.0
-				if _attack.shape == BossAttackSpec.Shape.FAN:
-					_release_projectiles()
 		State.ACTIVE:
 			if _attack.charge:
-				desired_velocity_h = _direction * (_attack.reach / maxf(_attack.active, 0.01))
+				# Preserve the last partial physics tick instead of overshooting the marked route.
+				var motion_fraction: float = minf(delta, maxf(0.0, _timer + delta)) / maxf(delta, 0.00001)
+				desired_velocity_h = _direction * (_attack.reach / maxf(_attack.active, 0.01)) * motion_fraction
 			if _timer <= 0.0:
 				state = State.RECOVERY
 				_timer = _attack.recovery
@@ -131,7 +131,9 @@ func begin_next_attack() -> void:
 	_attack.windup *= acceleration
 	_attack.recovery *= acceleration
 	_attack.damage *= 1.0 + float(phase - 1) * 0.12
-	_attack.projectile_speed *= 1.0 + float(phase - 1) * 0.12
+	_attack.angular_speed_degrees /= acceleration
+	_attack.mark_gap *= acceleration
+	_attack.synchronise_duration()
 	_direction = target_player.global_position - global_position
 	_direction.y = 0.0
 	_direction = _direction.normalized() if _direction.length_squared() > 0.001 else Vector3.FORWARD
@@ -141,12 +143,6 @@ func begin_next_attack() -> void:
 	state = State.WARNING
 	_timer = _attack.windup
 	_clock = 0.0
-	if _attack.teleport:
-		# Reposition only before the visible warning; destination uses locomotion's clearance check.
-		var destination: Vector3 = target_player.global_position - _direction * 5.0
-		destination.y = MonsterLocomotion.calculate_spawn_y(_surface_height(destination), self)
-		if MonsterLocomotion.validate_safe_spawn_point(get_world_3d().direct_space_state, self, destination):
-			global_position = destination
 	var hazard: BossAttackHazard = BossAttackHazard.new()
 	add_child(hazard)
 	hazard.setup(_attack, self, target_player, _origin, _direction, profile.color, _height_lookup)
@@ -171,20 +167,6 @@ func _pose_attack() -> void:
 		_animation.play(animation_name)
 		_animation.pause()
 	_animation.seek(position, true)
-
-func _release_projectiles() -> void:
-	# One committed fan is one attack, even where neighbouring lanes overlap.
-	var hit_ledger: Dictionary = {}
-	for index: int in range(_attack.projectile_count):
-		var fraction: float = float(index) / maxi(1, _attack.projectile_count - 1)
-		var angle: float = lerpf(-_attack.arc_degrees * 0.5, _attack.arc_degrees * 0.5, fraction)
-		var direction: Vector3 = _direction.rotated(Vector3.UP, deg_to_rad(angle))
-		var projectile: BossProjectile = BossProjectile.new()
-		add_child(projectile)
-		projectile.top_level = true
-		projectile.global_position = global_position + direction * 1.5
-		projectile.global_position.y = _surface_height(projectile.global_position) + 0.8
-		projectile.setup(self, target_player, direction, _attack.projectile_speed, _attack.damage, profile.color, _height_lookup, maxf(0.0, _attack.reach - 1.5), hit_ledger)
 
 func _surface_height(position: Vector3) -> float:
 	return float(_height_lookup.call(TerrainCombatRules.world_to_voxel(position.x), TerrainCombatRules.world_to_voxel(position.z))) if _height_lookup.is_valid() else position.y - half_height

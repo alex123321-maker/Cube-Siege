@@ -4,6 +4,7 @@ const DAY_ICON: Texture2D = preload("res://assets/ui/hud_visual_kit/icons/global
 const NIGHT_ICON: Texture2D = preload("res://assets/ui/hud_visual_kit/icons/global_night.png")
 
 @export var player_path: NodePath
+@export var displayed_talent_capacity: int = 6
 @export var day_night_cycle_path: NodePath = NodePath("../DayNightCycle")
 @export var building_system_path: NodePath = NodePath("../BuildingSystem")
 
@@ -169,7 +170,7 @@ func _on_level_up_reached(new_level: int) -> void:
 func _update_build_button() -> void:
 	if _build_button and player:
 		_build_button.visible = player.progression.run_build.active
-		_build_button.text = "Специализации · %d очков [P] · Таланты %d/6" % [player.progression.run_build.unspent_specialization_points, player.progression.run_build.selected_talents.size()]
+		_build_button.text = "Специализации · %d очков [P] · Таланты %d/%d" % [player.progression.run_build.unspent_specialization_points, player.progression.run_build.selected_talents.size(), displayed_talent_capacity]
 
 func show_boss_bar(boss: Node) -> void:
 	var boss_container: Control = $Margin/BossBarContainer

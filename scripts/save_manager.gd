@@ -44,6 +44,9 @@ func _init_storage_paths() -> void:
 	var all_args: Array = OS.get_cmdline_args() + OS.get_cmdline_user_args()
 	for arg in all_args:
 		var s_arg: String = str(arg)
+		if s_arg.contains("gameplay_sandbox.tscn") or s_arg == "--gameplay-sandbox":
+			set_storage_dir("user://gameplay_sandbox/profile/")
+			return
 		if s_arg.contains("ability_lab.tscn") or s_arg == "--ability-lab":
 			set_storage_dir("user://ability_lab/profile/")
 			return

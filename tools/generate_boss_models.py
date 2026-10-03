@@ -12,6 +12,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 NAMES = ["cairn", "gorgon", "ash_oracle", "mortar", "rift_warden", "rift_harbinger"]
+ATTACKS = [["burst", "lobbed"], ["sweep", "burst"],
+           ["line_beam", "radial_left_to_right", "chain"],
+           ["lobbed", "radial_right_to_left", "chain"],
+           ["radial_centre_to_edges", "line_beam", "chase"],
+           ["radial_edges_to_centre", "chase", "chain"]]
 PALETTES = [
     ["59645f", "89938b", "c4b993", "222d2a", "ffb438", "605040"],
     ["344550", "657b82", "b4af9a", "202b34", "ff5940", "514a3d"],
@@ -108,7 +113,8 @@ def model(stage):
             add("Body", f"OrbitShard{i}", (x, -1.12 + abs(x) * 0.4, 0.48), (0.32, 0.39, 0.32), 2, (10, 0, i * 20 - 20))
     return dict(name=NAMES[stage-1], stage=stage, palette=PALETTES[stage-1], parts=parts,
                 author="Original Cube Siege code-native geometry authored for this request; no downloaded media",
-                units="meters; bottom-center model pivot; faces -Z; gameplay root at half_height")
+                units="meters; bottom-center model pivot; faces -Z; gameplay root at half_height",
+                canonical_attacks=ATTACKS[stage-1])
 
 
 def vec(value):
@@ -145,13 +151,29 @@ def export(data):
                 track(lines, i, f"{bone}:rotation", [0,.25,.75,1], [(0,0,0),(.27*sign,0,0),(-.27*sign,0,0),(0,0,0)])
         elif animation.startswith("attack_"):
             action = int(animation[-1])
+            kind = ATTACKS[stage-1][min(action, len(ATTACKS[stage-1])-1)]
             raise_angle = math.radians([105, 55, 85][action] + stage * 3)
-            # Distinct whole-body pose and arm commitment for each encounter and action.
-            track(lines, 0, "Body:rotation", [0,.5,.65,.72,.8,1], [(0,0,0),(-.12,0,.04*(stage%2)),(-.18,0,.04),( .23,0,-.04),( .14,0,0),(0,0,0)])
+            sustained = kind in ("line_beam", "chain", "chase") or kind.startswith("radial_")
+            # Beam/channel poses stay committed throughout the damaging interval.
+            if kind == "sweep":
+                body_values = [(0,0,0),(.28,0,0),(.38,0,0),(.38,0,0),(.34,0,0),(0,0,0)]
+            elif sustained:
+                turn = -.32 if kind == "radial_left_to_right" else .32 if kind == "radial_right_to_left" else 0
+                body_values = [(0,0,0),(-.12,0,.04),(-.18,-turn,.04),(-.18,0,.04),(-.18,turn,.04),(0,0,0)]
+            else:
+                body_values = [(0,0,0),(-.12,0,.04*(stage%2)),(-.18,0,.04),(.23,0,-.04),(.14,0,0),(0,0,0)]
+            track(lines, 0, "Body:rotation", [0,.5,.65,.72,.8,1], body_values)
             for i, (bone, sign) in enumerate([("ArmL",-1),("ArmR",1)], 1):
                 asymmetry = .55 if stage in (3,5) and bone == "ArmL" else 1
                 twist = sign * (.24 if action == 1 else .10)
-                track(lines, i, f"{bone}:rotation", [0,.5,.65,.72,.8,1], [(0,0,0),(raise_angle*asymmetry,twist,sign*.18),(raise_angle*asymmetry,twist,sign*.20),(.20,-twist,sign*.08),(.08,0,0),(0,0,0)])
+                if kind == "lobbed":
+                    # Release early in the warning, then watch the visible arc reach its mark.
+                    track(lines, i, f"{bone}:rotation", [0,.10,.20,.35,.65,.8,1], [(raise_angle*asymmetry,twist,sign*.18),(.55,-twist,sign*.10),(.20,-twist,sign*.08),(.08,0,0),(.08,0,0),(.08,0,0),(0,0,0)])
+                elif sustained:
+                    pose = (raise_angle*asymmetry*.65,twist,sign*.20)
+                    track(lines, i, f"{bone}:rotation", [0,.5,.65,.72,.8,1], [(0,0,0),pose,pose,pose,pose,(0,0,0)])
+                else:
+                    track(lines, i, f"{bone}:rotation", [0,.5,.65,.72,.8,1], [(0,0,0),(raise_angle*asymmetry,twist,sign*.18),(raise_angle*asymmetry,twist,sign*.20),(.20,-twist,sign*.08),(.08,0,0),(0,0,0)])
             track(lines, 3, "Body/Head:rotation", [0,.5,.65,.72,1], [(0,0,0),(-.14,0,0),(-.17,0,0),(.17,0,0),(0,0,0)])
         else:
             track(lines, 0, "Body:rotation", [0,.3,1], [(0,0,0),(.2,0,.12),(1.1,0,.4)])

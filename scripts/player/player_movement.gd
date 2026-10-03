@@ -84,7 +84,7 @@ func start_lunge(direction: Vector3, distance: float, duration: float) -> void:
 	is_lunging = true
 
 ## Dedicated automatic motion handler for Warrior ultimate Duel.
-func process_duel_movement(body: CharacterBody3D, delta: float, target: Variant) -> Vector3:
+func process_duel_movement(body: CharacterBody3D, delta: float, target: Variant, speed_multiplier: float = 1.0) -> Vector3:
 	var move_dir: Vector3 = Vector3.ZERO
 	if target != null and is_instance_valid(target) and target is Node3D:
 		var target_node: Node3D = target as Node3D
@@ -93,8 +93,8 @@ func process_duel_movement(body: CharacterBody3D, delta: float, target: Variant)
 		to_target.y = 0.0
 		if to_target.length() > 1.2:
 			move_dir = to_target.normalized()
-			body.velocity.x = move_dir.x * (speed * 1.15)
-			body.velocity.z = move_dir.z * (speed * 1.15)
+			body.velocity.x = move_dir.x * (speed * 1.15 * speed_multiplier)
+			body.velocity.z = move_dir.z * (speed * 1.15 * speed_multiplier)
 		else:
 			body.velocity.x = 0.0
 			body.velocity.z = 0.0
@@ -115,7 +115,7 @@ func process_movement(
 	is_duel_override: bool = false
 ) -> Vector3:
 	if is_duel_override:
-		return process_duel_movement(body, delta, target)
+		return process_duel_movement(body, delta, target, speed_multiplier)
 
 	var move_dir: Vector3 = Vector3.ZERO
 	var lunge_elapsed: float = 0.0

@@ -101,6 +101,37 @@ func test_death_during_preparation_cannot_start_lunge_or_damage() -> void:
 	assert_false(_player.movement.is_lunging)
 	assert_false(_player.slash_area.monitoring)
 
+func test_wide_lunge_alone_is_harmless_in_transit_and_strikes_at_endpoint() -> void:
+	_player.talents.build().selected_talents.assign(["wide_lunge"])
+	_player.talents.build().specializations.clear()
+	_player.talents.refresh_stats()
+	var passed_target: EnemyBase = _target(Vector3(0.0, 0.9, -1.2))
+	var endpoint_target: EnemyBase = _target(Vector3(0.0, 0.9, -5.8))
+	_player.perform_special_attack()
+	await get_tree().create_timer(0.45).timeout
+	assert_lt(_player.global_position.z, -0.5, "The native actor has begun the dash")
+	assert_eq(passed_target.current_health, 1000.0, "Passing a monster deals no standalone lunge damage")
+	assert_eq(endpoint_target.current_health, 1000.0, "The frontal strike waits for the endpoint")
+	assert_false(_player.slash_area.monitoring)
+	await get_tree().create_timer(0.55).timeout
+	assert_almost_eq(_player.global_position.z, -2.7, 0.025)
+	assert_eq(passed_target.current_health, 1000.0, "A passed monster is behind the final frontal strike")
+	assert_eq(endpoint_target.current_health, 940.0)
+	assert_false(_player.slash_area.monitoring)
+
+func test_death_during_standalone_lunge_cancels_its_endpoint_strike() -> void:
+	_player.talents.build().selected_talents.assign(["wide_lunge"])
+	_player.talents.refresh_stats()
+	var target: EnemyBase = _target(Vector3(0.0, 0.9, -5.8))
+	_player.perform_special_attack()
+	await get_tree().create_timer(0.40).timeout
+	assert_true(_player.movement.is_lunging)
+	_player.current_health = 0.0
+	await get_tree().create_timer(0.60).timeout
+	assert_eq(target.current_health, 1000.0)
+	assert_false(_player.movement.is_lunging)
+	assert_false(_player.slash_area.monitoring)
+
 func test_pause_between_release_and_first_physics_frame_defers_all_contacts() -> void:
 	var target: EnemyBase = _target(Vector3(0.0, 0.9, -2.0))
 	await get_tree().physics_frame

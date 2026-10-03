@@ -132,9 +132,12 @@ static func properties(entry: Entry, player: CharacterBody3D, variant: VariantKi
 					var targets: float = PlayerCombat.PIERCING_TARGETS if special else 1
 					_value(rows, "Предел целей", targets, targets, "", "После этого числа попаданий стрела исчезает.")
 				else:
-					var moving_cleave: bool = c == 0 and special and runtime != null and runtime.has("wide_lunge")
+					var lunge: bool = c == 0 and special and runtime != null and runtime.has("wide_lunge")
+					var moving_cleave: bool = lunge and runtime.has("whirlwind_cleave")
 					var active_window: float = WarriorTalentCatalog.LUNGE_DURATION if moving_cleave else PlayerCombat.SLASH_ACTIVE_DURATION
-					_value(rows, "Активное окно", PlayerCombat.SLASH_ACTIVE_DURATION, active_window, "с", "В это время SlashHitbox принимает столкновения; при выпаде область движется вместе с Воином." if moving_cleave else "В это время SlashHitbox принимает столкновения.")
+					_value(rows, "Активное окно", PlayerCombat.SLASH_ACTIVE_DURATION, active_window, "с", "Вихрь с выпадом поражает цели по всей траектории." if moving_cleave else ("Фронтальный удар срабатывает после завершения Выпада; движение до него не наносит урон." if lunge else "В это время SlashHitbox принимает столкновения."))
+					if lunge:
+						_value(rows, "Время Выпада", 0.0, WarriorTalentCatalog.LUNGE_DURATION, "с", "Движение после подготовки и до фронтального удара." if not moving_cleave else "Вихрь поражает вокруг Воина во время всего движения.")
 					if c == 0 and special:
 						var circular: bool = runtime != null and runtime.has("whirlwind_cleave")
 						var radius: float = PlayerCombat.CLEAVE_SPEC.radius * (runtime.multiplier("cleave_radius") if runtime else 1.0)

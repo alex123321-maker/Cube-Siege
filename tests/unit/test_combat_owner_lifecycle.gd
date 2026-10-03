@@ -12,6 +12,13 @@ class TerminalTarget extends EnemyBase:
 		received += amount
 		actor.progression.run_build.end_run()
 
+class FreeingTarget extends EnemyBase:
+	var actor: PlayerPrototype
+	var received: float = 0.0
+	func _on_damaged(amount: float, _knockback: Vector3, _type: String, _attacker: Node) -> void:
+		received += amount
+		actor.free()
+
 var _world: Node3D
 var _player: PlayerPrototype
 var _combat: PlayerCombat
@@ -130,3 +137,90 @@ func test_nuke_terminal_damage_callback_stops_other_hits_and_burn_release() -> v
 	assert_eq(terminal.received, PlayerAbilities.NUKE_DAMAGE)
 	assert_eq(bystander.current_health, 1000.0, "A synchronous terminal callback stops the remaining impact targets")
 	assert_null(_player.get_node_or_null("NukeBurn"), "No burn timer is created after terminal impact callback")
+
+func _prepare_dangerous_dash() -> WarriorTalentRuntime:
+	var build: WarriorRunBuild = _player.progression.run_build
+	build.selected_talents.assign(["perfect_dash", "loud_triumph"])
+	build._reveal_synergies()
+	build.build_changed.emit()
+	_player.movement.perform_dash(Vector3.RIGHT, Vector3.RIGHT)
+	return _player.talents
+
+func test_dash_terminal_callback_stops_the_current_remaining_contacts() -> void:
+	var terminal: TerminalTarget = TerminalTarget.new()
+	terminal.actor = _player
+	_world.add_child(terminal)
+	terminal.set_physics_process(false)
+	terminal.global_position = Vector3(0.5, 1.0, 0.2)
+	var bystander: EnemyBase = _target()
+	bystander.global_position = Vector3(1.0, 1.0, 0.3)
+	await wait_physics_frames(2)
+	var runtime: WarriorTalentRuntime = _prepare_dangerous_dash()
+	_player.global_position += Vector3(2.0, 0.0, 0.0)
+	runtime.after_movement()
+	assert_almost_eq(terminal.received, 25.0, 0.001)
+	assert_false(_player.progression.run_build.active)
+	assert_eq(bystander.current_health, 1000.0, "Ending a run inside the first hit cancels the remaining dash contacts")
+
+func test_dash_owner_deleted_inside_damage_callback_stops_without_stale_access() -> void:
+	var terminal: FreeingTarget = FreeingTarget.new()
+	terminal.actor = _player
+	_world.add_child(terminal)
+	terminal.set_physics_process(false)
+	terminal.global_position = Vector3(0.5, 1.0, 0.2)
+	var bystander: EnemyBase = _target()
+	bystander.global_position = Vector3(1.0, 1.0, 0.3)
+	await wait_physics_frames(2)
+	var runtime: WarriorTalentRuntime = _prepare_dangerous_dash()
+	_player.global_position += Vector3(2.0, 0.0, 0.0)
+	runtime.after_movement()
+	assert_almost_eq(terminal.received, 25.0, 0.001)
+	assert_false(is_instance_valid(_player))
+	assert_eq(bystander.current_health, 1000.0, "Deleting the owner inside the first hit cancels later contacts")
+	runtime.after_movement()
+	assert_eq(bystander.current_health, 1000.0)
+
+func test_dash_real_final_boss_defeat_saves_victory_before_other_contacts() -> void:
+	var save: Node = get_node("/root/SaveManager")
+	var snapshot: Dictionary = save.snapshot_state()
+	var storage: String = save.storage_dir
+	save.set_storage_dir("user://test_dash_final_boss/")
+	save.reset_to_defaults()
+	get_node("/root/RosterManager").begin_run()
+	var cycle: DayNightCycle = DayNightCycle.new()
+	_world.add_child(cycle)
+	cycle.set_process(false)
+	cycle.current_day = 30
+	cycle.is_night = true
+	cycle.boss_pending = true
+	var waves: WaveDirector = WaveDirector.new()
+	_world.add_child(waves)
+	waves.set_process(false)
+	var coordinator: WarriorRunCoordinator = WarriorRunCoordinator.new()
+	_world.add_child(coordinator)
+	coordinator.player = _player
+	coordinator.cycle = cycle
+	coordinator.waves = waves
+	cycle.wave_completed.connect(coordinator._on_wave_completed)
+	var boss: SiegeBoss = preload("res://scenes/bosses/boss_06_rift_harbinger.tscn").instantiate() as SiegeBoss
+	boss.configure(6, _player)
+	_world.add_child(boss)
+	boss.set_physics_process(false)
+	boss.global_position = Vector3(0.5, 1.0, 0.2)
+	boss.current_health = 1.0
+	coordinator._boss = boss
+	boss.defeated.connect(coordinator._on_boss_defeated)
+	var bystander: EnemyBase = _target()
+	bystander.global_position = Vector3(1.0, 1.0, 0.3)
+	await wait_physics_frames(2)
+	var runtime: WarriorTalentRuntime = _prepare_dangerous_dash()
+	_player.global_position += Vector3(2.0, 0.0, 0.0)
+	runtime.after_movement()
+	assert_true(boss.is_dying, "The actual stage-six boss receives the lethal dash contact")
+	assert_true(coordinator.finished and coordinator.victory)
+	assert_false(_player.progression.run_build.active)
+	assert_eq(save.run_history.size(), 1)
+	assert_eq(save.run_history[0].outcome, "victory")
+	assert_eq(bystander.current_health, 1000.0, "No contact follows the real final-boss terminal save")
+	save.restore_state(snapshot)
+	save.set_storage_dir(storage)

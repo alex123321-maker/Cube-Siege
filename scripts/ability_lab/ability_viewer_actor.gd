@@ -32,7 +32,7 @@ func _physics_process(delta: float) -> void:
 	abilities.update_timers(delta, self)
 	orientation.process_orientation(self, delta, Vector3.FORWARD, Vector3.ZERO)
 	if is_dueling and is_instance_valid(duel_target) and not movement.is_dashing and not movement.is_lunging:
-		movement.process_duel_movement(self, delta, duel_target)
+		movement.process_duel_movement(self, delta, duel_target, talents.movement_multiplier())
 	elif movement.is_dashing or movement.is_lunging:
 		movement.process_movement(self, delta)
 	else:
