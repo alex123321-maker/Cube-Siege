@@ -42,7 +42,8 @@ func test_aura_removal_max_health_and_death() -> void:
 func test_hud_statuses_show_true_timers_and_disappear_with_gameplay_state() -> void:
 	var actor: PlayerPrototype = _player()
 	actor.health.trigger_parry()
-	actor.health.update_timers(0.25)
+	# Leave 0.3 s; the exact 0.25 s formatting tie rounds differently on Linux/Windows.
+	actor.health.update_timers(0.2)
 	var hud: CanvasLayer = HUD_SCENE.instantiate() as CanvasLayer
 	hud.player_path = NodePath("../Player")
 	add_child_autoqfree(hud)
@@ -51,10 +52,12 @@ func test_hud_statuses_show_true_timers_and_disappear_with_gameplay_state() -> v
 	assert_true(bar.visible)
 	assert_eq(bar.get_child_count(), 1)
 	var slot: HUDStatusSlot = bar.get_child(0) as HUDStatusSlot
-	assert_almost_eq(slot.effect.remaining_ratio(), 0.5, 0.001, "The clock displays elapsed gameplay time, not a UI-owned timer")
+	assert_almost_eq(actor.health.parry_timer, 0.3, 0.001)
+	assert_almost_eq(slot.effect.remaining, actor.health.parry_timer, 0.001)
+	assert_almost_eq(slot.effect.remaining_ratio(), 0.6, 0.001, "The clock displays elapsed gameplay time, not a UI-owned timer")
 	assert_eq(slot.effect.time_text(), "0.3с")
 	assert_true(slot.tooltip_text.contains("Парирование"))
-	actor.health.update_timers(0.3)
+	actor.health.update_timers(0.31)
 	bar.refresh()
 	assert_false(bar.visible)
 	assert_eq(bar.get_child_count(), 0)
