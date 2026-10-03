@@ -21,6 +21,7 @@ var _death_sent: bool = false
 
 var is_parrying: bool = false
 var parry_timer: float = 0.0
+var parry_total_duration: float = PARRY_WINDOW
 var parry_cooldown_timer: float = 0.0
 
 var current_day: int = 1
@@ -38,6 +39,7 @@ func trigger_parry(duration: float = PARRY_WINDOW, cooldown: float = PARRY_COOLD
 		return false
 	is_parrying = true
 	parry_timer = duration
+	parry_total_duration = duration
 	parry_cooldown_timer = cooldown
 	parry_triggered.emit(false)
 	return true

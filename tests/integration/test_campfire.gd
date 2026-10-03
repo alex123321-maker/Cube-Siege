@@ -62,3 +62,17 @@ func test_real_area_enters_and_leaves_without_group_scans() -> void:
 	player.global_position = Vector3(8, 0.9, 0)
 	await wait_physics_frames(4)
 	assert_almost_eq(player.status_effects.regeneration_per_second(), 0.0, 0.001, "Leaving Area3D removes regeneration immediately")
+
+func test_terminal_stop_clears_and_never_refreshes_even_if_area_enters_again() -> void:
+	var player: PlayerPrototype = _player_at(Vector3(2, 0.9, 0))
+	var fire: Campfire = CAMPFIRE_SCENE.instantiate() as Campfire
+	add_child_autoqfree(fire)
+	fire._on_body_entered(player)
+	fire._physics_process(0.25)
+	assert_almost_eq(player.status_effects.regeneration_per_second(), 3.0, 0.001)
+	fire.stop_regeneration()
+	assert_almost_eq(player.status_effects.regeneration_per_second(), 0.0, 0.001)
+	fire._on_body_entered(player)
+	fire._physics_process(0.25)
+	assert_almost_eq(player.status_effects.regeneration_per_second(), 0.0, 0.001, "A terminal run cannot restore a frozen source")
+	assert_true(fire.is_inside_tree(), "The terminal run retains its decorative hearth")

@@ -1,5 +1,5 @@
 class_name HUDStatusBar
-extends HBoxContainer
+extends HFlowContainer
 
 var player: PlayerPrototype
 var _slots: Dictionary[StringName, HUDStatusSlot] = {}

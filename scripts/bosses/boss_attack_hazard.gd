@@ -26,6 +26,7 @@ var _carrying: bool = false
 var _trap_trigger_time: float = -1.0
 var _planned: PackedVector3Array = PackedVector3Array()
 var _cadence: ContinuousDamageCadence = ContinuousDamageCadence.new()
+var _event_bus: Node
 
 func setup(p_spec: BossAttackSpec, p_boss: SiegeBoss, p_target: Node3D, origin: Vector3, p_direction: Vector3, color: Color, p_height: Callable) -> void:
 	spec = p_spec
@@ -35,7 +36,10 @@ func setup(p_spec: BossAttackSpec, p_boss: SiegeBoss, p_target: Node3D, origin: 
 	height_lookup = p_height
 	_tint = color
 	top_level = true
-	global_position = origin
+	# Spec directions and mark offsets already use world coordinates. A hazard
+	# inheriting its turned boss's basis would rotate those coordinates twice.
+	global_transform = Transform3D(Basis.IDENTITY, origin)
+	_event_bus = get_node_or_null("/root/EventBus")
 	process_physics_priority = 100 # Observe collision-resolved boss movement.
 	warning_left = spec.windup
 	active_left = spec.active
@@ -106,14 +110,20 @@ func _physics_process(delta: float) -> void:
 			_flight.queue_free()
 		match spec.kind:
 			BossAttackSpec.Kind.BURST:
+				_audio(&"explosion", global_position)
 				_try_hit()
 			BossAttackSpec.Kind.LOBBED:
+				_audio(&"explosion", global_position)
 				# Occupied landings are consumed even when parried or invulnerable.
 				if spec.contains_point(global_position, direction, target.global_position):
 					_try_hit()
 				else:
 					armed_trap = true
 					_visual.show_armed_trap()
+			BossAttackSpec.Kind.LINE_BEAM, BossAttackSpec.Kind.RADIAL_BEAM:
+				_audio(&"magic", global_position)
+			BossAttackSpec.Kind.SWEEP:
+				_audio(&"boss_roar", boss.global_position)
 	var active_from: float = clampf(previous - spec.windup, 0.0, spec.active)
 	var active_to: float = clampf(_time - spec.windup, 0.0, spec.active)
 	match spec.kind:
@@ -126,6 +136,7 @@ func _physics_process(delta: float) -> void:
 				if _try_hit():
 					armed_trap = false
 					_trap_trigger_time = _time
+					_audio(&"explosion", global_position)
 					_visual.show_impact()
 		BossAttackSpec.Kind.SWEEP:
 			_sweep_contact()
@@ -180,6 +191,7 @@ func _advance_marks() -> void:
 			if _time >= mark.detonate:
 				mark.exploded = true
 				mark.visual.show_impact()
+				_audio(&"explosion", mark.centre)
 				if spec.contains_point(mark.centre, direction, target.global_position) and _connected(mark.centre):
 					_deliver(spec.damage)
 		elif is_instance_valid(mark.visual):
@@ -256,8 +268,9 @@ func _sweep_contact() -> void:
 		var nearest: Vector3 = _last_body_position + delta * fraction
 		var horizontal: Vector3 = target.global_position - nearest
 		horizontal.y = 0.0
-		if horizontal.length() <= boss.radius + 0.6 and TerrainCombatRules.is_melee_connected(nearest, target.global_position, height_lookup):
+		if spec.contains_point(global_position, direction, target.global_position) and horizontal.length() <= spec.width * 0.5 and TerrainCombatRules.is_melee_connected(nearest, target.global_position, height_lookup):
 			_deliver(spec.damage)
+			_audio(&"explosion", nearest)
 			hit_once = true
 			if _live() and target is PlayerPrototype:
 				_carrying = (target as PlayerPrototype).begin_enemy_carry(self)
@@ -268,6 +281,10 @@ func _sweep_contact() -> void:
 		if not (target as PlayerPrototype).apply_enemy_carry_motion(self, displacement):
 			_release_carry()
 	_last_body_position = current
+
+func _audio(cue: StringName, point: Vector3) -> void:
+	if is_instance_valid(_event_bus) and _event_bus.has_signal("audio_cue_requested"):
+		_event_bus.audio_cue_requested.emit(cue, point)
 
 func _release_carry() -> void:
 	if _carrying and is_instance_valid(target) and target is PlayerPrototype:

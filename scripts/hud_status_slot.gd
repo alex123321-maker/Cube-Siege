@@ -10,6 +10,14 @@ const ICONS: Dictionary[StringName, Texture2D] = {
 	&"duel": preload("res://assets/ui/hud_visual_kit/icons/warrior_duel.png"),
 	&"eagle_eye": preload("res://assets/ui/hud_visual_kit/icons/archer_eagle_eye.png"),
 	&"dash": preload("res://assets/ui/hud_visual_kit/icons/warrior_dash.png"),
+	&"counter": preload("res://assets/ui/talents/counterattack.svg"),
+	&"hot_blood": preload("res://assets/ui/talents/hot_blood.svg"),
+	&"morale": preload("res://assets/ui/talents/dismemberment.svg"),
+	&"triumph": preload("res://assets/ui/talents/loud_triumph.svg"),
+	&"tempered_blade": preload("res://assets/ui/talents/tempered_blade.svg"),
+	&"slow": preload("res://assets/ui/status_effects/slow.svg"),
+	&"stun": preload("res://assets/ui/status_effects/stun.svg"),
+	&"shield": preload("res://assets/ui/status_effects/shield.svg"),
 }
 
 var effect: PlayerStatusEffect

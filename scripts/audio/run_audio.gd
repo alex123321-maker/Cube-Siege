@@ -195,6 +195,8 @@ func play_cue(cue: StringName, position: Vector3) -> void:
 	voice.play()
 
 func _set_phase(night: bool, immediate: bool = false) -> void:
+	if _ended:
+		return
 	if _fade and _fade.is_valid():
 		_fade.kill()
 	var day_db: float = SILENCE_DB if night else -15.0
@@ -249,9 +251,15 @@ func _on_level_up(_level: int) -> void:
 
 func _on_boss_spawned(boss: Node) -> void:
 	_boss_music = true
+	if boss.has_signal("attack_started"):
+		boss.attack_started.connect(_on_boss_attack.bind(boss))
 	if boss is Node3D:
 		play_cue(&"boss_roar", (boss as Node3D).global_position)
 	_set_phase(true)
+
+func _on_boss_attack(_title: String, _windup: float, boss: Node) -> void:
+	if is_instance_valid(boss) and boss is Node3D:
+		play_cue(&"boss_windup", (boss as Node3D).global_position)
 
 func _on_boss_defeated(_boss: Node) -> void:
 	_boss_music = false
@@ -261,13 +269,20 @@ func _on_boss_defeated(_boss: Node) -> void:
 func _on_portal_ready() -> void:
 	play_cue(&"portal_ready", player.global_position if is_instance_valid(player) else Vector3.ZERO)
 
+func finish_run() -> void:
+	_end_run()
+
 func _end_run() -> void:
+	if _ended:
+		return
 	_ended = true
 	if _fade and _fade.is_valid():
 		_fade.kill()
 	_fade = create_tween().set_parallel(true)
 	_fade.tween_property(_day_music, "volume_db", SILENCE_DB, 1.4)
 	_fade.tween_property(_night_music, "volume_db", SILENCE_DB, 1.4)
+	_fade.tween_property(_leaves, "volume_db", SILENCE_DB, 1.4)
+	_fade.tween_property(_crickets, "volume_db", SILENCE_DB, 1.4)
 	_fire.stop()
 
 func _on_player_died() -> void:

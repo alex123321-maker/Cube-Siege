@@ -63,3 +63,15 @@ func test_run_audio_loops_and_voice_budget_without_device() -> void:
 	assert_eq(run._crickets.volume_db, -24.0)
 	EventBus.player_died.emit()
 	assert_true(run._ended)
+
+func test_terminal_run_keeps_score_fade_when_late_phase_events_arrive() -> void:
+	var run: RunAudio = RunAudio.new()
+	run.playback_enabled = false
+	add_child_autofree(run)
+	run.finish_run()
+	var ending_fade: Tween = run._fade
+	EventBus.day_started.emit(31)
+	EventBus.boss_defeated.emit(null)
+	run.finish_run()
+	assert_true(run._ended)
+	assert_eq(run._fade, ending_fade, "Late boss defeat and phase events must not restart terminal music")

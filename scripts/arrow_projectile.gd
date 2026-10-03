@@ -37,7 +37,8 @@ func setup(p_direction: Vector3, p_damage: float, p_owner: Node, p_pierce: int =
 	pierce_count = p_pierce
 	_uses_archer_impact = p_pierce == 1 and is_instance_valid(p_owner) and p_owner.is_in_group("player")
 	if direction.length_squared() > 0.01:
-		look_at(global_position + direction, Vector3.UP)
+		var up_axis: Vector3 = Vector3.FORWARD if absf(direction.dot(Vector3.UP)) > 0.99 else Vector3.UP
+		look_at(global_position + direction, up_axis)
 	if has_node("Hitbox"):
 		hitbox = $Hitbox as HitboxArea
 		hitbox.damage = damage

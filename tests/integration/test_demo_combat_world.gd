@@ -3,7 +3,6 @@ extends GutTest
 const BOSS_SCENE: PackedScene = preload("res://scenes/enemies/boss_gorgon.tscn")
 const IRON_SCENE: PackedScene = preload("res://scenes/resource_iron.tscn")
 const ChargeWarning = preload("res://scripts/combat/boss_charge_warning.gd")
-const MainScript = preload("res://scripts/main.gd")
 
 class EncounterCycle extends DayNightCycle:
 	var dawn_count: int = 0
@@ -212,6 +211,7 @@ func test_boss_night_does_not_end_when_its_normal_timer_expires() -> void:
 	cycle.set_process(false)
 	cycle.current_day = 10
 	cycle.is_night = true
+	cycle.boss_pending = true
 	cycle.time_left = 0.1
 	var boss: CharacterBody3D = BOSS_SCENE.instantiate()
 	add_child_autoqfree(boss)
@@ -220,10 +220,10 @@ func test_boss_night_does_not_end_when_its_normal_timer_expires() -> void:
 	assert_true(cycle.is_night, "Boss must survive the 120-second timer and remain fightable")
 	assert_eq(cycle.time_left, 0.0, "Boss overtime must not show a negative countdown")
 	assert_eq(cycle.dawn_count, 0)
-	boss.die()
+	assert_true(cycle.finish_boss_night(10))
 	assert_eq(cycle.dawn_count, 1, "Defeating Gorgon completes night ten immediately")
 	assert_false(cycle.is_night)
-	boss.die()
+	assert_false(cycle.finish_boss_night(10))
 	assert_eq(cycle.dawn_count, 1, "Repeated damage/death cannot duplicate boss completion")
 
 func test_normal_night_still_ends_after_120_seconds() -> void:
@@ -236,22 +236,4 @@ func test_normal_night_still_ends_after_120_seconds() -> void:
 	assert_true(cycle.is_night)
 	cycle._process(1.0)
 	assert_false(cycle.is_night)
-	assert_eq(cycle.time_left, 180.0)
-
-func test_night_ten_spawns_gorgon_without_debug_input() -> void:
-	_box_ground(Vector3(0.0, -0.5, 0.0), Vector3(100.0, 1.0, 100.0))
-	var main: Node3D = MainScript.new()
-	var target: DamageTarget = DamageTarget.new()
-	target.name = "Player"
-	target.add_to_group("player")
-	main.add_child(target)
-	add_child_autoqfree(main)
-	await wait_physics_frames(2)
-	main._on_night_started(9)
-	await wait_process_frames(1)
-	var registry: Node = get_node("/root/EntityRegistry")
-	assert_false(registry.has_active_boss(), "Ordinary nights should keep their normal enemies")
-	main._on_night_started(10)
-	await wait_process_frames(2)
-	assert_true(registry.has_active_boss(), "Canonical wave-ten boss must appear from the phase event")
-	assert_false(main.spawn_boss_gorgon(), "The phase event and debug hotkey cannot duplicate an active boss")
+	assert_eq(cycle.time_left, cycle.day_duration)

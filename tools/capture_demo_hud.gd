@@ -31,20 +31,38 @@ func _capture() -> void:
 	var player: PlayerPrototype = main.get_node("Player") as PlayerPrototype
 	player.set_physics_process(false)
 	var hud: CanvasLayer = main.get_node("HUD") as CanvasLayer
+	await process_frame
+	if player.progression.run_build.active_reward_id >= 0:
+		hud.build_panel._focus(player.progression.run_build.active_reward_id)
 	var bar: HBoxContainer = hud.get_node("Margin/BottomCenter/SkillsActionBar") as HBoxContainer
 	var status_bar: HUDStatusBar = hud.get_node("Margin/StatusEffects") as HUDStatusBar
 	for enemy: Node in main.get_node("Enemies").get_children():
 		enemy.queue_free()
 	player.set_class(PlayerPrototype.CharacterClass.WARRIOR, false)
+	player.talents.build().selected_talents.assign(["hot_blood", "counterattack", "wide_lunge", "whirlwind_cleave", "tempered_blade", "dismemberment"])
+	player.talents.build().specializations = {"cleave_radius": 2, "cleave_cooldown": 2, "parry_window": 2, "hot_blood_healing": 2}
+	player.talents.build().build_changed.emit()
 	player.status_effects.refresh_regeneration(1, 3.0, 6.0, 5.0)
-	player.vampirism_heal = 4.0
 	player.resource_multiplier = 2
-	player.health.trigger_parry()
-	player.health.update_timers(0.25)
+	player.health.trigger_parry(player.talents.parry_duration())
+	player.take_damage(1.0)
+	player.health.update_timers(0.435)
+	player.talents._dismember(player.global_position)
+	player.talents.statuses.apply_slow("demo-web", 0.4, 4.0)
+	player.talents.advance(1.0)
+	player.health.shield_health = 12.0
 	status_bar.refresh()
 	bar._refresh_action_set()
 	await _hover_and_save(bar.get_node("SlotRMB") as Control, "warrior_ability.png")
 	await _hover_and_save(status_bar.get_child(0) as Control, "regeneration_effect.png")
+	await _hover_and_save(status_bar.get_node("HotBlood") as Control, "hot_blood_effect.png")
+	await _hover_and_save(status_bar.get_node("Parry") as Control, "counter_effect.png")
+	var cycle: DayNightCycle = main.get_node("DayNightCycle") as DayNightCycle
+	cycle.boss_pending = true
+	hud._update_day_night_label(0.0, true, 5)
+	await _hover_and_save(hud.day_night_timer_label as Control, "boss_phase.png")
+	cycle.boss_pending = false
+	hud._update_day_night_label(cycle.time_left, false, 1)
 	player.health.update_timers(1.0)
 	player.set_class(PlayerPrototype.CharacterClass.ENGINEER, false)
 	player.movement.perform_dash(Vector3.FORWARD)

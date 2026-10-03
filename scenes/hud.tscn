@@ -65,7 +65,7 @@ custom_minimum_size = Vector2(132, 0)
 layout_mode = 2
 mouse_filter = 1
 theme_override_font_sizes/font_size = 11
-text = "DAY 1"
+text = "ДЕНЬ 1"
 clip_text = true
 horizontal_alignment = 0
 vertical_alignment = 1
@@ -85,8 +85,8 @@ custom_minimum_size = Vector2(44, 30)
 layout_mode = 2
 theme_override_font_sizes/font_size = 9
 size_flags_vertical = 4
-text = "SKIP"
-tooltip_text = "Пропустить до ночи"
+text = "К НОЧИ"
+tooltip_text = "Начать ночь"
 
 [node name="BtnSettings" type="Button" parent="Margin/TopCenter/DayNightRow"]
 custom_minimum_size = Vector2(30, 30)
@@ -268,7 +268,7 @@ text = "0"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="StatusEffects" type="HBoxContainer" parent="Margin"]
+[node name="StatusEffects" type="HFlowContainer" parent="Margin"]
 visible = false
 layout_mode = 0
 offset_left = 16.0
@@ -276,7 +276,8 @@ offset_top = 104.0
 offset_right = 436.0
 offset_bottom = 168.0
 mouse_filter = 2
-theme_override_constants/separation = 6
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 6
 script = ExtResource("19_status")
 
 [node name="BottomCenter" type="HBoxContainer" parent="Margin"]

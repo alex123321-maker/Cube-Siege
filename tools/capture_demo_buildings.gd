@@ -34,6 +34,21 @@ func _run() -> void:
 	root.add_child(_main)
 	current_scene = _main
 	await _wait_frames(90)
+	# Resolve the canonical initial checkpoint through the real HUD action,
+	# before recording production prefabs or advancing the flame animation.
+	var run_player: PlayerPrototype = _main.get_node("Player") as PlayerPrototype
+	var run_build: WarriorRunBuild = run_player.progression.run_build
+	var build_panel: WarriorBuildPanel = _main.get_node("HUD").get("build_panel") as WarriorBuildPanel
+	if run_build.active_reward_id >= 0:
+		var options: Array[WarriorTalentDefinition] = run_build.get_talent_options()
+		if not options.is_empty():
+			build_panel._choose(options[0].id, run_build.active_reward_id)
+		else:
+			build_panel._focus(run_build.active_reward_id)
+	if paused:
+		push_error("Building capture could not resume the initial checkpoint")
+		quit(1)
+		return
 	var director: Node = _main.get_node("WaveDirector")
 	director.set_process(false)
 	director.set_physics_process(false)

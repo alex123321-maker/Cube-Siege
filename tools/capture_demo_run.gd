@@ -4,6 +4,8 @@ extends SceneTree
 ## godot --path . --resolution 1280x720 --fixed-fps 30 --write-movie <out>.avi
 ##       -s tools/capture_demo_run.gd -- --output=<directory>
 var _output: String = "res://reports/demo_run"
+const DEMO_SEED: int = 8473
+const CLEARING_CENTER: Vector2i = Vector2i(-15, 25)
 
 func _initialize() -> void:
 	root.content_scale_size = Vector2i(1280, 720)
@@ -18,12 +20,12 @@ func _capture() -> void:
 		push_error("This capture requires a rendering display.")
 		quit(1)
 		return
-	create_timer(35.0).timeout.connect(func() -> void: quit(2))
+	create_timer(55.0).timeout.connect(func() -> void: quit(2))
 	DirAccess.make_dir_recursive_absolute(_output)
 	var main: Node3D = load("res://scenes/main.tscn").instantiate() as Node3D
 	var map: MapGenerator = main.get_node("MapGenerator") as MapGenerator
 	map.random_seed = false
-	map.custom_seed = 1337
+	map.custom_seed = DEMO_SEED
 	root.add_child(main)
 	current_scene = main
 	var player: PlayerPrototype = main.get_node("Player") as PlayerPrototype
@@ -34,12 +36,66 @@ func _capture() -> void:
 	for frame: int in range(45):
 		await process_frame
 	player.set_class(PlayerPrototype.CharacterClass.WARRIOR, false)
+	# Use the real mandatory checkpoint path; choosing a legal offered talent
+	# lets the HUD restore its prior pause state and gameplay resume normally.
+	var hud: CanvasLayer = main.get_node("HUD") as CanvasLayer
+	var talent_panel: WarriorBuildPanel = hud.get("build_panel") as WarriorBuildPanel
+	var run_build: WarriorRunBuild = player.progression.run_build
+	if run_build.active_reward_id >= 0:
+		var options: Array[WarriorTalentDefinition] = run_build.get_talent_options()
+		if not options.is_empty():
+			talent_panel._choose(options[0].id, run_build.active_reward_id)
+		else:
+			talent_panel._focus(run_build.active_reward_id)
+	if paused:
+		push_error("The initial checkpoint did not resume the real run.")
+		quit(1)
+		return
+	# This authored view uses an existing generated flat meadow, keeping the
+	# production terrain, scatter, resource density and camera orientation.
+	var clearing_height: float = float(map.get_voxel_height(CLEARING_CENTER.x, CLEARING_CENTER.y))
+	var player_cell: Vector2i = CLEARING_CENTER + Vector2i(-3, 4)
+	player.global_position = Vector3(player_cell.x + 0.5, clearing_height + 0.9, player_cell.y + 0.5)
+	player.velocity = Vector3.ZERO
+	player.reset_physics_interpolation()
+	var camera: CameraFollow = main.get_node("Camera3D") as CameraFollow
+	camera.pan_enabled = false
+	camera.set_distance_preset(CameraMath.Preset.MEDIUM, true)
+	# A capture-only anchor frames all seven models. The hero stands in the
+	# foreground inside the real aura; the floating health bar clears the towers.
+	var camera_anchor: Node3D = Node3D.new()
+	camera_anchor.name = "DemoCameraAnchor"
+	camera_anchor.position = Vector3(CLEARING_CENTER.x + 0.5, clearing_height + 0.9, CLEARING_CENTER.y + 0.5)
+	# Its combat-look occlusion probe faces open ground instead of the iron wall.
+	camera_anchor.rotation.y = PI
+	main.add_child(camera_anchor)
+	camera.set_target(camera_anchor)
 	building.add_resource(50, 40, 20)
-	for cell: Vector2i in [Vector2i(-3, -1), Vector2i(-2, -1), Vector2i(-1, -1)]:
-		building.place_building(Vector3(cell.x + 0.5, 0.0, cell.y + 0.5), cell, BuildingSystem.PrefabType.WOOD_WALL)
-	building.place_building(Vector3(-3.5, 0.0, 3.5), Vector2i(-4, 3), BuildingSystem.PrefabType.ARCHER_TOWER)
-	building.place_building(Vector3(-2.5, 0.0, -3.5), Vector2i(-3, -4), BuildingSystem.PrefabType.BALLISTA)
-	building.place_building(Vector3(3.5, 0.0, 4.5), Vector2i(3, 4), BuildingSystem.PrefabType.CAMPFIRE)
+	var placements: Dictionary[Vector2i, BuildingSystem.PrefabType] = {
+		Vector2i(-3, 0): BuildingSystem.PrefabType.WOOD_WALL,
+		Vector2i(0, -2): BuildingSystem.PrefabType.IRON_WALL,
+		Vector2i(-3, -3): BuildingSystem.PrefabType.ARCHER_TOWER,
+		Vector2i(3, -3): BuildingSystem.PrefabType.BALLISTA,
+		Vector2i(4, 0): BuildingSystem.PrefabType.FLOOR_SPIKES,
+		Vector2i(-1, 2): BuildingSystem.PrefabType.CAMPFIRE,
+	}
+	for relative_cell: Vector2i in placements:
+		var cell: Vector2i = CLEARING_CENTER + relative_cell
+		if not building.is_cell_free(cell):
+			push_error("The deterministic demo staging cell is occupied: %s" % cell)
+			quit(1)
+			return
+		var at: Vector3 = Vector3(cell.x + 0.5, map.get_voxel_height(cell.x, cell.y), cell.y + 0.5)
+		building.place_building(at, cell, placements[relative_cell])
+	var bench: Node3D = load("res://scenes/prefabs/workbench.tscn").instantiate() as Node3D
+	var bench_cell: Vector2i = CLEARING_CENTER + Vector2i(-2, 3)
+	bench.position = Vector3(bench_cell.x + 0.5, map.get_voxel_height(bench_cell.x, bench_cell.y), bench_cell.y + 0.5)
+	main.add_child(bench)
+	# Workbench is a StaticBody3D rather than BuildingBase, so late capture
+	# placement must explicitly join/leave the same navigation registry.
+	var registry: Node = root.get_node("EntityRegistry")
+	registry.register_building(bench)
+	bench.tree_exiting.connect(registry.unregister_building.bind(bench))
 	building.cancel_build_mode()
 	player.current_health = 55.0
 	player.health.health_changed.emit(player.current_health, player.max_health)
@@ -48,6 +104,10 @@ func _capture() -> void:
 	var before: float = player.current_health
 	for frame: int in range(480):
 		if frame == 60:
+			if player.current_health <= before:
+				push_error("Expected campfire to restore actual health before night combat.")
+				quit(1)
+				return
 			await _save("day_campfire.png")
 		if frame == 100:
 			var settings: Control = main.get_node("HUD/Margin/SettingsModal") as Control
@@ -67,10 +127,6 @@ func _capture() -> void:
 		if frame == 360:
 			player.perform_dash()
 		await process_frame
-	if player.current_health <= before and player.current_health > 0.0:
-		push_error("Expected campfire to restore actual health during the staged run.")
-		quit(1)
-		return
 	print("DEMO_RUN_CAPTURE_PASS health ", before, " -> ", player.current_health,
 		" buildings=", building.placed_buildings.size(), " enemies=", root.get_node("EntityRegistry").get_enemy_count())
 	Input.action_release("attack_lmb")

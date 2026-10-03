@@ -1,0 +1,124 @@
+[gd_scene load_steps=15 format=3]
+
+[ext_resource type="Script" path="res://scripts/campfire.gd" id="1_fire"]
+[ext_resource type="PackedScene" path="res://assets/models/buildings/campfire.gltf" id="2_model"]
+[ext_resource type="Script" path="res://scripts/hurtbox_area.gd" id="3_hurtbox"]
+[ext_resource type="Script" path="res://scripts/interaction/interaction_zone.gd" id="4_zone"]
+[ext_resource type="Script" path="res://scripts/vfx/campfire_visual.gd" id="5_visual"]
+
+[sub_resource type="BoxShape3D" id="HearthBody"]
+size = Vector3(0.8, 0.4, 0.8)
+
+[sub_resource type="BoxShape3D" id="HearthHurtbox"]
+size = Vector3(1, 1, 1)
+
+[sub_resource type="BoxShape3D" id="HearthInteraction"]
+size = Vector3(1.25, 1.2, 1.25)
+
+[sub_resource type="CylinderShape3D" id="HealingArea"]
+radius = 5.0
+height = 5.0
+
+[sub_resource type="Gradient" id="EmberGradient"]
+offsets = PackedFloat32Array(0, 0.35, 1)
+colors = PackedColorArray(1, 0.79, 0.34, 1, 1, 0.39, 0.12, 0.8, 0.65, 0.18, 0.05, 0)
+
+[sub_resource type="GradientTexture1D" id="EmberRamp"]
+gradient = SubResource("EmberGradient")
+
+[sub_resource type="ParticleProcessMaterial" id="EmberMovement"]
+emission_shape = 1
+emission_sphere_radius = 0.13
+direction = Vector3(0, 1, 0)
+spread = 14.0
+initial_velocity_min = 0.6
+initial_velocity_max = 1.05
+gravity = Vector3(0.06, -0.12, 0)
+scale_min = 0.45
+scale_max = 1.2
+color_ramp = SubResource("EmberRamp")
+
+[sub_resource type="StandardMaterial3D" id="EmberMaterial"]
+shading_mode = 0
+transparency = 1
+vertex_color_use_as_albedo = true
+albedo_color = Color(1, 0.65, 0.25, 1)
+
+[sub_resource type="BoxMesh" id="EmberVoxel"]
+material = SubResource("EmberMaterial")
+size = Vector3(0.055, 0.055, 0.055)
+
+[node name="Campfire" type="StaticBody3D" groups=["buildings", "campfires"]]
+collision_layer = 1
+collision_mask = 0
+script = ExtResource("1_fire")
+building_name = "Костёр"
+max_health = 180.0
+wood_cost = 6
+stone_cost = 3
+
+[node name="Model" parent="." instance=ExtResource("2_model")]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+position = Vector3(0, 0.20, 0)
+shape = SubResource("HearthBody")
+
+[node name="Hurtbox" type="Area3D" parent="."]
+collision_layer = 8
+collision_mask = 0
+script = ExtResource("3_hurtbox")
+mesh_to_flash_path = NodePath("../Model/Body")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Hurtbox"]
+position = Vector3(0, 0.5, 0)
+shape = SubResource("HearthHurtbox")
+
+[node name="InteractionZone" type="Area3D" parent="."]
+collision_layer = 32
+collision_mask = 0
+monitoring = false
+script = ExtResource("4_zone")
+target_node = NodePath("..")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="InteractionZone"]
+position = Vector3(0, 0.5, 0)
+shape = SubResource("HearthInteraction")
+
+[node name="RegenerationArea" type="Area3D" parent="."]
+collision_layer = 0
+collision_mask = 2
+monitorable = false
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="RegenerationArea"]
+shape = SubResource("HealingArea")
+
+[node name="FireVisual" type="Node3D" parent="."]
+script = ExtResource("5_visual")
+
+[node name="WarmLight" type="OmniLight3D" parent="FireVisual"]
+position = Vector3(0, 0.80, 0)
+light_color = Color(1, 0.60, 0.25, 1)
+light_energy = 0.9
+omni_range = 4.5
+omni_attenuation = 1.5
+shadow_enabled = false
+
+[node name="Embers" type="GPUParticles3D" parent="FireVisual"]
+position = Vector3(0, 0.55, 0)
+amount = 10
+lifetime = 1.65
+preprocess = 1.0
+visibility_aabb = AABB(-1, -0.5, -1, 2, 3, 2)
+process_material = SubResource("EmberMovement")
+draw_pass_1 = SubResource("EmberVoxel")
+cast_shadow = 0
+
+[node name="HPLabel" type="Label3D" parent="."]
+position = Vector3(0, 1.5, 0)
+visible = false
+billboard = 1
+no_depth_test = true
+font_size = 24
+outline_size = 6
+outline_color = Color(0, 0, 0, 1)
+text = "180/180"

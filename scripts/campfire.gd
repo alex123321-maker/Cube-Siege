@@ -15,6 +15,7 @@ class_name Campfire
 var _players: Array[PlayerPrototype] = []
 var _refresh_timer: float = 0.0
 var _extinguished: bool = false
+var _regeneration_stopped: bool = false
 var _focused: bool = false
 
 func _ready() -> void:
@@ -29,7 +30,7 @@ func _ready() -> void:
 	fire_visual.setup(aura_radius, $Model/Flames as Node3D)
 
 func _physics_process(delta: float) -> void:
-	if _extinguished:
+	if _extinguished or _regeneration_stopped:
 		return
 	_refresh_timer -= delta
 	if _refresh_timer > 0.0:
@@ -68,7 +69,15 @@ func set_focused(focused: bool) -> void:
 	super.set_focused(focused)
 	_focused = focused
 	if is_instance_valid(fire_visual):
-		fire_visual.set_aura_visible(focused or not _players.is_empty())
+		fire_visual.set_aura_visible(not _regeneration_stopped and (focused or not _players.is_empty()))
+
+## Terminal runs freeze gameplay while the hearth may remain visible behind UI.
+## Explicit lifecycle control keeps standalone prefabs/sandboxes independent of runs.
+func stop_regeneration() -> void:
+	_regeneration_stopped = true
+	_remove_regeneration()
+	if is_instance_valid(fire_visual):
+		fire_visual.set_aura_visible(false)
 
 func destroy_building() -> void:
 	if _extinguished:

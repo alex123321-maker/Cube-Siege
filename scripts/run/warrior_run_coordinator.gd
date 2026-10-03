@@ -150,6 +150,14 @@ func _halt_gameplay() -> void:
 	cycle.stop()
 	waves.stop()
 	player.progression.run_build.end_run()
+	# Hearths keep their decorative fire, but terminal gameplay cannot refresh
+	# regeneration after the player's effect timers stop advancing.
+	var registry: Node = get_node_or_null("/root/EntityRegistry")
+	if registry:
+		for building: Node3D in registry.get_buildings():
+			if building is Campfire:
+				(building as Campfire).stop_regeneration()
+	player.status_effects.finish_run()
 	player.set_physics_process(false)
 	# Stop remaining actors and projectiles before showing a terminal screen.
 	for actor: Node in get_tree().get_nodes_in_group("enemies"):

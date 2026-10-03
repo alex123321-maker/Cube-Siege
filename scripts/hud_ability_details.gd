@@ -52,26 +52,28 @@ static func describe(player: PlayerPrototype, slot: int) -> String:
 	match slot:
 		0:
 			var damage: float = player.attack_damage * (PlayerCombat.HAMMER_DAMAGE_MULTIPLIER if c == 2 else 1.0)
-			if player.is_dueling and c != 1:
-				damage *= PlayerCombat.DUEL_DAMAGE_MULTIPLIER
 			rows.append(["Удар мечом [ЛКМ]\nПоражает первую цель перед героем.", "Выстрел из лука [ЛКМ]\nСтрела летит по направлению прицеливания.", "Удар молотом [ЛКМ]\nТяжёлый взмах поражает несколько целей и ремонтирует ближайшие постройки."][c])
+			if c == 0 and player.talents.has("sweeping_strike"):
+				rows[0] = "Разящий удар [ЛКМ]\nПоражает всех врагов в области меча."
 			rows.append(_attribute("Урон", damage))
-			rows.append(_attribute("Перезарядка", PlayerCombat.ATTACK_COOLDOWNS[c], "с"))
+			_duel_target_damage(rows, player, damage)
+			rows.append(_attribute("Перезарядка", PlayerCombat.ATTACK_COOLDOWNS[c] * (player.talents.multiplier("attack_speed") if c == 0 else 1.0), "с"))
 			rows.append(_attribute("Замах", PlayerCombat.ATTACK_WINDUPS[c], "с"))
 			if c == 1:
 				_arrow_rows(rows, PlayerCombat.ARROW_SPEED, values.arrow_duration, 1)
 			else:
 				_melee_rows(rows, player)
-				rows.append("Целей: 1" if c == 0 else "Целей: все в области удара")
+				rows.append("Целей: 1" if c == 0 and not player.talents.has("sweeping_strike") else "Целей: все в области удара")
 				rows.append(_attribute("Отбрасывание", 5.0 if c == 0 else 6.0, "м/с"))
 				rows.append(_attribute("Активное окно", PlayerCombat.SLASH_ACTIVE_DURATION, "с"))
 				if c == 2:
 					rows.append("Ремонт: 40 HP · радиус 2,8 м")
-				if player.vampirism_heal > 0.0:
+				if player.vampirism_heal > 0.0 and c != 0:
 					rows.append(_attribute("Лечение за взмах", player.vampirism_heal, "HP"))
+				_talent_healing(rows, player)
 		1:
 			rows.append(["Рассечение [ПКМ]\nШирокий взмах поражает всех врагов в секторе перед героем.", "Сквозная стрела [ПКМ]\nУсиленная стрела пробивает несколько целей на одной линии.", "Временная турель [ПКМ]\nАвтоматически стреляет в ближайшего врага; исчезает по окончании времени жизни."][c])
-			rows.append(_attribute("Перезарядка", PlayerCombat.SPECIAL_COOLDOWNS[c], "с"))
+			rows.append(_attribute("Перезарядка", PlayerCombat.SPECIAL_COOLDOWNS[c] * (player.talents.multiplier("cleave_cooldown") if c == 0 else 1.0), "с"))
 			rows.append(_attribute("Замах", PlayerCombat.CLEAVE_SPEC.windup if c == 0 else PlayerCombat.SPECIAL_WINDUPS[c], "с"))
 			if c == 2:
 				rows.append(_attribute("Урон снаряда", values.turret_damage))
@@ -81,16 +83,19 @@ static func describe(player: PlayerPrototype, slot: int) -> String:
 				rows.append("Урон турели независим от урона героя.")
 			else:
 				var damage: float = player.special_damage * (PlayerCombat.PIERCING_DAMAGE_MULTIPLIER if c == 1 else 1.0)
-				if player.is_dueling and c == 0:
-					damage *= PlayerCombat.DUEL_DAMAGE_MULTIPLIER
 				rows.append(_attribute("Урон", damage))
 				if c == 0:
-					rows.append(_attribute("Радиус", PlayerCombat.CLEAVE_SPEC.radius, "м"))
-					rows.append(_attribute("Сектор", PlayerCombat.CLEAVE_SPEC.arc_degrees, "°"))
+					_duel_target_damage(rows, player, damage)
+					rows.append(_attribute("Радиус", PlayerCombat.CLEAVE_SPEC.radius * player.talents.multiplier("cleave_radius"), "м"))
+					rows.append(_attribute("Сектор", 360.0 if player.talents.has("whirlwind_cleave") else PlayerCombat.CLEAVE_SPEC.arc_degrees, "°"))
 					rows.append(_attribute("Отбрасывание", 12.0, "м/с"))
 					rows.append(_attribute("Восстановление базовой атаки", PlayerCombat.CLEAVE_SPEC.recovery, "с"))
-					if player.vampirism_heal > 0.0:
-						rows.append(_attribute("Лечение за взмах", player.vampirism_heal, "HP"))
+					if player.talents.has("wide_lunge"):
+						rows.append(_attribute("Дальность выпада", WarriorTalentCatalog.LUNGE_DISTANCE * player.talents.multiplier("lunge_distance"), "м"))
+						rows.append(_attribute("Длительность выпада", WarriorTalentCatalog.LUNGE_DURATION, "с"))
+						rows.append("Вихрь поражает на всей траектории выпада." if player.talents.has("whirlwind_cleave") else "Удар в конце выпада; во время движения урона нет.")
+						rows.append("Столкновения ограничивают выпад. Неуязвимости нет.")
+					_talent_healing(rows, player)
 				else:
 					_arrow_rows(rows, PlayerCombat.PIERCING_SPEED, values.arrow_duration, PlayerCombat.PIERCING_TARGETS)
 		2:
@@ -100,16 +105,30 @@ static func describe(player: PlayerPrototype, slot: int) -> String:
 			rows.append(_attribute("Длительность", player.dash_duration, "с"))
 			rows.append(_attribute("Скорость", player.dash_speed, "м/с"))
 			rows.append(_attribute("Дальность на ровной поверхности", player.dash_speed * player.dash_duration, "м"))
-			rows.append("Воин получает урон во время рывка. Парирование действует." if c == 0 else "Неуязвимость к урону на всё время рывка.")
+			rows.append("Воин получает урон во время рывка. Парирование действует." if c == 0 and not player.talents.has("perfect_dash") else "Неуязвимость к урону на всё время рывка.")
+			if c == 0 and player.talents.build().has_synergy("dangerous_movement"):
+				rows.append(_attribute("Урон при касании врага", player.talents.attack_based_ability_damage()))
+				rows.append("Каждый враг получает урон один раз за рывок.")
+				_talent_healing(rows, player)
 		3:
 			if c == 0:
-				rows.append("Парирование [Q]\nЗащитная стойка поглощает один первый удар или снаряд и оглушает окружающих врагов.")
-				rows.append(_attribute("Защитное окно", PlayerHealth.PARRY_WINDOW, "с"))
-				rows.append(_attribute("Перезарядка при промахе", PlayerHealth.PARRY_COOLDOWN, "с"))
-				rows.append(_attribute("Перезарядка при успехе", PlayerHealth.PARRY_SUCCESS_COOLDOWN, "с"))
+				var counter: bool = player.talents.has("counterattack")
+				rows.append("Контратака [Q]\nЗащитная стойка поглощает все удары и снаряды в окне и отвечает атакующему." if counter else "Парирование [Q]\nЗащитная стойка поглощает первый удар или снаряд и оглушает окружающих врагов.")
+				rows.append(_attribute("Защитное окно", player.talents.parry_duration(), "с"))
+				rows.append(_attribute("Перезарядка при промахе", PlayerHealth.PARRY_COOLDOWN * player.talents.multiplier("parry_cooldown"), "с"))
+				rows.append(_attribute("Перезарядка при успехе", PlayerHealth.PARRY_SUCCESS_COOLDOWN * player.talents.multiplier("parry_cooldown"), "с"))
 				rows.append(_attribute("Радиус оглушения", PlayerHealth.COUNTER_RADIUS, "м"))
 				rows.append(_attribute("Длительность оглушения", PlayerHealth.COUNTER_STUN, "с"))
-				rows.append(_attribute("Ответный урон", PlayerHealth.COUNTER_DAMAGE))
+				rows.append("Элитные враги оглушены вдвое короче; боссы не оглушаются.")
+				rows.append(_attribute("Ответный урон", player.talents.attack_based_ability_damage() if counter else PlayerHealth.COUNTER_DAMAGE))
+				if counter:
+					_duel_target_damage(rows, player, player.talents.attack_based_ability_damage())
+					if player.talents.build().has_synergy("blood_tempering"):
+						_talent_healing(rows, player)
+				if player.talents.has("hot_blood"):
+					rows.append(_attribute("Лечение при успехе", WarriorTalentCatalog.HOT_BLOOD_RATE * player.talents.multiplier("hot_blood_healing"), "HP/с"))
+					rows.append(_attribute("Длительность лечения", WarriorTalentCatalog.HOT_BLOOD_DURATION, "с"))
+					rows.append("Повторное успешное парирование обновляет лечение.")
 			elif c == 1:
 				rows.append("Приманка [Q]\nЧучело появляется перед героем и отвлекает ближайших врагов. Может быть разрушено раньше срока.")
 				rows.append(_attribute("Перезарядка", PlayerAbilities.DECOY_COOLDOWN, "с"))
@@ -126,7 +145,14 @@ static func describe(player: PlayerPrototype, slot: int) -> String:
 			if c == 0:
 				rows.append("Вызов на дуэль [F]\nВыбирает врага под курсором. Герой и цель автоматически сближаются; атаки и умения остаются доступны.")
 				rows.append(_attribute("Перезарядка", player.ultimate_cooldown, "с"))
-				rows.append("Урон взмахов: +20%\nУрон от сторонних врагов: −40%\nОтражение стороннего урона: 20%\nДлительность: до смерти одной из сторон.")
+				rows.append(_attribute("Бонус урона по цели дуэли", 20.0 * player.talents.multiplier("duel_bonus"), "%"))
+				rows.append(_attribute("Снижение стороннего урона здоровью", (1.0 - 1.0 / (1.0 + (2.0 / 3.0) * player.talents.multiplier("duel_resistance"))) * 100.0, "%"))
+				rows.append(_attribute("Отражение стороннего урона", minf(1.0, 0.2 * player.talents.multiplier("duel_reflection")) * 100.0, "%"))
+				rows.append("Длительность: до смерти одной из сторон.")
+				if player.talents.has("loud_triumph"):
+					rows.append(_attribute("Бонус обычной атаки за победу", WarriorTalentCatalog.TRIUMPH_BONUS * player.talents.multiplier("triumph_power") * 100.0, "%"))
+				if player.talents.has("dismemberment"):
+					rows.append("Победа замедляет врагов на %s%% в радиусе %s м и даёт +%s%% скорости, %s%% уклонения на %s с." % [WarriorTalentCatalog.DISMEMBER_SLOW * 100.0, WarriorTalentCatalog.DISMEMBER_RADIUS, WarriorTalentCatalog.MORALE_SPEED * 100.0, WarriorTalentCatalog.MORALE_DODGE * 100.0, snappedf(WarriorTalentCatalog.MORALE_DURATION * player.talents.multiplier("morale_duration"), 0.01)])
 			elif c == 1:
 				rows.append("Око снайпера [F]\nРасширяет обзор камеры для дальнего прицеливания.")
 				rows.append("Перезарядка: 25 с\nДлительность: до конца забега. Повторная активация не требуется.")
@@ -141,6 +167,15 @@ static func describe(player: PlayerPrototype, slot: int) -> String:
 				rows.append(_attribute("Длительность горения", PlayerAbilities.NUKE_BURN_INTERVAL * PlayerAbilities.NUKE_BURN_TICKS, "с"))
 				rows.append("Тиков: %d · снимает сопротивление осадных врагов." % PlayerAbilities.NUKE_BURN_TICKS)
 	return "\n".join(rows)
+
+static func _duel_target_damage(rows: PackedStringArray, player: PlayerPrototype, base_damage: float) -> void:
+	if player.is_dueling and player.current_class != PlayerPrototype.CharacterClass.ARCHER:
+		rows.append(_attribute("Урон по цели дуэли", base_damage * (1.0 + 0.2 * player.talents.multiplier("duel_bonus"))))
+
+static func _talent_healing(rows: PackedStringArray, player: PlayerPrototype) -> void:
+	if player.talents.has("tempered_blade"):
+		rows.append(_attribute("Лечение от урона здоровью", WarriorTalentCatalog.VAMPIRISM_FRACTION * player.talents.multiplier("vampirism") * 100.0, "%"))
+		rows.append("Урон щитам и отражение не дают лечения.")
 
 static func _attribute(title: String, value: float, unit: String = "") -> String:
 	var rounded: float = snappedf(value, 0.01)

@@ -5,10 +5,12 @@ class TimedEffect extends RefCounted:
 	var source: String
 	var strength: float
 	var remaining: float
+	var duration: float
 	func _init(p_source: String, p_strength: float, p_duration: float) -> void:
 		source = p_source
 		strength = p_strength
 		remaining = p_duration
+		duration = p_duration
 
 var slows: Array[TimedEffect] = []
 var stuns: Array[TimedEffect] = []
@@ -36,6 +38,7 @@ func _apply(effects: Array[TimedEffect], source: String, strength: float, durati
 		if effect.source == source:
 			effect.strength = strength
 			effect.remaining = duration
+			effect.duration = duration
 			return
 	effects.append(TimedEffect.new(source, strength, duration))
 
