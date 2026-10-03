@@ -228,6 +228,16 @@ func get_or_update_field(target_pos: Vector3, max_radius: int = DEFAULT_RADIUS) 
 
 	return new_field
 
+## Force-recomputes and caches a fresh flowfield for target_pos.
+func recompute_field(target_pos: Vector3, max_radius: int = DEFAULT_RADIUS) -> FieldCache:
+	var goal_cell: Vector2i = Vector2i(int(floorf(target_pos.x)), int(floorf(target_pos.z)))
+	_target_fields.erase(goal_cell)
+	for k: Vector2i in _target_fields.keys():
+		var f: FieldCache = _target_fields[k]
+		if f.target_pos.distance_squared_to(target_pos) < TARGET_MOVE_THRESHOLD_SQ:
+			_target_fields.erase(k)
+	return get_or_update_field(target_pos, max_radius)
+
 ## Computes or updates the flowfield towards target_pos if needed (backward compatibility).
 func update_field_if_needed(target_pos: Vector3, max_radius: int = DEFAULT_RADIUS) -> void:
 	get_or_update_field(target_pos, max_radius)
@@ -336,6 +346,11 @@ func get_flow_direction(
 
 	var from_cell: Vector2i = Vector2i(int(floorf(from_pos.x)), int(floorf(from_pos.z)))
 
+	# Ensure origin cell is loaded and not blocked
+	if chunk_loaded_lookup.is_valid() and not chunk_loaded_lookup.call(from_cell.x, from_cell.y):
+		return Vector3.ZERO
+	if blocked_cells.has(from_cell):
+		return Vector3.ZERO
 	# 1. Line-of-sight shortcut:
 	# Requires unobstructed direct path, clearance width, and strict anti-corner-cutting.
 	if dist < 8.0:
@@ -346,11 +361,28 @@ func get_flow_direction(
 	if field.flow_directions.has(from_cell):
 		var dir_2d: Vector2 = field.flow_directions[from_cell]
 		if dir_2d.length_squared() > 0.001:
-			if clearance_radius > 0.5:
-				dir_2d = _resolve_clearance_direction(from_pos, dir_2d, clearance_radius, field)
-				if dir_2d.length_squared() < 0.001:
+			var step_x: int = int(roundf(dir_2d.x))
+			var step_z: int = int(roundf(dir_2d.y))
+			var next_cell: Vector2i = from_cell + Vector2i(step_x, step_z)
+			if (step_x != 0 or step_z != 0) and not is_step_passable(from_cell, next_cell):
+				# Stale cached direction (chunk unloaded, wall placed, or cliff changed).
+				# Force recomputing fresh field.
+				field = recompute_field(target_pos)
+				if not field or not field.flow_directions.has(from_cell):
 					return Vector3.ZERO
-			return Vector3(dir_2d.x, 0.0, dir_2d.y)
+				dir_2d = field.flow_directions[from_cell]
+				step_x = int(roundf(dir_2d.x))
+				step_z = int(roundf(dir_2d.y))
+				next_cell = from_cell + Vector2i(step_x, step_z)
+				if (step_x != 0 or step_z != 0) and not is_step_passable(from_cell, next_cell):
+					return Vector3.ZERO
+
+			if dir_2d.length_squared() > 0.001:
+				if clearance_radius > 0.2:
+					dir_2d = _resolve_clearance_direction(from_pos, dir_2d, clearance_radius, field)
+					if dir_2d.length_squared() < 0.001:
+						return Vector3.ZERO
+				return Vector3(dir_2d.x, 0.0, dir_2d.y)
 
 	# 3. Path unreachable / blocked:
 	# Strictly returns Vector3.ZERO as per §3.2 (no direct fallback vectors into walls)
@@ -360,7 +392,7 @@ func _check_line_of_sight(from_pos: Vector3, target_pos: Vector3, clearance_radi
 	if not _is_direct_line_passable(from_pos, target_pos):
 		return false
 
-	if clearance_radius > 0.4:
+	if clearance_radius > 0.05:
 		var diff: Vector3 = target_pos - from_pos
 		var dir_h: Vector2 = Vector2(diff.x, diff.z).normalized()
 		var perp: Vector2 = Vector2(-dir_h.y, dir_h.x) * clearance_radius
@@ -369,7 +401,7 @@ func _check_line_of_sight(from_pos: Vector3, target_pos: Vector3, clearance_radi
 			return false
 		if not _is_direct_line_passable(from_pos - perp_3d, target_pos - perp_3d):
 			return false
-		if clearance_radius > 0.8:
+		if clearance_radius > 0.5:
 			var half_perp_3d: Vector3 = perp_3d * 0.5
 			if not _is_direct_line_passable(from_pos + half_perp_3d, target_pos + half_perp_3d):
 				return false
@@ -436,6 +468,15 @@ func _resolve_clearance_direction(
 					if _has_lateral_clearance(next_alt_pos, alt_dir, clearance_radius):
 						best_dist = d_val
 						best_alt = alt_dir
+
+	if best_alt.length_squared() < 0.001 and clearance_radius <= 0.5:
+		var cell_center_2d: Vector2 = Vector2(float(from_cell.x) + 0.5, float(from_cell.y) + 0.5)
+		var to_center: Vector2 = cell_center_2d - Vector2(from_pos.x, from_pos.z)
+		var steer: Vector2 = (dir_2d + to_center * 2.0).normalized()
+		var next_test: Vector3 = from_pos + Vector3(steer.x, 0.0, steer.y) * 0.5
+		if _has_lateral_clearance(next_test, steer, clearance_radius * 0.75):
+			return steer
+
 	return best_alt
 
 func _has_lateral_clearance(pos: Vector3, dir: Vector2, clearance_radius: float) -> bool:

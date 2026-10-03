@@ -245,6 +245,10 @@ func load_chunk(cx: int, cz: int) -> void:
 	_spawn_chunk_resources(cx, cz, spawned_nodes)
 	chunk_resources[coord] = spawned_nodes
 
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if reg and "monster_flowfield" in reg and reg.monster_flowfield:
+		reg.monster_flowfield.invalidate()
+
 func is_cell_loaded(wx: int, wz: int) -> bool:
 	var cx: int = int(floorf(float(wx) / float(ChunkBuilder.CHUNK_SIZE)))
 	var cz: int = int(floorf(float(wz) / float(ChunkBuilder.CHUNK_SIZE)))
@@ -257,6 +261,10 @@ func unload_chunk(cx: int, cz: int) -> void:
 	_free_chunk(coord)
 	active_chunks.erase(coord)
 	chunk_resources.erase(coord)
+
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if reg and "monster_flowfield" in reg and reg.monster_flowfield:
+		reg.monster_flowfield.invalidate()
 
 func _free_chunk(coord: Vector2i) -> void:
 	if active_chunks.has(coord):

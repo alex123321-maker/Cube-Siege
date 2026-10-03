@@ -222,3 +222,72 @@ func test_validate_safe_spawn_point_outside_tree() -> void:
 	assert_false(is_occupied, "Occupied spot must be rejected by safe spawn validation")
 
 	unparented_mob.queue_free()
+
+func test_align_starting_entities_success_and_failure_handling() -> void:
+	var ground: StaticBody3D = StaticBody3D.new()
+	ground.collision_layer = 1
+	var g_col: CollisionShape3D = CollisionShape3D.new()
+	var g_box: BoxShape3D = BoxShape3D.new()
+	g_box.size = Vector3(50.0, 1.0, 50.0)
+	g_col.shape = g_box
+	ground.add_child(g_col)
+	add_child_autoqfree(ground)
+	ground.global_position = Vector3(0.0, -0.5, 0.0)
+
+	var main_script = preload("res://scripts/main.gd")
+	var main_node = Node3D.new()
+	main_node.set_script(main_script)
+	add_child_autoqfree(main_node)
+
+	var mock_map = Node.new()
+	var script = GDScript.new()
+	script.source_code = "extends Node\nfunc get_voxel_height(_x: int, _z: int) -> int:\n\treturn 0\n"
+	script.reload()
+	mock_map.set_script(script)
+	main_node.add_child(mock_map)
+	main_node.map_generator = mock_map
+
+	var enemies_node = Node3D.new()
+	main_node.add_child(enemies_node)
+	main_node.enemies_container = enemies_node
+
+	await wait_physics_frames(2)
+
+	# 1. Safe spawn candidate:
+	var safe_enemy = ENEMY_DUMMY_SCENE.instantiate()
+	enemies_node.add_child(safe_enemy)
+	safe_enemy.global_position = Vector3(10.0, 0.0, 10.0)
+	await wait_physics_frames(1)
+
+	main_node._align_starting_entities()
+	assert_true(safe_enemy.is_inside_tree(), "Safe starting enemy must remain in scene tree")
+	assert_almost_eq(safe_enemy.global_position.y, 0.9, 0.05, "Safe starting enemy must be aligned to safe ground Y")
+
+	# 2. Obstacle blocking initial pos and all 8 alternative offsets:
+	var obstacle: StaticBody3D = StaticBody3D.new()
+	obstacle.collision_layer = 1
+	var o_col: CollisionShape3D = CollisionShape3D.new()
+	var o_box: BoxShape3D = BoxShape3D.new()
+	o_box.size = Vector3(5.0, 3.0, 5.0)
+	o_col.shape = o_box
+	obstacle.add_child(o_col)
+	add_child_autoqfree(obstacle)
+	obstacle.global_position = Vector3(-10.0, 1.5, -10.0)
+
+	await wait_physics_frames(2)
+
+	var blocked_enemy = ENEMY_DUMMY_SCENE.instantiate()
+	enemies_node.add_child(blocked_enemy)
+	blocked_enemy.global_position = Vector3(-10.0, 0.0, -10.0)
+	await wait_physics_frames(1)
+
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if reg:
+		reg.register_enemy(blocked_enemy)
+		assert_true(reg.get_enemies().has(blocked_enemy), "Blocked enemy registered initially")
+
+	main_node._align_starting_entities()
+
+	assert_false(blocked_enemy.is_inside_tree(), "Completely blocked starting enemy must be removed from scene tree")
+	if reg:
+		assert_false(reg.get_enemies().has(blocked_enemy), "Blocked enemy must be unregistered from EntityRegistry upon alignment failure")

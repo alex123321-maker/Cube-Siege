@@ -286,6 +286,9 @@ var _is_harvesting: bool = false
 
 func break_rock() -> void:
 	is_destroyed = true
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if reg and reg.has_method("unregister_resource"):
+		reg.unregister_resource(self)
 	var vfx = get_node_or_null("/root/VFXManager")
 	if vfx:
 		vfx.spawn_stone_break(_stone_vfx_position(), _stone_vfx_color(), 2)

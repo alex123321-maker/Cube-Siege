@@ -1,12 +1,12 @@
 extends Node3D
 
-@onready var building_system: Node = $BuildingSystem
-@onready var radial_menu: Control = $HUD/Margin/RadialMenu
-@onready var player: Node = $Player
-@onready var overlay: Control = $HUD/Margin/GameOverOverlay
+@onready var building_system: Node = get_node_or_null("BuildingSystem")
+@onready var radial_menu: Control = get_node_or_null("HUD/Margin/RadialMenu")
+@onready var player: Node = get_node_or_null("Player")
+@onready var overlay: Control = get_node_or_null("HUD/Margin/GameOverOverlay")
 @onready var save_manager: Node = get_node_or_null("/root/SaveManager")
-@onready var day_night: Node = $DayNightCycle
-@onready var hud: CanvasLayer = $HUD
+@onready var day_night: Node = get_node_or_null("DayNightCycle")
+@onready var hud: CanvasLayer = get_node_or_null("HUD")
 @onready var map_generator: Node = get_node_or_null("MapGenerator")
 @onready var enemies_container: Node = get_node_or_null("Enemies")
 
@@ -43,11 +43,16 @@ func _align_starting_entities() -> void:
 			elif "actual_seed" in map_generator:
 				y_floor = BiomeSystem.get_voxel_height(ex, ez, map_generator.actual_seed)
 			var candidate_pos: Vector3 = enemy.global_position
+			var valid_pos_found: bool = true
 			if enemy is CharacterBody3D:
 				candidate_pos.y = MonsterLocomotion.calculate_spawn_y(float(y_floor), enemy as CharacterBody3D)
 				if space_state:
 					if not MonsterLocomotion.validate_safe_spawn_point(space_state, enemy as CharacterBody3D, candidate_pos):
-						for offset in [Vector3(1, 0, 0), Vector3(-1, 0, 0), Vector3(0, 0, 1), Vector3(0, 0, -1)]:
+						valid_pos_found = false
+						for offset in [
+							Vector3(1, 0, 0), Vector3(-1, 0, 0), Vector3(0, 0, 1), Vector3(0, 0, -1),
+							Vector3(1, 0, 1), Vector3(-1, 0, 1), Vector3(1, 0, -1), Vector3(-1, 0, -1)
+						]:
 							var alt_pos: Vector3 = candidate_pos + offset
 							var alt_y: float = float(y_floor)
 							if map_generator.has_method("get_voxel_height"):
@@ -55,10 +60,20 @@ func _align_starting_entities() -> void:
 							alt_pos.y = MonsterLocomotion.calculate_spawn_y(alt_y, enemy as CharacterBody3D)
 							if MonsterLocomotion.validate_safe_spawn_point(space_state, enemy as CharacterBody3D, alt_pos):
 								candidate_pos = alt_pos
+								valid_pos_found = true
 								break
 			else:
 				candidate_pos.y = float(y_floor) + 0.9
-			enemy.global_position = candidate_pos
+
+			if valid_pos_found:
+				enemy.global_position = candidate_pos
+			else:
+				var reg = get_node_or_null("/root/EntityRegistry")
+				if reg and reg.has_method("unregister_enemy"):
+					reg.unregister_enemy(enemy)
+				if enemy.get_parent():
+					enemy.get_parent().remove_child(enemy)
+				enemy.queue_free()
 
 func _exit_tree() -> void:
 	var eb = get_node_or_null("/root/EventBus")

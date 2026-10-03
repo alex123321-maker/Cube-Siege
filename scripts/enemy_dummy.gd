@@ -36,19 +36,29 @@ func _custom_physics(delta: float) -> void:
 		var dist: float = to_player.length()
 
 		if dist > 0.1:
-			var path_dir: Vector3 = to_player.normalized()
+			var path_dir: Vector3 = Vector3.ZERO
 			var reg = get_node_or_null("/root/EntityRegistry")
 			if reg and "monster_flowfield" in reg and reg.monster_flowfield:
 				path_dir = reg.monster_flowfield.get_flow_direction(global_position, target_player.global_position, radius)
-				if path_dir.length_squared() < 0.001 and dist > 1.3:
-					var nearest_b: Node3D = reg.get_nearest_building(global_position)
-					if nearest_b:
-						path_dir = reg.monster_flowfield.get_flow_direction(global_position, nearest_b.global_position, radius)
-						if path_dir.length_squared() < 0.001:
-							var to_b: Vector3 = nearest_b.global_position - global_position
-							to_b.y = 0.0
-							if to_b.length_squared() > 0.01:
-								path_dir = to_b.normalized()
+				if path_dir.length_squared() < 0.001 and dist > 1.3 and not is_in_duel:
+					var buildings = reg.get_buildings()
+					if not buildings.is_empty():
+						var candidates: Array[Node3D] = []
+						for b in buildings:
+							if is_instance_valid(b) and b is Node3D:
+								candidates.append(b as Node3D)
+						candidates.sort_custom(func(a: Node3D, b_node: Node3D) -> bool:
+							return global_position.distance_squared_to(a.global_position) < global_position.distance_squared_to(b_node.global_position)
+						)
+						var check_count: int = mini(4, candidates.size())
+						for idx in range(check_count):
+							var b_cand: Node3D = candidates[idx]
+							var b_dir: Vector3 = reg.monster_flowfield.get_flow_direction(global_position, b_cand.global_position, radius)
+							if b_dir.length_squared() > 0.001:
+								path_dir = b_dir
+								break
+			elif not is_in_duel:
+				path_dir = to_player.normalized()
 
 			var pref_vel: Vector3 = Vector3.ZERO
 			if dist > 1.3:

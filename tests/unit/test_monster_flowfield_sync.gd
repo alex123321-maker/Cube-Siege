@@ -97,10 +97,10 @@ func test_wide_boss_clearance_rejects_narrow_corridor() -> void:
 	# Flat ground lookup
 	ff.set_height_lookup(func(_x, _z): return 0)
 
-	# Build a corridor: walls at z=0 and z=2 (corridor center at z=1, width 2.0m)
+	# Build a corridor: walls at z=-1 and z=2 (corridor center at z=1.0, width 2.0m: cells z=0 and z=1)
 	# Boss Gorgon has diameter 2.4m (radius 1.2m), Grunt has diameter 0.8m (radius 0.4m)
 	for x in range(-3, 4):
-		ff.set_cell_blocked(Vector2i(x, 0), true)
+		ff.set_cell_blocked(Vector2i(x, -1), true)
 		ff.set_cell_blocked(Vector2i(x, 2), true)
 
 	var start_pos = Vector3(-2.5, 0.0, 1.0)
@@ -151,3 +151,143 @@ func test_zombie_approaches_wall_when_player_walled_in() -> void:
 	var dir_to_building = reg.monster_flowfield.get_flow_direction(zombie_pos, nearest_b.global_position, 0.4)
 	assert_gt(dir_to_building.length_squared(), 0.001, "Zombie must receive active flow vector approaching perimeter building")
 	assert_lt(dir_to_building.x, -0.5, "Approach vector must lead zombie westward towards wall perimeter")
+
+func test_resource_stone_and_iron_break_unblocks_flowfield_cells() -> void:
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if not reg:
+		return
+
+	var stone_scene = preload("res://scenes/resource_stone.tscn")
+	var iron_scene = preload("res://scenes/resource_iron.tscn")
+
+	var stone = stone_scene.instantiate()
+	stone.position = Vector3(12.0, 0.0, 12.0)
+	add_child_autoqfree(stone)
+
+	var iron = iron_scene.instantiate()
+	iron.position = Vector3(16.0, 0.0, 16.0)
+	add_child_autoqfree(iron)
+
+	await wait_physics_frames(2)
+
+	var stone_cell: Vector2i = Vector2i(12, 12)
+	var iron_cell: Vector2i = Vector2i(16, 16)
+	assert_true(reg.monster_flowfield.blocked_cells.has(stone_cell), "Stone rock cell must be blocked initially")
+	assert_true(reg.monster_flowfield.blocked_cells.has(iron_cell), "Iron rock cell must be blocked initially")
+
+	# Destroy rocks without harvesting/freeing: both must immediately unblock in flowfield
+	stone.break_rock()
+	iron.break_rock()
+
+	assert_false(reg.monster_flowfield.blocked_cells.has(stone_cell), "Destroyed stone rock cell must be unblocked immediately upon break_rock")
+	assert_false(reg.monster_flowfield.blocked_cells.has(iron_cell), "Destroyed iron rock cell must be unblocked immediately upon break_rock")
+
+func test_chunk_unload_prevents_stale_flowfield_transition() -> void:
+	var ff = FlowfieldScript.new(12345)
+	ff.set_height_lookup(func(_x, _z): return 0)
+
+	var loaded_cells: Dictionary = {}
+	# Initially all cells loaded
+	ff.set_chunk_loaded_lookup(func(x, z): return not loaded_cells.has(Vector2i(x, z)))
+
+	var start_pos = Vector3(0.5, 0.0, 0.5)
+	var target_pos = Vector3(5.5, 0.0, 0.5)
+
+	# Fetch initial direction (must be towards +X)
+	var dir_init: Vector3 = ff.get_flow_direction(start_pos, target_pos, 0.4)
+	assert_gt(dir_init.x, 0.5, "Initial path points east towards target")
+
+	# Now unload boundary column at x=1 so target is completely across unloaded chunk boundary
+	for z in range(-36, 37):
+		loaded_cells[Vector2i(1, z)] = true
+
+	# Subsequent query with cached field must detect next step is into unloaded territory and return ZERO
+	var dir_unloaded: Vector3 = ff.get_flow_direction(start_pos, target_pos, 0.4)
+	assert_almost_eq(dir_unloaded.length_squared(), 0.0, 0.001, "Movement into unloaded territory must return ZERO direction")
+
+	# Also verify when mob's current cell is unloaded
+	loaded_cells[Vector2i(0, 0)] = true
+	var dir_origin_unloaded: Vector3 = ff.get_flow_direction(start_pos, target_pos, 0.4)
+	assert_almost_eq(dir_origin_unloaded.length_squared(), 0.0, 0.001, "Mob standing in unloaded cell returns ZERO direction")
+
+func test_small_mob_lateral_clearance_respects_wall_boundary() -> void:
+	var ff = FlowfieldScript.new(12345)
+	ff.set_height_lookup(func(_x, _z): return 0)
+
+	# Walls occupy cells (0,0), (1,0), (2,0), (3,0) covering z in [0, 1]
+	for x in range(4):
+		ff.set_cell_blocked(Vector2i(x, 0), true)
+
+	var start_pos = Vector3(-1.0, 0.9, 1.2)
+	var target_pos = Vector3(5.0, 0.9, 1.2)
+
+	# Grunt has radius 0.4. Lateral edge extends to z = 1.2 - 0.4 = 0.8 which intersects walls in row 0 (z in [0, 1])
+	var los_clear = ff._check_line_of_sight(start_pos, target_pos, 0.4)
+	assert_false(los_clear, "Small mob line-of-sight must be rejected when body width intersects adjacent wall boundary")
+
+	# Skirmisher has radius 0.3. Lateral edge extends to z = 1.2 - 0.3 = 0.9 which also intersects walls in row 0
+	var los_skirmisher = ff._check_line_of_sight(start_pos, target_pos, 0.3)
+	assert_false(los_skirmisher, "Skirmisher line-of-sight must be rejected when body width intersects wall boundary")
+
+func test_unreachable_target_returns_zero_without_straight_fallback() -> void:
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if not reg:
+		return
+
+	var zombie_scene = preload("res://scenes/enemy_dummy.tscn")
+	var zombie = zombie_scene.instantiate()
+	add_child_autoqfree(zombie)
+	zombie.global_position = Vector3(0.0, 0.9, 0.0)
+
+	var player = Node3D.new()
+	player.add_to_group("player")
+	add_child_autoqfree(player)
+	player.global_position = Vector3(5.0, 2.9, 0.0)
+	zombie.target_player = player
+
+	# Height lookup: cliff between X=2 and X=3 (height jump from 0 to 2)
+	reg.monster_flowfield.set_height_lookup(func(x, _z):
+		return 2 if x >= 3 else 0
+	)
+	reg.monster_flowfield.invalidate()
+
+	# Process 1 frame of physics
+	zombie._custom_physics(0.016)
+
+	assert_almost_eq(zombie.desired_velocity_h.length_squared(), 0.0, 0.001, "Unreachable player across cliff must result in ZERO horizontal velocity (no straight line fallback into cliff)")
+
+func test_duel_mode_ignores_buildings_on_unreachable_player() -> void:
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if not reg:
+		return
+
+	var zombie_scene = preload("res://scenes/enemy_dummy.tscn")
+	var zombie = zombie_scene.instantiate()
+	add_child_autoqfree(zombie)
+	zombie.global_position = Vector3(0.0, 0.9, 0.0)
+
+	var player = Node3D.new()
+	player.add_to_group("player")
+	add_child_autoqfree(player)
+	player.global_position = Vector3(5.0, 2.9, 0.0)
+
+	# Register a nearby reachable building
+	var wall = Node3D.new()
+	wall.add_to_group("buildings")
+	add_child_autoqfree(wall)
+	wall.global_position = Vector3(0.0, 0.0, 2.0)
+	reg.register_building(wall)
+
+	reg.monster_flowfield.set_height_lookup(func(x, _z):
+		return 2 if x >= 3 else 0
+	)
+	reg.monster_flowfield.invalidate()
+
+	# In DUEL mode, zombie MUST strictly target player and ignore buildings
+	zombie.is_in_duel = true
+	zombie.duel_opponent = player
+	zombie.target_player = player
+	zombie._custom_physics(0.016)
+	var duel_vel = zombie.desired_velocity_h
+
+	assert_almost_eq(duel_vel.length_squared(), 0.0, 0.001, "During duel, unreachable player must NOT cause zombie to divert to buildings; velocity must be ZERO")
