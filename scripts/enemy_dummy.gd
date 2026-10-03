@@ -39,7 +39,7 @@ func _custom_physics(delta: float) -> void:
 			var path_dir: Vector3 = Vector3.ZERO
 			var reg = get_node_or_null("/root/EntityRegistry")
 			if reg and "monster_flowfield" in reg and reg.monster_flowfield:
-				path_dir = reg.monster_flowfield.get_flow_direction(global_position, target_player.global_position, radius)
+				path_dir = reg.monster_flowfield.get_flow_direction(global_position, target_player.global_position, radius, target_player.get_instance_id())
 				if path_dir.length_squared() < 0.001 and dist > 1.3 and not is_in_duel and not reg.monster_flowfield.is_query_pending(target_player.global_position, radius):
 					var buildings = reg.get_buildings()
 					if not buildings.is_empty():
@@ -53,7 +53,7 @@ func _custom_physics(delta: float) -> void:
 						var check_count: int = mini(4, candidates.size())
 						for idx in range(check_count):
 							var b_cand: Node3D = candidates[idx]
-							var b_dir: Vector3 = reg.monster_flowfield.get_flow_direction(global_position, b_cand.global_position, radius)
+							var b_dir: Vector3 = reg.monster_flowfield.get_flow_direction(global_position, b_cand.global_position, radius, b_cand.get_instance_id())
 							if b_dir.length_squared() > 0.001:
 								path_dir = b_dir
 								break

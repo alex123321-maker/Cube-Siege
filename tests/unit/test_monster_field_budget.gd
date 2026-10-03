@@ -5,13 +5,13 @@ func _field() -> MonsterFlowfield:
 
 func test_new_cell_keys_cannot_bypass_profile_cadence() -> void:
 	var ff: MonsterFlowfield = _field()
-	assert_not_null(ff.get_or_update_field(Vector3(0.99, 0.9, 0.99), 8))
-	assert_null(ff.get_or_update_field(Vector3(1.01, 0.9, 0.99), 8))
+	assert_not_null(ff.get_or_update_field(Vector3(0.99, 0.9, 0.99), 8, 0.4, 1))
+	assert_null(ff.get_or_update_field(Vector3(1.01, 0.9, 0.99), 8, 0.4, 1))
 	ff.advance(0.249)
-	assert_null(ff.get_or_update_field(Vector3(1.01, 0.9, 1.01), 8))
+	assert_null(ff.get_or_update_field(Vector3(1.01, 0.9, 1.01), 8, 0.4, 1))
 	assert_eq(ff.get_rebuild_count(), 1)
 	ff.advance(0.0011)
-	var fresh: MonsterFlowfield.FieldCache = ff.get_or_update_field(Vector3(1.01, 0.9, 1.01), 8)
+	var fresh: MonsterFlowfield.FieldCache = ff.get_or_update_field(Vector3(1.01, 0.9, 1.01), 8, 0.4, 1)
 	assert_not_null(fresh)
 	assert_eq(fresh.goal_cell, Vector2i(1, 1))
 	assert_eq(ff.get_rebuild_count(), 2)
@@ -37,11 +37,16 @@ func test_obstacle_invalidation_does_not_reset_cadence_or_reuse_other_goal() -> 
 	assert_null(ff.get_or_update_field(player, 8))
 	assert_null(ff.get_or_update_field(Vector3(9.5, 0.0, 0.5), 8))
 	ff.advance(0.25)
+	assert_null(ff.get_or_update_field(Vector3(9.5, 0.0, 0.5), 8), "Earlier player request retains its FIFO place after invalidation")
+	assert_false(ff.is_query_pending(player))
+	ff.advance(0.25)
 	var wall: MonsterFlowfield.FieldCache = ff.get_or_update_field(Vector3(9.5, 0.0, 0.5), 8)
 	assert_not_null(wall)
 	assert_true(wall.is_goal_blocked)
 	assert_eq(wall.goal_cell, Vector2i(9, 0))
-	assert_null(ff.get_or_update_field(player, 8))
+	var player_field: MonsterFlowfield.FieldCache = ff.get_or_update_field(player, 8)
+	assert_not_null(player_field)
+	assert_eq(player_field.goal_cell, Vector2i(10, 0), "Wall cache never substitutes for the player")
 
 func test_stationary_cached_target_never_rebuilds_and_pause_does_not_advance() -> void:
 	var ff: MonsterFlowfield = _field()
@@ -89,3 +94,46 @@ func test_native_batch_rejects_malformed_inputs_and_keeps_border_outside_routes(
 	assert_eq(output.size(), 27)
 	for cell in range(9):
 		assert_eq(output[cell * 3], -1.0, "One-cell border is never a perimeter seed")
+
+func test_waiting_wall_is_served_while_unreachable_player_keeps_crossing_cells() -> void:
+	var ff: MonsterFlowfield = MonsterFlowfield.new(42, func(_x: int, z: int) -> int: return 0 if z == 10 else 3)
+	ff.set_chunk_loaded_lookup(func(_x: int, _z: int) -> bool: return true)
+	ff.set_cell_blocked(Vector2i(10, 10), true)
+	var origin: Vector3 = Vector3(7.5, 0.9, 10.5)
+	var wall: Vector3 = Vector3(10.5, 0, 10.5)
+	var first_wall_ready_step: int = -1
+	var reachable_wall_queries: int = 0
+	for step in range(240):
+		ff.advance(1.0 / 60.0)
+		var count_before: int = ff.get_rebuild_count()
+		var player: Vector3 = Vector3(11.5 + 4.5 * float(step) / 60.0, 0.9, 10.5)
+		var player_direction: Vector3 = ff.get_flow_direction(origin, player, 0.4, 1)
+		# Exactly the production zombie's player-before-building request order.
+		if player_direction.length_squared() < 0.001 and not ff.is_query_pending(player, 0.4):
+			var wall_direction: Vector3 = ff.get_flow_direction(origin, wall, 0.4, 2)
+			if wall_direction.length_squared() > 0.001:
+				reachable_wall_queries += 1
+		if first_wall_ready_step < 0 and not ff.is_query_pending(wall, 0.4):
+			first_wall_ready_step = step
+		assert_lte(ff.get_rebuild_count() - count_before, 1, "No multiple builds in one public clock tick")
+		assert_lte(ff.get_pending_request_count(), 2, "Moving player coalesces its pending logical request")
+	assert_between(first_wall_ready_step, 0, 30, "Fixed reachable wall is served within two intervals")
+	assert_gt(reachable_wall_queries, 0, "Wall route is usable while player moves")
+	assert_lte(ff.get_rebuild_count(), 17, "Per-profile .25s budget remains bounded over four seconds")
+
+func test_pending_fifo_is_bounded_and_moving_target_keeps_place_and_latest_cell() -> void:
+	var ff: MonsterFlowfield = _field()
+	assert_not_null(ff.get_or_update_field(Vector3.ZERO, 2, 0.4, 1))
+	for index in range(300):
+		ff.get_or_update_field(Vector3(float(index + 10), 0, 0), 2, 0.4, index + 100)
+	assert_eq(ff.get_pending_request_count(), MonsterFlowfield.MAX_PENDING_REQUESTS)
+	# The earliest logical target moves while queued; its old cell must not be built.
+	ff.get_or_update_field(Vector3(999, 0, 0), 2, 0.4, 100)
+	ff.advance(0.25)
+	assert_null(ff.get_or_update_field(Vector3(1000, 0, 0), 2, 0.4, 1))
+	assert_false(ff.is_query_pending(Vector3(999, 0, 0)))
+	assert_true(ff.is_query_pending(Vector3(10, 0, 0)))
+	assert_true(ff.is_query_pending(Vector3(1000, 0, 0)), "Another target's computed field is never returned")
+	assert_eq(ff.get_rebuild_count(), 2)
+	ff.clear_all()
+	assert_eq(ff.get_pending_request_count(), 0, "World cleanup clears pending logical targets")

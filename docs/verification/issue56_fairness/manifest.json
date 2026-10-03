@@ -1,0 +1,27 @@
+{
+  "engine": "Godot 4.6.1 stable official",
+  "before_commit": "9bef64d9dc3a3267b653443e879256215e1a3d66",
+  "candidate_base_commit": "9bef64d9dc3a3267b653443e879256215e1a3d66",
+  "candidate_has_working_changes": true,
+  "candidate_sources_sha256": {
+    "scripts/navigation/monster_flowfield.gd": "fa6ad5f457af6759725b2db8fff0279cc6335eaa7ccf284f4b73379f13a72846",
+    "scripts/enemy_dummy.gd": "c5dfb7c8291115407811e42a07c009d905c651aa232f5a42476b0555ac4c1564",
+    "scripts/boss_gorgon.gd": "8cb3bd15914a99f238561918d88b0ac32baa45cc1f01dbed4949de2cf67f5231",
+    "scripts/ranged_skirmisher.gd": "03e1299035c6f5433d60dd2863a5144dfc7c24b912ab3e6e022d983f1c65aa1c",
+    "scripts/siege_breaker.gd": "9dd1b5ed3d23deedee5fab8ea8c866be9df68d1040f773415b62b8c2024098de",
+    "tests/unit/test_monster_field_budget.gd": "d7794fc54137a297c7d8764ba3f95572f62e932e8cb7465afb4693620e97a1fa",
+    "tests/integration/test_monster_stairs_and_crowd.gd": "cdc8c8b8e1f0c2b4ca9bdc6795e1b069edc9d881f9ec30a92a9ef86a1c4eca70"
+  },
+  "native_dll_sha256": "64e408f35d5b63f0fe1429bf8992777f3fde2f198e4e62ff55a78f2347e1ed47",
+  "logs_sha256": {
+    "after.log": "4d86897926581cadc1087ea26a5e9bb699254cd5597d3c2af5db7f2f8fbc2949",
+    "before_9bef64d9.log": "eb0920dacb976d46960ce8d09ca579346e6e92e26ad1492786afa9792ff52d95",
+    "integration.log": "95c156de5dec722fb0892083ad7626785e4fac65e2b61a74b46b59cbc5169364",
+    "unit.log": "02e0f501ed0e2a1f17f640de6c43c6042d2126fe2701f663c37ca74f3d0d098b"
+  },
+  "notes": [
+    "Before Godot repro used existing three-argument public API and original player-first request order.",
+    "After repro and tests use stable target IDs; candidate source fingerprints record the working change, not the base HEAD.",
+    "Focused GUT and real physical repro both exited 0. Full verify in issue56_performance predates B6.4; merged-feature verification follows separately."
+  ]
+}
