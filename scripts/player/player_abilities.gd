@@ -14,6 +14,29 @@ var active_tether: Node3D = null
 var active_duel_indicator: Node3D = null
 var active_parry_aura: Node3D = null
 
+class OwnedAbilityTimer extends Timer:
+	var actor: CharacterBody3D
+	var burn_ticks: int = 0
+	func _on_actor_died() -> void:
+		stop()
+		queue_free()
+	func _on_build_changed() -> void:
+		if actor is PlayerPrototype and not actor.progression.run_build.active:
+			stop()
+			queue_free()
+
+func _owned_timer(player: CharacterBody3D, duration: float, single: bool) -> OwnedAbilityTimer:
+	var timer: OwnedAbilityTimer = OwnedAbilityTimer.new()
+	timer.actor = player
+	timer.wait_time = duration
+	timer.one_shot = single
+	timer.process_callback = Timer.TIMER_PROCESS_PHYSICS
+	player.add_child(timer)
+	if player is PlayerPrototype:
+		player.player_died.connect(timer._on_actor_died)
+		player.progression.run_build.build_changed.connect(timer._on_build_changed)
+	return timer
+
 const DECOY_COOLDOWN: float = 12.0
 const MINE_RELOAD: float = 3.5
 const NUKE_COOLDOWN: float = 60.0
@@ -46,12 +69,14 @@ func perform_utility(player: CharacterBody3D, current_class: int) -> void:
 			toggle_remote_mine(player)
 
 func perform_parry(player: CharacterBody3D) -> void:
-	if player.health.trigger_parry():
+	var duration: float = player.talents.parry_duration() if player is PlayerPrototype else PlayerHealth.PARRY_WINDOW
+	var cooldown: float = PlayerHealth.PARRY_COOLDOWN * (player.talents.multiplier("parry_cooldown") if player is PlayerPrototype else 1.0)
+	if player.health.trigger_parry(duration, cooldown):
 		if player.orientation:
 			player.orientation.cancel_pending_action()
 		var vfx = player.get_node_or_null("/root/VFXManager")
 		if vfx:
-			active_parry_aura = vfx.spawn_parry_stance_aura(player, 0.5)
+			active_parry_aura = vfx.spawn_parry_stance_aura(player, duration)
 
 		if player.presentation:
 			player.presentation.play_utility_animation()
@@ -74,6 +99,10 @@ func perform_ultimate(player: CharacterBody3D, current_class: int, locked_target
 			perform_engineer_ultimate(player)
 
 func perform_warrior_ultimate(player: CharacterBody3D, locked_target: Node3D = null, target_was_locked: bool = false) -> void:
+	# A long boss fight can outlast the cooldown. One Duel owns one target
+	# and one tether until completion; recasting must not orphan the old pair.
+	if is_dueling:
+		return
 	var is_locked: bool = target_was_locked or (locked_target != null)
 	var target: Node3D = locked_target
 	if is_locked:
@@ -178,7 +207,6 @@ func get_nuke_target_position(player: CharacterBody3D) -> Vector3:
 func _execute_tactical_nuke(player: CharacterBody3D, target_pos: Vector3) -> void:
 	var nuke_damage: float = NUKE_DAMAGE
 	var nuke_radius: float = NUKE_RADIUS
-	var burn_damage: float = NUKE_BURN_DAMAGE
 
 	var vfx = player.get_node_or_null("/root/VFXManager")
 	if vfx:
@@ -188,27 +216,45 @@ func _execute_tactical_nuke(player: CharacterBody3D, target_pos: Vector3) -> voi
 		_apply_nuke_impact_damage(player, target_pos, nuke_damage, nuke_radius)
 		return
 
-	# Explicit gameplay timing: 1.2s to impact
-	await player.get_tree().create_timer(NUKE_WINDUP).timeout
-	if not is_instance_valid(player) or not player.is_inside_tree():
+	var windup: OwnedAbilityTimer = _owned_timer(player, NUKE_WINDUP, true)
+	windup.name = "NukeWindup"
+	windup.timeout.connect(_release_tactical_nuke.bind(player, target_pos))
+	windup.timeout.connect(windup.queue_free, CONNECT_ONE_SHOT)
+	windup.start()
+
+func _release_tactical_nuke(player: CharacterBody3D, target_pos: Vector3) -> void:
+	if not _is_actor_alive(player) or (player is PlayerPrototype and not player.progression.run_build.active):
 		return
-
-	_apply_nuke_impact_damage(player, target_pos, nuke_damage, nuke_radius)
-
+	_apply_nuke_impact_damage(player, target_pos, NUKE_DAMAGE, NUKE_RADIUS)
+	if not _is_actor_alive(player):
+		return
+	var vfx: Node = player.get_node_or_null("/root/VFXManager")
 	if vfx:
 		vfx.spawn_tactical_nuke_impact(target_pos)
 		vfx.spawn_tactical_nuke_burn(target_pos, 5.0)
+	var burn: OwnedAbilityTimer = _owned_timer(player, NUKE_BURN_INTERVAL, false)
+	burn.name = "NukeBurn"
+	burn.burn_ticks = NUKE_BURN_TICKS
+	burn.timeout.connect(_advance_nuke_burn.bind(player, target_pos, burn))
+	burn.start()
 
-	# Ground plasma burn loop (10 ticks, every 0.5s for 5.0s total)
-	for i in range(NUKE_BURN_TICKS):
-		await player.get_tree().create_timer(NUKE_BURN_INTERVAL).timeout
-		if not is_instance_valid(player) or not player.is_inside_tree():
-			return
-		_apply_nuke_burn_damage(player, target_pos, burn_damage, nuke_radius)
+func _advance_nuke_burn(player: CharacterBody3D, target_pos: Vector3, timer: OwnedAbilityTimer) -> void:
+	if not _is_actor_alive(player) or (player is PlayerPrototype and not player.progression.run_build.active):
+		timer.queue_free()
+		return
+	_apply_nuke_burn_damage(player, target_pos, NUKE_BURN_DAMAGE, NUKE_RADIUS)
+	timer.burn_ticks -= 1
+	if timer.burn_ticks <= 0:
+		timer.stop()
+		timer.queue_free()
 
 func _apply_nuke_impact_damage(player: CharacterBody3D, target_pos: Vector3, damage: float, radius: float) -> void:
+	if not _is_actor_alive(player):
+		return
 	var enemies: Array[Node] = player.get_tree().get_nodes_in_group("enemies")
 	for e in enemies:
+		if not _is_actor_alive(player):
+			break
 		if e and is_instance_valid(e) and e is Node3D:
 			var can_hit: bool = TerrainCombatRules.can_ability_hit_target(
 				target_pos,
@@ -224,8 +270,12 @@ func _apply_nuke_impact_damage(player: CharacterBody3D, target_pos: Vector3, dam
 					e.damage_resist = 0.0
 
 func _apply_nuke_burn_damage(player: CharacterBody3D, target_pos: Vector3, damage: float, radius: float) -> void:
+	if not _is_actor_alive(player):
+		return
 	var burn_enemies: Array[Node] = player.get_tree().get_nodes_in_group("enemies")
 	for e in burn_enemies:
+		if not _is_actor_alive(player):
+			break
 		if e and is_instance_valid(e) and e is Node3D:
 			var can_hit: bool = TerrainCombatRules.can_ability_hit_target(
 				target_pos,
@@ -240,6 +290,11 @@ func _apply_nuke_burn_damage(player: CharacterBody3D, target_pos: Vector3, damag
 func end_duel(player: CharacterBody3D) -> void:
 	if not is_dueling:
 		return
+	var target_hp: Variant = duel_target.get("current_health") if is_instance_valid(duel_target) else null
+	var won: bool = target_hp is float or target_hp is int
+	won = won and float(target_hp) <= 0.0
+	if won and player is PlayerPrototype and duel_target is Node3D:
+		player.talents.on_duel_victory(duel_target.global_position)
 	is_dueling = false
 	if active_tether and is_instance_valid(active_tether):
 		active_tether.queue_free()
@@ -250,8 +305,10 @@ func end_duel(player: CharacterBody3D) -> void:
 	var vfx = player.get_node_or_null("/root/VFXManager")
 	if vfx and duel_target and is_instance_valid(duel_target):
 		vfx.dismiss_duel_indicator(duel_target)
+	if is_instance_valid(duel_target) and duel_target.has_method("end_duel"):
+		duel_target.end_duel()
 	duel_target = null
-	player.spawn_popup_text("DUEL VICTORIOUS!", Color.GREEN)
+	player.spawn_popup_text("ДУЭЛЬ ВЫИГРАНА!" if won else "ДУЭЛЬ ЗАВЕРШЕНА", Color.GREEN)
 
 func find_target_near_mouse(player: CharacterBody3D) -> Node3D:
 	var vp: Viewport = player.get_viewport()
@@ -334,6 +391,8 @@ func _is_actor_alive(actor: Variant) -> bool:
 		return false
 	if actor.is_queued_for_deletion():
 		return false
+	if actor is PlayerPrototype and not actor.progression.run_build.active:
+		return false
 	var hp = actor.get("current_health")
 	if hp != null and float(hp) <= 0.0:
 		return false
@@ -390,7 +449,15 @@ func deploy_decoy(player: CharacterBody3D) -> void:
 		decoy.global_position = player.global_position + (-player.global_transform.basis.z * 3.0)
 		player.spawn_popup_text("DECOY DEPLOYED! (AGGRO 3.5s)", Color.LIGHT_GREEN)
 		return
-	await player.get_tree().create_timer(0.14).timeout
+	# The windup belongs to the actor. Removing a preview or returning to the
+	# menu must destroy it without leaving a global coroutine continuation.
+	var windup: OwnedAbilityTimer = _owned_timer(player, 0.14, true)
+	windup.name = "DecoyWindup"
+	windup.timeout.connect(_release_decoy.bind(player))
+	windup.timeout.connect(windup.queue_free, CONNECT_ONE_SHOT)
+	windup.start()
+
+func _release_decoy(player: CharacterBody3D) -> void:
 	if not _is_actor_alive(player):
 		return
 	var decoy = DECOY_DUMMY_SCENE.instantiate()

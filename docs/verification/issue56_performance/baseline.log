@@ -1,0 +1,11 @@
+Godot Engine v4.6.1.stable.official.14d19694e - https://godotengine.org
+
+BENCHMARK_SCENARIO baseline 14 stationary 240 callbacks
+BENCHMARK_SCENARIO baseline 14 moving_target_real_wall 240 callbacks
+BENCHMARK_SCENARIO baseline 20 stationary 240 callbacks
+BENCHMARK_SCENARIO baseline 20 moving_target_real_wall 240 callbacks
+BENCHMARK_SCENARIO baseline 100 stationary 240 callbacks
+BENCHMARK_SCENARIO baseline 100 moving_target_real_wall 240 callbacks
+BENCHMARK_SCENARIO baseline 500 stationary 240 callbacks
+BENCHMARK_SCENARIO baseline 500 moving_target_real_wall 240 callbacks
+BENCHMARK_OUTPUT D:\Repository\game_worktrees\monster-performance\docs\verification\issue56_performance\baseline.json

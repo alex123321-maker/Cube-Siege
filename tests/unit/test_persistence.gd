@@ -97,7 +97,7 @@ func test_run_end_victory_and_defeat_resolution() -> void:
 	assert_true(warrior_slot.get("is_alive", false), "Hero remains alive")
 	assert_eq(int(warrior_slot.get("max_day", 0)), 5, "Max day updated to 5")
 	assert_eq(int(warrior_slot.get("battle_xp", 0)), 200, "Battle XP increased")
-	assert_eq(int(mgr.meta_xp), 500, "Meta XP awarded on victory")
+	assert_eq(int(mgr.meta_xp), 200, "Extraction XP is the awarded meta XP")
 	assert_eq(int(mgr.survived_runs), 1, "Survived runs count incremented")
 
 	# Defeat

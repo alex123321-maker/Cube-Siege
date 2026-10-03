@@ -3,8 +3,10 @@ extends "res://scripts/enemy_base.gd"
 @export var attack_damage: float = 12.0
 @export var attack_cooldown: float = 1.5
 
-var is_stunned: bool = false
-var stun_timer: float = 0.0
+var is_stunned: bool:
+	get: return status_effects.is_stunned()
+var stun_timer: float:
+	get: return status_effects.stuns[0].remaining if not status_effects.stuns.is_empty() else 0.0
 var attack_timer: float = 0.0
 
 @onready var body_mesh: MeshInstance3D = $Visuals/Body if has_node("Visuals/Body") else null
@@ -19,9 +21,6 @@ func _get_xp_reward() -> float:
 
 func _custom_physics(delta: float) -> void:
 	if is_stunned:
-		stun_timer -= delta
-		if stun_timer <= 0.0:
-			is_stunned = false
 		return
 
 	if attack_timer > 0.0:
@@ -39,8 +38,8 @@ func _custom_physics(delta: float) -> void:
 			var path_dir: Vector3 = Vector3.ZERO
 			var reg = get_node_or_null("/root/EntityRegistry")
 			if reg and "monster_flowfield" in reg and reg.monster_flowfield:
-				path_dir = reg.monster_flowfield.get_flow_direction(global_position, target_player.global_position, radius)
-				if path_dir.length_squared() < 0.001 and dist > 1.3 and not is_in_duel:
+				path_dir = reg.monster_flowfield.get_flow_direction(global_position, target_player.global_position, radius, target_player.get_instance_id())
+				if path_dir.length_squared() < 0.001 and dist > 1.3 and not is_in_duel and not reg.monster_flowfield.is_query_pending(target_player.global_position, radius):
 					var buildings = reg.get_buildings()
 					if not buildings.is_empty():
 						var candidates: Array[Node3D] = []
@@ -53,7 +52,7 @@ func _custom_physics(delta: float) -> void:
 						var check_count: int = mini(4, candidates.size())
 						for idx in range(check_count):
 							var b_cand: Node3D = candidates[idx]
-							var b_dir: Vector3 = reg.monster_flowfield.get_flow_direction(global_position, b_cand.global_position, radius)
+							var b_dir: Vector3 = reg.monster_flowfield.get_flow_direction(global_position, b_cand.global_position, radius, b_cand.get_instance_id())
 							if b_dir.length_squared() > 0.001:
 								path_dir = b_dir
 								break
@@ -93,7 +92,7 @@ func perform_attack() -> void:
 	if presentation:
 		presentation.play_attack()
 	if target_player and target_player.has_method("take_damage"):
-		target_player.take_damage(attack_damage)
+		target_player.take_damage(attack_damage, self)
 
 func attack_building(b: Node) -> void:
 	attack_timer = attack_cooldown
@@ -105,8 +104,7 @@ func attack_building(b: Node) -> void:
 			h.take_damage(attack_damage, Vector3.ZERO, "siege", self)
 
 func apply_stun(duration: float) -> void:
-	is_stunned = true
-	stun_timer = duration
+	super.apply_stun(duration)
 	velocity = Vector3.ZERO
 	spawn_damage_text(0, "STUNNED!", Color.GOLD)
 

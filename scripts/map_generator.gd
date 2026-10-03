@@ -40,6 +40,7 @@ const SCENE_TREE = preload("res://scenes/resource_tree.tscn")
 const SCENE_STONE = preload("res://scenes/resource_stone.tscn")
 const SCENE_IRON = preload("res://scenes/resource_iron.tscn")
 const EnvironmentScatter = preload("res://scripts/world/environment_scatter.gd")
+const HeightSamples = preload("res://scripts/world/chunk_height_samples.gd")
 
 @export_enum("Low", "Medium", "High") var scatter_density_level: int = EnvironmentScatter.PRODUCTION_DENSITY
 
@@ -242,7 +243,7 @@ func load_chunk(cx: int, cz: int) -> void:
 
 	# Spawn resources and decorative details for this chunk
 	var spawned_nodes: Array[Node] = []
-	_spawn_chunk_resources(cx, cz, spawned_nodes)
+	_spawn_chunk_resources(cx, cz, spawned_nodes, terrain_data.get("height_samples"))
 	chunk_resources[coord] = spawned_nodes
 
 	var reg = get_node_or_null("/root/EntityRegistry")
@@ -278,10 +279,12 @@ func _free_chunk(coord: Vector2i) -> void:
 			if is_instance_valid(n):
 				n.queue_free()
 
-func _spawn_chunk_resources(cx: int, cz: int, out_nodes: Array[Node]) -> void:
+func _spawn_chunk_resources(cx: int, cz: int, out_nodes: Array[Node], height_samples: HeightSamples = null) -> void:
 	var origin_x: int = cx * ChunkBuilder.CHUNK_SIZE
 	var origin_z: int = cz * ChunkBuilder.CHUNK_SIZE
 	var scatter_instances: Dictionary = {}
+	if height_samples == null:
+		height_samples = HeightSamples.new(cx, cz, actual_seed)
 
 	for lz in range(ChunkBuilder.CHUNK_SIZE):
 		for lx in range(ChunkBuilder.CHUNK_SIZE):
@@ -292,7 +295,7 @@ func _spawn_chunk_resources(cx: int, cz: int, out_nodes: Array[Node]) -> void:
 			if dist <= portal_clear_radius:
 				continue
 
-			var y: int = BiomeSystem.get_voxel_height(wx, wz, actual_seed)
+			var y: int = height_samples.get_voxel_height(wx, wz)
 			var cell_key: Vector3i = Vector3i(wx, y, wz)
 			if harvested_cells.has(cell_key):
 				continue
@@ -307,9 +310,11 @@ func _spawn_chunk_resources(cx: int, cz: int, out_nodes: Array[Node]) -> void:
 			var attempt_roll: float = rng.randf()
 			var biome_info: Dictionary = BiomeSystem.sample_biome_weights(float(wx), float(wz), actual_seed)
 			var continuous_h: float = 0.0
+			var height_sampled: bool = false
 			var res_type: ResourceDistribution.ResourceType = ResourceDistribution.ResourceType.NONE
 			if attempt_roll < ResourceDistribution.get_attempt_rate(biome_info["weights"]):
-				continuous_h = BiomeSystem.sample_height(float(wx), float(wz), actual_seed)
+				continuous_h = height_samples.get_continuous_height(wx, wz)
+				height_sampled = true
 				var res_roll: float = rng.randf()
 				res_type = ResourceDistribution.roll_blended_resource_type(biome_info["weights"], continuous_h, res_roll)
 
@@ -318,9 +323,8 @@ func _spawn_chunk_resources(cx: int, cz: int, out_nodes: Array[Node]) -> void:
 					continue
 				if not EnvironmentScatter.cluster_is_active(wx, wz, actual_seed):
 					continue
-				if biome_info.is_empty():
-					biome_info = BiomeSystem.sample_biome_weights(float(wx), float(wz), actual_seed)
-					continuous_h = BiomeSystem.sample_height(float(wx), float(wz), actual_seed)
+				if not height_sampled:
+					continuous_h = height_samples.get_continuous_height(wx, wz)
 				var mountain_weight: float = float(biome_info["weights"].get(BiomeSystem.BiomeType.MOUNTAINS, 0.0))
 				var ledge_direction: Vector2i = Vector2i.ZERO
 				if mountain_weight >= 0.45 and continuous_h > 5.0:

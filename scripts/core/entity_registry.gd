@@ -11,6 +11,13 @@ var monster_flowfield: MonsterFlowfield = MonsterFlowfield.new()
 
 var building_to_cell: Dictionary = {} # Node3D -> Vector2i
 var resource_to_cell: Dictionary = {} # Node3D -> Vector2i
+var _building_cell_counts: Dictionary[Vector2i, int] = {}
+var _resource_cell_counts: Dictionary[Vector2i, int] = {}
+var temporary_obstacle_cells: Dictionary[Node3D, Array] = {}
+var _temporary_cell_counts: Dictionary[Vector2i, int] = {}
+
+func _physics_process(delta: float) -> void:
+	monster_flowfield.advance(delta)
 
 func _ready() -> void:
 	var eb = get_node_or_null("/root/EventBus")
@@ -73,21 +80,36 @@ func register_building(b: Node3D) -> void:
 	if not buildings.has(b):
 		buildings.append(b)
 	# Check if building is blocking (walls and solid structures, excluding non-blocking traps)
-	if b.is_in_group("walls") or (b.is_in_group("buildings") and not b.is_in_group("traps")):
-		var cell: Vector2i = Vector2i(int(floorf(b.global_position.x)), int(floorf(b.global_position.z)))
+	var blocking: bool = b.is_in_group("walls") or (b.is_in_group("buildings") and not b.is_in_group("traps"))
+	if not blocking:
 		if building_to_cell.has(b):
-			var old_cell: Vector2i = building_to_cell[b]
-			if old_cell != cell:
-				monster_flowfield.set_cell_blocked(old_cell, false)
+			var previous: Vector2i = building_to_cell[b]
+			building_to_cell.erase(b)
+			_change_cell_count(_building_cell_counts, previous, -1)
+			_refresh_cell_blocked(previous)
+		return
+	var cell: Vector2i = Vector2i(int(floorf(b.global_position.x)), int(floorf(b.global_position.z)))
+	if building_to_cell.has(b):
+		var old_cell: Vector2i = building_to_cell[b]
+		if old_cell == cell:
+			_refresh_cell_blocked(cell)
+			return
+		_change_cell_count(_building_cell_counts, old_cell, -1)
 		building_to_cell[b] = cell
-		monster_flowfield.set_cell_blocked(cell, true)
+		_change_cell_count(_building_cell_counts, cell, 1)
+		_refresh_cell_blocked(old_cell)
+	else:
+		building_to_cell[b] = cell
+		_change_cell_count(_building_cell_counts, cell, 1)
+	_refresh_cell_blocked(cell)
 
 func unregister_building(b: Node3D) -> void:
 	buildings.erase(b)
 	if building_to_cell.has(b):
 		var cell: Vector2i = building_to_cell[b]
 		building_to_cell.erase(b)
-		monster_flowfield.set_cell_blocked(cell, false)
+		_change_cell_count(_building_cell_counts, cell, -1)
+		_refresh_cell_blocked(cell)
 
 func register_resource(r: Node3D) -> void:
 	if not r or not is_instance_valid(r):
@@ -95,16 +117,63 @@ func register_resource(r: Node3D) -> void:
 	var cell: Vector2i = Vector2i(int(floorf(r.global_position.x)), int(floorf(r.global_position.z)))
 	if resource_to_cell.has(r):
 		var old_cell: Vector2i = resource_to_cell[r]
-		if old_cell != cell:
-			monster_flowfield.set_cell_blocked(old_cell, false)
-	resource_to_cell[r] = cell
-	monster_flowfield.set_cell_blocked(cell, true)
+		if old_cell == cell:
+			_refresh_cell_blocked(cell)
+			return
+		_change_cell_count(_resource_cell_counts, old_cell, -1)
+		resource_to_cell[r] = cell
+		_change_cell_count(_resource_cell_counts, cell, 1)
+		_refresh_cell_blocked(old_cell)
+	else:
+		resource_to_cell[r] = cell
+		_change_cell_count(_resource_cell_counts, cell, 1)
+	_refresh_cell_blocked(cell)
 
 func unregister_resource(r: Node3D) -> void:
 	if resource_to_cell.has(r):
 		var cell: Vector2i = resource_to_cell[r]
 		resource_to_cell.erase(r)
-		monster_flowfield.set_cell_blocked(cell, false)
+		_change_cell_count(_resource_cell_counts, cell, -1)
+		_refresh_cell_blocked(cell)
+
+## Temporary solid skill objects own blockers independently of buildings/resources.
+## Updates happen only on obstacle creation/destruction, never a physics-tree scan.
+func register_temporary_obstacle(obstacle: Node3D, cells: Array[Vector2i]) -> void:
+	if not is_instance_valid(obstacle):
+		return
+	unregister_temporary_obstacle(obstacle)
+	var owned: Array[Vector2i] = []
+	for cell: Vector2i in cells:
+		if owned.has(cell):
+			continue
+		owned.append(cell)
+		_temporary_cell_counts[cell] = _temporary_cell_counts.get(cell, 0) + 1
+		monster_flowfield.set_cell_blocked(cell, true)
+	temporary_obstacle_cells[obstacle] = owned
+
+func unregister_temporary_obstacle(obstacle: Node3D) -> void:
+	if not temporary_obstacle_cells.has(obstacle):
+		return
+	var cells: Array = temporary_obstacle_cells[obstacle]
+	temporary_obstacle_cells.erase(obstacle)
+	for cell: Vector2i in cells:
+		var remaining: int = _temporary_cell_counts.get(cell, 0) - 1
+		if remaining > 0:
+			_temporary_cell_counts[cell] = remaining
+		else:
+			_temporary_cell_counts.erase(cell)
+		_refresh_cell_blocked(cell)
+
+func _refresh_cell_blocked(cell: Vector2i) -> void:
+	var occupied: bool = _temporary_cell_counts.get(cell, 0) > 0 or _building_cell_counts.get(cell, 0) > 0 or _resource_cell_counts.get(cell, 0) > 0
+	monster_flowfield.set_cell_blocked(cell, occupied)
+
+func _change_cell_count(counts: Dictionary[Vector2i, int], cell: Vector2i, change: int) -> void:
+	var remaining: int = counts.get(cell, 0) + change
+	if remaining > 0:
+		counts[cell] = remaining
+	else:
+		counts.erase(cell)
 
 func get_buildings() -> Array[Node3D]:
 	_cleanup_buildings()
@@ -116,6 +185,11 @@ func get_nearest_building(pos: Vector3) -> Node3D:
 	for i in range(buildings.size() - 1, -1, -1):
 		var b_cand = buildings[i]
 		if not is_instance_valid(b_cand) or not (b_cand is Node3D):
+			if building_to_cell.has(b_cand):
+				var old_cell: Vector2i = building_to_cell[b_cand]
+				building_to_cell.erase(b_cand)
+				_change_cell_count(_building_cell_counts, old_cell, -1)
+				_refresh_cell_blocked(old_cell)
 			buildings.remove_at(i)
 			continue
 		var b: Node3D = b_cand as Node3D
@@ -158,6 +232,10 @@ func clear() -> void:
 	bosses.clear()
 	building_to_cell.clear()
 	resource_to_cell.clear()
+	_building_cell_counts.clear()
+	_resource_cell_counts.clear()
+	temporary_obstacle_cells.clear()
+	_temporary_cell_counts.clear()
 	_spatial_buckets.clear()
 	_last_spatial_frame = -1
 	monster_flowfield.clear_all()
@@ -244,7 +322,8 @@ func _cleanup_buildings() -> void:
 			if building_to_cell.has(b_cand):
 				var cell: Vector2i = building_to_cell[b_cand]
 				building_to_cell.erase(b_cand)
-				monster_flowfield.set_cell_blocked(cell, false)
+				_change_cell_count(_building_cell_counts, cell, -1)
+				_refresh_cell_blocked(cell)
 			buildings.remove_at(i)
 
 func _cleanup_enemies() -> void:

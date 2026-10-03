@@ -1,0 +1,59 @@
+[gd_scene load_steps=9 format=3]
+
+[ext_resource type="Script" path="res://scripts/tools/gameplay_sandbox.gd" id="1_sandbox"]
+[ext_resource type="Script" path="res://scripts/camera_follow.gd" id="2_camera"]
+
+[sub_resource type="ProceduralSkyMaterial" id="SkyMaterial"]
+sky_top_color = Color(0.26, 0.5, 0.86, 1)
+sky_horizon_color = Color(0.66, 0.76, 0.88, 1)
+ground_bottom_color = Color(0.15, 0.18, 0.22, 1)
+
+[sub_resource type="Sky" id="Sky"]
+sky_material = SubResource("SkyMaterial")
+
+[sub_resource type="Environment" id="Environment"]
+background_mode = 2
+sky = SubResource("Sky")
+ambient_light_source = 2
+ambient_light_color = Color(0.68, 0.76, 0.88, 1)
+ambient_light_energy = 0.82
+tonemap_mode = 3
+
+[sub_resource type="BoxShape3D" id="FloorShape"]
+size = Vector3(200, 0.4, 200)
+
+[sub_resource type="BoxMesh" id="FloorMesh"]
+size = Vector3(200, 0.4, 200)
+
+[sub_resource type="StandardMaterial3D" id="FloorMaterial"]
+albedo_color = Color(0.44, 0.51, 0.38, 1)
+roughness = 0.95
+
+[node name="GameplaySandbox" type="Node3D"]
+script = ExtResource("1_sandbox")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment")
+
+[node name="SunLight" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-55, -25, 0)
+light_color = Color(1, 0.96, 0.9, 1)
+light_energy = 1.05
+shadow_enabled = true
+directional_shadow_max_distance = 70.0
+
+[node name="Floor" type="StaticBody3D" parent="."]
+position = Vector3(0, -0.2, 0)
+collision_layer = 1
+collision_mask = 0
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor"]
+shape = SubResource("FloorShape")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Floor"]
+mesh = SubResource("FloorMesh")
+material_override = SubResource("FloorMaterial")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+script = ExtResource("2_camera")
+target_path = NodePath("../Encounter/Player")

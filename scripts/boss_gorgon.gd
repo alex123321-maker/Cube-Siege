@@ -167,9 +167,9 @@ func process_chase(delta: float) -> void:
 		var nav_dir: Vector3 = Vector3.ZERO
 		var reg = get_node_or_null("/root/EntityRegistry")
 		if reg and "monster_flowfield" in reg and reg.monster_flowfield:
-			nav_dir = reg.monster_flowfield.get_flow_direction(global_position, target_player.global_position, radius)
+			nav_dir = reg.monster_flowfield.get_flow_direction(global_position, target_player.global_position, radius, target_player.get_instance_id())
 			# Fallback when player is enclosed by walls: approach nearest candidate blocking building via flowfield
-			if nav_dir.length_squared() < 0.001 and dist > 3.4 and reg.has_method("get_buildings"):
+			if nav_dir.length_squared() < 0.001 and dist > 3.4 and reg.has_method("get_buildings") and not reg.monster_flowfield.is_query_pending(target_player.global_position, radius):
 				var buildings: Array[Node3D] = reg.get_buildings()
 				if not buildings.is_empty():
 					var candidates: Array[Node3D] = []
@@ -182,7 +182,7 @@ func process_chase(delta: float) -> void:
 					var check_count: int = mini(4, candidates.size())
 					for idx in range(check_count):
 						var b_cand: Node3D = candidates[idx]
-						var b_dir: Vector3 = reg.monster_flowfield.get_flow_direction(global_position, b_cand.global_position, radius)
+						var b_dir: Vector3 = reg.monster_flowfield.get_flow_direction(global_position, b_cand.global_position, radius, b_cand.get_instance_id())
 						if b_dir.length_squared() > 0.001:
 							nav_dir = b_dir
 							break
@@ -405,5 +405,5 @@ func die() -> void:
 	spawn_damage_text(0, "BOSS DEFEATED! (+250 XP)", Color.GOLD)
 
 	var tween: Tween = create_tween()
-	tween.tween_property(self, "scale", Vector3.ZERO, 0.4)
+	tween.tween_property(self, "scale", Vector3.ONE * 0.001, 0.4)
 	tween.chain().tween_callback(queue_free)

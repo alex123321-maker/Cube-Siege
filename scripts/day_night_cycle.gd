@@ -3,9 +3,11 @@ class_name DayNightCycle
 
 signal phase_changed(is_night: bool, day_number: int)
 signal time_updated(seconds_left: float, total_duration: float, is_night: bool)
+signal wave_completed(wave_number: int)
 
-@export var day_duration: float = 180.0    # 180s (3 min) — GDD v1.2.0
-@export var night_duration: float = 120.0  # 120s (2 min) siege — GDD v1.2.0
+@export var day_duration: float = 30.0
+@export var night_duration: float = 120.0 # Upper bound; early nights grow with wave.
+@export var escalating_nights: bool = true
 
 @export var sun_light_path: NodePath
 @export var world_env_path: NodePath
@@ -13,7 +15,10 @@ signal time_updated(seconds_left: float, total_duration: float, is_night: bool)
 
 var current_day: int = 1
 var is_night: bool = false
-var time_left: float = 180.0
+var time_left: float = 30.0
+var running: bool = true
+var boss_pending: bool = false
+var active_night_duration: float = 22.0
 
 var sun_light: DirectionalLight3D = null
 var world_env: WorldEnvironment = null
@@ -35,17 +40,11 @@ func _ready() -> void:
 	time_left = day_duration
 	is_night = false
 	apply_lighting_state()
-	var event_bus: Node = get_node_or_null("/root/EventBus")
-	if event_bus:
-		event_bus.boss_defeated.connect(_on_boss_defeated)
-
-func _on_boss_defeated(_boss: Node) -> void:
-	if is_night and current_day == 10:
-		start_day()
-
 func _process(delta: float) -> void:
+	if not running:
+		return
 	time_left = maxf(0.0, time_left - delta)
-	var total_duration: float = night_duration if is_night else day_duration
+	var total_duration: float = active_night_duration if is_night else day_duration
 	emit_signal("time_updated", time_left, total_duration, is_night)
 	var eb = get_node_or_null("/root/EventBus")
 	if eb and eb.has_signal("cycle_time_updated"):
@@ -55,14 +54,16 @@ func _process(delta: float) -> void:
 	if time_left <= 0.0:
 		if not is_night:
 			start_night()
-		else:
-			var registry: Node = get_node_or_null("/root/EntityRegistry")
-			if not registry or not registry.has_active_boss():
-				start_day()
+		elif not boss_pending:
+			complete_night()
 
 func start_night() -> void:
+	if not running or is_night:
+		return
 	is_night = true
-	time_left = night_duration
+	boss_pending = current_day % 5 == 0
+	active_night_duration = get_night_duration(current_day)
+	time_left = active_night_duration
 	emit_signal("phase_changed", true, current_day)
 	var eb = get_node_or_null("/root/EventBus")
 	if eb and eb.has_signal("night_started"):
@@ -71,19 +72,39 @@ func start_night() -> void:
 
 func start_day() -> void:
 	is_night = false
+	boss_pending = false
 	current_day += 1
-	var roster = get_node_or_null("/root/RosterManager")
-	if roster and roster.has_method("get_active_character"):
-		var c = roster.get_active_character()
-		if current_day > c.max_day:
-			c.max_day = current_day
-			roster.save_roster()
 	time_left = day_duration
 	emit_signal("phase_changed", false, current_day)
 	var eb = get_node_or_null("/root/EventBus")
 	if eb and eb.has_signal("day_started"):
 		eb.day_started.emit(current_day)
 	transition_lighting(false)
+
+func get_night_duration(wave: int) -> float:
+	return minf(night_duration, 20.0 + float(wave) * 2.0) if escalating_nights else night_duration
+
+func complete_night() -> void:
+	if not running or not is_night or boss_pending:
+		return
+	wave_completed.emit(current_day)
+	var bus: Node = get_node_or_null("/root/EventBus")
+	if bus:
+		bus.wave_cleared.emit(current_day)
+	if running and current_day < 30:
+		start_day()
+	else:
+		running = false
+
+func finish_boss_night(wave: int) -> bool:
+	if not running or not is_night or not boss_pending or wave != current_day:
+		return false
+	boss_pending = false
+	complete_night()
+	return true
+
+func stop() -> void:
+	running = false
 
 func skip_to_night() -> void:
 	if not is_night:

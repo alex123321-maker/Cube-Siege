@@ -2,7 +2,7 @@ extends SceneTree
 
 ## Comprehensive Verification Runner for Issue #18:
 ## Procedural Biomes, Mountain Trail Verticality, Vertical Combat & Cell Alignment,
-## High-Elevation Aiming, Multi-Hit Foliage Occlusion, Starting Enemy Snapping,
+## High-Elevation Aiming, Multi-Hit Foliage Occlusion, Wave Enemy Snapping,
 ## Resource Yield Contracts, and O(1) Chunk Streaming.
 
 const MAIN_SCENE_PATH = "res://scenes/main.tscn"
@@ -383,39 +383,68 @@ func _check_multi_hit_foliage_occlusion() -> void:
 	for t in trees:
 		t.queue_free()
 
-## 7. Starting Debug Enemies Height Alignment
+## 7. Production Wave Enemy Height Alignment
 func _check_starting_enemies_alignment() -> void:
-	print("\n--- 7. Testing Starting Enemies Alignment ---")
+	print("\n--- 7. Testing Production Wave Enemies Alignment ---")
 	var main_scene = load(MAIN_SCENE_PATH)
 	if not main_scene:
 		_assert_check(false, "Load main.tscn", "Could not load main.tscn")
 		return
 
 	var main = main_scene.instantiate()
+	var map_gen: MapGenerator = main.get_node("MapGenerator") as MapGenerator
+	map_gen.random_seed = false
+	map_gen.custom_seed = 999
 	root.add_child(main)
-
-	var map_gen: MapGenerator = main.get_node_or_null("MapGenerator") as MapGenerator
-	var enemies_node: Node3D = main.get_node_or_null("Enemies") as Node3D
+	var director: WaveDirector = main.get_node("WaveDirector") as WaveDirector
+	main.get_node("DayNightCycle").set_process(false)
+	director.set_process(false)
+	# Main now starts with a real mandatory talent choice, rather than debug
+	# enemies. Resolve that same HUD action before waiting for terrain physics.
+	await process_frame
+	var panel: WarriorBuildPanel = main.get_node("HUD").build_panel
+	var player_node: PlayerPrototype = main.get_node("Player") as PlayerPrototype
+	if panel.visible and player_node.progression.run_build.active_reward_id >= 0:
+		panel._focus(player_node.progression.run_build.active_reward_id)
+	player_node.set_physics_process(false)
+	for _frame: int in range(8):
+		await process_frame
+		await physics_frame
+	seed(7371)
+	director.current_wave = 10
+	director.max_concurrent_enemies = 24
+	for _attempt: int in range(48):
+		director.try_spawn_wave_enemy()
 
 	var aligned_count: int = 0
 	var enemy_count: int = 0
-	if enemies_node and map_gen:
-		for enemy in enemies_node.get_children():
-			if enemy is Node3D:
-				enemy_count += 1
-				var ex: int = int(floorf(enemy.global_position.x))
-				var ez: int = int(floorf(enemy.global_position.z))
-				var expected_y: float = float(map_gen.get_voxel_height(ex, ez)) + 0.9
-				if absf(enemy.global_position.y - expected_y) < 0.05:
-					aligned_count += 1
+	for enemy: Node in main.get_children():
+		if not enemy is EnemyBase or enemy.is_queued_for_deletion():
+			continue
+		enemy_count += 1
+		var body: EnemyBase = enemy as EnemyBase
+		var collision: CollisionShape3D = body.get_node("CollisionShape3D") as CollisionShape3D
+		# Compute the actual collider bottom independently of the spawn helper.
+		# Siege bodies are taller than grunts; a universal +0.9 is incorrect.
+		if not collision.shape is BoxShape3D:
+			continue
+		var shape: BoxShape3D = collision.shape as BoxShape3D
+		var feet_y: float = collision.global_position.y - shape.size.y * collision.global_basis.y.length() * 0.5
+		var ex: int = int(floorf(body.global_position.x))
+		var ez: int = int(floorf(body.global_position.z))
+		var terrain_y: float = float(map_gen.get_voxel_height(ex, ez))
+		if absf(feet_y - terrain_y) < 0.05:
+			aligned_count += 1
 
 	_assert_check(
-		enemy_count > 0 and aligned_count == enemy_count,
-		"Starting Enemies Floor Snapping",
-		"All %d debug enemies snapped to y_floor + 0.9" % enemy_count
+		enemy_count >= 8 and aligned_count == enemy_count,
+		"Production Wave Enemies Floor Snapping",
+		"%d/%d spawned enemy collider bottoms align with actual voxel terrain" % [aligned_count, enemy_count]
 	)
 
+	paused = false
 	main.queue_free()
+	await process_frame
 
 ## 8. Chunk Streaming & O(1) Memory Profile
 func _check_chunk_streaming_and_o1_memory_profile() -> void:

@@ -45,8 +45,8 @@ func _on_phase_changed(is_night: bool, day_number: int) -> void:
 	current_wave = day_number
 	spawn_timer = spawn_interval
 	if is_night:
-		# Night ten reserves room for its boss before Main's deferred spawn.
-		var opening_count: int = mini(opening_wave_enemies, 3) if day_number == 10 else opening_wave_enemies
+		# Canonical boss encounters occur every five nights; reserve their slot.
+		var opening_count: int = mini(opening_wave_enemies, 3) if day_number % 5 == 0 else opening_wave_enemies
 		for _enemy_index in range(opening_count):
 			try_spawn_wave_enemy()
 
@@ -61,8 +61,14 @@ func _on_phase_changed(is_night: bool, day_number: int) -> void:
 				enemies.append(e)
 
 		for e in enemies:
-			if is_instance_valid(e) and e.has_method("die"):
-				e.die()
+			if is_instance_valid(e):
+				# Sunrise is cleanup, never a kill or XP reward.
+				if reg:
+					reg.unregister_enemy(e)
+				if e is EnemyBase:
+					(e as EnemyBase).is_dying = true
+				e.remove_from_group("enemies")
+				e.queue_free()
 
 var safe_zone_cells: Dictionary = {}
 
@@ -89,15 +95,15 @@ func try_spawn_wave_enemy() -> void:
 	var roll: float = randf()
 	var mob_scene: PackedScene = ENEMY_GRUNT
 
-	if current_wave == 1:
-		if roll < 0.25:
+	if current_wave <= 2:
+		if roll < 0.15:
 			mob_scene = ENEMY_RANGED
 		else:
 			mob_scene = ENEMY_GRUNT
 	else:
-		if roll < 0.25:
+		if current_wave >= 4 and roll < 0.15:
 			mob_scene = ENEMY_SIEGE
-		elif roll < 0.50:
+		elif roll < (0.25 if current_wave < 10 else 0.40):
 			mob_scene = ENEMY_RANGED
 		else:
 			mob_scene = ENEMY_GRUNT
@@ -139,8 +145,54 @@ func try_spawn_wave_enemy() -> void:
 	# Set position prior to entering tree so _enter_tree registers at authoritative position
 	enemy_instance.position = valid_spawn_pos
 	get_parent().add_child(enemy_instance)
+	if enemy_instance is EnemyBase:
+		var enemy: EnemyBase = enemy_instance as EnemyBase
+		var elite: bool = current_wave > 5 and randf() < minf(0.18, 0.06 + float(current_wave) * 0.004)
+		var health_multiplier: float = (1.0 + float(current_wave - 1) * 0.025) * (2.0 if elite else 1.0)
+		enemy.max_health *= health_multiplier
+		enemy.current_health = enemy.max_health
+		if elite:
+			enemy.set_meta("elite", true)
+			enemy.move_speed *= 1.12
+			var visuals: Node3D = enemy.get_node_or_null("Visuals") as Node3D
+			if visuals:
+				visuals.scale *= 1.20
+			enemy.shield_health = 35.0 + float(current_wave)
+			var skill_ids: PackedStringArray = EliteSkillCatalog.ids_for_scene(mob_scene.resource_path)
+			if not skill_ids.is_empty():
+				EliteSkillController.attach(enemy, skill_ids[randi_range(0, skill_ids.size() - 1)], Callable(self, "_get_elite_ground_height"))
+		enemy.update_hp_label()
 	if reg:
 		reg.register_enemy(enemy_instance)
+
+func stop() -> void:
+	is_active = false
+
+func _get_elite_ground_height(x: int, z: int) -> float:
+	return get_terrain_surface_y(Vector3(float(x), 0.0, float(z)))
+
+func spawn_boss(scene: PackedScene, stage: int) -> SiegeBoss:
+	if not player or not is_instance_valid(player):
+		return null
+	var boss: SiegeBoss = scene.instantiate() as SiegeBoss
+	if not boss:
+		return null
+	boss.configure(stage, player)
+	var space_state: PhysicsDirectSpaceState3D = player.get_world_3d().direct_space_state
+	for attempt: int in range(16):
+		var angle: float = float(attempt) / 16.0 * TAU
+		var candidate: Vector3 = player.global_position + Vector3(cos(angle), 0, sin(angle)) * 11.0
+		candidate.y = MonsterLocomotion.calculate_spawn_y(get_terrain_surface_y(candidate), boss)
+		if not MonsterLocomotion.validate_safe_spawn_point(space_state, boss, candidate, 1.5):
+			continue
+		boss.position = candidate
+		get_parent().add_child(boss)
+		var bus: Node = get_node_or_null("/root/EventBus")
+		if bus:
+			bus.boss_spawned.emit(boss)
+		return boss
+	boss.queue_free()
+	return null
 
 func get_terrain_surface_y(pos: Vector3) -> float:
 	var map_gen = get_tree().get_first_node_in_group("map_generator") if is_inside_tree() else null

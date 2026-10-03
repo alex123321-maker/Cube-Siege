@@ -45,7 +45,7 @@ func _custom_physics(delta: float) -> void:
 				var reg = get_node_or_null("/root/EntityRegistry")
 				var approach_dir: Vector3 = Vector3.ZERO
 				if reg and "monster_flowfield" in reg and reg.monster_flowfield:
-					approach_dir = reg.monster_flowfield.get_flow_direction(global_position, target_player.global_position, radius)
+					approach_dir = reg.monster_flowfield.get_flow_direction(global_position, target_player.global_position, radius, target_player.get_instance_id())
 				pref_vel = approach_dir * move_speed
 			else:
 				pref_vel = Vector3.ZERO

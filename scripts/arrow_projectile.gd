@@ -15,6 +15,7 @@ var _uses_archer_impact: bool = false
 @onready var hitbox: HitboxArea = $Hitbox as HitboxArea
 
 func _ready() -> void:
+	add_to_group("projectiles")
 	if has_node("Hitbox"):
 		hitbox = $Hitbox as HitboxArea
 		if not hitbox.hit_confirmed.is_connected(_on_hit_confirmed):
@@ -84,12 +85,29 @@ func _physics_process(delta: float) -> void:
 		return
 
 	next_pos.y = step_info.get("new_y", next_pos.y)
+	# Players receive damage through their body, while monsters expose hurtboxes.
+	# Sweep the entire enemy-arrow segment so fast shots cannot tunnel through them.
+	if source_team == CombatRules.Team.ENEMY and _hit_player_segment(current_pos, next_pos):
+		return
 	global_position = next_pos
 
 
 	lifetime -= delta
 	if lifetime <= 0.0:
 		queue_free()
+
+func _hit_player_segment(start: Vector3, finish: Vector3) -> bool:
+	var query: PhysicsRayQueryParameters3D = PhysicsRayQueryParameters3D.create(start, finish, 2)
+	query.collide_with_areas = false
+	query.collide_with_bodies = true
+	var hit: Dictionary = get_world_3d().direct_space_state.intersect_ray(query)
+	var target: Node = hit.get("collider") as Node
+	if target is PlayerPrototype and not hit_targets.has(target) and CombatRules.can_damage(shooter_entity, target, source_team):
+		(target as PlayerPrototype).take_damage(damage, shooter_entity if is_instance_valid(shooter_entity) else null)
+		_on_hit_confirmed(target, direction)
+		global_position = hit.position
+		return pierce_count <= 0
+	return false
 
 func _get_terrain_height(x: int, z: int) -> float:
 	if not is_inside_tree():

@@ -58,6 +58,13 @@ func _test_class_slice(class_id: int, cls_label: String) -> void:
 
 	var main_instance = main_scene.instantiate()
 	root.add_child(main_instance)
+	await process_frame
+	# The production run now starts with a mandatory talent reward. Resolve it
+	# through the real modal before exercising the legacy three-class kit.
+	var hud: Node = main_instance.get_node("HUD")
+	var run_player: PlayerPrototype = main_instance.get_node("Player") as PlayerPrototype
+	if run_player.progression.run_build.active_reward_id >= 0:
+		hud.build_panel._focus(run_player.progression.run_build.active_reward_id)
 
 	# Settle physics and world generation
 	for _i in range(12):

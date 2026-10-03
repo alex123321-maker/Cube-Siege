@@ -9,6 +9,13 @@ const ENEMY_DUMMY_SCENE = preload("res://scenes/enemy_dummy.tscn")
 const BOSS_GORGON_SCENE = preload("res://scenes/enemies/boss_gorgon.tscn")
 const SIEGE_BREAKER_SCENE = preload("res://scenes/enemies/siege_breaker.tscn")
 
+class MovingCorridorTarget extends Node3D:
+	var steps: int = 0
+	func _physics_process(delta: float) -> void:
+		if steps < 240:
+			position.x += 4.5 * delta
+			steps += 1
+
 func before_each() -> void:
 	var reg = get_node_or_null("/root/EntityRegistry")
 	if reg and reg.has_method("clear"):
@@ -18,6 +25,51 @@ func after_each() -> void:
 	var reg = get_node_or_null("/root/EntityRegistry")
 	if reg and reg.has_method("clear"):
 		reg.clear()
+
+func test_actual_zombie_reaches_and_damages_wall_while_unreachable_player_moves() -> void:
+	var reg = get_node("/root/EntityRegistry")
+	reg.monster_flowfield.set_height_lookup(func(_x: int, z: int) -> int: return 0 if z == 10 else 3)
+	reg.monster_flowfield.set_chunk_loaded_lookup(func(_x: int, _z: int) -> bool: return true)
+	reg.monster_flowfield.reset_rebuild_count()
+	# Physical one-cell corridor matches the authoritative height row exactly.
+	for geometry in [
+		[Vector3(20, -0.5, 10.5), Vector3(80, 1, 1)],
+		[Vector3(20, 1.5, 5), Vector3(80, 3, 10)],
+		[Vector3(20, 1.5, 16), Vector3(80, 3, 10)]
+	]:
+		var body: StaticBody3D = StaticBody3D.new()
+		body.position = geometry[0]
+		body.collision_layer = 1
+		body.collision_mask = 0
+		var col: CollisionShape3D = CollisionShape3D.new()
+		var box: BoxShape3D = BoxShape3D.new()
+		box.size = geometry[1]
+		col.shape = box
+		body.add_child(col)
+		add_child_autoqfree(body)
+	var player: MovingCorridorTarget = MovingCorridorTarget.new()
+	player.process_physics_priority = -100
+	player.position = Vector3(11.5, 0.9, 10.5)
+	player.add_to_group("player")
+	add_child_autoqfree(player)
+	reg.register_player(player)
+	var wall: BuildingBase = (load("res://scenes/prefabs/wood_wall.tscn") as PackedScene).instantiate() as BuildingBase
+	wall.position = Vector3(10.5, 0, 10.5)
+	add_child_autoqfree(wall)
+	reg.register_building(wall)
+	var initial_health: float = wall.current_health
+	var zombie: CharacterBody3D = ENEMY_DUMMY_SCENE.instantiate() as CharacterBody3D
+	zombie.position = Vector3(7.5, 0.9, 10.5)
+	add_child_autoqfree(zombie)
+	zombie.target_player = player
+	var clock_start: float = reg.monster_flowfield.get_simulation_time()
+	await wait_physics_frames(240)
+	var elapsed_physics: float = reg.monster_flowfield.get_simulation_time() - clock_start
+	assert_eq(player.steps, 240, "Target moves for exactly 240 actual physics callbacks")
+	assert_gt(player.position.x, 29.0, "Player keeps moving throughout all physical steps")
+	assert_gt(zombie.global_position.x, 9.3, "Existing zombie reaches the physical wall")
+	assert_lt(wall.current_health, initial_health, "Existing siege attack damages wall before player stops")
+	assert_lte(reg.monster_flowfield.get_rebuild_count(), int(ceil(elapsed_physics / 0.25)) + 1, "Fair serving preserves .25s cadence over actual measured simulation time")
 
 func test_grunt_ascends_one_block_step_staircase() -> void:
 	var reg = get_node_or_null("/root/EntityRegistry")
@@ -422,7 +474,9 @@ func test_boss_gorgon_attacks_blocking_wall_and_destroys_it() -> void:
 	gorgon.global_position = Vector3(5.0, 0.0, 10.5)
 	gorgon.target_player = player
 
-	await wait_physics_frames(5)
+	# The failed player field and candidate wall field share the huge-body cadence.
+	# Wait real physics time for the second target rather than forcing a cold build.
+	await wait_physics_frames(20)
 
 	# Gorgon must receive non-zero flowfield direction towards the wall candidate
 	var b_dir: Vector3 = reg.monster_flowfield.get_flow_direction(gorgon.global_position, wall.global_position, 1.2)

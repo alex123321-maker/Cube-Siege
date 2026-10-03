@@ -106,6 +106,7 @@ func test_multi_target_cache_prevents_ping_pong_rebuild() -> void:
 
 	# Frame 1: Grunt queries player, Siege Breaker queries building
 	var _d1 = ff.get_flow_direction(Vector3(1.0, 0.0, 0.0), player_pos, 0.4)
+	ff.advance(1.0 / 60.0) # Different profiles share a one-build-per-tick budget.
 	var _d2 = ff.get_flow_direction(Vector3(0.0, 0.0, 1.0), building_pos, 0.7)
 
 	var count_after_init = ff.get_rebuild_count()

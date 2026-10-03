@@ -41,7 +41,7 @@ func _custom_physics(delta: float) -> void:
 			var path_dir: Vector3 = to_target.normalized()
 			var reg = get_node_or_null("/root/EntityRegistry")
 			if reg and "monster_flowfield" in reg and reg.monster_flowfield:
-				path_dir = reg.monster_flowfield.get_flow_direction(global_position, target_entity.global_position, radius)
+				path_dir = reg.monster_flowfield.get_flow_direction(global_position, target_entity.global_position, radius, target_entity.get_instance_id())
 
 			var pref_vel: Vector3 = Vector3.ZERO
 			if dist > 1.8:
@@ -124,7 +124,7 @@ func perform_attack() -> void:
 			if h.has_method("take_damage"):
 				h.take_damage(building_damage, Vector3.ZERO, "siege", self)
 	elif target_entity.has_method("take_damage"):
-		target_entity.take_damage(player_damage)
+		target_entity.take_damage(player_damage, self)
 
 func spawn_damage_text(amount: float, custom_text: String = "", custom_color: Color = Color.WHITE) -> void:
 	if custom_text != "":

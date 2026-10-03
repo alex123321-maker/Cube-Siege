@@ -152,14 +152,9 @@ func evacuate_player(player: Node) -> void:
 	emit_signal("evacuated")
 	update_visuals()
 
-	# Award Battle XP to RosterManager
-	var earned_xp: int = 150
-	if player and "player_level" in player:
-		earned_xp += int(player.player_level) * 50
-
-	var roster: Node = get_node_or_null("/root/RosterManager")
-	if roster and roster.has_method("record_run_end"):
-		roster.record_run_end(true, current_day, earned_xp)
+	# The run coordinator commits progression atomically; the portal publishes
+	# the extraction intent and never owns another copy of character state.
+	var earned_xp: int = (player as PlayerPrototype).progression.get_extraction_xp() if player is PlayerPrototype else 80
 
 	spawn_floating_text("EVACUATED! +%d BATTLE XP" % earned_xp, Color.GOLD)
 

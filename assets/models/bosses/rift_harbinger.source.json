@@ -1,0 +1,521 @@
+{
+  "name": "rift_harbinger",
+  "stage": 6,
+  "palette": [
+    "342642",
+    "79627f",
+    "cec2d2",
+    "20152b",
+    "fc66cc",
+    "52364f"
+  ],
+  "parts": [
+    {
+      "bone": "Body",
+      "name": "Pelvis",
+      "position": [
+        0,
+        -0.35,
+        0
+      ],
+      "size": [
+        1.15,
+        0.5,
+        0.7
+      ],
+      "material": 3,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "Body",
+      "name": "Torso",
+      "position": [
+        0,
+        0.3,
+        0
+      ],
+      "size": [
+        1.55,
+        1.35,
+        0.85
+      ],
+      "material": 0,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "Body",
+      "name": "Core",
+      "position": [
+        0,
+        0.45,
+        -0.46
+      ],
+      "size": [
+        0.4,
+        0.48,
+        0.12
+      ],
+      "material": 4,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "Head",
+      "name": "Face",
+      "position": [
+        0,
+        0.13,
+        0
+      ],
+      "size": [
+        0.8,
+        0.7,
+        0.65
+      ],
+      "material": 1,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "Head",
+      "name": "Brow",
+      "position": [
+        0,
+        0.31,
+        -0.35
+      ],
+      "size": [
+        0.9,
+        0.16,
+        0.14
+      ],
+      "material": 0,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "Head",
+      "name": "EyeL",
+      "position": [
+        -0.22,
+        0.13,
+        -0.34
+      ],
+      "size": [
+        0.19,
+        0.1,
+        0.1
+      ],
+      "material": 4,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "ArmL",
+      "name": "UpperArmL",
+      "position": [
+        -0.08,
+        -0.25,
+        0
+      ],
+      "size": [
+        0.46,
+        0.68,
+        0.6
+      ],
+      "material": 0,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "ArmL",
+      "name": "ForearmL",
+      "position": [
+        -0.1,
+        -0.78,
+        0
+      ],
+      "size": [
+        0.54,
+        0.55,
+        0.66
+      ],
+      "material": 1,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "Head",
+      "name": "EyeR",
+      "position": [
+        0.22,
+        0.13,
+        -0.34
+      ],
+      "size": [
+        0.19,
+        0.1,
+        0.1
+      ],
+      "material": 4,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "ArmR",
+      "name": "UpperArmR",
+      "position": [
+        0.08,
+        -0.25,
+        0
+      ],
+      "size": [
+        0.46,
+        0.68,
+        0.6
+      ],
+      "material": 0,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "ArmR",
+      "name": "ForearmR",
+      "position": [
+        0.1,
+        -0.78,
+        0
+      ],
+      "size": [
+        0.54,
+        0.55,
+        0.66
+      ],
+      "material": 1,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "Body",
+      "name": "LowerShard",
+      "position": [
+        0,
+        -0.8,
+        0.02
+      ],
+      "size": [
+        0.63,
+        0.74,
+        0.6
+      ],
+      "material": 1,
+      "rotation": [
+        0,
+        0,
+        8
+      ]
+    },
+    {
+      "bone": "Body",
+      "name": "RiftHeart",
+      "position": [
+        0,
+        0.34,
+        -0.6
+      ],
+      "size": [
+        0.62,
+        0.66,
+        0.23
+      ],
+      "material": 4,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "Head",
+      "name": "CrownShard-1",
+      "position": [
+        -0.5,
+        0.78,
+        0.04
+      ],
+      "size": [
+        0.22,
+        0.81,
+        0.34
+      ],
+      "material": 2,
+      "rotation": [
+        0,
+        0,
+        17
+      ]
+    },
+    {
+      "bone": "Head",
+      "name": "HaloSide-1",
+      "position": [
+        -0.82,
+        0.3,
+        0.28
+      ],
+      "size": [
+        0.19,
+        0.85,
+        0.19
+      ],
+      "material": 4,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "ArmL",
+      "name": "FloatingPillar-1",
+      "position": [
+        -0.4,
+        -0.55,
+        0.1
+      ],
+      "size": [
+        0.63,
+        1.09,
+        0.58
+      ],
+      "material": 1,
+      "rotation": [
+        0,
+        0,
+        -15
+      ]
+    },
+    {
+      "bone": "ArmL",
+      "name": "PillarSeal-1",
+      "position": [
+        -0.4,
+        -0.5,
+        -0.23
+      ],
+      "size": [
+        0.18,
+        0.65,
+        0.11
+      ],
+      "material": 4,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "Head",
+      "name": "CrownShard1",
+      "position": [
+        0.5,
+        0.78,
+        0.04
+      ],
+      "size": [
+        0.22,
+        0.81,
+        0.34
+      ],
+      "material": 2,
+      "rotation": [
+        0,
+        0,
+        -17
+      ]
+    },
+    {
+      "bone": "Head",
+      "name": "HaloSide1",
+      "position": [
+        0.82,
+        0.3,
+        0.28
+      ],
+      "size": [
+        0.19,
+        0.85,
+        0.19
+      ],
+      "material": 4,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "ArmR",
+      "name": "FloatingPillar1",
+      "position": [
+        0.4,
+        -0.55,
+        0.1
+      ],
+      "size": [
+        0.63,
+        1.09,
+        0.58
+      ],
+      "material": 1,
+      "rotation": [
+        0,
+        0,
+        15
+      ]
+    },
+    {
+      "bone": "ArmR",
+      "name": "PillarSeal1",
+      "position": [
+        0.4,
+        -0.5,
+        -0.23
+      ],
+      "size": [
+        0.18,
+        0.65,
+        0.11
+      ],
+      "material": 4,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "Head",
+      "name": "HaloTop",
+      "position": [
+        0,
+        0.98,
+        0.28
+      ],
+      "size": [
+        1.57,
+        0.18,
+        0.19
+      ],
+      "material": 4,
+      "rotation": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "Body",
+      "name": "OrbitShard0",
+      "position": [
+        -0.63,
+        -0.8680000000000001,
+        0.48
+      ],
+      "size": [
+        0.32,
+        0.39,
+        0.32
+      ],
+      "material": 2,
+      "rotation": [
+        10,
+        0,
+        -20
+      ]
+    },
+    {
+      "bone": "Body",
+      "name": "OrbitShard1",
+      "position": [
+        0.0,
+        -1.12,
+        0.48
+      ],
+      "size": [
+        0.32,
+        0.39,
+        0.32
+      ],
+      "material": 2,
+      "rotation": [
+        10,
+        0,
+        0
+      ]
+    },
+    {
+      "bone": "Body",
+      "name": "OrbitShard2",
+      "position": [
+        0.63,
+        -0.8680000000000001,
+        0.48
+      ],
+      "size": [
+        0.32,
+        0.39,
+        0.32
+      ],
+      "material": 2,
+      "rotation": [
+        10,
+        0,
+        20
+      ]
+    }
+  ],
+  "author": "Original Cube Siege code-native geometry authored for this request; no downloaded media",
+  "units": "meters; bottom-center model pivot; faces -Z; gameplay root at half_height",
+  "canonical_attacks": [
+    "radial_edges_to_centre",
+    "chase",
+    "chain"
+  ]
+}

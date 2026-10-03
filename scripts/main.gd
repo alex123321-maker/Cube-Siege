@@ -9,7 +9,7 @@ extends Node3D
 @onready var hud: CanvasLayer = get_node_or_null("HUD")
 @onready var map_generator: Node = get_node_or_null("MapGenerator")
 @onready var enemies_container: Node = get_node_or_null("Enemies")
-
+var run_coordinator: WarriorRunCoordinator
 var run_audio: RunAudio
 
 func _ready() -> void:
@@ -20,13 +20,14 @@ func _ready() -> void:
 	if radial_menu and building_system:
 		radial_menu.prefab_selected.connect(building_system.select_prefab)
 
-	if player and player.has_signal("player_died"):
-		player.player_died.connect(_on_player_died)
-
-	var eb = get_node_or_null("/root/EventBus")
-	if eb:
-		eb.portal_evacuated.connect(_on_portal_evacuated)
-		eb.night_started.connect(_on_night_started)
+	if player is PlayerPrototype and day_night is DayNightCycle and get_node_or_null("WaveDirector") is WaveDirector:
+		run_coordinator = WarriorRunCoordinator.new()
+		add_child(run_coordinator)
+		run_coordinator.setup(player as PlayerPrototype, day_night as DayNightCycle, get_node("WaveDirector") as WaveDirector, get_node("Portal") as PortalController)
+		run_coordinator.run_finished.connect(_on_run_finished)
+		run_coordinator.persistence_failed.connect(_on_persistence_failed)
+		if overlay:
+			overlay.retry_save_requested.connect(run_coordinator.retry_save)
 
 	if map_generator and map_generator.has_signal("map_generated"):
 		map_generator.map_generated.connect(_on_map_generated)
@@ -83,21 +84,24 @@ func _align_starting_entities() -> void:
 				enemy.queue_free()
 
 func _exit_tree() -> void:
-	var eb = get_node_or_null("/root/EventBus")
-	if eb and eb.portal_evacuated.is_connected(_on_portal_evacuated):
-		eb.portal_evacuated.disconnect(_on_portal_evacuated)
-	if eb and eb.night_started.is_connected(_on_night_started):
-		eb.night_started.disconnect(_on_night_started)
-
-func _on_night_started(day_number: int) -> void:
-	if day_number == 10:
-		# Let the phase transition finish, then create the canonical first boss.
-		call_deferred("spawn_boss_gorgon")
+	pass
 
 func _on_portal_evacuated(_day: int, _xp: int) -> void:
-	if is_queued_for_deletion() or not is_inside_tree():
+	pass # Kept for old capture scripts; coordinator owns the live event.
+
+func _on_run_finished(won: bool, extracted: bool, earned_xp: int) -> void:
+	run_audio.finish_run()
+	if not overlay:
 		return
-	show_victory()
+	if extracted:
+		overlay.show_result(won, earned_xp)
+	else:
+		overlay.show_game_over()
+
+func _on_persistence_failed(message: String) -> void:
+	run_audio.finish_run()
+	if overlay:
+		overlay.show_save_error(message)
 
 func _input(event: InputEvent) -> void:
 
@@ -105,71 +109,15 @@ func _input(event: InputEvent) -> void:
 		if event.keycode == KEY_B and OS.is_debug_build():
 			spawn_boss_gorgon()
 
-func spawn_boss_gorgon() -> bool:
-	var registry: Node = get_node_or_null("/root/EntityRegistry")
-	if registry and registry.has_active_boss():
-		return false
-	var boss_scene = preload("res://scenes/enemies/boss_gorgon.tscn")
-	var boss = boss_scene.instantiate()
-	var spawn_pos: Vector3 = Vector3.ZERO
-	if player:
-		spawn_pos = player.global_position + Vector3(0, 0, -18)
-	var map_gen = get_tree().get_first_node_in_group("map_generator") if is_inside_tree() else null
-	var space_state: PhysicsDirectSpaceState3D = get_world_3d().direct_space_state if is_inside_tree() else null
-
-	var valid_spawn_pos: Vector3 = spawn_pos
-	var found_valid: bool = false
-	var candidate_offsets: Array[Vector3] = [
-		Vector3.ZERO,
-		Vector3(2, 0, 0), Vector3(-2, 0, 0), Vector3(0, 0, 2), Vector3(0, 0, -2),
-		Vector3(2, 0, 2), Vector3(-2, 0, 2), Vector3(2, 0, -2), Vector3(-2, 0, -2)
-	]
-	# Search the whole spawn ring as well as the initial side. A forest deposit
-	# or a steep ledge should not prevent the wave-10 encounter from appearing.
-	for ring_radius: float in [14.0, 18.0, 22.0]:
-		for angle_index in range(12):
-			var angle: float = float(angle_index) * TAU / 12.0
-			candidate_offsets.append(Vector3(cos(angle) * ring_radius, 0.0, sin(angle) * ring_radius) + Vector3(0, 0, 18))
-
-	for offset in candidate_offsets:
-		var cand: Vector3 = spawn_pos + offset
-		var terrain_y: float = 0.0
-		if map_gen and map_gen.has_method("get_voxel_height"):
-			terrain_y = float(map_gen.get_voxel_height(TerrainCombatRules.world_to_voxel(cand.x), TerrainCombatRules.world_to_voxel(cand.z)))
-		cand.y = MonsterLocomotion.calculate_spawn_y(terrain_y, boss)
-		if space_state and boss is CharacterBody3D:
-			if not MonsterLocomotion.validate_safe_spawn_point(space_state, boss as CharacterBody3D, cand, 1.5):
-				continue
-		valid_spawn_pos = cand
-		found_valid = true
-		break
-
-	if not found_valid:
-		boss.queue_free()
-		return false
-
-	boss.position = valid_spawn_pos
-	add_child(boss)
-	if hud and hud.has_method("show_boss_bar"):
-		hud.show_boss_bar(boss)
-	var eb = get_node_or_null("/root/EventBus")
-	if eb:
-		eb.boss_spawned.emit(boss)
-	return true
+func spawn_boss_gorgon() -> void:
+	var director: WaveDirector = get_node_or_null("WaveDirector") as WaveDirector
+	if director:
+		director.spawn_boss(WarriorRunCoordinator.BOSS_SCENES[1], 2)
 
 func _on_player_died() -> void:
-	if save_manager:
-		save_manager.record_defeat("Warrior")
 	if overlay:
 		overlay.show_game_over()
 
 func show_victory() -> void:
-	var days: int = 1
-	if day_night and day_night.get("current_day") != null:
-		days = day_night.current_day
-
-	if save_manager:
-		save_manager.record_victory("Warrior", "Warrior", days)
-
 	if overlay:
 		overlay.show_victory()

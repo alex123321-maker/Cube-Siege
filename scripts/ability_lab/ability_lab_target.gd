@@ -27,10 +27,17 @@ func _on_damaged(amount: float, knockback: Vector3, type: String, attacker: Node
 	if is_dying:
 		return
 	super._on_damaged(amount, knockback, type, attacker)
-	damage_observed.emit(amount, type)
+	damage_observed.emit(last_health_damage, type)
 
 func die() -> void:
+	if is_dying:
+		return
+	if is_in_duel and is_instance_valid(duel_opponent):
+		duel_opponent.end_duel()
 	is_dying = true
 	remove_from_group("enemies")
+	var registry: Node = get_node_or_null("/root/EntityRegistry")
+	if registry:
+		registry.unregister_enemy(self)
 	presentation.play_death()
 	update_hp_label()
