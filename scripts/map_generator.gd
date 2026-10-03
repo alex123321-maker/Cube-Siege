@@ -305,11 +305,10 @@ func _spawn_chunk_resources(cx: int, cz: int, out_nodes: Array[Node]) -> void:
 			rng.seed = cell_seed
 
 			var attempt_roll: float = rng.randf()
-			var biome_info: Dictionary = {}
+			var biome_info: Dictionary = BiomeSystem.sample_biome_weights(float(wx), float(wz), actual_seed)
 			var continuous_h: float = 0.0
 			var res_type: ResourceDistribution.ResourceType = ResourceDistribution.ResourceType.NONE
-			if attempt_roll <= 0.16: # Preserve the existing resource attempt rate.
-				biome_info = BiomeSystem.sample_biome_weights(float(wx), float(wz), actual_seed)
+			if attempt_roll < ResourceDistribution.get_attempt_rate(biome_info["weights"]):
 				continuous_h = BiomeSystem.sample_height(float(wx), float(wz), actual_seed)
 				var res_roll: float = rng.randf()
 				res_type = ResourceDistribution.roll_blended_resource_type(biome_info["weights"], continuous_h, res_roll)

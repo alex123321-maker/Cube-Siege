@@ -1,0 +1,172 @@
+{
+  "author": "Cube Siege original procedural score / foley",
+  "seed": 604102,
+  "sample_rate": 44100,
+  "files": {
+    "day_theme.ogg": {
+      "duration": 48.0,
+      "loop": true,
+      "peak": 0.76
+    },
+    "night_theme.ogg": {
+      "duration": 32.0,
+      "loop": true,
+      "peak": 0.76
+    },
+    "leaves.ogg": {
+      "duration": 8.0,
+      "loop": true,
+      "peak": 0.4369
+    },
+    "crickets.ogg": {
+      "duration": 8.0,
+      "loop": true,
+      "peak": 0.3125
+    },
+    "campfire.ogg": {
+      "duration": 8.0,
+      "loop": true,
+      "peak": 0.3331
+    },
+    "sword.wav": {
+      "duration": 0.45,
+      "loop": false,
+      "peak": 0.5826
+    },
+    "bow.wav": {
+      "duration": 0.45,
+      "loop": false,
+      "peak": 0.5977
+    },
+    "piercing.wav": {
+      "duration": 0.45,
+      "loop": false,
+      "peak": 0.5936
+    },
+    "dash.wav": {
+      "duration": 0.45,
+      "loop": false,
+      "peak": 0.59
+    },
+    "hit.wav": {
+      "duration": 0.45,
+      "loop": false,
+      "peak": 0.6358
+    },
+    "hammer.wav": {
+      "duration": 0.45,
+      "loop": false,
+      "peak": 0.6382
+    },
+    "stone.wav": {
+      "duration": 0.45,
+      "loop": false,
+      "peak": 0.6303
+    },
+    "wood.wav": {
+      "duration": 0.45,
+      "loop": false,
+      "peak": 0.6376
+    },
+    "build.wav": {
+      "duration": 0.45,
+      "loop": false,
+      "peak": 0.6373
+    },
+    "turret.wav": {
+      "duration": 0.45,
+      "loop": false,
+      "peak": 0.6301
+    },
+    "enemy_attack.wav": {
+      "duration": 0.45,
+      "loop": false,
+      "peak": 0.6476
+    },
+    "explosion.wav": {
+      "duration": 1.5,
+      "loop": false,
+      "peak": 0.6581
+    },
+    "nuke.wav": {
+      "duration": 2.1,
+      "loop": false,
+      "peak": 0.6934
+    },
+    "parry.wav": {
+      "duration": 0.45,
+      "loop": false,
+      "peak": 0.5072
+    },
+    "magic.wav": {
+      "duration": 0.45,
+      "loop": false,
+      "peak": 0.3878
+    },
+    "level_up.wav": {
+      "duration": 1.5,
+      "loop": false,
+      "peak": 0.4511
+    },
+    "portal_ready.wav": {
+      "duration": 1.5,
+      "loop": false,
+      "peak": 0.4511
+    },
+    "duel.wav": {
+      "duration": 0.45,
+      "loop": false,
+      "peak": 0.3878
+    },
+    "mine_arm.wav": {
+      "duration": 0.45,
+      "loop": false,
+      "peak": 0.3878
+    },
+    "enemy_groan.wav": {
+      "duration": 0.45,
+      "loop": false,
+      "peak": 0.5517
+    },
+    "boss_roar.wav": {
+      "duration": 1.5,
+      "loop": false,
+      "peak": 0.6187
+    },
+    "boss_windup.wav": {
+      "duration": 0.45,
+      "loop": false,
+      "peak": 0.5449
+    },
+    "hurt.wav": {
+      "duration": 0.45,
+      "loop": false,
+      "peak": 0.5361
+    },
+    "death.wav": {
+      "duration": 0.45,
+      "loop": false,
+      "peak": 0.5586
+    },
+    "birds.wav": {
+      "duration": 0.45,
+      "loop": false,
+      "peak": 0.5665
+    },
+    "rooster.wav": {
+      "duration": 1.5,
+      "loop": false,
+      "peak": 0.4406
+    },
+    "footstep_grass.wav": {
+      "duration": 0.45,
+      "loop": false,
+      "peak": 0.563
+    },
+    "footstep_stone.wav": {
+      "duration": 0.45,
+      "loop": false,
+      "peak": 0.5895
+    }
+  }
+}

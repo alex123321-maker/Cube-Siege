@@ -65,3 +65,4 @@ docs/concepts/*.import
 docs/verification/issue42/*.import
 docs/verification/vfx_*/*.import
 docs/verification/ability_lab/*.import
+docs/verification/demo_hud/*.import

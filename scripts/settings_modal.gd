@@ -7,8 +7,13 @@ extends Control
 @onready var camera_option: OptionButton = get_node_or_null("Panel/VBox/CameraDistanceRow/CameraOption")
 @onready var btn_close: Button = get_node_or_null("Panel/VBox/BtnClose")
 
+var _settings: Node
+var _audio_sliders: Dictionary[StringName, HSlider] = {}
+
 func _ready() -> void:
+	_settings = get_node("/root/GameSettings")
 	visible = false
+	_build_audio_settings()
 	if btn_close:
 		btn_close.pressed.connect(close_modal)
 
@@ -47,6 +52,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func open_modal() -> void:
 	visible = true
+	for audio_bus: StringName in _audio_sliders:
+		_audio_sliders[audio_bus].set_value_no_signal(_settings.get_audio_level(audio_bus) * 100.0)
 	var gs = get_node_or_null("/root/GameSettings")
 	if gs and camera_option:
 		camera_option.select(gs.get_camera_distance())
@@ -64,3 +71,34 @@ func _on_camera_distance_selected(index: int) -> void:
 	var gs = get_node_or_null("/root/GameSettings")
 	if gs:
 		gs.set_camera_distance(index)
+
+func _build_audio_settings() -> void:
+	var rows: VBoxContainer = get_node("Panel/VBox") as VBoxContainer
+	var panel: Panel = get_node("Panel") as Panel
+	panel.offset_top = -255.0
+	panel.offset_bottom = 255.0
+	var names: Dictionary[StringName, String] = {
+		&"Master": "Общая громкость", &"Music": "Музыка", &"SFX": "Звуки боя", &"Ambience": "Атмосфера"
+	}
+	for audio_bus: StringName in _settings.AUDIO_BUSES:
+		var row: HBoxContainer = HBoxContainer.new()
+		row.add_theme_constant_override("separation", 16)
+		rows.add_child(row)
+		rows.move_child(row, rows.get_child_count() - 2)
+		var label: Label = Label.new()
+		label.text = names[audio_bus]
+		label.custom_minimum_size.x = 152.0
+		row.add_child(label)
+		var slider: HSlider = HSlider.new()
+		slider.max_value = 100.0
+		slider.step = 1.0
+		slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		slider.custom_minimum_size = Vector2(140, 32)
+		slider.value = _settings.get_audio_level(audio_bus) * 100.0
+		slider.tooltip_text = names[audio_bus]
+		row.add_child(slider)
+		slider.value_changed.connect(_on_audio_level_changed.bind(audio_bus))
+		_audio_sliders[audio_bus] = slider
+
+func _on_audio_level_changed(value: float, audio_bus: StringName) -> void:
+	_settings.set_audio_level(audio_bus, value / 100.0)

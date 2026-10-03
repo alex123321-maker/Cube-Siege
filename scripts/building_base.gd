@@ -9,6 +9,7 @@ signal health_changed(current: float, max_hp: float)
 @export var wood_cost: int = 4
 @export var stone_cost: int = 0
 @export var iron_cost: int = 0
+@export var visual_root_path: NodePath = NodePath("Model")
 
 var current_health: float = 250.0
 var current_transparency: float = 0.0
@@ -17,6 +18,9 @@ var grid_coord: Vector2i = Vector2i.ZERO
 @onready var hurtbox: Area3D = get_node_or_null("Hurtbox") as Area3D
 @onready var mesh_instance: MeshInstance3D = get_node_or_null("MeshInstance3D") as MeshInstance3D
 @onready var hp_label: Label3D = get_node_or_null("HPLabel") as Label3D
+@onready var visual_root: Node3D = get_node_or_null(visual_root_path) as Node3D
+
+var _visual_meshes: Array[MeshInstance3D] = []
 
 const FLOATING_TEXT_SCENE = preload("res://scenes/floating_text.tscn")
 
@@ -31,8 +35,11 @@ func _exit_tree() -> void:
 		reg.unregister_building(self)
 
 func _ready() -> void:
-	if not mesh_instance:
-		mesh_instance = find_child("*Mesh*", true, false) as MeshInstance3D
+	var visual_subtree: Node = visual_root if visual_root else self
+	for child: Node in visual_subtree.find_children("*", "MeshInstance3D", true, false):
+		_visual_meshes.append(child as MeshInstance3D)
+	if not mesh_instance and not _visual_meshes.is_empty():
+		mesh_instance = _visual_meshes[0]
 	add_to_group("buildings")
 	add_to_group("interactables")
 	current_health = max_health
@@ -135,11 +142,12 @@ func _apply_damage(amount: float, _knockback: Vector3, _type: String, _attacker:
 	spawn_damage_text(amount)
 
 	# Shake visual
-	var shake_node: Node3D = mesh_instance if mesh_instance else self
-	var tween: Tween = create_tween()
-	tween.tween_property(shake_node, "rotation:z", 0.06, 0.04)
-	tween.tween_property(shake_node, "rotation:z", -0.06, 0.04)
-	tween.tween_property(shake_node, "rotation:z", 0.0, 0.04)
+	var shake_node: Node3D = visual_root if visual_root else mesh_instance
+	if shake_node:
+		var tween: Tween = create_tween()
+		tween.tween_property(shake_node, "rotation:z", 0.06, 0.04)
+		tween.tween_property(shake_node, "rotation:z", -0.06, 0.04)
+		tween.tween_property(shake_node, "rotation:z", 0.0, 0.04)
 
 	if current_health <= 0.0:
 		destroy_building()
@@ -173,15 +181,12 @@ func spawn_damage_text(amount: float, custom_text: String = "", custom_color: Co
 func destroy_building() -> void:
 	emit_signal("building_destroyed", self)
 	var tween: Tween = create_tween()
-	tween.tween_property(self, "scale", Vector3.ZERO, 0.15)
+	# Keep the physics transform invertible until the body is freed.
+	tween.tween_property(self, "scale", Vector3.ONE * 0.02, 0.15)
 	tween.chain().tween_callback(queue_free)
 
 func set_transparency(alpha_trans: float) -> void:
 	current_transparency = alpha_trans
-	for child in find_children("*", "MeshInstance3D", true, false):
-		if child is MeshInstance3D:
-			(child as MeshInstance3D).transparency = alpha_trans
-	if has_node("MeshInstance3D"):
-		var m: MeshInstance3D = get_node("MeshInstance3D") as MeshInstance3D
-		if m:
-			m.transparency = alpha_trans
+	for mesh: MeshInstance3D in _visual_meshes:
+		if is_instance_valid(mesh):
+			mesh.transparency = alpha_trans

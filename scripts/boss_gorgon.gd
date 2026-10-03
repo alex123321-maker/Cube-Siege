@@ -10,6 +10,8 @@ signal boss_defeated()
 @export var charge_damage: float = 55.0
 @export var radius: float = 1.2
 @export var half_height: float = 1.5
+@export var charge_distance: float = 16.0
+@export var charge_half_width: float = 1.65
 
 var current_health: float = 2000.0
 var target_player: Node3D = null
@@ -25,13 +27,20 @@ var charge_distance_traveled: float = 0.0
 var charge_cooldown_timer: float = 5.0
 var melee_attack_timer: float = 0.0
 var has_hit_player_in_charge: bool = false
+var charge_origin: Vector3 = Vector3.ZERO
+var charge_previous_position: Vector3 = Vector3.ZERO
+var charge_time_remaining: float = 0.0
+var is_dying: bool = false
+var _event_bus: Node = null
 
 @onready var telegraph_mesh: MeshInstance3D = $Visuals/TelegraphLine
 @onready var visuals: Node3D = $Visuals
 @onready var hp_label: Label3D = $HPLabel
 @onready var hurtbox: Area3D = $Hurtbox
+@onready var model: GorgonPresentation = $Visuals/Model
 
 const FLOATING_TEXT_SCENE = preload("res://scenes/floating_text.tscn")
+const ChargeWarning = preload("res://scripts/combat/boss_charge_warning.gd")
 
 func _enter_tree() -> void:
 	var reg = get_node_or_null("/root/EntityRegistry")
@@ -46,6 +55,7 @@ func _exit_tree() -> void:
 		reg.unregister_boss(self)
 
 func _ready() -> void:
+	_event_bus = get_node_or_null("/root/EventBus")
 	add_to_group("enemies")
 	add_to_group("boss")
 	var reg = get_node_or_null("/root/EntityRegistry")
@@ -58,6 +68,11 @@ func _ready() -> void:
 
 	if telegraph_mesh:
 		telegraph_mesh.visible = false
+		telegraph_mesh.material_override = telegraph_mesh.mesh.surface_get_material(0)
+		# The warning lives in world space: presentation shake and step smoothing
+		# must never move the area the player is being asked to avoid.
+		telegraph_mesh.top_level = true
+		telegraph_mesh.mesh = telegraph_mesh.mesh.duplicate()
 
 	if hurtbox and hurtbox.has_signal("damaged"):
 		hurtbox.connect("damaged", Callable(self, "_on_damaged"))
@@ -78,6 +93,8 @@ func find_player() -> void:
 			return
 
 func _physics_process(delta: float) -> void:
+	if is_dying:
+		return
 	if not target_player or not is_instance_valid(target_player):
 		find_player()
 		return
@@ -113,6 +130,20 @@ func _physics_process(delta: float) -> void:
 
 	if current_state == BossState.CHARGING:
 		post_charge_collision_check()
+	if model:
+		var phase: StringName = &"idle"
+		var progress: float = 0.0
+		match current_state:
+			BossState.TELEGRAPH:
+				phase = &"windup"
+				progress = 1.0 - state_timer / 1.4
+			BossState.CHARGING:
+				phase = &"charge"
+				progress = charge_distance_traveled / charge_distance
+			BossState.RECOVERY:
+				phase = &"recovery"
+				progress = 1.0 - state_timer / 1.8
+		model.update_pose(delta, phase, clampf(progress, 0.0, 1.0), desired_velocity_h.length())
 
 	desired_velocity_h = Vector3.ZERO
 
@@ -168,6 +199,8 @@ func process_chase(delta: float) -> void:
 	# Melee hit against player (contact range 3.4m)
 	if dist <= 3.4 and melee_attack_timer <= 0.0:
 		melee_attack_timer = 1.2
+		if model:
+			model.play_smash()
 		if target_player.has_method("take_damage"):
 			target_player.take_damage(melee_damage, self)
 			spawn_damage_text(melee_damage, "BOSS SMASH! (-%d HP)" % int(melee_damage), Color.RED)
@@ -185,12 +218,25 @@ func process_chase(delta: float) -> void:
 func start_telegraph(dir: Vector3) -> void:
 	current_state = BossState.TELEGRAPH
 	state_timer = 1.4 # 1.4s warning
-	charge_direction = dir
+	charge_direction = Vector3(dir.x, 0.0, dir.z).normalized()
+	charge_origin = global_position
+	charge_previous_position = global_position
 	has_hit_player_in_charge = false
 	desired_velocity_h = Vector3.ZERO
 	velocity = Vector3.ZERO
 	if telegraph_mesh:
+		var terrain: MapGenerator = get_tree().get_first_node_in_group("map_generator") as MapGenerator
+		if terrain:
+			telegraph_mesh.mesh = ChargeWarning.create_mesh(charge_origin, charge_direction, charge_distance, charge_half_width, terrain)
+		else:
+			var warning_mesh: BoxMesh = BoxMesh.new()
+			warning_mesh.size = Vector3(charge_half_width * 2.0, 0.05, charge_distance + charge_half_width * 2.0)
+			telegraph_mesh.mesh = warning_mesh
+		telegraph_mesh.global_position = charge_origin + charge_direction * (charge_distance * 0.5) + Vector3.UP * 0.06
+		telegraph_mesh.look_at(telegraph_mesh.global_position + charge_direction, Vector3.UP)
 		telegraph_mesh.visible = true
+	if _event_bus:
+		_event_bus.audio_cue_requested.emit(&"boss_windup", global_position)
 	spawn_damage_text(0, "!! TRAMPLE CHARGE !!", Color.RED)
 
 func process_telegraph(delta: float) -> void:
@@ -209,41 +255,31 @@ func process_telegraph(delta: float) -> void:
 			telegraph_mesh.visible = false
 		current_state = BossState.CHARGING
 		charge_distance_traveled = 0.0
+		charge_time_remaining = charge_distance / charge_speed
+		if _event_bus:
+			_event_bus.audio_cue_requested.emit(&"boss_charge", global_position)
 
 func process_charging(delta: float) -> void:
-	desired_velocity_h = charge_direction * charge_speed
-	charge_distance_traveled += charge_speed * delta
+	charge_previous_position = global_position
+	var remaining_distance: float = maxf(0.0, charge_distance - charge_distance_traveled)
+	desired_velocity_h = charge_direction * minf(charge_speed, remaining_distance / maxf(delta, 0.0001))
+	charge_time_remaining -= delta
 
-	# 1. Damage and launch player if close
-	if target_player and is_instance_valid(target_player):
-		var p_dist: float = global_position.distance_to(target_player.global_position)
-		if p_dist <= 3.4 and not has_hit_player_in_charge:
-			has_hit_player_in_charge = true
-			if target_player.has_method("take_damage"):
-				target_player.take_damage(charge_damage, self)
-			if target_player is CharacterBody3D:
-				(target_player as CharacterBody3D).velocity += charge_direction * 18.0 + Vector3(0, 6, 0)
-			spawn_damage_text(charge_damage, "TRAMPLED! (-%d HP)" % int(charge_damage), Color.CRIMSON)
-
-	# 2. Smash through buildings and walls along charge path
-	var buildings: Array[Node] = get_tree().get_nodes_in_group("buildings")
+	# Break structures reached by the current body footprint before moving.
+	var reg = get_node_or_null("/root/EntityRegistry")
+	var buildings: Array = reg.get_buildings() if reg else []
 	for b in buildings:
 		if b and is_instance_valid(b) and b is Node3D:
-			if global_position.distance_to((b as Node3D).global_position) <= 2.8:
+			if _is_in_charge_sweep((b as Node3D).global_position, global_position, global_position):
 				if b.has_method("destroy_building"):
 					b.destroy_building()
 
-	if charge_distance_traveled >= 16.0:
-		# End charge into recovery
-		current_state = BossState.RECOVERY
-		state_timer = 1.8 # 1.8s vulnerability window
-		desired_velocity_h = Vector3.ZERO
-		velocity = Vector3.ZERO
-		charge_cooldown_timer = 7.0
-		spawn_damage_text(0, "STUNNED!", Color.GOLD)
-
 func post_charge_collision_check() -> void:
-	# 3. Check physical slide collisions
+	charge_distance_traveled = clampf((global_position - charge_origin).dot(charge_direction), 0.0, charge_distance)
+	if target_player and is_instance_valid(target_player) and not has_hit_player_in_charge:
+		if _is_in_charge_sweep(target_player.global_position, charge_previous_position, global_position):
+			_hit_charge_target(target_player)
+	# Physical contacts break walls; player damage uses the same locked warning lane.
 	for i in range(get_slide_collision_count()):
 		var col: KinematicCollision3D = get_slide_collision(i)
 		var collider: Object = col.get_collider()
@@ -253,10 +289,37 @@ func post_charge_collision_check() -> void:
 				if node.has_method("destroy_building"):
 					node.destroy_building()
 			elif node.is_in_group("player"):
-				if not has_hit_player_in_charge:
-					has_hit_player_in_charge = true
-					if node.has_method("take_damage"):
-						node.take_damage(charge_damage, self)
+				if not has_hit_player_in_charge and node is Node3D and _is_in_charge_sweep((node as Node3D).global_position, charge_previous_position, global_position):
+					_hit_charge_target(node as Node3D)
+	if charge_distance_traveled >= charge_distance - 0.01 or charge_time_remaining <= 0.0:
+		current_state = BossState.RECOVERY
+		state_timer = 1.8
+		desired_velocity_h = Vector3.ZERO
+		velocity = Vector3.ZERO
+		charge_cooldown_timer = 7.0
+		spawn_damage_text(0, "STUNNED!", Color.GOLD)
+
+func _is_in_charge_sweep(point: Vector3, from: Vector3, to: Vector3) -> bool:
+	var relative: Vector3 = point - charge_origin
+	var along: float = relative.dot(charge_direction)
+	var across: float = relative.dot(Vector3(-charge_direction.z, 0.0, charge_direction.x))
+	if absf(across) > charge_half_width or along < -charge_half_width or along > charge_distance + charge_half_width:
+		return false
+	var from_along: float = (from - charge_origin).dot(charge_direction)
+	var to_along: float = (to - charge_origin).dot(charge_direction)
+	if along < minf(from_along, to_along) - charge_half_width or along > maxf(from_along, to_along) + charge_half_width:
+		return false
+	return absf(point.y - to.y) <= half_height + 1.0
+
+func _hit_charge_target(target: Node3D) -> void:
+	has_hit_player_in_charge = true
+	if _event_bus:
+		_event_bus.audio_cue_requested.emit(&"explosion", target.global_position)
+	if target.has_method("take_damage"):
+		target.take_damage(charge_damage, self)
+	if target is CharacterBody3D:
+		(target as CharacterBody3D).velocity += charge_direction * 18.0 + Vector3(0, 6, 0)
+	spawn_damage_text(charge_damage, "TRAMPLED! (-%d HP)" % int(charge_damage), Color.CRIMSON)
 
 func process_recovery(delta: float) -> void:
 	desired_velocity_h = Vector3.ZERO
@@ -266,6 +329,8 @@ func process_recovery(delta: float) -> void:
 		current_state = BossState.CHASE
 
 func _on_damaged(amount: float, _knockback: Vector3, _type: String, _attacker: Node) -> void:
+	if is_dying:
+		return
 	var actual_dmg: float = amount
 	if current_state == BossState.RECOVERY:
 		actual_dmg *= 1.35 # Vulnerable during recovery!
@@ -293,6 +358,21 @@ func spawn_damage_text(amount: float, custom_text: String = "", custom_color: Co
 		popup.setup(amount, amount >= 50.0, Color(1.0, 0.4, 0.2))
 
 func die() -> void:
+	if is_dying:
+		return
+	is_dying = true
+	if model:
+		model.play_death()
+	remove_from_group("enemies")
+	remove_from_group("boss")
+	var registry: Node = get_node_or_null("/root/EntityRegistry")
+	if registry:
+		registry.unregister_enemy(self)
+		registry.unregister_boss(self)
+	if telegraph_mesh:
+		telegraph_mesh.visible = false
+	if _event_bus:
+		_event_bus.boss_defeated.emit(self)
 	emit_signal("boss_defeated")
 
 	# Massive XP explosion and resource drop

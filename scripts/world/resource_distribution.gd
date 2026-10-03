@@ -18,6 +18,21 @@ enum DepositForm {
 	FULL_DEPOSIT = 2  # Solid obstacle, mined/chopped
 }
 
+const BASE_ATTEMPT_RATE: float = 0.16
+const DENSITY_MULTIPLIERS: Dictionary = {
+	BiomeSystem.BiomeType.FOREST: 0.70,
+	BiomeSystem.BiomeType.PLAINS: 0.60,
+	BiomeSystem.BiomeType.MOUNTAINS: 0.50
+}
+const TREE_YIELDS: Array[int] = [6, 9, 10, 5, 4]
+
+## Density reductions preserve resource composition and blend smoothly at borders.
+static func get_attempt_rate(biome_weights: Dictionary) -> float:
+	var density: float = 0.0
+	for biome: BiomeSystem.BiomeType in biome_weights:
+		density += float(biome_weights[biome]) * float(DENSITY_MULTIPLIERS.get(biome, 0.60))
+	return BASE_ATTEMPT_RATE * clampf(density, 0.0, 1.0)
+
 # Weight tables per biome / height condition as specified in Issue #18
 # Tables specify cumulative thresholds for a normalized roll in [0.0, 1.0)
 const FOREST_WEIGHTS: Dictionary = {
@@ -176,10 +191,9 @@ static func resolve_spawn_details(
 		var is_mountain_tree: bool = (variation_roll < w_mountain)
 		if is_mountain_tree:
 			var_idx = 3 + (int(variation_roll * 100.0) % 2) # 3: young oak, 4: shrub
-			deposit_yield = 4 # Small tree deposit strictly yield > 3 (4 units)
 		else:
 			var_idx = int(variation_roll * 5.0) % 5 # 0..4 oak variants
-			deposit_yield = 5 # Standard oak deposit (5 units)
+		deposit_yield = TREE_YIELDS[var_idx]
 	elif res_type == ResourceType.STONE:
 		if variation_roll < 0.35:
 			tier = 0 # small (yield 4)

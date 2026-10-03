@@ -35,9 +35,16 @@ func _ready() -> void:
 	time_left = day_duration
 	is_night = false
 	apply_lighting_state()
+	var event_bus: Node = get_node_or_null("/root/EventBus")
+	if event_bus:
+		event_bus.boss_defeated.connect(_on_boss_defeated)
+
+func _on_boss_defeated(_boss: Node) -> void:
+	if is_night and current_day == 10:
+		start_day()
 
 func _process(delta: float) -> void:
-	time_left -= delta
+	time_left = maxf(0.0, time_left - delta)
 	var total_duration: float = night_duration if is_night else day_duration
 	emit_signal("time_updated", time_left, total_duration, is_night)
 	var eb = get_node_or_null("/root/EventBus")
@@ -49,7 +56,9 @@ func _process(delta: float) -> void:
 		if not is_night:
 			start_night()
 		else:
-			start_day()
+			var registry: Node = get_node_or_null("/root/EntityRegistry")
+			if not registry or not registry.has_active_boss():
+				start_day()
 
 func start_night() -> void:
 	is_night = true

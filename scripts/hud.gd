@@ -15,6 +15,7 @@ const NIGHT_ICON: Texture2D = preload("res://assets/ui/hud_visual_kit/icons/glob
 @onready var iron_label: Label = $Margin/Resources/ResourceRows/IronBox/IronLabel
 @onready var magic_label: Label = $Margin/Resources/ResourceRows/MagicBox/MagicLabel
 @onready var hero_portrait: HUDHeroPortrait = $Margin/Resources/ResourceRows/HeroPortrait
+@onready var status_bar: HUDStatusBar = $Margin/StatusEffects
 @onready var card_draft_popup: Control = $Margin/CardDraftPopup
 @onready var player_floating_hp: Control = $Margin/PlayerFloatingHP
 @onready var player_hp_bar: ProgressBar = $Margin/PlayerFloatingHP/Bar
@@ -56,6 +57,7 @@ func _ready() -> void:
 			day_night_cycle.time_updated.connect(_on_cycle_time_updated_legacy)
 
 	if player:
+		status_bar.setup(player)
 		_on_health_changed(player.current_health, player.max_health)
 		_on_xp_changed(player.current_xp, player.xp_to_next_level, player.player_level)
 		hero_portrait.set_class(int(player.current_class))

@@ -1,7 +1,8 @@
-[gd_scene load_steps=12 format=3 uid="uid://cbossgorgon01"]
+[gd_scene load_steps=13 format=3 uid="uid://cbossgorgon01"]
 
 [ext_resource type="Script" path="res://scripts/boss_gorgon.gd" id="1_boss"]
 [ext_resource type="Script" path="res://scripts/hurtbox_area.gd" id="2_hurtbox"]
+[ext_resource type="PackedScene" path="res://assets/models/enemies/boss_gorgon_model.tscn" id="3_model"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_body"]
 size = Vector3(2.4, 3.0, 2.4)
@@ -50,12 +51,16 @@ shape = SubResource("BoxShape3D_body")
 [node name="Visuals" type="Node3D" parent="."]
 
 [node name="Torso" type="MeshInstance3D" parent="Visuals"]
+visible = false
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
 mesh = SubResource("BoxMesh_Torso")
 
 [node name="Eyes" type="MeshInstance3D" parent="Visuals"]
+visible = false
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.4, -1.25)
 mesh = SubResource("BoxMesh_Eyes")
+
+[node name="Model" parent="Visuals" instance=ExtResource("3_model")]
 
 [node name="TelegraphLine" type="MeshInstance3D" parent="Visuals"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, -7.0)
@@ -66,7 +71,7 @@ mesh = SubResource("BoxMesh_Telegraph")
 collision_layer = 8
 collision_mask = 0
 script = ExtResource("2_hurtbox")
-mesh_to_flash_path = NodePath("../Visuals/Torso")
+mesh_to_flash_path = NodePath("../Visuals/Model/StoneGorgon/body")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Hurtbox"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)

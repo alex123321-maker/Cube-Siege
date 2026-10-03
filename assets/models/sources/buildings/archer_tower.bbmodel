@@ -1,0 +1,2608 @@
+{
+  "meta": {
+    "format_version": "4.5",
+    "model_format": "free",
+    "box_uv": false
+  },
+  "name": "archer_tower",
+  "resolution": {
+    "width": 8,
+    "height": 112
+  },
+  "elements": [
+    {
+      "name": "foundation",
+      "uuid": "59c68e08-ebf5-5f0e-9da4-fea0550d9220",
+      "type": "cube",
+      "from": [
+        -9.28,
+        0.0,
+        -9.28
+      ],
+      "to": [
+        9.28,
+        4.16,
+        9.28
+      ],
+      "origin": [
+        0,
+        2.08,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 6,
+      "export": true,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            48,
+            8,
+            56
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            0,
+            48,
+            8,
+            56
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            48,
+            8,
+            56
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            48,
+            8,
+            56
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            0,
+            48,
+            8,
+            56
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            0,
+            48,
+            8,
+            56
+          ],
+          "texture": 0
+        }
+      },
+      "cube_siege_material": "stone"
+    },
+    {
+      "name": "upright_-0.37_-0.37",
+      "uuid": "ae13e8ec-95e7-51ac-b904-3fd55e25a3f1",
+      "type": "cube",
+      "from": [
+        -7.68,
+        2.08,
+        -7.68
+      ],
+      "to": [
+        -4.16,
+        46.88,
+        -4.16
+      ],
+      "origin": [
+        -5.92,
+        24.48,
+        -5.92
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 2,
+      "export": true,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            16,
+            8,
+            24
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            0,
+            16,
+            8,
+            24
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            16,
+            8,
+            24
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            16,
+            8,
+            24
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            0,
+            16,
+            8,
+            24
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            0,
+            16,
+            8,
+            24
+          ],
+          "texture": 0
+        }
+      },
+      "cube_siege_material": "wood_dark"
+    },
+    {
+      "name": "foot_band_-0.37_-0.37",
+      "uuid": "7634f444-21bd-58f2-867a-e3c27e27ef6a",
+      "type": "cube",
+      "from": [
+        -7.92,
+        4.08,
+        -7.92
+      ],
+      "to": [
+        -3.92,
+        6.48,
+        -3.92
+      ],
+      "origin": [
+        -5.92,
+        5.28,
+        -5.92
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 3,
+      "export": true,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            24,
+            8,
+            32
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            0,
+            24,
+            8,
+            32
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            24,
+            8,
+            32
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            24,
+            8,
+            32
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            0,
+            24,
+            8,
+            32
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            0,
+            24,
+            8,
+            32
+          ],
+          "texture": 0
+        }
+      },
+      "cube_siege_material": "iron"
+    },
+    {
+      "name": "upright_-0.37_0.37",
+      "uuid": "10d9a160-6aa0-5f27-89d1-d05dad8f38a9",
+      "type": "cube",
+      "from": [
+        -7.68,
+        2.08,
+        4.16
+      ],
+      "to": [
+        -4.16,
+        46.88,
+        7.68
+      ],
+      "origin": [
+        -5.92,
+        24.48,
+        5.92
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 2,
+      "export": true,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            16,
+            8,
+            24
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            0,
+            16,
+            8,
+            24
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            16,
+            8,
+            24
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            16,
+            8,
+            24
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            0,
+            16,
+            8,
+            24
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            0,
+            16,
+            8,
+            24
+          ],
+          "texture": 0
+        }
+      },
+      "cube_siege_material": "wood_dark"
+    },
+    {
+      "name": "foot_band_-0.37_0.37",
+      "uuid": "0d72eb37-163b-527d-9861-e17081df70b6",
+      "type": "cube",
+      "from": [
+        -7.92,
+        4.08,
+        3.92
+      ],
+      "to": [
+        -3.92,
+        6.48,
+        7.92
+      ],
+      "origin": [
+        -5.92,
+        5.28,
+        5.92
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 3,
+      "export": true,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            24,
+            8,
+            32
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            0,
+            24,
+            8,
+            32
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            24,
+            8,
+            32
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            24,
+            8,
+            32
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            0,
+            24,
+            8,
+            32
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            0,
+            24,
+            8,
+            32
+          ],
+          "texture": 0
+        }
+      },
+      "cube_siege_material": "iron"
+    },
+    {
+      "name": "upright_0.37_-0.37",
+      "uuid": "47484363-9d98-5316-bd6f-f9f8c1919088",
+      "type": "cube",
+      "from": [
+        4.16,
+        2.08,
+        -7.68
+      ],
+      "to": [
+        7.68,
+        46.88,
+        -4.16
+      ],
+      "origin": [
+        5.92,
+        24.48,
+        -5.92
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 2,
+      "export": true,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            16,
+            8,
+            24
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            0,
+            16,
+            8,
+            24
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            16,
+            8,
+            24
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            16,
+            8,
+            24
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            0,
+            16,
+            8,
+            24
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            0,
+            16,
+            8,
+            24
+          ],
+          "texture": 0
+        }
+      },
+      "cube_siege_material": "wood_dark"
+    },
+    {
+      "name": "foot_band_0.37_-0.37",
+      "uuid": "2d947d32-3bc6-52f0-9ef2-6083f0f51f50",
+      "type": "cube",
+      "from": [
+        3.92,
+        4.08,
+        -7.92
+      ],
+      "to": [
+        7.92,
+        6.48,
+        -3.92
+      ],
+      "origin": [
+        5.92,
+        5.28,
+        -5.92
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 3,
+      "export": true,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            24,
+            8,
+            32
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            0,
+            24,
+            8,
+            32
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            24,
+            8,
+            32
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            24,
+            8,
+            32
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            0,
+            24,
+            8,
+            32
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            0,
+            24,
+            8,
+            32
+          ],
+          "texture": 0
+        }
+      },
+      "cube_siege_material": "iron"
+    },
+    {
+      "name": "upright_0.37_0.37",
+      "uuid": "0b1f9a96-50fd-564a-8c4b-321248730c66",
+      "type": "cube",
+      "from": [
+        4.16,
+        2.08,
+        4.16
+      ],
+      "to": [
+        7.68,
+        46.88,
+        7.68
+      ],
+      "origin": [
+        5.92,
+        24.48,
+        5.92
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 2,
+      "export": true,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            16,
+            8,
+            24
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            0,
+            16,
+            8,
+            24
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            16,
+            8,
+            24
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            16,
+            8,
+            24
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            0,
+            16,
+            8,
+            24
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            0,
+            16,
+            8,
+            24
+          ],
+          "texture": 0
+        }
+      },
+      "cube_siege_material": "wood_dark"
+    },
+    {
+      "name": "foot_band_0.37_0.37",
+      "uuid": "95c3f28a-0024-597c-8646-3515e0820b34",
+      "type": "cube",
+      "from": [
+        3.92,
+        4.08,
+        3.92
+      ],
+      "to": [
+        7.92,
+        6.48,
+        7.92
+      ],
+      "origin": [
+        5.92,
+        5.28,
+        5.92
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 3,
+      "export": true,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            24,
+            8,
+            32
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            0,
+            24,
+            8,
+            32
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            24,
+            8,
+            32
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            24,
+            8,
+            32
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            0,
+            24,
+            8,
+            32
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            0,
+            24,
+            8,
+            32
+          ],
+          "texture": 0
+        }
+      },
+      "cube_siege_material": "iron"
+    },
+    {
+      "name": "diagonal_-0.38",
+      "uuid": "ae020864-7193-5459-a7c4-0b849cc43118",
+      "type": "cube",
+      "from": [
+        -0.96,
+        8.08,
+        -7.12
+      ],
+      "to": [
+        0.96,
+        42.48,
+        -5.04
+      ],
+      "origin": [
+        0,
+        25.28,
+        -6.08
+      ],
+      "rotation": [
+        0,
+        0,
+        17
+      ],
+      "color": 0,
+      "export": true,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ],
+          "texture": 0
+        }
+      },
+      "cube_siege_material": "wood"
+    },
+    {
+      "name": "diagonal_0.38",
+      "uuid": "ca6f1a06-679c-57fc-8008-8bb58848ddb0",
+      "type": "cube",
+      "from": [
+        -0.96,
+        8.08,
+        5.04
+      ],
+      "to": [
+        0.96,
+        42.48,
+        7.12
+      ],
+      "origin": [
+        0,
+        25.28,
+        6.08
+      ],
+      "rotation": [
+        0,
+        0,
+        17
+      ],
+      "color": 0,
+      "export": true,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ],
+          "texture": 0
+        }
+      },
+      "cube_siege_material": "wood"
+    },
+    {
+      "name": "ladder_0",
+      "uuid": "296a09dc-1804-5b39-8d22-bb18cd89d3dd",
+      "type": "cube",
+      "from": [
+        -3.84,
+        7.48,
+        7.44
+      ],
+      "to": [
+        3.84,
+        8.52,
+        8.88
+      ],
+      "origin": [
+        0,
+        8.0,
+        8.16
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 1,
+      "export": true,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        }
+      },
+      "cube_siege_material": "wood_light"
+    },
+    {
+      "name": "ladder_1",
+      "uuid": "bdff5a97-1f8a-57ef-bec2-9c1e8a188e88",
+      "type": "cube",
+      "from": [
+        -3.84,
+        13.08,
+        7.44
+      ],
+      "to": [
+        3.84,
+        14.12,
+        8.88
+      ],
+      "origin": [
+        0,
+        13.6,
+        8.16
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 1,
+      "export": true,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        }
+      },
+      "cube_siege_material": "wood_light"
+    },
+    {
+      "name": "ladder_2",
+      "uuid": "41f76824-d820-51ef-a420-152c638c1324",
+      "type": "cube",
+      "from": [
+        -3.84,
+        18.68,
+        7.44
+      ],
+      "to": [
+        3.84,
+        19.72,
+        8.88
+      ],
+      "origin": [
+        0,
+        19.2,
+        8.16
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 1,
+      "export": true,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        }
+      },
+      "cube_siege_material": "wood_light"
+    },
+    {
+      "name": "ladder_3",
+      "uuid": "4e5dd958-20b6-5f69-ab3b-503252eef4e8",
+      "type": "cube",
+      "from": [
+        -3.84,
+        24.28,
+        7.44
+      ],
+      "to": [
+        3.84,
+        25.32,
+        8.88
+      ],
+      "origin": [
+        0,
+        24.8,
+        8.16
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 1,
+      "export": true,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        }
+      },
+      "cube_siege_material": "wood_light"
+    },
+    {
+      "name": "ladder_4",
+      "uuid": "cca70766-5ac3-5a11-950b-3db22323bbf1",
+      "type": "cube",
+      "from": [
+        -3.84,
+        29.88,
+        7.44
+      ],
+      "to": [
+        3.84,
+        30.92,
+        8.88
+      ],
+      "origin": [
+        0,
+        30.4,
+        8.16
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 1,
+      "export": true,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        }
+      },
+      "cube_siege_material": "wood_light"
+    },
+    {
+      "name": "ladder_5",
+      "uuid": "650bdbfb-00ab-5934-b704-a3e166d40f7e",
+      "type": "cube",
+      "from": [
+        -3.84,
+        35.48,
+        7.44
+      ],
+      "to": [
+        3.84,
+        36.52,
+        8.88
+      ],
+      "origin": [
+        0,
+        36.0,
+        8.16
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 1,
+      "export": true,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        }
+      },
+      "cube_siege_material": "wood_light"
+    },
+    {
+      "name": "ladder_6",
+      "uuid": "891766fa-79c8-581f-a1da-4ddbddebf2b2",
+      "type": "cube",
+      "from": [
+        -3.84,
+        41.08,
+        7.44
+      ],
+      "to": [
+        3.84,
+        42.12,
+        8.88
+      ],
+      "origin": [
+        0,
+        41.6,
+        8.16
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 1,
+      "export": true,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        }
+      },
+      "cube_siege_material": "wood_light"
+    },
+    {
+      "name": "floor",
+      "uuid": "8911d95b-df1a-501d-aaaf-bc2a97197d8c",
+      "type": "cube",
+      "from": [
+        -10.88,
+        43.84,
+        -10.88
+      ],
+      "to": [
+        10.88,
+        47.04,
+        10.88
+      ],
+      "origin": [
+        0,
+        45.44,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 1,
+      "export": true,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        }
+      },
+      "cube_siege_material": "wood_light"
+    },
+    {
+      "name": "parapet_-0.62",
+      "uuid": "eb33f314-7c8b-55a1-8726-d0c362eaef85",
+      "type": "cube",
+      "from": [
+        -11.04,
+        47.04,
+        -11.04
+      ],
+      "to": [
+        11.04,
+        50.88,
+        -8.8
+      ],
+      "origin": [
+        0,
+        48.96,
+        -9.92
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 0,
+      "export": true,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ],
+          "texture": 0
+        }
+      },
+      "cube_siege_material": "wood"
+    },
+    {
+      "name": "parapet_0.62",
+      "uuid": "3096f034-678f-5cff-8662-a12601945222",
+      "type": "cube",
+      "from": [
+        -11.04,
+        47.04,
+        8.8
+      ],
+      "to": [
+        11.04,
+        50.88,
+        11.04
+      ],
+      "origin": [
+        0,
+        48.96,
+        9.92
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 0,
+      "export": true,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ],
+          "texture": 0
+        }
+      },
+      "cube_siege_material": "wood"
+    },
+    {
+      "name": "parapet_-0.62",
+      "uuid": "eb33f314-7c8b-55a1-8726-d0c362eaef85",
+      "type": "cube",
+      "from": [
+        -11.04,
+        47.04,
+        -8.8
+      ],
+      "to": [
+        -8.8,
+        50.88,
+        8.8
+      ],
+      "origin": [
+        -9.92,
+        48.96,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 0,
+      "export": true,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ],
+          "texture": 0
+        }
+      },
+      "cube_siege_material": "wood"
+    },
+    {
+      "name": "parapet_0.62",
+      "uuid": "3096f034-678f-5cff-8662-a12601945222",
+      "type": "cube",
+      "from": [
+        8.8,
+        47.04,
+        -8.8
+      ],
+      "to": [
+        11.04,
+        50.88,
+        8.8
+      ],
+      "origin": [
+        9.92,
+        48.96,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 0,
+      "export": true,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            0,
+            0,
+            8,
+            8
+          ],
+          "texture": 0
+        }
+      },
+      "cube_siege_material": "wood"
+    },
+    {
+      "name": "banner",
+      "uuid": "66cabb91-d74c-5392-ba60-5f6d04e7b91d",
+      "type": "cube",
+      "from": [
+        4.24,
+        36.0,
+        10.28
+      ],
+      "to": [
+        8.56,
+        43.68,
+        10.84
+      ],
+      "origin": [
+        6.4,
+        39.84,
+        10.56
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 8,
+      "export": true,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            64,
+            8,
+            72
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            0,
+            64,
+            8,
+            72
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            64,
+            8,
+            72
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            64,
+            8,
+            72
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            0,
+            64,
+            8,
+            72
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            0,
+            64,
+            8,
+            72
+          ],
+          "texture": 0
+        }
+      },
+      "cube_siege_material": "cloth"
+    },
+    {
+      "name": "banner_stripe",
+      "uuid": "24d4086c-7ecc-5efd-80fb-a2ed949fc726",
+      "type": "cube",
+      "from": [
+        5.84,
+        36.24,
+        10.84
+      ],
+      "to": [
+        6.96,
+        43.44,
+        11.08
+      ],
+      "origin": [
+        6.4,
+        39.84,
+        10.96
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 9,
+      "export": true,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            72,
+            8,
+            80
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            0,
+            72,
+            8,
+            80
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            72,
+            8,
+            80
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            72,
+            8,
+            80
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            0,
+            72,
+            8,
+            80
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            0,
+            72,
+            8,
+            80
+          ],
+          "texture": 0
+        }
+      },
+      "cube_siege_material": "gold"
+    },
+    {
+      "name": "bow_stock",
+      "uuid": "45c030ec-9291-5cf2-bcd4-8f9f164788b0",
+      "type": "cube",
+      "from": [
+        -1.12,
+        50.48,
+        -7.6
+      ],
+      "to": [
+        1.12,
+        52.56,
+        7.6
+      ],
+      "origin": [
+        0,
+        51.52,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 2,
+      "export": true,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            16,
+            8,
+            24
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            0,
+            16,
+            8,
+            24
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            16,
+            8,
+            24
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            16,
+            8,
+            24
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            0,
+            16,
+            8,
+            24
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            0,
+            16,
+            8,
+            24
+          ],
+          "texture": 0
+        }
+      },
+      "cube_siege_material": "wood_dark"
+    },
+    {
+      "name": "bow_limb",
+      "uuid": "3d1c368b-9567-54c3-94e3-499f5f604341",
+      "type": "cube",
+      "from": [
+        -7.76,
+        50.56,
+        -6.24
+      ],
+      "to": [
+        7.76,
+        52.48,
+        -4.32
+      ],
+      "origin": [
+        0,
+        51.52,
+        -5.28
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 1,
+      "export": true,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            0,
+            8,
+            8,
+            16
+          ],
+          "texture": 0
+        }
+      },
+      "cube_siege_material": "wood_light"
+    },
+    {
+      "name": "bow_string",
+      "uuid": "793bc1cd-678d-5d9b-a429-1533a4310485",
+      "type": "cube",
+      "from": [
+        -7.2,
+        51.84,
+        -2.76
+      ],
+      "to": [
+        7.2,
+        52.16,
+        -2.36
+      ],
+      "origin": [
+        0,
+        52.0,
+        -2.56
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 9,
+      "export": true,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            72,
+            8,
+            80
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            0,
+            72,
+            8,
+            80
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            72,
+            8,
+            80
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            72,
+            8,
+            80
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            0,
+            72,
+            8,
+            80
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            0,
+            72,
+            8,
+            80
+          ],
+          "texture": 0
+        }
+      },
+      "cube_siege_material": "gold"
+    },
+    {
+      "name": "arrow",
+      "uuid": "f0818180-70db-5e87-af60-95808f55d01b",
+      "type": "cube",
+      "from": [
+        -0.28,
+        52.84,
+        -12.16
+      ],
+      "to": [
+        0.28,
+        53.4,
+        2.56
+      ],
+      "origin": [
+        0,
+        53.12,
+        -4.8
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "color": 4,
+      "export": true,
+      "faces": {
+        "north": {
+          "uv": [
+            0,
+            32,
+            8,
+            40
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            0,
+            32,
+            8,
+            40
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            32,
+            8,
+            40
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            0,
+            32,
+            8,
+            40
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            0,
+            32,
+            8,
+            40
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            0,
+            32,
+            8,
+            40
+          ],
+          "texture": 0
+        }
+      },
+      "cube_siege_material": "steel"
+    }
+  ],
+  "outliner": [
+    {
+      "name": "Body",
+      "uuid": "7d43a34e-914e-5a52-a0e2-776a880060d5",
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "children": [
+        "59c68e08-ebf5-5f0e-9da4-fea0550d9220",
+        "ae13e8ec-95e7-51ac-b904-3fd55e25a3f1",
+        "7634f444-21bd-58f2-867a-e3c27e27ef6a",
+        "10d9a160-6aa0-5f27-89d1-d05dad8f38a9",
+        "0d72eb37-163b-527d-9861-e17081df70b6",
+        "47484363-9d98-5316-bd6f-f9f8c1919088",
+        "2d947d32-3bc6-52f0-9ef2-6083f0f51f50",
+        "0b1f9a96-50fd-564a-8c4b-321248730c66",
+        "95c3f28a-0024-597c-8646-3515e0820b34",
+        "ae020864-7193-5459-a7c4-0b849cc43118",
+        "ca6f1a06-679c-57fc-8008-8bb58848ddb0",
+        "296a09dc-1804-5b39-8d22-bb18cd89d3dd",
+        "bdff5a97-1f8a-57ef-bec2-9c1e8a188e88",
+        "41f76824-d820-51ef-a420-152c638c1324",
+        "4e5dd958-20b6-5f69-ab3b-503252eef4e8",
+        "cca70766-5ac3-5a11-950b-3db22323bbf1",
+        "650bdbfb-00ab-5934-b704-a3e166d40f7e",
+        "891766fa-79c8-581f-a1da-4ddbddebf2b2",
+        "8911d95b-df1a-501d-aaaf-bc2a97197d8c",
+        "eb33f314-7c8b-55a1-8726-d0c362eaef85",
+        "3096f034-678f-5cff-8662-a12601945222",
+        "eb33f314-7c8b-55a1-8726-d0c362eaef85",
+        "3096f034-678f-5cff-8662-a12601945222",
+        "66cabb91-d74c-5392-ba60-5f6d04e7b91d",
+        "24d4086c-7ecc-5efd-80fb-a2ed949fc726"
+      ],
+      "export": true,
+      "isOpen": true
+    },
+    {
+      "name": "BowPivot",
+      "uuid": "cfa967d8-bc8f-5bfd-aa3a-4ab2ea5332d4",
+      "origin": [
+        0,
+        50.4,
+        0
+      ],
+      "children": [
+        "45c030ec-9291-5cf2-bcd4-8f9f164788b0",
+        "3d1c368b-9567-54c3-94e3-499f5f604341",
+        "793bc1cd-678d-5d9b-a429-1533a4310485",
+        "f0818180-70db-5e87-af60-95808f55d01b"
+      ],
+      "export": true,
+      "isOpen": true
+    }
+  ],
+  "textures": [
+    {
+      "name": "building_palette.png",
+      "id": "0",
+      "uuid": "847e9938-cca0-5c3d-8e97-dad2f1dbe5f3",
+      "source": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAABwCAYAAAAjfjEnAAAAmUlEQVR4nGOsDLD4z4AHMOGTHD4KWEy1BQfaDUyDQAGjt5HGaHpgYGDh1vcY6LhgGgQKWKwd7AbaDUyDQAGjgbXXaL5gYGBxsjIf6LhgGgQKWNTVZAfaDUyDQAHLyou3B9oNTINAAUuv0eWBdgPTIFDAqKltMFpOMjCwHNX9MdBxwTQIFLAIxigPtBuYBoECxv8vZ43mCwYGAPY4FHRu89yKAAAAAElFTkSuQmCC",
+      "width": 8,
+      "height": 112
+    }
+  ],
+  "animations": [],
+  "cube_siege": {
+    "units_per_metre": 16,
+    "provenance": "Original Cube Siege voxel geometry",
+    "palette": [
+      [
+        "wood",
+        "#795038",
+        0.0,
+        0.85
+      ],
+      [
+        "wood_light",
+        "#ae7b49",
+        0.0,
+        0.86
+      ],
+      [
+        "wood_dark",
+        "#4b3228",
+        0.0,
+        0.9
+      ],
+      [
+        "iron",
+        "#566170",
+        0.68,
+        0.45
+      ],
+      [
+        "steel",
+        "#91a1ae",
+        0.7,
+        0.38
+      ],
+      [
+        "iron_dark",
+        "#303b4a",
+        0.65,
+        0.5
+      ],
+      [
+        "stone",
+        "#727581",
+        0.0,
+        0.94
+      ],
+      [
+        "stone_light",
+        "#999b9e",
+        0.0,
+        0.96
+      ],
+      [
+        "cloth",
+        "#426c79",
+        0.0,
+        0.96
+      ],
+      [
+        "gold",
+        "#cf9e4c",
+        0.55,
+        0.4
+      ],
+      [
+        "coal",
+        "#292b30",
+        0.0,
+        0.96
+      ],
+      [
+        "ember",
+        "#ee5828",
+        0.0,
+        0.85
+      ],
+      [
+        "flame",
+        "#ffb44b",
+        0.0,
+        0.82
+      ],
+      [
+        "hot",
+        "#ffe99a",
+        0.0,
+        0.85
+      ]
+    ]
+  }
+}

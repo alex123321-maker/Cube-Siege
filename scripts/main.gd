@@ -10,7 +10,13 @@ extends Node3D
 @onready var map_generator: Node = get_node_or_null("MapGenerator")
 @onready var enemies_container: Node = get_node_or_null("Enemies")
 
+var run_audio: RunAudio
+
 func _ready() -> void:
+	run_audio = RunAudio.new()
+	run_audio.name = "RunAudio"
+	run_audio.setup(player as PlayerPrototype, day_night as DayNightCycle)
+	add_child(run_audio)
 	if radial_menu and building_system:
 		radial_menu.prefab_selected.connect(building_system.select_prefab)
 
@@ -20,6 +26,7 @@ func _ready() -> void:
 	var eb = get_node_or_null("/root/EventBus")
 	if eb:
 		eb.portal_evacuated.connect(_on_portal_evacuated)
+		eb.night_started.connect(_on_night_started)
 
 	if map_generator and map_generator.has_signal("map_generated"):
 		map_generator.map_generated.connect(_on_map_generated)
@@ -79,6 +86,13 @@ func _exit_tree() -> void:
 	var eb = get_node_or_null("/root/EventBus")
 	if eb and eb.portal_evacuated.is_connected(_on_portal_evacuated):
 		eb.portal_evacuated.disconnect(_on_portal_evacuated)
+	if eb and eb.night_started.is_connected(_on_night_started):
+		eb.night_started.disconnect(_on_night_started)
+
+func _on_night_started(day_number: int) -> void:
+	if day_number == 10:
+		# Let the phase transition finish, then create the canonical first boss.
+		call_deferred("spawn_boss_gorgon")
 
 func _on_portal_evacuated(_day: int, _xp: int) -> void:
 	if is_queued_for_deletion() or not is_inside_tree():
@@ -91,7 +105,10 @@ func _input(event: InputEvent) -> void:
 		if event.keycode == KEY_B and OS.is_debug_build():
 			spawn_boss_gorgon()
 
-func spawn_boss_gorgon() -> void:
+func spawn_boss_gorgon() -> bool:
+	var registry: Node = get_node_or_null("/root/EntityRegistry")
+	if registry and registry.has_active_boss():
+		return false
 	var boss_scene = preload("res://scenes/enemies/boss_gorgon.tscn")
 	var boss = boss_scene.instantiate()
 	var spawn_pos: Vector3 = Vector3.ZERO
@@ -107,6 +124,12 @@ func spawn_boss_gorgon() -> void:
 		Vector3(2, 0, 0), Vector3(-2, 0, 0), Vector3(0, 0, 2), Vector3(0, 0, -2),
 		Vector3(2, 0, 2), Vector3(-2, 0, 2), Vector3(2, 0, -2), Vector3(-2, 0, -2)
 	]
+	# Search the whole spawn ring as well as the initial side. A forest deposit
+	# or a steep ledge should not prevent the wave-10 encounter from appearing.
+	for ring_radius: float in [14.0, 18.0, 22.0]:
+		for angle_index in range(12):
+			var angle: float = float(angle_index) * TAU / 12.0
+			candidate_offsets.append(Vector3(cos(angle) * ring_radius, 0.0, sin(angle) * ring_radius) + Vector3(0, 0, 18))
 
 	for offset in candidate_offsets:
 		var cand: Vector3 = spawn_pos + offset
@@ -123,7 +146,7 @@ func spawn_boss_gorgon() -> void:
 
 	if not found_valid:
 		boss.queue_free()
-		return
+		return false
 
 	boss.position = valid_spawn_pos
 	add_child(boss)
@@ -132,6 +155,7 @@ func spawn_boss_gorgon() -> void:
 	var eb = get_node_or_null("/root/EventBus")
 	if eb:
 		eb.boss_spawned.emit(boss)
+	return true
 
 func _on_player_died() -> void:
 	if save_manager:
