@@ -12,6 +12,7 @@ var camera_distance: int = CameraMath.DEFAULT_PRESET
 var auto_load: bool = true
 
 const AUDIO_BUSES: Array[StringName] = [&"Master", &"Music", &"SFX", &"Ambience"]
+const OUTPUT_LIMITER_NAME: String = "CubeSiegeOutputLimiter"
 var audio_levels: Dictionary[StringName, float] = {
 	&"Master": 0.85, &"Music": 0.75, &"SFX": 0.9, &"Ambience": 0.65
 }
@@ -30,6 +31,17 @@ func ensure_audio_buses() -> void:
 		AudioServer.add_bus(index)
 		AudioServer.set_bus_name(index, audio_bus)
 		AudioServer.set_bus_send(index, &"Master")
+	# Simultaneous spatial impacts can exceed full scale even when each source
+	# is clean. Keep one final limiter across settings reloads and new runs.
+	var master: int = AudioServer.get_bus_index(&"Master")
+	for effect_index: int in range(AudioServer.get_bus_effect_count(master)):
+		var effect: AudioEffect = AudioServer.get_bus_effect(master, effect_index)
+		if effect is AudioEffectHardLimiter and effect.resource_name == OUTPUT_LIMITER_NAME:
+			return
+	var limiter: AudioEffectHardLimiter = AudioEffectHardLimiter.new()
+	limiter.resource_name = OUTPUT_LIMITER_NAME
+	limiter.ceiling_db = -1.0
+	AudioServer.add_bus_effect(master, limiter)
 
 func get_audio_level(audio_bus: StringName) -> float:
 	return audio_levels.get(audio_bus, 1.0)

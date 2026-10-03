@@ -34,6 +34,25 @@ func test_legacy_settings_keep_audio_defaults() -> void:
 	assert_eq(settings.get_camera_distance(), 0)
 	assert_eq(settings.get_audio_level(&"Music"), 0.75)
 
+func test_output_limiter_survives_settings_reloads_without_duplicates() -> void:
+	var master: int = AudioServer.get_bus_index(&"Master")
+	var original_count: int = AudioServer.get_bus_effect_count(master)
+	var settings: Node = SETTINGS.new()
+	settings.auto_load = false
+	add_child_autofree(settings)
+	settings.ensure_audio_buses()
+	settings.set_audio_level(&"Master", 1.0, false)
+	settings.apply_audio_levels()
+	assert_eq(AudioServer.get_bus_effect_count(master), original_count)
+	var matches: int = 0
+	for index: int in range(AudioServer.get_bus_effect_count(master)):
+		var effect: AudioEffect = AudioServer.get_bus_effect(master, index)
+		if effect is AudioEffectHardLimiter and effect.resource_name == SETTINGS.OUTPUT_LIMITER_NAME:
+			matches += 1
+			assert_almost_eq(effect.ceiling_db, -1.0, 0.0001)
+			assert_true(AudioServer.is_bus_effect_enabled(master, index))
+	assert_eq(matches, 1, "New settings instances must share one final output limiter")
+
 func test_out_of_range_audio_settings_are_clamped() -> void:
 	var settings: Node = SETTINGS.new()
 	settings.auto_load = false
