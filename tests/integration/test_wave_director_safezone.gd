@@ -49,8 +49,10 @@ func test_wave_director_morning_sun_destroys_enemies() -> void:
 
 	director._on_phase_changed(false, 2) # is_night = false
 
-	assert_true(enemy1.died, "Morning phase transition should kill surviving enemy 1")
-	assert_true(enemy2.died, "Morning phase transition should kill surviving enemy 2")
+	assert_true(enemy1.is_queued_for_deletion(), "Morning removes surviving enemy 1")
+	assert_true(enemy2.is_queued_for_deletion(), "Morning removes surviving enemy 2")
+	assert_false(enemy1.died, "Sunrise must not award a combat kill")
+	assert_false(enemy2.died)
 
 func test_wave_director_morning_sun_destroys_preexisting_and_spawned_enemies() -> void:
 	var reg = get_node_or_null("/root/EntityRegistry")
@@ -76,8 +78,10 @@ func test_wave_director_morning_sun_destroys_preexisting_and_spawned_enemies() -
 	# Dawn arrives
 	director._on_phase_changed(false, 3)
 
-	assert_true(pre_existing.died, "Morning sun must destroy pre-existing enemies")
-	assert_true(spawned.died, "Morning sun must destroy spawned wave enemies")
+	assert_true(pre_existing.is_queued_for_deletion(), "Morning removes pre-existing enemies")
+	assert_true(spawned.is_queued_for_deletion(), "Morning removes spawned wave enemies")
+	assert_false(pre_existing.died)
+	assert_false(spawned.died)
 
 class MockMapGenerator extends Node:
 	func get_voxel_height(x: int, _z: int) -> int:

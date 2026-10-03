@@ -35,7 +35,7 @@ func test_day_night_cycle_gameplay_timings_preserved() -> void:
 	var cycle: DayNightCycle = DayNightCycle.new()
 	add_child_autoqfree(cycle)
 
-	assert_almost_eq(cycle.day_duration, 180.0, 0.001, "Day duration must remain 180s (GDD canonical)")
+	assert_almost_eq(cycle.day_duration, 30.0, 0.001, "First Warrior release has thirty-second days")
 	assert_almost_eq(cycle.night_duration, 120.0, 0.001, "Night duration must remain 120s (GDD canonical)")
 	assert_false(cycle.is_night, "DayNightCycle must start at day")
 
@@ -58,7 +58,7 @@ func test_day_night_cycle_transitions_profile() -> void:
 	# Transition to night
 	cycle.start_night()
 	assert_true(cycle.is_night)
-	assert_eq(cycle.time_left, cycle.night_duration)
+	assert_eq(cycle.time_left, cycle.get_night_duration(1))
 
 	# Transition to day
 	cycle.start_day()

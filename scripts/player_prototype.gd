@@ -24,6 +24,9 @@ var presentation: PlayerPresentation = PlayerPresentation.new()
 var combat: PlayerCombat = PlayerCombat.new()
 var abilities: PlayerAbilities = PlayerAbilities.new()
 var orientation: PlayerOrientation = PlayerOrientation.new()
+var talents: WarriorTalentRuntime = WarriorTalentRuntime.new()
+var enemy_carry: PlayerEnemyCarry = PlayerEnemyCarry.new()
+var input_enabled: bool = true
 
 @export var orientation_settings: PlayerOrientationSettings = null
 @export var debug_orientation: bool = false
@@ -222,6 +225,7 @@ func _ready() -> void:
 		parry_triggered.emit(succ)
 	)
 	health.player_died.connect(func():
+		enemy_carry.clear()
 		orientation.cancel_pending_action()
 		presentation.set_active_model(null)
 		player_died.emit()
@@ -242,13 +246,14 @@ func _ready() -> void:
 		sensor.monitoring = true
 
 	# Initialize class from RosterManager
-	apply_mastery_stats()
 	var roster = get_node_or_null("/root/RosterManager")
 	if roster and roster.has_method("get_active_character"):
 		var c_data = roster.get_active_character()
 		set_class(c_data.class_id as CharacterClass, false)
 	else:
 		set_class(CharacterClass.WARRIOR, false)
+	progression.initialize_run(roster.get_unlocked_talents() if uses_meta_progression() and roster and roster.has_method("get_unlocked_talents") else WarriorTalentCatalog.STARTER_IDS)
+	talents.setup(self)
 
 	current_health = max_health
 	health_changed.emit(current_health, max_health)
@@ -276,12 +281,17 @@ func _ready() -> void:
 		portal = get_node_or_null(portal_path) as Node3D
 
 func _exit_tree() -> void:
+	enemy_carry.clear()
 	var reg = get_node_or_null("/root/EntityRegistry")
 	if reg and reg.has_method("unregister_player"):
 		reg.unregister_player(self)
 
 func _physics_process(delta: float) -> void:
+	if current_health <= 0.0 or not input_enabled:
+		enemy_carry.clear()
+		return
 	presentation.update_portal_compass(self)
+	talents.advance(delta)
 
 	# Update component timers
 	movement.update_timers(delta)
@@ -312,7 +322,7 @@ func _physics_process(delta: float) -> void:
 		)
 
 	# Action inputs
-	if Input.is_action_just_pressed("dash"):
+	if Input.is_action_just_pressed("dash") and not enemy_carry.active(self):
 		movement.perform_dash(orientation.body_facing_direction, calculated_move_dir)
 
 	if Input.is_action_just_pressed("class_utility"):
@@ -332,10 +342,13 @@ func _physics_process(delta: float) -> void:
 
 	var orient_move_dir: Vector3 = movement.dash_direction if movement.is_dashing else calculated_move_dir
 	orientation.process_orientation(self, delta, target_aim, orient_move_dir)
-	if is_dueling and duel_target and is_instance_valid(duel_target):
-		movement.process_duel_movement(self, delta, duel_target)
+	if enemy_carry.active(self):
+		enemy_carry.advance_vertical(self, delta)
+	elif is_dueling and duel_target and is_instance_valid(duel_target) and not movement.is_dashing and not movement.is_lunging:
+		movement.process_duel_movement(self, delta, duel_target, talents.movement_multiplier())
 	else:
-		movement.process_movement(self, delta, forced_target, orientation.directional_speed_multiplier, orientation.aim_direction)
+		movement.process_movement(self, delta, forced_target, orientation.directional_speed_multiplier * talents.movement_multiplier(), orientation.aim_direction)
+	talents.after_movement()
 	presentation.update_animations(self, health.is_parrying, movement.is_dashing, delta, orientation)
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -350,7 +363,19 @@ func _unhandled_input(event: InputEvent) -> void:
 func is_dash_invulnerable() -> bool:
 	if not movement.is_dashing:
 		return false
-	return current_class != CharacterClass.WARRIOR
+	return current_class != CharacterClass.WARRIOR or talents.has("perfect_dash")
+
+func begin_enemy_carry(owner: Node) -> bool:
+	return enemy_carry.begin(self, owner)
+
+func apply_enemy_carry_motion(owner: Node, displacement: Vector3) -> bool:
+	return enemy_carry.apply_motion(self, owner, displacement)
+
+func end_enemy_carry(owner: Node) -> void:
+	enemy_carry.end(owner)
+
+func apply_slow(source_id: String, strength: float, duration: float) -> void:
+	talents.statuses.apply_slow(source_id, strength, duration)
 
 func take_damage(damage: float, attacker: Node = null) -> void:
 	health.take_damage(damage, attacker, is_dash_invulnerable(), abilities.is_dueling, abilities.duel_target, self)
@@ -366,16 +391,11 @@ func add_xp(amount: float) -> void:
 	presentation.spawn_popup_text(self, "+%d XP" % int(amount), Color(0.3, 1.0, 0.4))
 
 func apply_mastery_stats() -> void:
-	var mults = progression.apply_mastery_stats(self)
-	if mults.has("damage_mult"):
-		attack_damage *= mults.damage_mult
-		special_damage *= mults.damage_mult
-	if mults.has("max_hp_bonus"):
-		max_health += mults.max_hp_bonus
-		current_health = max_health
-	if mults.has("speed_mult"):
-		speed *= mults.speed_mult
-		dash_speed *= mults.speed_mult
+	if talents.actor:
+		talents.refresh_meta()
+
+func uses_meta_progression() -> bool:
+	return true
 
 func set_class(new_class: CharacterClass, show_popup: bool = true) -> void:
 	current_class = new_class

@@ -91,6 +91,7 @@ func prepare(entry: AbilityViewerCatalog.Entry, variant: AbilityViewerCatalog.Va
 	_stage.add_child(actor)
 	actor.position = Vector3(0, 0.9, 1)
 	actor.set_class(entry.class_id as AbilityViewerActor.CharacterClass, false)
+	actor.configure_talents(entry.preview_talents)
 	actor.show_warrior_model()
 	actor.orientation.setup(Vector3.FORWARD)
 	var positions: Array[Vector3] = [Vector3(0, 0.9, -0.7), Vector3(0, 0.9, -2.7), Vector3(0, 0.9, -4.7), Vector3(1.2, 0.9, -0.7)]
@@ -107,6 +108,17 @@ func prepare(entry: AbilityViewerCatalog.Entry, variant: AbilityViewerCatalog.Va
 			event_recorded.emit("%.2f с · %s · %s урона (%s)" % [elapsed, target.name, str(snappedf(amount, 0.001)), type])
 		)
 		targets.append(target)
+	if not entry.preview_talents.is_empty():
+		actor.current_health = actor.max_health * 0.5
+		if entry.slot == AbilityViewerCatalog.Slot.ULTIMATE or entry.preview_talents.has("dismemberment"):
+			targets[0].current_health = 20.0
+		if entry.preview_talents.has("whirlwind_cleave"):
+			targets[3].position = Vector3(1.2, 0.9, 2.4)
+		if entry.preview_talents.has("perfect_dash"):
+			targets[0].position = Vector3(2.0, 0.9, 1.0)
+			targets[1].position = Vector3(4.0, 0.9, 1.0)
+			if entry.preview_talents.has("loud_triumph"):
+				actor.talents.on_duel_victory(targets[2].global_position)
 	match variant:
 		AbilityViewerCatalog.VariantKind.SHARP_EDGE: actor.abilities.apply_card_upgrade("SHARP_EDGE", actor)
 		AbilityViewerCatalog.VariantKind.VAMPIRISM:
@@ -125,7 +137,7 @@ func demonstrate(entry: AbilityViewerCatalog.Entry, variant: AbilityViewerCatalo
 		AbilityViewerCatalog.Slot.SPECIAL: actor.perform_special_attack()
 		AbilityViewerCatalog.Slot.UTILITY:
 			actor.perform_utility()
-			if variant == AbilityViewerCatalog.VariantKind.PARRY_SUCCESS:
+			if variant == AbilityViewerCatalog.VariantKind.PARRY_SUCCESS or entry.preview_talents.has("hot_blood") or entry.preview_talents.has("counterattack"):
 				await get_tree().create_timer(0.2).timeout
 				if generation == _generation and is_instance_valid(actor):
 					targets[0].target_player = actor
@@ -140,6 +152,10 @@ func demonstrate(entry: AbilityViewerCatalog.Entry, variant: AbilityViewerCatalo
 				actor.abilities.perform_engineer_ultimate(actor, Vector3(0, 0, -1.5))
 			else:
 				actor.abilities.perform_ultimate(actor, entry.class_id, targets[0], true)
+				if not entry.preview_talents.is_empty():
+					await get_tree().create_timer(0.5).timeout
+					if generation == _generation and is_instance_valid(actor):
+						actor.perform_attack()
 		AbilityViewerCatalog.Slot.DASH:
 			actor.movement.perform_dash(Vector3.FORWARD, Vector3.RIGHT)
 

@@ -112,9 +112,6 @@ directional_shadow_max_distance = 70.0
 
 [node name="Portal" parent="." instance=ExtResource("2_portal")]
 
-[node name="Workbench" parent="." instance=ExtResource("19_bench")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5, 0, 0)
-
 [node name="Player" parent="." instance=ExtResource("1_player")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 4)
 
@@ -129,15 +126,6 @@ target_path = NodePath("../Player")
 player_path = NodePath("../Player")
 
 [node name="Enemies" type="Node3D" parent="."]
-
-[node name="Enemy1" parent="Enemies" instance=ExtResource("5_enemy")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0.9, 8)
-
-[node name="Enemy2" parent="Enemies" instance=ExtResource("5_enemy")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0.9, 6)
-
-[node name="Enemy3" parent="Enemies" instance=ExtResource("5_enemy")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6, 0.9, -12)
 
 [node name="DayNightCycle" type="Node" parent="."]
 script = ExtResource("10_daynight")

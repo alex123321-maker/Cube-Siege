@@ -20,7 +20,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--smoke", action="store_true")
     parser.add_argument("--capture", action="store_true")
-    parser.add_argument("--entry", type=int, default=1, choices=range(15), help="Ability index for capture (0-14).")
+    parser.add_argument("--entry", type=int, default=1, choices=range(27), help="Ability/talent index for capture (0-26).")
     parser.add_argument("--delay", type=float, default=0.23, help="Seconds after activation to capture.")
     args = parser.parse_args()
     executable = find_godot_binary()

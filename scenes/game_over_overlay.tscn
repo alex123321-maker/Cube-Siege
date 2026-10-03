@@ -58,6 +58,7 @@ theme_override_colors/font_color = Color(0.8, 0.85, 0.9, 1)
 theme_override_font_sizes/font_size = 16
 text = "Description text"
 horizontal_alignment = 1
+autowrap_mode = 2
 
 [node name="Control" type="Control" parent="Panel/VBox"]
 custom_minimum_size = Vector2(0, 20)

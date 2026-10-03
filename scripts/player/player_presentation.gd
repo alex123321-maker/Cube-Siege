@@ -19,6 +19,9 @@ var _debug_label: Label3D = null
 var _debug_elapsed: float = 0.0
 var blade_trail: SwordBladeTrail = null
 var blade_tip_anchor: Node3D = null
+var _spin_duration: float = 0.0
+var _spin_age: float = 0.0
+var _spin_base_rotation: Vector3 = Vector3.ZERO
 
 const WARRIOR_PROFILE = preload("res://assets/animations/profiles/warrior.tres")
 const ARCHER_PROFILE = preload("res://assets/animations/profiles/archer.tres")
@@ -34,6 +37,7 @@ func setup(player_node: CharacterBody3D) -> void:
 	set_active_model(player_node.get_node_or_null("Visuals/HeroWarrior") as Node3D, WARRIOR_PROFILE)
 
 func set_active_model(model: Node3D, profile: CharacterAnimationProfile = null) -> void:
+	_stop_whirlwind_spin()
 	if is_instance_valid(blade_trail):
 		blade_trail.reset_trail()
 		blade_trail.queue_free()
@@ -107,6 +111,11 @@ func update_animations(body: CharacterBody3D, is_parrying: bool, is_dashing: boo
 	pose_layer.enabled = procedural_enabled
 	pose_layer.update(delta, facing, aim, move, actual_velocity, turn, is_dashing,
 		cur if action_active else &"", is_parrying)
+	if _spin_duration > 0.0:
+		_spin_age += delta
+		active_model.rotation = _spin_base_rotation + Vector3(0.0, TAU * clampf(_spin_age / _spin_duration, 0.0, 1.0), 0.0)
+		if _spin_age >= _spin_duration:
+			_stop_whirlwind_spin()
 	if is_instance_valid(blade_trail):
 		blade_trail.set_attack_phase(action_active and cur in [&"attack", &"special"],
 			anim_player.current_animation_position, cur == &"special")
@@ -132,6 +141,25 @@ func play_attack_animation() -> void:
 
 func play_special_animation() -> void:
 	_play_action(&"special", &"attack")
+
+func start_whirlwind_spin(duration: float) -> void:
+	_stop_whirlwind_spin()
+	if not is_instance_valid(active_model):
+		return
+	_spin_base_rotation = active_model.rotation
+	_spin_duration = maxf(0.01, duration)
+	_spin_age = 0.0
+
+func _stop_whirlwind_spin() -> void:
+	if _spin_duration > 0.0 and is_instance_valid(active_model):
+		active_model.rotation = _spin_base_rotation
+	_spin_duration = 0.0
+	_spin_age = 0.0
+
+func cancel_combat_pose() -> void:
+	_stop_whirlwind_spin()
+	if is_instance_valid(blade_trail):
+		blade_trail.reset_trail()
 
 func play_utility_animation() -> void:
 	_play_action(&"utility", &"block")

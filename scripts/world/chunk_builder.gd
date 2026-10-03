@@ -1,11 +1,13 @@
 extends RefCounted
 class_name ChunkBuilder
 
+const HeightSamples = preload("res://scripts/world/chunk_height_samples.gd")
+
 ## ChunkBuilder: Procedurally constructs unified mesh and collision geometry
 ## for a 16x16 voxel terrain chunk with zero border seams, natural cliff grouping,
 ## terraced mountain massing, and optimized draw calls.
 
-const CHUNK_SIZE: int = 16
+const CHUNK_SIZE: int = HeightSamples.CHUNK_SIZE
 const SKIRT_DEPTH: float = 16.0
 const LEDGE_OVERHANG: float = 0.12
 const LEDGE_THICKNESS: float = 0.15
@@ -105,13 +107,14 @@ static func _build_chunk_terrain_modern(
 
 	var origin_x: int = cx * CHUNK_SIZE
 	var origin_z: int = cz * CHUNK_SIZE
+	var height_samples: HeightSamples = HeightSamples.new(cx, cz, seed_val)
 
 	for lz in range(CHUNK_SIZE):
 		for lx in range(CHUNK_SIZE):
 			var wx: int = origin_x + lx
 			var wz: int = origin_z + lz
 
-			var y: int = BiomeSystem.get_voxel_height(wx, wz, seed_val)
+			var y: int = height_samples.get_voxel_height(wx, wz)
 			var y_top: float = float(y)
 
 			# Stochastic dithering across biome blend weights for smooth organic material transitions
@@ -151,7 +154,7 @@ static func _build_chunk_terrain_modern(
 
 			# 2. Side faces for step drops (North: z-1, South: z+1, West: x-1, East: x+1)
 			# North (-Z)
-			var yn: int = BiomeSystem.get_voxel_height(wx, wz - 1, seed_val)
+			var yn: int = height_samples.get_voxel_height(wx, wz - 1)
 			if yn < y:
 				var y_bot: float = float(yn)
 				var s0: Vector3 = Vector3(fx, y_bot, fz)
@@ -211,7 +214,7 @@ static func _build_chunk_terrain_modern(
 				counts[3] += 1
 
 			# South (+Z)
-			var ys: int = BiomeSystem.get_voxel_height(wx, wz + 1, seed_val)
+			var ys: int = height_samples.get_voxel_height(wx, wz + 1)
 			if ys < y:
 				var y_bot: float = float(ys)
 				var s0: Vector3 = Vector3(fx + 1.0, y_bot, fz + 1.0)
@@ -268,7 +271,7 @@ static func _build_chunk_terrain_modern(
 				counts[3] += 1
 
 			# West (-X)
-			var yw: int = BiomeSystem.get_voxel_height(wx - 1, wz, seed_val)
+			var yw: int = height_samples.get_voxel_height(wx - 1, wz)
 			if yw < y:
 				var y_bot: float = float(yw)
 				var s0: Vector3 = Vector3(fx, y_bot, fz + 1.0)
@@ -325,7 +328,7 @@ static func _build_chunk_terrain_modern(
 				counts[3] += 1
 
 			# East (+X)
-			var ye: int = BiomeSystem.get_voxel_height(wx + 1, wz, seed_val)
+			var ye: int = height_samples.get_voxel_height(wx + 1, wz)
 			if ye < y:
 				var y_bot: float = float(ye)
 				var s0: Vector3 = Vector3(fx + 1.0, y_bot, fz)
@@ -406,7 +409,8 @@ static func _build_chunk_terrain_modern(
 
 	return {
 		"mesh": mesh,
-		"shape": shape
+		"shape": shape,
+		"height_samples": height_samples
 	}
 
 # -----------------------------------------------------------------------------
