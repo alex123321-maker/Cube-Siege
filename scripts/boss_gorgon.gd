@@ -65,9 +65,17 @@ func _ready() -> void:
 	find_player()
 
 func find_player() -> void:
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if reg and reg.has_method("get_player"):
+		var p_cand = reg.get_player()
+		if is_instance_valid(p_cand) and p_cand is Node3D and p_cand.is_inside_tree():
+			target_player = p_cand as Node3D
+			return
 	var players: Array[Node] = get_tree().get_nodes_in_group("player")
-	if not players.is_empty() and is_instance_valid(players[0]):
-		target_player = players[0] as Node3D
+	for candidate in players:
+		if is_instance_valid(candidate) and candidate is Node3D and candidate.is_inside_tree():
+			target_player = candidate as Node3D
+			return
 
 func _physics_process(delta: float) -> void:
 	if not target_player or not is_instance_valid(target_player):
@@ -129,6 +137,24 @@ func process_chase(delta: float) -> void:
 		var reg = get_node_or_null("/root/EntityRegistry")
 		if reg and "monster_flowfield" in reg and reg.monster_flowfield:
 			nav_dir = reg.monster_flowfield.get_flow_direction(global_position, target_player.global_position, radius)
+			# Fallback when player is enclosed by walls: approach nearest candidate blocking building via flowfield
+			if nav_dir.length_squared() < 0.001 and dist > 3.4 and reg.has_method("get_buildings"):
+				var buildings: Array[Node3D] = reg.get_buildings()
+				if not buildings.is_empty():
+					var candidates: Array[Node3D] = []
+					for b in buildings:
+						if is_instance_valid(b) and b is Node3D:
+							candidates.append(b as Node3D)
+					candidates.sort_custom(func(a: Node3D, b_node: Node3D) -> bool:
+						return global_position.distance_squared_to(a.global_position) < global_position.distance_squared_to(b_node.global_position)
+					)
+					var check_count: int = mini(4, candidates.size())
+					for idx in range(check_count):
+						var b_cand: Node3D = candidates[idx]
+						var b_dir: Vector3 = reg.monster_flowfield.get_flow_direction(global_position, b_cand.global_position, radius)
+						if b_dir.length_squared() > 0.001:
+							nav_dir = b_dir
+							break
 
 		var pref_vel: Vector3 = nav_dir * base_speed
 		var final_vel: Vector3 = pref_vel
@@ -147,12 +173,14 @@ func process_chase(delta: float) -> void:
 			spawn_damage_text(melee_damage, "BOSS SMASH! (-%d HP)" % int(melee_damage), Color.RED)
 
 	# Smash any buildings blocking melee path
-	var buildings: Array[Node] = get_tree().get_nodes_in_group("buildings")
-	for b in buildings:
-		if b and is_instance_valid(b) and b is Node3D:
-			if global_position.distance_to((b as Node3D).global_position) <= 3.2:
-				if b.has_method("destroy_building"):
-					b.destroy_building()
+	var reg_b = get_node_or_null("/root/EntityRegistry")
+	if reg_b and reg_b.has_method("get_buildings"):
+		var buildings: Array[Node3D] = reg_b.get_buildings()
+		for b in buildings:
+			if b and is_instance_valid(b):
+				if global_position.distance_to(b.global_position) <= 3.2:
+					if b.has_method("destroy_building"):
+						b.destroy_building()
 
 func start_telegraph(dir: Vector3) -> void:
 	current_state = BossState.TELEGRAPH
@@ -268,12 +296,23 @@ func die() -> void:
 	emit_signal("boss_defeated")
 
 	# Massive XP explosion and resource drop
-	var players: Array[Node] = get_tree().get_nodes_in_group("player")
-	if not players.is_empty() and is_instance_valid(players[0]):
-		if players[0].has_method("add_xp"):
-			players[0].add_xp(250.0)
-		if "building_system" in players[0] and players[0].building_system:
-			var bs: BuildingSystem = players[0].building_system as BuildingSystem
+	var reg = get_node_or_null("/root/EntityRegistry")
+	var award_player: Node3D = null
+	if reg and reg.has_method("get_player"):
+		var p_cand = reg.get_player()
+		if is_instance_valid(p_cand) and p_cand is Node3D:
+			award_player = p_cand as Node3D
+	if not award_player:
+		var players: Array[Node] = get_tree().get_nodes_in_group("player")
+		for candidate in players:
+			if is_instance_valid(candidate) and candidate is Node3D:
+				award_player = candidate as Node3D
+				break
+	if award_player and is_instance_valid(award_player):
+		if award_player.has_method("add_xp"):
+			award_player.add_xp(250.0)
+		if "building_system" in award_player and award_player.building_system:
+			var bs: BuildingSystem = award_player.building_system as BuildingSystem
 			if bs:
 				bs.add_resource(20, 20, 10)
 

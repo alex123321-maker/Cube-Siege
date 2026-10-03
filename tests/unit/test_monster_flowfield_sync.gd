@@ -291,3 +291,25 @@ func test_duel_mode_ignores_buildings_on_unreachable_player() -> void:
 	var duel_vel = zombie.desired_velocity_h
 
 	assert_almost_eq(duel_vel.length_squared(), 0.0, 0.001, "During duel, unreachable player must NOT cause zombie to divert to buildings; velocity must be ZERO")
+
+func test_lateral_clearance_near_elevated_terrain_steers_away() -> void:
+	var ff = FlowfieldScript.new(12345)
+	# Cells (0,0)...(3,0) have height 3 (cliff wall), row 1 and row 2 have height 0
+	ff.set_height_lookup(func(x, z):
+		if x >= 0 and x <= 3 and z == 0:
+			return 3
+		return 0
+	)
+
+	var start_pos = Vector3(-0.6, 0.9, 1.2)
+	var target_pos = Vector3(5.0, 0.9, 1.2)
+
+	# Direct line of sight must be false because row 0 is elevated by 3 blocks
+	assert_false(ff._check_line_of_sight(start_pos, target_pos, 0.4), "Line of sight must reject path cutting close to elevated terrain")
+
+	# get_flow_direction must not return pure +X directly into the cliff overhang;
+	# lateral clearance check detects that step ahead intersects height difference 3
+	var dir: Vector3 = ff.get_flow_direction(start_pos, target_pos, 0.4)
+	# If a direction is returned, it must steer southward (+Z towards row 2) away from the row 0 cliff
+	if dir.length_squared() > 0.001:
+		assert_gt(dir.z, 0.0, "Flow direction near cliff must steer away from the elevated edge (+Z)")

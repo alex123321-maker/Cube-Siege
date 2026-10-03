@@ -80,9 +80,9 @@ func find_target() -> void:
 	# Priority 1: Nearest player building
 	var reg = get_node_or_null("/root/EntityRegistry")
 	var nearest_b: Node3D = null
-	if reg and not reg.buildings.is_empty():
+	if reg and reg.has_method("get_nearest_building"):
 		nearest_b = reg.get_nearest_building(global_position)
-	else:
+	if not nearest_b and is_inside_tree():
 		var buildings: Array[Node] = get_tree().get_nodes_in_group("buildings")
 		var min_b_dist_sq: float = INF
 		for b in buildings:
@@ -97,9 +97,18 @@ func find_target() -> void:
 		return
 
 	# Priority 2: Player
-	var players: Array[Node] = get_tree().get_nodes_in_group("player")
-	if not players.is_empty() and is_instance_valid(players[0]):
-		target_entity = players[0] as Node3D
+	var p: Node3D = null
+	if reg and reg.has_method("get_player"):
+		var p_cand = reg.get_player()
+		if is_instance_valid(p_cand) and p_cand is Node3D and p_cand.is_inside_tree():
+			p = p_cand as Node3D
+	if not p and is_inside_tree():
+		var players: Array[Node] = get_tree().get_nodes_in_group("player")
+		for candidate in players:
+			if is_instance_valid(candidate) and candidate is Node3D and candidate.is_inside_tree():
+				p = candidate as Node3D
+				break
+	target_entity = p
 
 func perform_attack() -> void:
 	attack_timer = attack_cooldown

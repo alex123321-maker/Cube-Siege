@@ -82,9 +82,17 @@ func _custom_physics(_delta: float) -> void:
 func _find_player() -> void:
 	if not is_inside_tree():
 		return
+	var reg = get_node_or_null("/root/EntityRegistry")
+	if reg and reg.has_method("get_player"):
+		var p_cand = reg.get_player()
+		if is_instance_valid(p_cand) and p_cand is Node3D and p_cand.is_inside_tree():
+			target_player = p_cand as Node3D
+			return
 	var players: Array[Node] = get_tree().get_nodes_in_group("player")
-	if not players.is_empty():
-		target_player = players[0] as Node3D
+	for candidate in players:
+		if is_instance_valid(candidate) and candidate is Node3D and candidate.is_inside_tree():
+			target_player = candidate as Node3D
+			return
 
 func _on_damaged(amount: float, knockback: Vector3, _type: String, _attacker: Node) -> void:
 	if is_dying:
@@ -145,11 +153,21 @@ func die() -> void:
 
 	_on_death_effects()
 
-	var players: Array[Node] = get_tree().get_nodes_in_group("player")
-	if not players.is_empty() and is_instance_valid(players[0]) and players[0].has_method("add_xp"):
-		players[0].add_xp(_get_xp_reward())
-
 	var reg = get_node_or_null("/root/EntityRegistry")
+	var award_player: Node3D = null
+	if reg and reg.has_method("get_player"):
+		var p_cand = reg.get_player()
+		if is_instance_valid(p_cand) and p_cand is Node3D:
+			award_player = p_cand as Node3D
+	if not award_player:
+		var players: Array[Node] = get_tree().get_nodes_in_group("player")
+		for candidate in players:
+			if is_instance_valid(candidate) and candidate is Node3D:
+				award_player = candidate as Node3D
+				break
+	if award_player and is_instance_valid(award_player) and award_player.has_method("add_xp"):
+		award_player.add_xp(_get_xp_reward())
+
 	if reg:
 		reg.unregister_enemy(self)
 

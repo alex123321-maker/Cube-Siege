@@ -121,7 +121,9 @@ class AgentResumer:
             return prompt
 
         blocks: List[str] = []
-        remaining = 24000
+        # Keep character limit conservative (4000) to ensure the total command line
+        # stays well within the Windows 8191 cmd.exe character limit when invoking agentapi.bat.
+        remaining = 4000
         for event in feedback_events:
             body = str(event.get("body") or "").strip()
             if not body:
@@ -132,7 +134,7 @@ class AgentResumer:
             )
             block = f"{header}\n{body}"
             if len(block) > remaining:
-                block = block[:remaining] + "\n[truncated by watcher]"
+                block = block[:remaining] + "\n[truncated by watcher; see GitHub PR for full feedback]"
             blocks.append(block)
             remaining -= len(block)
             if remaining <= 0:
@@ -297,6 +299,8 @@ class AgentResumer:
         agentapi is a fast message dispatch (not a full agent turn),
         so synchronous subprocess.run with generous timeout is appropriate.
         """
+        if len(prompt) > 6500:
+            prompt = prompt[:6500] + "\n\n[Warning: prompt truncated to fit CLI argument length limits; inspect PR on GitHub]"
         msg_args = ["send-message"]
         if title:
             msg_args.append(f"--title={title}")

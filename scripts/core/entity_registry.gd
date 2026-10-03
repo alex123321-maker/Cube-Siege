@@ -3,6 +3,7 @@ extends Node
 ## Centralized runtime entity registry for buildings, enemies, bosses, and resources.
 ## Avoids full SceneTree traversals on hot physics frames and keeps navigation state synchronized.
 
+var player: Node3D = null
 var buildings: Array[Node3D] = []
 var enemies: Array[Node] = []
 var bosses: Array[Node] = []
@@ -31,6 +32,9 @@ func _ready() -> void:
 func _scan_existing_entities() -> void:
 	if not is_inside_tree():
 		return
+	var players: Array[Node] = get_tree().get_nodes_in_group("player")
+	if not players.is_empty() and players[0] is Node3D:
+		register_player(players[0] as Node3D)
 	for b in get_tree().get_nodes_in_group("buildings"):
 		if b is Node3D:
 			register_building(b as Node3D)
@@ -41,6 +45,27 @@ func _scan_existing_entities() -> void:
 		register_enemy(e)
 	for boss in get_tree().get_nodes_in_group("boss"):
 		register_boss(boss)
+
+func register_player(p: Node3D) -> void:
+	if is_instance_valid(p) and p.is_inside_tree():
+		player = p
+	else:
+		player = null
+
+func unregister_player(p: Node3D) -> void:
+	if player == p or not is_instance_valid(player):
+		player = null
+
+func get_player() -> Node3D:
+	if not is_instance_valid(player) or not player.is_inside_tree():
+		player = null
+		if is_inside_tree():
+			var players: Array[Node] = get_tree().get_nodes_in_group("player")
+			for candidate in players:
+				if is_instance_valid(candidate) and candidate is Node3D and candidate.is_inside_tree():
+					player = candidate as Node3D
+					break
+	return player
 
 func register_building(b: Node3D) -> void:
 	if not b or not is_instance_valid(b):
@@ -89,10 +114,11 @@ func get_nearest_building(pos: Vector3) -> Node3D:
 	var nearest: Node3D = null
 	var min_dist_sq: float = INF
 	for i in range(buildings.size() - 1, -1, -1):
-		var b: Node3D = buildings[i]
-		if not is_instance_valid(b):
+		var b_cand = buildings[i]
+		if not is_instance_valid(b_cand) or not (b_cand is Node3D):
 			buildings.remove_at(i)
 			continue
+		var b: Node3D = b_cand as Node3D
 		var d_sq: float = pos.distance_squared_to(b.global_position)
 		if d_sq < min_dist_sq:
 			min_dist_sq = d_sq
@@ -126,6 +152,7 @@ func has_active_boss() -> bool:
 	return not bosses.is_empty()
 
 func clear() -> void:
+	player = null
 	buildings.clear()
 	enemies.clear()
 	bosses.clear()
@@ -134,6 +161,7 @@ func clear() -> void:
 	_spatial_buckets.clear()
 	_last_spatial_frame = -1
 	monster_flowfield.clear_all()
+	monster_flowfield.clear_lookups()
 
 const BUCKET_SIZE: float = 2.5
 var _spatial_buckets: Dictionary = {} # Vector2i -> Array[Node3D]
@@ -211,11 +239,11 @@ func get_nearby_enemies(pos: Vector3, radius: float, self_node: Node = null) -> 
 
 func _cleanup_buildings() -> void:
 	for i in range(buildings.size() - 1, -1, -1):
-		var b: Node3D = buildings[i]
-		if not is_instance_valid(b):
-			if building_to_cell.has(b):
-				var cell: Vector2i = building_to_cell[b]
-				building_to_cell.erase(b)
+		var b_cand = buildings[i]
+		if not is_instance_valid(b_cand):
+			if building_to_cell.has(b_cand):
+				var cell: Vector2i = building_to_cell[b_cand]
+				building_to_cell.erase(b_cand)
 				monster_flowfield.set_cell_blocked(cell, false)
 			buildings.remove_at(i)
 
