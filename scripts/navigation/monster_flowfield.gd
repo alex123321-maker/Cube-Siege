@@ -174,10 +174,17 @@ func _is_step_passable_cached(from_cell: Vector2i, to_cell: Vector2i, cache: Dic
 
 	return true
 
+func _get_clearance_class(clearance_radius: float) -> int:
+	if clearance_radius > 0.8:
+		return 2 # Huge body (Boss Gorgon 1.2m radius / 2.4m width, requires 3x3 clearance)
+	elif clearance_radius > 0.5:
+		return 1 # Medium / Wide body (Siege Breaker 0.7m radius / 1.4m width, requires 2-cell corridor)
+	return 0 # Standard / Small body (Zombie 0.4m, Skirmisher 0.35m, fits 1-cell corridor)
+
 ## Retrieves or recomputes a cached flowfield for target_pos.
 func get_or_update_field(target_pos: Vector3, max_radius: int = DEFAULT_RADIUS, clearance_radius: float = 0.4) -> FieldCache:
 	var goal_cell: Vector2i = Vector2i(int(floorf(target_pos.x)), int(floorf(target_pos.z)))
-	var clearance_class: int = 1 if clearance_radius > 0.6 else 0
+	var clearance_class: int = _get_clearance_class(clearance_radius)
 	var cache_key: Vector3i = Vector3i(goal_cell.x, goal_cell.y, clearance_class)
 	var now: float = float(Time.get_ticks_msec()) / 1000.0
 
@@ -196,9 +203,17 @@ func get_or_update_field(target_pos: Vector3, max_radius: int = DEFAULT_RADIUS, 
 	if cached_field:
 		cached_field.last_access_sec = now
 		var dist_sq: float = cached_field.target_pos.distance_squared_to(target_pos)
+		# Target stationary or within movement threshold: field is valid, no rebuild needed
+		if dist_sq < TARGET_MOVE_THRESHOLD_SQ:
+			flow_directions = cached_field.flow_directions
+			distance_field = cached_field.distance_field
+			target_position = cached_field.target_pos
+			target_cell = cached_field.goal_cell
+			return cached_field
+
+		# Target moved significantly: throttle rebuilds to at most once per RECALC_INTERVAL_SEC
 		var time_elapsed: bool = (now - cached_field.last_update_sec) >= RECALC_INTERVAL_SEC
-		if dist_sq < TARGET_MOVE_THRESHOLD_SQ and not time_elapsed:
-			# Mirror active field for backward compatibility
+		if not time_elapsed:
 			flow_directions = cached_field.flow_directions
 			distance_field = cached_field.distance_field
 			target_position = cached_field.target_pos
@@ -238,7 +253,7 @@ func get_or_update_field(target_pos: Vector3, max_radius: int = DEFAULT_RADIUS, 
 ## Force-recomputes and caches a fresh flowfield for target_pos.
 func recompute_field(target_pos: Vector3, max_radius: int = DEFAULT_RADIUS, clearance_radius: float = 0.4) -> FieldCache:
 	var goal_cell: Vector2i = Vector2i(int(floorf(target_pos.x)), int(floorf(target_pos.z)))
-	var clearance_class: int = 1 if clearance_radius > 0.6 else 0
+	var clearance_class: int = _get_clearance_class(clearance_radius)
 	var cache_key: Vector3i = Vector3i(goal_cell.x, goal_cell.y, clearance_class)
 	_target_fields.erase(cache_key)
 	for k in _target_fields.keys():
@@ -306,6 +321,64 @@ func _is_step_passable_fast(
 
 	return true
 
+func _is_cell_walkable_fast(
+	x: int,
+	z: int,
+	ref_height: int,
+	min_x: int,
+	min_z: int,
+	stride: int,
+	h_cache: PackedInt32Array,
+	max_x: int,
+	max_z: int
+) -> bool:
+	if x < min_x or x > max_x or z < min_z or z > max_z:
+		return false
+	var cell: Vector2i = Vector2i(x, z)
+	if blocked_cells.has(cell):
+		return false
+	if chunk_loaded_lookup.is_valid() and not chunk_loaded_lookup.call(x, z):
+		return false
+	var h: int = _get_fast_height(x, z, min_x, min_z, stride, h_cache)
+	return absi(h - ref_height) <= 1
+
+func _has_2cell_corridor_clearance_fast(
+	n: Vector2i,
+	curr: Vector2i,
+	min_x: int,
+	min_z: int,
+	stride: int,
+	h_cache: PackedInt32Array,
+	max_x: int,
+	max_z: int
+) -> bool:
+	var step: Vector2i = curr - n
+	var h_n: int = _get_fast_height(n.x, n.y, min_x, min_z, stride, h_cache)
+	var h_curr: int = _get_fast_height(curr.x, curr.y, min_x, min_z, stride, h_cache)
+
+	# If step is horizontal (along X): corridor must be at least 2 cells wide along Z
+	if step.x != 0 and step.y == 0:
+		var side_pos_ok: bool = _is_cell_walkable_fast(n.x, n.y + 1, h_n, min_x, min_z, stride, h_cache, max_x, max_z) \
+			and _is_cell_walkable_fast(curr.x, curr.y + 1, h_curr, min_x, min_z, stride, h_cache, max_x, max_z)
+		if side_pos_ok:
+			return true
+		var side_neg_ok: bool = _is_cell_walkable_fast(n.x, n.y - 1, h_n, min_x, min_z, stride, h_cache, max_x, max_z) \
+			and _is_cell_walkable_fast(curr.x, curr.y - 1, h_curr, min_x, min_z, stride, h_cache, max_x, max_z)
+		return side_neg_ok
+
+	# If step is vertical (along Z): corridor must be at least 2 cells wide along X
+	if step.x == 0 and step.y != 0:
+		var side_pos_ok: bool = _is_cell_walkable_fast(n.x + 1, n.y, h_n, min_x, min_z, stride, h_cache, max_x, max_z) \
+			and _is_cell_walkable_fast(curr.x + 1, curr.y, h_curr, min_x, min_z, stride, h_cache, max_x, max_z)
+		if side_pos_ok:
+			return true
+		var side_neg_ok: bool = _is_cell_walkable_fast(n.x - 1, n.y, h_n, min_x, min_z, stride, h_cache, max_x, max_z) \
+			and _is_cell_walkable_fast(curr.x - 1, curr.y, h_curr, min_x, min_z, stride, h_cache, max_x, max_z)
+		return side_neg_ok
+
+	# Diagonal step: _is_step_passable_fast already verified the 2x2 bounding square [n, curr, s1, s2]
+	return true
+
 func _has_cell_clearance_fast(
 	cell: Vector2i,
 	min_x: int,
@@ -365,6 +438,9 @@ func _compute_field_data(field: FieldCache, goal_cell: Vector2i, radius: int, cl
 		Vector2i(1, 1), Vector2i(-1, 1), Vector2i(1, -1), Vector2i(-1, -1)
 	]
 
+	var is_huge_body: bool = clearance_req > 0.8
+	var is_wide_body: bool = clearance_req > 0.5 and clearance_req <= 0.8
+
 	var queue: Array[Vector2i] = []
 	var head: int = 0
 	var is_goal_blocked: bool = blocked_cells.has(goal_cell)
@@ -383,21 +459,41 @@ func _compute_field_data(field: FieldCache, goal_cell: Vector2i, radius: int, cl
 				continue
 			var h_p: int = _get_fast_height(p.x, p.y, min_x, min_z, stride, h_cache)
 			var h_goal: int = _get_fast_height(goal_cell.x, goal_cell.y, min_x, min_z, stride, h_cache)
-			if absi(h_p - h_goal) <= 1:
-				var p_idx: int = (p.y - min_z) * stride + (p.x - min_x)
-				dist_grid[p_idx] = 0.0
-				var to_goal: Vector2 = Vector2(goal_cell.x - p.x, goal_cell.y - p.y).normalized()
-				dir_x_grid[p_idx] = to_goal.x
-				dir_z_grid[p_idx] = to_goal.y
-				queue.append(p)
+			if absi(h_p - h_goal) > 1:
+				continue
+
+			# Diagonal perimeter seed anti-corner-cutting check:
+			if d.x != 0 and d.y != 0:
+				var s1: Vector2i = Vector2i(p.x, goal_cell.y)
+				var s2: Vector2i = Vector2i(goal_cell.x, p.y)
+				if blocked_cells.has(s1) or blocked_cells.has(s2):
+					continue
+				if chunk_loaded_lookup.is_valid() and (not chunk_loaded_lookup.call(s1.x, s1.y) or not chunk_loaded_lookup.call(s2.x, s2.y)):
+					continue
+				var h_s1: int = _get_fast_height(s1.x, s1.y, min_x, min_z, stride, h_cache)
+				var h_s2: int = _get_fast_height(s2.x, s2.y, min_x, min_z, stride, h_cache)
+				if absi(h_s1 - h_p) > 1 or absi(h_s2 - h_p) > 1:
+					continue
+				if absi(h_s1 - h_goal) > 1 or absi(h_s2 - h_goal) > 1:
+					continue
+
+			if is_huge_body and not _has_cell_clearance_fast(p, min_x, min_z, stride, h_cache, max_x, max_z):
+				continue
+			if is_wide_body and not _has_2cell_corridor_clearance_fast(p, goal_cell, min_x, min_z, stride, h_cache, max_x, max_z):
+				continue
+
+			var p_idx: int = (p.y - min_z) * stride + (p.x - min_x)
+			dist_grid[p_idx] = 0.0
+			var to_goal: Vector2 = Vector2(goal_cell.x - p.x, goal_cell.y - p.y).normalized()
+			dir_x_grid[p_idx] = to_goal.x
+			dir_z_grid[p_idx] = to_goal.y
+			queue.append(p)
 	else:
 		var goal_idx: int = (goal_cell.y - min_z) * stride + (goal_cell.x - min_x)
 		dist_grid[goal_idx] = 0.0
 		dir_x_grid[goal_idx] = 0.0
 		dir_z_grid[goal_idx] = 0.0
 		queue.append(goal_cell)
-
-	var is_large_body: bool = clearance_req > 0.6
 
 	while head < queue.size():
 		var curr: Vector2i = queue[head]
@@ -418,7 +514,12 @@ func _compute_field_data(field: FieldCache, goal_cell: Vector2i, radius: int, cl
 			if existing_dist < 999998.0:
 				if new_dist < existing_dist:
 					if _is_step_passable_fast(n, curr, min_x, min_z, stride, h_cache):
-						if not is_large_body or _has_cell_clearance_fast(n, min_x, min_z, stride, h_cache, max_x, max_z):
+						var can_pass: bool = true
+						if is_huge_body:
+							can_pass = _has_cell_clearance_fast(n, min_x, min_z, stride, h_cache, max_x, max_z)
+						elif is_wide_body:
+							can_pass = _has_2cell_corridor_clearance_fast(n, curr, min_x, min_z, stride, h_cache, max_x, max_z)
+						if can_pass:
 							dist_grid[n_idx] = new_dist
 							var flow: Vector2 = Vector2(curr.x - n.x, curr.y - n.y).normalized()
 							dir_x_grid[n_idx] = flow.x
@@ -429,7 +530,9 @@ func _compute_field_data(field: FieldCache, goal_cell: Vector2i, radius: int, cl
 			if not _is_step_passable_fast(n, curr, min_x, min_z, stride, h_cache):
 				continue
 
-			if is_large_body and not _has_cell_clearance_fast(n, min_x, min_z, stride, h_cache, max_x, max_z):
+			if is_huge_body and not _has_cell_clearance_fast(n, min_x, min_z, stride, h_cache, max_x, max_z):
+				continue
+			if is_wide_body and not _has_2cell_corridor_clearance_fast(n, curr, min_x, min_z, stride, h_cache, max_x, max_z):
 				continue
 
 			dist_grid[n_idx] = new_dist
@@ -485,14 +588,8 @@ func get_flow_direction(
 			var is_passable: bool = true
 			if step_x != 0 or step_z != 0:
 				if not is_step_passable(from_cell, next_cell):
-					if field.is_goal_blocked and next_cell == field.goal_cell:
-						var h_from: int = get_cell_height(from_cell.x, from_cell.y)
-						var h_goal: int = get_cell_height(next_cell.x, next_cell.y)
-						var loaded: bool = not chunk_loaded_lookup.is_valid() or chunk_loaded_lookup.call(next_cell.x, next_cell.y)
-						if loaded and absi(h_goal - h_from) <= 1:
-							is_passable = true
-						else:
-							is_passable = false
+					if field.is_goal_blocked and next_cell == field.goal_cell and _is_perimeter_goal_step_passable(from_cell, next_cell):
+						is_passable = true
 					else:
 						is_passable = false
 
@@ -507,19 +604,17 @@ func get_flow_direction(
 				next_cell = from_cell + Vector2i(step_x, step_z)
 				if step_x != 0 or step_z != 0:
 					var re_passable: bool = is_step_passable(from_cell, next_cell)
-					if not re_passable and field.is_goal_blocked and next_cell == field.goal_cell:
-						var h_from: int = get_cell_height(from_cell.x, from_cell.y)
-						var h_goal: int = get_cell_height(next_cell.x, next_cell.y)
-						var loaded: bool = not chunk_loaded_lookup.is_valid() or chunk_loaded_lookup.call(next_cell.x, next_cell.y)
-						if loaded and absi(h_goal - h_from) <= 1:
-							re_passable = true
+					if not re_passable and field.is_goal_blocked and next_cell == field.goal_cell and _is_perimeter_goal_step_passable(from_cell, next_cell):
+						re_passable = true
 					if not re_passable:
 						return Vector3.ZERO
 
 			if dir_2d.length_squared() > 0.001:
 				if field.is_goal_blocked and next_cell == field.goal_cell:
 					if _has_lateral_clearance(from_pos, dir_2d, clearance_radius):
-						return Vector3(dir_2d.x, 0.0, dir_2d.y)
+						var advance_probe: Vector3 = from_pos + Vector3(dir_2d.x, 0.0, dir_2d.y) * 0.35
+						if _has_lateral_clearance(advance_probe, dir_2d, clearance_radius):
+							return Vector3(dir_2d.x, 0.0, dir_2d.y)
 					return Vector3.ZERO
 
 				if clearance_radius > 0.2:
@@ -530,6 +625,32 @@ func get_flow_direction(
 
 	# 3. Path unreachable / blocked:
 	return Vector3.ZERO
+
+func _is_perimeter_goal_step_passable(from_cell: Vector2i, goal_cell: Vector2i) -> bool:
+	if chunk_loaded_lookup.is_valid() and not chunk_loaded_lookup.call(goal_cell.x, goal_cell.y):
+		return false
+	var h_from: int = get_cell_height(from_cell.x, from_cell.y)
+	var h_goal: int = get_cell_height(goal_cell.x, goal_cell.y)
+	if absi(h_goal - h_from) > 1:
+		return false
+
+	# Anti-corner-cutting check: if moving diagonally into goal cell,
+	# the two orthogonal neighbor cells must be unblocked, loaded, and level.
+	if goal_cell.x != from_cell.x and goal_cell.y != from_cell.y:
+		var s1: Vector2i = Vector2i(goal_cell.x, from_cell.y)
+		var s2: Vector2i = Vector2i(from_cell.x, goal_cell.y)
+		if blocked_cells.has(s1) or blocked_cells.has(s2):
+			return false
+		if chunk_loaded_lookup.is_valid() and (not chunk_loaded_lookup.call(s1.x, s1.y) or not chunk_loaded_lookup.call(s2.x, s2.y)):
+			return false
+		var h_s1: int = get_cell_height(s1.x, s1.y)
+		var h_s2: int = get_cell_height(s2.x, s2.y)
+		if absi(h_s1 - h_from) > 1 or absi(h_s2 - h_from) > 1:
+			return false
+		if absi(h_s1 - h_goal) > 1 or absi(h_s2 - h_goal) > 1:
+			return false
+
+	return true
 
 func _check_line_of_sight(from_pos: Vector3, target_pos: Vector3, clearance_radius: float) -> bool:
 	if not _is_direct_line_passable(from_pos, target_pos):
@@ -615,7 +736,7 @@ func _resolve_clearance_direction(
 						best_dist = d_val
 						best_alt = alt_dir
 
-	if best_alt.length_squared() < 0.001 and clearance_radius <= 0.5:
+	if best_alt.length_squared() < 0.001 and clearance_radius <= 0.8:
 		var cell_center_2d: Vector2 = Vector2(float(from_cell.x) + 0.5, float(from_cell.y) + 0.5)
 		var to_center: Vector2 = cell_center_2d - Vector2(from_pos.x, from_pos.z)
 		var steer: Vector2 = (dir_2d + to_center * 2.0).normalized()

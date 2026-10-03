@@ -313,3 +313,76 @@ func test_lateral_clearance_near_elevated_terrain_steers_away() -> void:
 	# If a direction is returned, it must steer southward (+Z towards row 2) away from the row 0 cliff
 	if dir.length_squared() > 0.001:
 		assert_gt(dir.z, 0.0, "Flow direction near cliff must steer away from the elevated edge (+Z)")
+
+func test_siege_breaker_navigates_2m_corridor_while_gorgon_rejected() -> void:
+	var ff = FlowfieldScript.new(12345)
+	# 2-meter corridor: rows z=0 and z=1 have height 0. All other rows have height 3 (cliff).
+	ff.set_height_lookup(func(_x: int, z: int) -> int:
+		if z == 0 or z == 1:
+			return 0
+		return 3
+	)
+
+	var start_pos = Vector3(0.5, 1.2, 1.0)
+	var goal_pos = Vector3(20.5, 0.9, 1.0)
+
+	# Siege Breaker (clearance 0.7, collider 1.4m x 1.4m) fits 2m corridor and must receive forward direction
+	var dir_siege: Vector3 = ff.get_flow_direction(start_pos, goal_pos, 0.7)
+	assert_gt(dir_siege.length_squared(), 0.001, "Siege Breaker (radius 0.7) must find path through 2m corridor")
+	assert_gt(dir_siege.x, 0.5, "Siege Breaker must navigate east (+X) through 2m corridor")
+
+	# Boss Gorgon (clearance 1.2, width 2.4m) exceeds 2m corridor and must be rejected (Vector3.ZERO)
+	var dir_gorgon: Vector3 = ff.get_flow_direction(start_pos, goal_pos, 1.2)
+	assert_almost_eq(dir_gorgon.length_squared(), 0.0, 0.001, "Boss Gorgon (radius 1.2) must NOT pass through 2m corridor")
+
+func test_boss_gorgon_routes_around_narrow_corridor_via_wide_detour() -> void:
+	var ff = FlowfieldScript.new(12345)
+	# Wide area on left (X < 5) and right (X > 15).
+	# Middle (5 <= X <= 15):
+	#   2m narrow corridor at Z=1..2 (height 0)
+	#   cliff barrier at Z=3..5 (height 3)
+	#   4m wide corridor at Z=6..9 (height 0)
+	#   outside cliffs (height 3)
+	ff.set_height_lookup(func(x: int, z: int) -> int:
+		if x >= 5 and x <= 15:
+			if z == 1 or z == 2:
+				return 0
+			elif z >= 6 and z <= 9:
+				return 0
+			return 3
+		return 0
+	)
+
+	var start_pos = Vector3(2.0, 0.9, 2.0)
+	var goal_pos = Vector3(20.0, 0.9, 2.0)
+
+	# Siege Breaker (0.7) takes direct narrow corridor (+X)
+	var dir_siege: Vector3 = ff.get_flow_direction(start_pos, goal_pos, 0.7)
+	assert_gt(dir_siege.length_squared(), 0.001, "Siege Breaker must find valid path")
+	assert_gt(dir_siege.x, 0.5, "Siege Breaker must take direct +X corridor")
+
+	# Boss Gorgon (1.2) rejects narrow corridor and routes diagonally towards wide detour (+Z)
+	var dir_gorgon: Vector3 = ff.get_flow_direction(start_pos, goal_pos, 1.2)
+	assert_gt(dir_gorgon.length_squared(), 0.001, "Boss Gorgon must find path through wide detour")
+	assert_gt(dir_gorgon.z, 0.5, "Boss Gorgon must route towards wide detour in +Z direction")
+
+func test_blocked_siege_goal_anti_corner_cutting_cliff() -> void:
+	var ff = FlowfieldScript.new(12345)
+	# Wall at (10, 10). Height 3 cliffs at (10, 9) and (9, 10).
+	# Other cells have height 0.
+	ff.set_height_lookup(func(x: int, z: int) -> int:
+		if (x == 10 and z == 9) or (x == 9 and z == 10):
+			return 3
+		return 0
+	)
+	ff.set_cell_blocked(Vector2i(10, 10), true)
+
+	var start_pos = Vector3(9.2, 0.9, 9.2)
+	var goal_pos = Vector3(10.5, 0.0, 10.5)
+
+	# Query flow direction for Zombie (0.4) at diagonal approach (9.2, 0.9, 9.2)
+	var dir: Vector3 = ff.get_flow_direction(start_pos, goal_pos, 0.4)
+
+	# Direction must NOT point diagonally into the corner between the two height-3 cliffs
+	var cuts_diagonal: bool = (dir.x > 0.5 and dir.z > 0.5)
+	assert_false(cuts_diagonal, "Goal exception must NOT bypass corner-cutting check into closed corner")

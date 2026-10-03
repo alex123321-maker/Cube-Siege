@@ -122,6 +122,25 @@ func _run_benchmark() -> void:
 		return 0
 	)
 
+	# Preload & Warmup: instantiate one of each mob scene to trigger scene/mesh/shader caches before measurement
+	var warmup_mobs: Array[CharacterBody3D] = [
+		ENEMY_DUMMY_SCENE.instantiate() as CharacterBody3D,
+		SKIRMISHER_SCENE.instantiate() as CharacterBody3D,
+		SIEGE_BREAKER_SCENE.instantiate() as CharacterBody3D,
+		BOSS_GORGON_SCENE.instantiate() as CharacterBody3D
+	]
+	for m in warmup_mobs:
+		scene_root.add_child(m)
+		m.global_position = Vector3(10.0, 0.0, 10.0)
+	for w in 10:
+		await physics_frame
+	for m in warmup_mobs:
+		m.queue_free()
+	reg.enemies.clear()
+	reg.bosses.clear()
+	await process_frame
+	await physics_frame
+
 	var mob_counts: Array[int] = [14, 20, 100, 500]
 	for count in mob_counts:
 		var result: Dictionary = await _benchmark_tier(scene_root, reg, player, count)
@@ -385,18 +404,19 @@ func _generate_report() -> void:
 	lines.append("- **Арена тестирования**: 60x60m с центральной возвышенной платформой 12x12m (Y=+1.0m, шаг воксельной ступени)")
 	lines.append("- **Состав толпы**: Grunt (70%%), Skirmisher (15%%), Siege Breaker (10%%), Boss Gorgon (5%%)")
 	lines.append("")
-	lines.append("## 1. Сравнительный анализ: Исходная версия (Baseline) vs Исправленная версия (PR #59)")
+	lines.append("## 1. Сравнительный анализ: Исходная версия (Baseline) vs Промежуточная реализация vs Исправленная версия (PR #59)")
 	lines.append("")
 	lines.append("Ниже приведено сопоставление архитектуры и характеристик до и после устранения замечаний код-ревью B1–B9:")
 	lines.append("")
-	lines.append("| Параметр / Подсистема | Baseline (коммит `b2ce0ac`) | Исправленная версия (PR #59) | Достигнутый эффект |")
-	lines.append("|:---|:---|:---|:---|")
-	lines.append("| **Кэширование Flowfield** | Единственная цель; вытеснение кэша зомби/таранщиком | Многоцелевой LRU кэш (до 16 полей) с разделением clearance | Устранена инвалидация кэша в каждом кадре; перестроек < 8/с |")
-	lines.append("| **Алгоритм BFS пересчета** | Двойной проход со словарями Dictionary (73x73 = 5329 ячеек) | Единый проход BFS на плоских непрерывных массивах `PackedFloat32Array` | Пик перестроения снижен со ~116 ms до ~27 ms (ускорение в 4.3 раза) |")
-	lines.append("| **Выборка соседей толпы** | `get_tree().get_nodes_in_group` / квадратичный опрос | Пространственные корзины `EntityRegistry` (2.5м grid hash) | Локализация выборки: поиск соседей + избегание занимает 5–35 µs |")
-	lines.append("| **Подход к препятствию/осада** | Отказ поиска на границе стены вызывал бесконечные перестройки | Разрешен контактный шаг к блокированной цели (`is_goal_blocked`) | Мобы стабильно достигают стены и наносят урон без пересчетов |")
-	lines.append("| **Клиренс широких тел (Горгон 2.4м)** | Ложные обрывы из-за смещения корня, игнор перепада высот | Полнопрофильный клиренс с проверкой перепада высот `|dh| <= 1` | Беспрепятственное преодоление ступеней и равнин широкими телами |")
-	lines.append("| **Утечка `get_nodes_in_group`** | Множественные вызовы в горячем `_physics_process` зомби и босса | Кэширование игрока и строений в `EntityRegistry` | Нулевые аллокации дерева узлов в горячем физическом цикле |")
+	lines.append("| Параметр / Подсистема | Baseline (коммит `b2ce0ac`) | Начальная реализация PR #59 (`0d897a6`) | Исправленная версия (PR #59) | Достигнутый эффект |")
+	lines.append("|:---|:---|:---|:---|:---|")
+	lines.append("| **Поиск пути и навигация** | Прямой вектор к игроку; игнорирование рельефа и стен | Одноцелевое поле Dictionary; вытеснение кэша игроком и зданиями | Многоцелевой LRU кэш (3 класса клиренса: 0.4м, 0.7м, 1.2м) | Устойчивый обход препятствий; отсутствие взаимного вытеснения кэша |")
+	lines.append("| **Алгоритм BFS пересчета** | Отсутствовал (прямое движение) | Двойной проход по Dictionary (73x73 = 5329 ячеек) | Единый проход BFS на плоских непрерывных массивах `PackedFloat32Array` | Пик перестроения снижен со ~116 ms до ~25 ms (ускорение в 4.6 раза) |")
+	lines.append("| **Периодический пересчет** | Отсутствовал | Принудительный пересчет каждые 0.25 с даже для неподвижной цели | Кэширование статического градиента; пересчет только при смещении цели >= 1.5м | Устранены регулярные просадки кадров 27–99 ms в штатном режиме |")
+	lines.append("| **Выборка соседей толпы** | Отсутствовала (расталкивание физикой движка) | Квадратичный перебор всех врагов | Пространственные корзины `EntityRegistry` (2.5м grid hash) | Локализация выборки: поиск соседей + избегание занимает 5–35 µs |")
+	lines.append("| **Подход к препятствию/осада** | Отсутствовал (упор в коллизию стены) | Отказ поиска на границе стены вызывал бесконечные перестройки | Разрешен контактный шаг к блокированной цели (`is_goal_blocked`) с защитой углов | Мобы стабильно достигают стены и наносят урон без пересчетов и срезания углов |")
+	lines.append("| **Клиренс широких тел (Горгон 2.4м, Таранщик 1.4м)** | Ложные обрывы из-за смещения корня, игнор перепада высот | Единый фильтр 3x3 запрещал проход таранщику в 2-метровом коридоре | Раздельный клиренс: таранщик проходит 2-метровый коридор, Горгон требует 3-метровый | Реальное соответствие физическим габаритам архетипов без застревания |")
+	lines.append("| **Опрос реестра сущностей** | Множественные вызовы `get_nodes_in_group` в горячем физическом цикле | Множественные вызовы `get_nodes_in_group` | Кэширование игрока и строений в `EntityRegistry` с безопасной очисткой | Нулевые аллокации дерева узлов в горячем физическом цикле |")
 	lines.append("")
 	lines.append("## 2. Фактически измеренные аппаратные метрики (Measured Hardware Metrics)")
 	lines.append("")
@@ -471,13 +491,22 @@ func _generate_report() -> void:
 	for res in _results:
 		var count: int = int(res["mob_count"])
 		if count <= 20:
-			lines.append("  - **%d мобов**: медиана физического кадра %.3f ms (P95: %.3f ms), расчетная алгоритмическая локомоция %.3f ms — полностью обеспечивает стабильные 60 FPS (бюджет кадра 16.6 ms)." % [count, float(res["physics_median_ms"]), float(res["physics_p95_ms"]), float(res["locomotion_budget_ms"])])
+			var phys_med: float = float(res["physics_median_ms"])
+			var phys_p95: float = float(res["physics_p95_ms"])
+			var loco_est: float = float(res["locomotion_budget_ms"])
+			if phys_p95 <= 16.67 and phys_med <= 16.67:
+				lines.append("  - **%d мобов**: медиана физического кадра %.3f ms (P95: %.3f ms), расчетная алгоритмическая локомоция %.3f ms — укладывается в бюджет 60 FPS (16.6 ms)." % [count, phys_med, phys_p95, loco_est])
+			else:
+				lines.append("  - **%d мобов**: медиана физического кадра %.3f ms (P95: %.3f ms), расчетная алгоритмическая локомоция %.3f ms — P95 превышает бюджет кадра 16.6 ms." % [count, phys_med, phys_p95, loco_est])
 	lines.append("- **Диагностические стресс-тесты (100 и 500 мобов)**:")
 	for res in _results:
 		var count: int = int(res["mob_count"])
 		if count >= 100:
-			var note: String = "успешно справляется с роем" if count == 100 else "демонстрирует естественный предел однопоточного GDScript (для армий 500+ рекомендуется C++ MultiMesh)"
-			lines.append("  - **%d мобов**: медиана кадра %.3f ms, расчетный бюджет локомоции %.3f ms — %s." % [count, float(res["physics_median_ms"]), float(res["locomotion_budget_ms"]), note])
+			var phys_med: float = float(res["physics_median_ms"])
+			var phys_p95: float = float(res["physics_p95_ms"])
+			var loco_est: float = float(res["locomotion_budget_ms"])
+			var note: String = "успешно справляется с роем (медиана %.3f ms в пределах бюджета)" % phys_med if phys_med <= 16.67 else "превышает бюджет кадра 16.6 ms (естественный предел однопоточного GDScript; для 500+ мобов требуется C++ MultiMesh)"
+			lines.append("  - **%d мобов**: медиана кадра %.3f ms (P95: %.3f ms), расчетный бюджет локомоции %.3f ms — %s." % [count, phys_med, phys_p95, loco_est, note])
 
 	if not _results.is_empty():
 		lines.append("- **Потребление памяти Flowfield**: размер кэша радиусом 36 клеток (~5329 ячеек) составляет ~%.1f KB на цель, обеспечивая полное покрытие спавн-кольца 20–28 м без динамических аллокаций в кадре." % float(_results[0]["flowfield_memory_kb"]))
