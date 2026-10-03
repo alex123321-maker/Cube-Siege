@@ -19,6 +19,13 @@ func _prepare(index: int, variant: AbilityViewerCatalog.VariantKind = AbilityVie
 	arena.prepare(entries[index], variant)
 	await wait_physics_frames(2)
 
+func _property(rows: Array[AbilityViewerCatalog.Property], title: String) -> AbilityViewerCatalog.Property:
+	for row: AbilityViewerCatalog.Property in rows:
+		if row.title == title:
+			return row
+	fail_test("Missing displayed property: " + title)
+	return null
+
 func test_catalogue_has_all_class_actions_and_always_uses_warrior_and_zombie_models() -> void:
 	assert_eq(entries.size(), 27, "15 legacy actions, nine production talents, three combinations")
 	for i: int in range(entries.size()):
@@ -84,6 +91,112 @@ func test_native_parry_success_blocks_attack_and_applies_counter_stun() -> void:
 	assert_true(arena.targets[0].is_stunned)
 	assert_lt(arena.actor.parry_cooldown_timer, PlayerHealth.PARRY_SUCCESS_COOLDOWN)
 	assert_gt(arena.actor.parry_cooldown_timer, 2.0)
+
+func test_parry_properties_match_native_base_and_counterattack_window_and_damage() -> void:
+	for index: int in [2, 19]:
+		var variant: AbilityViewerCatalog.VariantKind = AbilityViewerCatalog.VariantKind.PARRY_SUCCESS if index == 2 else AbilityViewerCatalog.VariantKind.BASE
+		await _prepare(index, variant)
+		var rows: Array[AbilityViewerCatalog.Property] = AbilityViewerCatalog.properties(entries[index], arena.actor, variant)
+		var window: AbilityViewerCatalog.Property = _property(rows, "Защитное окно")
+		var counter: AbilityViewerCatalog.Property = _property(rows, "Ответный урон")
+		assert_almost_eq(window.base.to_float(), PlayerHealth.PARRY_WINDOW, 0.001)
+		assert_almost_eq(counter.base.to_float(), PlayerHealth.COUNTER_DAMAGE, 0.001)
+		if index == 19:
+			assert_gt(window.effective.to_float(), window.base.to_float())
+			assert_gt(counter.effective.to_float(), counter.base.to_float())
+		var player_health: float = arena.actor.current_health
+		var target_health: float = arena.targets[0].current_health
+		arena.demonstrate(entries[index], variant)
+		assert_true(arena.actor.health.is_parrying)
+		assert_almost_eq(arena.actor.health.parry_timer, window.effective.to_float(), 0.001, "Displayed duration is the real native parry window")
+		await wait_seconds(0.4)
+		assert_eq(arena.actor.current_health, player_health, "The native zombie attack is blocked")
+		assert_almost_eq(target_health - arena.targets[0].current_health, counter.effective.to_float(), 0.001, "Displayed counter damage matches actual target HP loss")
+
+func test_dash_properties_describe_actual_base_and_perfect_dash_damage_immunity() -> void:
+	for index: int in [4, 23]:
+		await _prepare(index)
+		var rows: Array[AbilityViewerCatalog.Property] = AbilityViewerCatalog.properties(entries[index], arena.actor, AbilityViewerCatalog.VariantKind.BASE)
+		var duration: AbilityViewerCatalog.Property = _property(rows, "Длительность")
+		var before: float = arena.actor.current_health
+		arena.demonstrate(entries[index], AbilityViewerCatalog.VariantKind.BASE)
+		assert_true(arena.actor.movement.is_dashing)
+		assert_almost_eq(arena.actor.movement.dash_timer, duration.effective.to_float(), 0.001, "Displayed duration matches the native dash timer")
+		assert_eq(arena.actor.is_dash_invulnerable(), index == 23)
+		arena.actor.take_damage(10.0, arena.targets[0])
+		if index == 23:
+			assert_eq(arena.actor.current_health, before)
+			assert_string_contains(duration.explanation, "игнорируется")
+		else:
+			assert_eq(arena.actor.current_health, before - 10.0)
+			assert_string_contains(duration.explanation, "проходит")
+		await wait_seconds(duration.effective.to_float() + 0.1)
+		assert_false(arena.actor.is_dash_invulnerable(), "Immunity ends with the native dash")
+		before = arena.actor.current_health
+		arena.actor.take_damage(10.0, arena.targets[0])
+		assert_eq(arena.actor.current_health, before - 10.0)
+
+func test_sword_target_limit_properties_match_native_base_and_sweeping_hits() -> void:
+	for index: int in [0, 15]:
+		await _prepare(index)
+		var rows: Array[AbilityViewerCatalog.Property] = AbilityViewerCatalog.properties(entries[index], arena.actor, AbilityViewerCatalog.VariantKind.BASE)
+		var limit: AbilityViewerCatalog.Property = _property(rows, "Предел целей")
+		arena.demonstrate(entries[index], AbilityViewerCatalog.VariantKind.BASE)
+		await wait_seconds(0.3)
+		var slash: HitboxArea = arena.actor.get_node("SlashHitbox") as HitboxArea
+		assert_eq(slash.can_hit_multiple, index == 15)
+		if index == 15:
+			assert_eq(limit.effective, "Все в области")
+			assert_gt(slash.hits_landed, 1, "The production Sweeping Strike actually reaches multiple targets")
+		else:
+			assert_eq(limit.effective.to_int(), slash.hits_landed, "Displayed one-target limit matches the native sword hit")
+			assert_eq(slash.hits_landed, 1)
+
+func test_cleave_properties_match_native_sector_radius_and_moving_active_window() -> void:
+	for index: int in [1, 17, 21]:
+		await _prepare(index)
+		var rows: Array[AbilityViewerCatalog.Property] = AbilityViewerCatalog.properties(entries[index], arena.actor, AbilityViewerCatalog.VariantKind.BASE)
+		var radius: AbilityViewerCatalog.Property = _property(rows, "Радиус")
+		var angle: AbilityViewerCatalog.Property = _property(rows, "Угол сектора")
+		var active: AbilityViewerCatalog.Property = _property(rows, "Активное окно")
+		var shape: AbilityViewerCatalog.Property = _property(rows, "Форма попадания")
+		var before: Vector3 = arena.actor.position
+		arena.demonstrate(entries[index], AbilityViewerCatalog.VariantKind.BASE)
+		for _frame: int in range(45):
+			await wait_physics_frames(1)
+			if is_instance_valid(arena.actor.combat._active_slash):
+				break
+		assert_not_null(arena.actor.combat._active_slash, "Native Cleave releases within the bounded observation window")
+		var slash: HitboxArea = arena.actor.get_node("SlashHitbox") as HitboxArea
+		var collider: CollisionShape3D = slash.get_node("CollisionShape3D") as CollisionShape3D
+		assert_true(collider.shape is CylinderShape3D)
+		assert_almost_eq(slash.frontal_radius, radius.effective.to_float(), 0.001)
+		assert_almost_eq((collider.shape as CylinderShape3D).radius, radius.effective.to_float(), 0.001)
+		assert_almost_eq(slash.frontal_arc_degrees, angle.effective.to_float(), 0.001)
+		assert_almost_eq(arena.actor.combat._slash_remaining, active.effective.to_float(), 0.02, "Displayed active window matches the released production cast within one physics tick")
+		assert_eq(shape.effective, "Круг" if index == 21 else "Полукруг")
+		await wait_seconds(0.4)
+		assert_gt(slash.hits_landed, 0)
+		if index == 17:
+			assert_gt(arena.actor.position.distance_to(before), 1.0, "The longer window belongs to a real moving lunge")
+		if index == 21:
+			assert_lt(arena.targets[3].current_health, 1000.0, "The displayed full circle actually hits the target behind the Warrior")
+
+func test_tempered_blade_percentage_property_matches_native_overkill_limited_healing() -> void:
+	await _prepare(20)
+	var rows: Array[AbilityViewerCatalog.Property] = AbilityViewerCatalog.properties(entries[20], arena.actor, AbilityViewerCatalog.VariantKind.BASE)
+	var healing: AbilityViewerCatalog.Property = _property(rows, "Лечение от урона здоровью")
+	assert_string_contains(healing.effective, "%")
+	for row: AbilityViewerCatalog.Property in rows:
+		assert_ne(row.title, "Параметр лечения", "Talent healing is distinguished from the unused legacy flat-heal field")
+	arena.targets[0].current_health = 10.0
+	var target_health: float = arena.targets[0].current_health
+	var player_health: float = arena.actor.current_health
+	arena.demonstrate(entries[20], AbilityViewerCatalog.VariantKind.BASE)
+	await wait_seconds(0.3)
+	var health_loss: float = target_health - arena.targets[0].current_health
+	assert_almost_eq(health_loss, target_health, 0.001, "The native attack kills a target with less HP than its attack damage")
+	assert_almost_eq(arena.actor.current_health - player_health, health_loss * healing.effective.to_float() / 100.0, 0.001, "Displayed percentage predicts actual HP healing, excluding overkill")
 
 func test_vampirism_properties_distinguish_card_value_from_observed_healing() -> void:
 	await _prepare(0, AbilityViewerCatalog.VariantKind.VAMPIRISM)

@@ -103,11 +103,12 @@ static func properties(entry: Entry, player: CharacterBody3D, variant: VariantKi
 	var base_combat: PlayerCombat = PlayerCombat.new()
 	var base_movement: PlayerMovement = PlayerMovement.new()
 	var c: int = entry.class_id
+	var runtime: WarriorTalentRuntime = (player as PlayerPrototype).talents if c == 0 and player is PlayerPrototype else null
 	match entry.slot:
 		Slot.ATTACK, Slot.SPECIAL:
 			var special: bool = entry.slot == Slot.SPECIAL
 			var cooldown: float = PlayerCombat.SPECIAL_COOLDOWNS[c] if special else PlayerCombat.ATTACK_COOLDOWNS[c]
-			var windup: float = PlayerCombat.SPECIAL_WINDUPS[c] if special else PlayerCombat.ATTACK_WINDUPS[c]
+			var windup: float = (PlayerCombat.CLEAVE_SPEC.windup if c == 0 else PlayerCombat.SPECIAL_WINDUPS[c]) if special else PlayerCombat.ATTACK_WINDUPS[c]
 			_value(rows, "Перезарядка", cooldown, cooldown, "с", "Минимальный интервал между применениями.")
 			_value(rows, "Подготовка", windup, windup, "с", "Время от запуска анимации до игрового действия.")
 			if special and c == 2:
@@ -131,23 +132,41 @@ static func properties(entry: Entry, player: CharacterBody3D, variant: VariantKi
 					var targets: float = PlayerCombat.PIERCING_TARGETS if special else 1
 					_value(rows, "Предел целей", targets, targets, "", "После этого числа попаданий стрела исчезает.")
 				else:
-					_value(rows, "Активное окно", PlayerCombat.SLASH_ACTIVE_DURATION, PlayerCombat.SLASH_ACTIVE_DURATION, "с", "В это время SlashHitbox принимает столкновения.")
-					var shape: Shape3D = player.get_node("SlashHitbox/CollisionShape3D").shape
-					var shape_desc: String = "Размеры игрового прямоугольного хитбокса в метрах. Базовый взмах Воина поражает строго 1 цель за окно; Рассечение поражает несколько целей." if c == 0 else "Размеры игрового прямоугольного хитбокса в метрах. Визуальная дуга не задаёт сектор попадания."
-					var shape_text: String = str((shape as BoxShape3D).size) if shape is BoxShape3D else "Цилиндр"
-					rows.append(Property.new("Форма попадания", shape_text, shape_text, shape_desc))
-					_value(rows, "Параметр лечения", 0.0, player.vampirism_heal, "HP", "Значение карты. Проверка ранних попаданий в текущем коде может пропустить поздний контакт; фактические HP показаны под сценой.")
+					var moving_cleave: bool = c == 0 and special and runtime != null and runtime.has("wide_lunge")
+					var active_window: float = WarriorTalentCatalog.LUNGE_DURATION if moving_cleave else PlayerCombat.SLASH_ACTIVE_DURATION
+					_value(rows, "Активное окно", PlayerCombat.SLASH_ACTIVE_DURATION, active_window, "с", "В это время SlashHitbox принимает столкновения; при выпаде область движется вместе с Воином." if moving_cleave else "В это время SlashHitbox принимает столкновения.")
+					if c == 0 and special:
+						var circular: bool = runtime != null and runtime.has("whirlwind_cleave")
+						var radius: float = PlayerCombat.CLEAVE_SPEC.radius * (runtime.multiplier("cleave_radius") if runtime else 1.0)
+						rows.append(Property.new("Форма попадания", "Полукруг", "Круг" if circular else "Полукруг", "Область поражения ограничивается игровым сектором. Несколько целей, не более одного попадания в каждую за применение."))
+						_value(rows, "Радиус", PlayerCombat.CLEAVE_SPEC.radius, radius, "м", "Радиус из игрового WarriorCleaveSpec с текущей специализацией.")
+						_value(rows, "Угол сектора", PlayerCombat.CLEAVE_SPEC.arc_degrees, 360.0 if circular else PlayerCombat.CLEAVE_SPEC.arc_degrees, "°", "Вихревое рассечение проверяет цели вокруг Воина; обычное — впереди.")
+					else:
+						var shape: Shape3D = player.get_node("SlashHitbox/CollisionShape3D").shape
+						var shape_text: String = str((shape as BoxShape3D).size) if shape is BoxShape3D else "Цилиндр"
+						rows.append(Property.new("Форма попадания", shape_text, shape_text, "Размеры игрового прямоугольного хитбокса в метрах. Визуальная дуга не задаёт сектор попадания."))
+						if c == 0:
+							rows.append(Property.new("Предел целей", "1", "Все в области" if runtime != null and runtime.has("sweeping_strike") else "1", "«Разящий удар» разрешает несколько целей; базовая атака поражает одну. Каждая цель получает один удар за применение."))
+					if runtime != null and runtime.has("tempered_blade"):
+						_value(rows, "Лечение от урона здоровью", 0.0, WarriorTalentCatalog.VAMPIRISM_FRACTION * runtime.multiplier("vampirism") * 100.0, "%", "Процент фактической потери HP цели. Щит, избыточный урон и отражение не лечат; ответный удар лечит только с «Закалкой кровью».")
+					else:
+						_value(rows, "Параметр лечения", 0.0, player.vampirism_heal, "HP", "Параметр прежней карты. Лечение Воина в забеге задаёт талант «Закалённый клинок», а не это значение." if c == 0 else "Значение прежней карты; фактическое восстановление HP показано под сценой.")
 		Slot.DASH:
 			_value(rows, "Перезарядка", base_movement.dash_cooldown, player.dash_cooldown, "с", "Карта Ветроход сокращает ожидание следующего рывка.")
 			_value(rows, "Скорость рывка", base_movement.dash_speed, player.dash_speed, "м/с", "Отдельна от скорости обычного бега.")
-			var dash_expl: String = "У Воина урон во время рывка проходит; у Лучника и Инженера урон игнорируется." if c == 0 else "Пока состояние рывка активно, входящий урон игнорируется."
+			var dash_invulnerable: bool = c != 0 or (player is PlayerPrototype and (player as PlayerPrototype).talents.has("perfect_dash"))
+			var dash_expl: String = "Пока состояние рывка активно, входящий урон игнорируется." if dash_invulnerable else "У Воина без «Идеального рывка» входящий урон во время рывка проходит."
 			_value(rows, "Длительность", base_movement.dash_duration, player.dash_duration, "с", dash_expl)
 			_value(rows, "Скорость бега", base_movement.speed, player.speed, "м/с", "Показано влияние карты; это не скорость рывка.")
 		Slot.UTILITY:
 			if c == 0:
-				_value(rows, "Защитное окно", PlayerHealth.PARRY_WINDOW, PlayerHealth.PARRY_WINDOW, "с", "Попавший в окно удар блокируется.")
+				var parry_window: float = runtime.parry_duration() if runtime else PlayerHealth.PARRY_WINDOW
+				var counter: bool = runtime != null and runtime.has("counterattack")
+				var counter_damage: float = runtime.attack_based_ability_damage() if counter else PlayerHealth.COUNTER_DAMAGE
+				_value(rows, "Защитное окно", PlayerHealth.PARRY_WINDOW, parry_window, "с", "Попавший в окно удар блокируется.")
 				_value(rows, "Перезарядка", PlayerHealth.PARRY_COOLDOWN, PlayerHealth.PARRY_SUCCESS_COOLDOWN if variant == VariantKind.PARRY_SUCCESS else PlayerHealth.PARRY_COOLDOWN, "с", "При успешном парировании используется сокращённая перезарядка.")
-				_value(rows, "Ответный урон", PlayerHealth.COUNTER_DAMAGE, PlayerHealth.COUNTER_DAMAGE, "", "Базовое парирование не наносит ответного урона (вынесен в талант «Контратака»).")
+				var counter_expl: String = "«Контратака» возвращает удар атакующему; урон берётся из игрового расчёта способности без постоянного бонуса урона профиля." if counter else "Базовое парирование не наносит ответного урона (вынесен в талант «Контратака»)."
+				_value(rows, "Ответный урон", PlayerHealth.COUNTER_DAMAGE, counter_damage, "", counter_expl)
 				_value(rows, "Радиус оглушения", PlayerHealth.COUNTER_RADIUS, PlayerHealth.COUNTER_RADIUS, "м", "Оглушение применяется ко всем врагам в радиусе 3.5м.")
 				_value(rows, "Оглушение", PlayerHealth.COUNTER_STUN, PlayerHealth.COUNTER_STUN, "с", "Останавливает действия врага после парирования.")
 			elif c == 1:
