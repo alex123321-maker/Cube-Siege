@@ -40,7 +40,6 @@ func _ready() -> void:
 	time_left = day_duration
 	is_night = false
 	apply_lighting_state()
-
 func _process(delta: float) -> void:
 	if not running:
 		return

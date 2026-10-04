@@ -23,16 +23,16 @@ func test_hud_renders_visible_day_night_phase_from_event() -> void:
 	assert_not_null(label, "visible PhaseLabel should be resolved on HUD")
 
 	hud._update_day_night_label(120.0, false, 2)
-	assert_eq(label.text, "DAY 2", "HUD should show the daytime phase")
+	assert_eq(label.text, "ДЕНЬ 2", "HUD should show the localized daytime phase")
 	assert_eq(hud.day_night_timer_label.text, "02:00", "HUD should show the remaining daytime timer")
 	assert_eq(label.modulate, Color.WHITE, "Daytime text color should be WHITE")
 
 	hud._update_day_night_label(25.0, false, 2)
-	assert_eq(label.text, "DAY 2  ·  SUNSET", "HUD should mark sunset in the visible phase label")
+	assert_eq(label.text, "ДЕНЬ 2  ·  ЗАКАТ", "HUD should mark localized sunset in the visible phase label")
 	assert_eq(label.modulate, Color(1.0, 0.6, 0.1, 1.0), "Sunset text color should be orange")
 
 	hud._update_day_night_label(90.0, true, 2)
-	assert_eq(label.text, "NIGHT 2  ·  SIEGE", "HUD should show the night siege phase")
+	assert_eq(label.text, "НОЧЬ 2  ·  ОСАДА", "HUD should show the localized night siege phase")
 	assert_eq(hud.day_night_timer_label.text, "01:30", "HUD should keep timer visible during night")
 	assert_eq(label.modulate, Color(1.0, 0.3, 0.3, 1.0), "Night text color should be reddish")
 

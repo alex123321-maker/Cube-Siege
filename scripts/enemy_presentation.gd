@@ -12,8 +12,10 @@ var is_dying: bool = false
 var current_action: StringName = &""
 var _model_rest: Transform3D = Transform3D.IDENTITY
 var _cleave_recoil: Tween
+var _audio_owner: CharacterBody3D
 
 func setup(enemy: CharacterBody3D, model: Node3D = null) -> void:
+	_audio_owner = enemy
 	if model:
 		model_root = model
 	elif enemy.has_node("Visuals/Model"):
@@ -58,6 +60,8 @@ func update(_delta: float, velocity: Vector3, gait_speed: float = 3.2) -> void:
 			anim_player.speed_scale = 1.0
 
 func play_attack(start_time: float = -1.0) -> void:
+	if is_instance_valid(_audio_owner) and not is_dying:
+		_request_audio(&"enemy_attack", _audio_owner.global_position)
 	if not is_instance_valid(anim_player) or is_dying:
 		return
 	if anim_player.has_animation("attack"):
@@ -136,3 +140,10 @@ func _on_animation_finished(anim_name: StringName) -> void:
 		current_action = &""
 		if is_instance_valid(anim_player) and anim_player.has_animation("idle"):
 			anim_player.play("idle", 0.15)
+
+func _request_audio(cue: StringName, at: Vector3) -> void:
+	if not is_instance_valid(_audio_owner) or not _audio_owner.is_inside_tree():
+		return
+	var bus: Node = _audio_owner.get_node_or_null("/root/EventBus")
+	if bus:
+		bus.audio_cue_requested.emit(cue, at)

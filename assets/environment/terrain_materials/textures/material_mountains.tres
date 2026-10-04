@@ -4,6 +4,7 @@
 
 [resource]
 resource_name = "material_mountains"
+albedo_color = Color(0.62, 0.68, 0.75, 1)
 albedo_texture = ExtResource("1_texture")
 roughness = 0.90
 texture_filter = 0

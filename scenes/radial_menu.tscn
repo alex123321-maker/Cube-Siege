@@ -3,7 +3,12 @@
 [ext_resource type="Script" path="res://scripts/radial_menu.gd" id="1_radial"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_dark"]
-bg_color = Color(0.12, 0.14, 0.18, 0.85)
+bg_color = Color(0.055, 0.082, 0.105, 0.97)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.48, 0.36, 0.20, 0.9)
 corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
@@ -96,11 +101,33 @@ anchor_right = 0.5
 anchor_bottom = 0.5
 offset_left = 160.0
 offset_top = -120.0
-offset_right = 380.0
+offset_right = 480.0
 offset_bottom = 120.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_dark")
+
+[node name="Title" type="Label" parent="CenterPanel"]
+layout_mode = 0
+offset_left = 30.0
+offset_top = 118.0
+offset_right = 270.0
+offset_bottom = 158.0
+theme_override_colors/font_color = Color(1, 0.85, 0.55, 1)
+theme_override_font_sizes/font_size = 19
+text = "СТРОИТЕЛЬСТВО"
+horizontal_alignment = 1
+
+[node name="Hint" type="Label" parent="CenterPanel"]
+layout_mode = 0
+offset_left = -20.0
+offset_top = 308.0
+offset_right = 340.0
+offset_bottom = 350.0
+theme_override_colors/font_color = Color(0.87, 0.88, 0.82, 1)
+theme_override_font_sizes/font_size = 14
+text = "Выберите категорию, затем постройку\nTab — закрыть • Мир продолжает жить"
+horizontal_alignment = 1
 
 [node name="CategoryTitle" type="Label" parent="SubMenuPanel"]
 layout_mode = 1
@@ -149,11 +176,17 @@ text = "Вышка (6 Дерева, 2 Камня)"
 layout_mode = 2
 text = "Баллиста (4 Камня, 4 Железа)"
 
+[node name="BtnCampfire" type="Button" parent="SubMenuPanel/VBox"]
+layout_mode = 2
+text = "Костёр (6 Дерева, 3 Камня)"
+
 [connection signal="pressed" from="CenterPanel/BtnWalls" to="." method="_on_walls_pressed"]
 [connection signal="pressed" from="CenterPanel/BtnTraps" to="." method="_on_traps_pressed"]
 [connection signal="pressed" from="CenterPanel/BtnTowers" to="." method="_on_towers_pressed"]
+[connection signal="pressed" from="CenterPanel/BtnUtility" to="." method="_on_utility_pressed"]
 [connection signal="pressed" from="SubMenuPanel/VBox/BtnWoodWall" to="." method="_on_wood_wall_selected"]
 [connection signal="pressed" from="SubMenuPanel/VBox/BtnIronWall" to="." method="_on_iron_wall_selected"]
 [connection signal="pressed" from="SubMenuPanel/VBox/BtnFloorSpikes" to="." method="_on_floor_spikes_selected"]
 [connection signal="pressed" from="SubMenuPanel/VBox/BtnArcherTower" to="." method="_on_archer_tower_selected"]
 [connection signal="pressed" from="SubMenuPanel/VBox/BtnBallista" to="." method="_on_ballista_selected"]
+[connection signal="pressed" from="SubMenuPanel/VBox/BtnCampfire" to="." method="_on_campfire_selected"]

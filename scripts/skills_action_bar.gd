@@ -51,6 +51,7 @@ var event_bus: Node
 var _active_class_id: int = -1
 var _mine_state_initialized: bool = false
 var _mine_is_active: bool = false
+var _tooltip_refresh_remaining: float = 0.0
 
 func _ready() -> void:
     for slot_name: String in ACTION_SLOTS:
@@ -66,7 +67,7 @@ func _ready() -> void:
     else:
         _set_actions_unavailable()
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
     if not is_instance_valid(player):
         _find_player()
         if player:
@@ -76,6 +77,10 @@ func _process(_delta: float) -> void:
             _set_actions_unavailable()
         return
     _refresh_mine_action()
+    _tooltip_refresh_remaining -= delta
+    if _tooltip_refresh_remaining <= 0.0:
+        _tooltip_refresh_remaining = 0.2
+        _refresh_tooltips()
     var movement: PlayerMovement = player.movement
     var cooldowns: Array[float] = [
         player.attack_cooldown_timer,
@@ -120,6 +125,13 @@ func _apply_class_actions(class_id: int) -> void:
             action[2]
         )
     _refresh_mine_action()
+    _refresh_tooltips()
+
+func _refresh_tooltips() -> void:
+    if not is_instance_valid(player):
+        return
+    for index: int in action_slots.size():
+        action_slots[index].tooltip_text = HUDAbilityDetails.describe(player, index)
 
 func _refresh_mine_action() -> void:
     if not is_instance_valid(player) or _active_class_id != 2:

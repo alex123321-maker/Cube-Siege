@@ -105,6 +105,7 @@ func register_effect(node: Node, auto_free_time: float = 0.0) -> Node:
 # =========================================================================
 
 func spawn_warrior_slash(pos: Vector3, aim_dir: Vector3, radius: float, arc_deg: float) -> Node3D:
+	_request_audio(&"sword", pos)
 	var effect: SwordVFX = SWORD_EFFECT.new()
 	effect.name = "SteelSwordSlash"
 	_ensure_container().add_child(effect)
@@ -117,6 +118,7 @@ func spawn_warrior_slash(pos: Vector3, aim_dir: Vector3, radius: float, arc_deg:
 	return register_effect(effect) as Node3D
 
 func spawn_sword_contact(pos: Vector3, direction: Vector3) -> Node3D:
+	_request_audio(&"hit", pos)
 	var effect: SwordVFX = SWORD_EFFECT.new()
 	effect.name = "SteelSwordContact"
 	_ensure_container().add_child(effect)
@@ -192,6 +194,7 @@ func spawn_cleave_charge(player: Node3D, duration: float, weapon_tip: Node3D = n
 	return register_effect(effect) as Node3D
 
 func spawn_cleave_contact(pos: Vector3, direction: Vector3, target: Node3D = null) -> Node3D:
+	_request_audio(&"hit", pos)
 	var effect: CleaveVFX = CLEAVE_EFFECT.new()
 	effect.name = "CleaveContact"
 	_ensure_container().add_child(effect)
@@ -238,6 +241,7 @@ func spawn_sparks(pos: Vector3, normal: Vector3, col: Color = Color(1.0, 0.85, 0
 
 ## Short-lived stone chips and dust. These are particle meshes, never physics bodies.
 func spawn_stone_break(pos: Vector3, col: Color = Color(0.63, 0.61, 0.58), strength: int = StoneBreakStrength.HIT) -> Node3D:
+	_request_audio(&"stone", pos)
 	var container := _ensure_container()
 	var root := Node3D.new()
 	root.name = "StoneBreakVFX"
@@ -389,6 +393,7 @@ func dismiss_parry_stance_aura(player: CharacterBody3D) -> void:
 
 ## Brilliant parry clash feedback
 func spawn_parry_clash(pos: Vector3) -> void:
+	_request_audio(&"parry", pos)
 	spawn_sparks(pos + Vector3(0, 1.0, 0), Vector3.UP, Color(1.0, 0.9, 0.3), 24, 8.0)
 	spawn_shockwave(pos, 3.5, Color(0.4, 0.8, 1.0), 0.3)
 
@@ -488,6 +493,7 @@ func spawn_arrow_charge(player: CharacterBody3D, duration: float = 0.28) -> Node
 # =========================================================================
 
 func spawn_arrow_impact(pos: Vector3, incoming: Vector3, terrain: bool = false) -> Node3D:
+	_request_audio(&"stone" if terrain else &"hit", pos)
 	var effect: ArrowImpactVFX = ARROW_IMPACT_EFFECT.new()
 	effect.name = "ArrowImpact"
 	_ensure_container().add_child(effect)
@@ -629,16 +635,19 @@ func spawn_eagle_eye_burst(player: CharacterBody3D) -> void:
 
 ## Hammer smash clank debris
 func spawn_hammer_smash_impact(pos: Vector3, is_repair: bool = false) -> void:
+	_request_audio(&"hammer", pos)
 	var col = Color(0.3, 0.9, 1.0) if is_repair else Color(1.0, 0.6, 0.2)
 	spawn_sparks(pos + Vector3(0, 0.2, 0), Vector3.UP, col, 18, 6.0)
 	spawn_shockwave(pos, 2.6, col, 0.25)
 
 ## Turret muzzle flash
 func spawn_turret_muzzle_flash(pos: Vector3, aim_dir: Vector3) -> void:
+	_request_audio(&"turret", pos)
 	spawn_sparks(pos, aim_dir, Color(1.0, 0.85, 0.2), 6, 4.0)
 
 ## Remote Mine explosion sequence
 func spawn_mine_explosion(pos: Vector3, radius: float = 4.5) -> void:
+	_request_audio(&"explosion", pos)
 	var effect: MineExplosionVFX = MINE_EFFECT.new()
 	effect.name = "MineEmberBurst"
 	_ensure_container().add_child(effect)
@@ -648,6 +657,7 @@ func spawn_mine_explosion(pos: Vector3, radius: float = 4.5) -> void:
 
 ## Tactical Nuke Telegraph: warning zone and falling missile
 func spawn_tactical_nuke_telegraph(target_pos: Vector3, duration: float = 1.2) -> Node3D:
+	_request_audio(&"boss_windup", target_pos)
 	var container = _ensure_container()
 	var nuke_root = Node3D.new()
 	nuke_root.name = "NukeTelegraph"
@@ -702,6 +712,7 @@ func spawn_tactical_nuke_telegraph(target_pos: Vector3, duration: float = 1.2) -
 
 ## Tactical Nuke Impact: shockwaves, brilliant flash, rising mushroom cloud
 func spawn_tactical_nuke_impact(target_pos: Vector3) -> void:
+	_request_audio(&"nuke", target_pos)
 	spawn_shockwave(target_pos, 14.0, Color(1.0, 0.5, 0.1), 0.6)
 	spawn_shockwave(target_pos, 9.0, Color(1.0, 1.0, 0.8), 0.35)
 	spawn_parry_clash(target_pos)
@@ -734,3 +745,8 @@ func spawn_tactical_nuke_burn(target_pos: Vector3, duration: float = 3.0) -> Nod
 	register_effect(burn_zone, duration + 0.1)
 	return burn_zone
 
+
+func _request_audio(cue: StringName, at: Vector3) -> void:
+	var bus: Node = get_node_or_null("/root/EventBus")
+	if bus:
+		bus.audio_cue_requested.emit(cue, at)

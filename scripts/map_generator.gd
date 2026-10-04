@@ -308,12 +308,13 @@ func _spawn_chunk_resources(cx: int, cz: int, out_nodes: Array[Node], height_sam
 			rng.seed = cell_seed
 
 			var attempt_roll: float = rng.randf()
-			var biome_info: Dictionary = {}
+			var biome_info: Dictionary = BiomeSystem.sample_biome_weights(float(wx), float(wz), actual_seed)
 			var continuous_h: float = 0.0
+			var height_sampled: bool = false
 			var res_type: ResourceDistribution.ResourceType = ResourceDistribution.ResourceType.NONE
-			if attempt_roll <= 0.16: # Preserve the existing resource attempt rate.
-				biome_info = BiomeSystem.sample_biome_weights(float(wx), float(wz), actual_seed)
+			if attempt_roll < ResourceDistribution.get_attempt_rate(biome_info["weights"]):
 				continuous_h = height_samples.get_continuous_height(wx, wz)
+				height_sampled = true
 				var res_roll: float = rng.randf()
 				res_type = ResourceDistribution.roll_blended_resource_type(biome_info["weights"], continuous_h, res_roll)
 
@@ -322,8 +323,7 @@ func _spawn_chunk_resources(cx: int, cz: int, out_nodes: Array[Node], height_sam
 					continue
 				if not EnvironmentScatter.cluster_is_active(wx, wz, actual_seed):
 					continue
-				if biome_info.is_empty():
-					biome_info = BiomeSystem.sample_biome_weights(float(wx), float(wz), actual_seed)
+				if not height_sampled:
 					continuous_h = height_samples.get_continuous_height(wx, wz)
 				var mountain_weight: float = float(biome_info["weights"].get(BiomeSystem.BiomeType.MOUNTAINS, 0.0))
 				var ledge_direction: Vector2i = Vector2i.ZERO

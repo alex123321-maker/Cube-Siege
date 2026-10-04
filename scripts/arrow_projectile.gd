@@ -27,11 +27,18 @@ func setup(p_direction: Vector3, p_damage: float, p_owner: Node, p_pierce: int =
 	direction = p_direction.normalized()
 	damage = p_damage
 	shooter_entity = p_owner
+	var audio_bus: Node = get_node_or_null("/root/EventBus")
+	if audio_bus and is_instance_valid(p_owner):
+		if p_owner is PlayerPrototype:
+			audio_bus.audio_cue_requested.emit(&"piercing" if p_pierce > 1 else &"bow", global_position)
+		elif p_owner is EnemyBase:
+			audio_bus.audio_cue_requested.emit(&"bow", global_position)
 	source_team = CombatRules.get_team(p_owner) if is_instance_valid(p_owner) else CombatRules.Team.PLAYER
 	pierce_count = p_pierce
 	_uses_archer_impact = p_pierce == 1 and is_instance_valid(p_owner) and p_owner.is_in_group("player")
 	if direction.length_squared() > 0.01:
-		look_at(global_position + direction, Vector3.UP)
+		var up_axis: Vector3 = Vector3.FORWARD if absf(direction.dot(Vector3.UP)) > 0.99 else Vector3.UP
+		look_at(global_position + direction, up_axis)
 	if has_node("Hitbox"):
 		hitbox = $Hitbox as HitboxArea
 		hitbox.damage = damage

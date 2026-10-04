@@ -7,6 +7,7 @@ var statuses: StatusEffectState = StatusEffectState.new()
 var triumph_stacks: int = 0
 var regeneration_remaining: float = 0.0
 var morale_remaining: float = 0.0
+var morale_duration: float = 0.0
 var _dash_hits: Dictionary = {}
 var _previous_position: Vector3
 var _meta: Dictionary = {}
@@ -89,7 +90,8 @@ func on_duel_victory(position: Vector3) -> void:
 		_dismember(position)
 
 func _dismember(position: Vector3) -> void:
-	morale_remaining = WarriorTalentCatalog.MORALE_DURATION * multiplier("morale_duration")
+	morale_duration = WarriorTalentCatalog.MORALE_DURATION * multiplier("morale_duration")
+	morale_remaining = morale_duration
 	var registry: Node = actor.get_node_or_null("/root/EntityRegistry")
 	if registry:
 		for enemy: Node3D in registry.get_nearby_enemies(position, WarriorTalentCatalog.DISMEMBER_RADIUS, null):
@@ -143,6 +145,7 @@ func reset_for_viewer(unlocked: Array = []) -> void:
 	triumph_stacks = 0
 	regeneration_remaining = 0.0
 	morale_remaining = 0.0
+	morale_duration = 0.0
 	statuses.clear()
 	_dash_hits.clear()
 	_meta = {}

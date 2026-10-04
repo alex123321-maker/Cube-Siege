@@ -16,6 +16,7 @@ const NIGHT_ICON: Texture2D = preload("res://assets/ui/hud_visual_kit/icons/glob
 @onready var iron_label: Label = $Margin/Resources/ResourceRows/IronBox/IronLabel
 @onready var magic_label: Label = $Margin/Resources/ResourceRows/MagicBox/MagicLabel
 @onready var hero_portrait: HUDHeroPortrait = $Margin/Resources/ResourceRows/HeroPortrait
+@onready var status_bar: HUDStatusBar = $Margin/StatusEffects
 @onready var card_draft_popup: Control = $Margin/CardDraftPopup
 @onready var player_floating_hp: Control = $Margin/PlayerFloatingHP
 @onready var player_hp_bar: ProgressBar = $Margin/PlayerFloatingHP/Bar
@@ -59,6 +60,7 @@ func _ready() -> void:
 			day_night_cycle.time_updated.connect(_on_cycle_time_updated_legacy)
 
 	if player:
+		status_bar.setup(player)
 		build_panel = WarriorBuildPanel.new()
 		$Margin.add_child(build_panel)
 		build_panel.bind_player(player)
@@ -81,6 +83,8 @@ func _ready() -> void:
 		_update_day_night_label(day_night_cycle.time_left, day_night_cycle.is_night, day_night_cycle.current_day)
 
 func _process(_delta: float) -> void:
+	if _build_button:
+		_build_button.position.y = maxf(180.0, status_bar.position.y + status_bar.size.y + 12.0)
 	if not is_instance_valid(player) or not is_instance_valid(player_floating_hp):
 		return
 	if not is_instance_valid(camera):
@@ -145,18 +149,21 @@ func _update_day_night_label(seconds_left: float, is_night: bool, day_number: in
 	var seconds: int = int(seconds_left) % 60
 	var tint: Color = Color.WHITE
 	if is_night:
-		day_night_phase_label.text = "NIGHT %d  ·  SIEGE" % day_number
+		day_night_phase_label.text = "НОЧЬ %d  ·  ОСАДА" % day_number
 		tint = Color(1.0, 0.3, 0.3, 1.0)
 	elif seconds_left <= 30.0:
-		day_night_phase_label.text = "DAY %d  ·  SUNSET" % day_number
+		day_night_phase_label.text = "ДЕНЬ %d  ·  ЗАКАТ" % day_number
 		tint = Color(1.0, 0.6, 0.1, 1.0)
 	else:
-		day_night_phase_label.text = "DAY %d" % day_number
+		day_night_phase_label.text = "ДЕНЬ %d" % day_number
 	day_night_phase_label.modulate = tint
 	day_night_phase_label.tooltip_text = day_night_phase_label.text
 	day_night_timer_label.text = "%02d:%02d" % [minutes, seconds]
-	if is_night and day_night_cycle and day_night_cycle.boss_pending:
-		day_night_timer_label.text = "ПОБЕДИТЕ БОССА"
+	var pending_boss: bool = is_night and day_night_cycle != null and day_night_cycle.boss_pending
+	day_night_timer_label.add_theme_font_size_override("font_size", 11 if pending_boss else 14)
+	if pending_boss:
+		day_night_timer_label.text = "ПОБЕДИТЕ\nБОССА"
+	day_night_timer_label.tooltip_text = "Победите босса, чтобы завершить ночь" if pending_boss else "До смены времени суток"
 	day_night_timer_label.modulate = tint
 
 func _on_player_class_changed(new_class: int) -> void:

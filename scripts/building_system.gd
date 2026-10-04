@@ -4,7 +4,7 @@ class_name BuildingSystem
 signal building_placed(cell: Vector2i, building: Node)
 signal resources_updated(wood: int, stone: int, iron: int)
 
-enum PrefabType { NONE, WOOD_WALL, FLOOR_SPIKES, ARCHER_TOWER, IRON_WALL, BALLISTA }
+enum PrefabType { NONE, WOOD_WALL, FLOOR_SPIKES, ARCHER_TOWER, IRON_WALL, BALLISTA, CAMPFIRE }
 
 @export var player_path: NodePath
 @export var hud_path: NodePath
@@ -50,6 +50,8 @@ var iron_count: int:
 # Preview Hologram
 var preview_node: Node3D = null
 var preview_mesh: MeshInstance3D = null
+var preview_visual: Node3D = null
+var preview_meshes: Array[MeshInstance3D] = []
 var green_mat: StandardMaterial3D = null
 var red_mat: StandardMaterial3D = null
 
@@ -107,6 +109,8 @@ func _process(_delta: float) -> void:
 
 	var can_build: bool = is_cell_free(cell) and has_enough_resources(current_prefab_type)
 	preview_mesh.material_override = green_mat if can_build else red_mat
+	for mesh: MeshInstance3D in preview_meshes:
+		mesh.material_override = green_mat if can_build else red_mat
 
 	# Placement on LMB
 	if Input.is_action_just_pressed("attack_lmb"):
@@ -122,18 +126,26 @@ func _process(_delta: float) -> void:
 func select_prefab(type: PrefabType) -> void:
 	current_prefab_type = type
 	set_all_buildings_transparency(0.6)
-	if type == PrefabType.FLOOR_SPIKES:
-		(preview_mesh.mesh as BoxMesh).size = Vector3(1.0, 0.2, 1.0)
-		preview_mesh.position.y = 0.1
-	elif type == PrefabType.ARCHER_TOWER:
-		(preview_mesh.mesh as BoxMesh).size = Vector3(1.0, 3.5, 1.0)
-		preview_mesh.position.y = 1.75
-	elif type == PrefabType.BALLISTA:
-		(preview_mesh.mesh as BoxMesh).size = Vector3(1.2, 2.8, 1.2)
-		preview_mesh.position.y = 1.4
-	else:
-		(preview_mesh.mesh as BoxMesh).size = Vector3(1.0, 2.0, 1.0)
-		preview_mesh.position.y = 1.0
+	var definition: BuildingDefinition = BuildingDefinition.get_definition(type)
+	if not definition:
+		cancel_build_mode()
+		return
+	(preview_mesh.mesh as BoxMesh).size = definition.preview_size
+	preview_mesh.position.y = definition.preview_offset_y
+	if is_instance_valid(preview_visual):
+		preview_visual.queue_free()
+	preview_meshes.clear()
+	preview_visual = null
+	if not definition.visual_scene_path.is_empty():
+		var model: PackedScene = load(definition.visual_scene_path) as PackedScene
+		if model:
+			preview_visual = model.instantiate() as Node3D
+			preview_node.add_child(preview_visual)
+			for child: Node in preview_visual.find_children("*", "MeshInstance3D", true, false):
+				var mesh: MeshInstance3D = child as MeshInstance3D
+				mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				preview_meshes.append(mesh)
+	preview_mesh.visible = preview_meshes.is_empty()
 
 func cancel_build_mode() -> void:
 	current_prefab_type = PrefabType.NONE
@@ -142,9 +154,9 @@ func cancel_build_mode() -> void:
 		preview_node.visible = false
 
 func set_all_buildings_transparency(alpha: float) -> void:
-	for b in placed_buildings.values():
-		if b and is_instance_valid(b) and b.has_method("set_transparency"):
-			b.set_transparency(alpha)
+	for building: BuildingBase in placed_buildings.values():
+		if is_instance_valid(building):
+			building.set_transparency(alpha)
 
 func is_cell_free(cell: Vector2i) -> bool:
 	# Cannot place a building on another building!
@@ -173,15 +185,17 @@ func place_building(snapped_pos: Vector3, cell: Vector2i, type: PrefabType) -> v
 	if not def:
 		return
 
-	# Deduct costs via authoritative wallet
-	if not wallet.spend_resources(def.wood_cost, def.stone_cost, def.iron_cost):
-		return
-
-	# Spawn building
-	var b_scene: PackedScene = load(def.scene_path)
+	# Resolve the production prefab before committing the resource transaction.
+	var b_scene: PackedScene = load(def.scene_path) as PackedScene
 	if not b_scene:
 		return
-	var building: Node3D = b_scene.instantiate()
+	var building: BuildingBase = b_scene.instantiate() as BuildingBase
+	if not building:
+		push_error("Building prefab does not implement BuildingBase: %s" % def.scene_path)
+		return
+	if not wallet.spend_resources(def.wood_cost, def.stone_cost, def.iron_cost):
+		building.free()
+		return
 	building.position = snapped_pos
 	building.grid_coord = cell
 	get_parent().add_child(building)
@@ -189,11 +203,8 @@ func place_building(snapped_pos: Vector3, cell: Vector2i, type: PrefabType) -> v
 	placed_buildings[cell] = building
 
 	# Keep transparent while still in building mode
-	if building.has_method("set_transparency"):
-		building.set_transparency(0.6)
-
-	if building.has_signal("building_destroyed"):
-		building.connect("building_destroyed", Callable(self, "_on_building_destroyed"))
+	building.set_transparency(0.6)
+	building.building_destroyed.connect(_on_building_destroyed)
 
 	emit_signal("building_placed", cell, building)
 	var eb_placed = get_node_or_null("/root/EventBus")

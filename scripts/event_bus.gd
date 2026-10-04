@@ -39,3 +39,6 @@ signal boss_defeated(boss: Node)
 
 # Camera / Settings events
 signal camera_distance_changed(preset: int, offset: Vector3)
+
+# Presentation cues; the run audio component owns playback and voice limits.
+signal audio_cue_requested(cue: StringName, position: Vector3)

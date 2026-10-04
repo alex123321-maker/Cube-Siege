@@ -9,7 +9,7 @@ var fire_timer: float = 0.0
 const ARROW_SCENE = preload("res://scenes/prefabs/arrow_projectile.tscn")
 const TowerTargeting = preload("res://scripts/tower_targeting.gd")
 
-@onready var bow_pivot: Node3D = $Visuals/BowPivot
+@onready var bow_pivot: Node3D = $Visuals/Model/BowPivot
 
 func _ready() -> void:
 	super._ready()

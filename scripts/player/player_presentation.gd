@@ -19,6 +19,7 @@ var _debug_label: Label3D = null
 var _debug_elapsed: float = 0.0
 var blade_trail: SwordBladeTrail = null
 var blade_tip_anchor: Node3D = null
+var _audio_owner: PlayerPrototype
 var _spin_duration: float = 0.0
 var _spin_age: float = 0.0
 var _spin_base_rotation: Vector3 = Vector3.ZERO
@@ -31,6 +32,7 @@ const CLEAVE_ANIMATION: Animation = preload("res://assets/animations/actions/war
 const ACTIONS: Array[StringName] = [&"attack", &"special", &"utility", &"ultimate"]
 
 func setup(player_node: CharacterBody3D) -> void:
+	_audio_owner = player_node as PlayerPrototype
 	portal_compass = player_node.get_node_or_null("PortalCompass") as Node3D
 	if portal_compass:
 		compass_label_3d = portal_compass.get_node_or_null("CompassLabel") as Label3D
@@ -141,6 +143,8 @@ func play_attack_animation() -> void:
 
 func play_special_animation() -> void:
 	_play_action(&"special", &"attack")
+	if is_instance_valid(_audio_owner) and _audio_owner.current_class == 2:
+		_request_audio(&"build", _audio_owner.global_position)
 
 func start_whirlwind_spin(duration: float) -> void:
 	_stop_whirlwind_spin()
@@ -163,9 +167,14 @@ func cancel_combat_pose() -> void:
 
 func play_utility_animation() -> void:
 	_play_action(&"utility", &"block")
+	if is_instance_valid(_audio_owner):
+		var cues: Array[StringName] = [&"magic", &"magic", &"mine_arm"]
+		_request_audio(cues[int(_audio_owner.current_class)], _audio_owner.global_position)
 
 func play_ultimate_animation() -> void:
 	_play_action(&"ultimate")
+	if is_instance_valid(_audio_owner):
+		_request_audio(&"duel" if _audio_owner.current_class == 0 else &"magic", _audio_owner.global_position)
 
 func _update_debug(delta: float) -> void:
 	if not debug_enabled:
@@ -234,3 +243,10 @@ func update_portal_compass(player: CharacterBody3D) -> void:
 	if compass_label_3d:
 		compass_label_3d.text = "⮵ ПОРТАЛ: %dm\n%s" % [int(dist), status_str]
 		compass_label_3d.modulate = col
+
+func _request_audio(cue: StringName, at: Vector3) -> void:
+	if not is_instance_valid(_audio_owner) or not _audio_owner.is_inside_tree():
+		return
+	var bus: Node = _audio_owner.get_node_or_null("/root/EventBus")
+	if bus:
+		bus.audio_cue_requested.emit(cue, at)

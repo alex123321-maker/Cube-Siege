@@ -1,19 +1,11 @@
-[gd_scene load_steps=10 format=3 uid="uid://cironwall01"]
+[gd_scene load_steps=8 format=3 uid="uid://cironwall01"]
 
 [ext_resource type="Script" path="res://scripts/iron_wall.gd" id="1_iron"]
 [ext_resource type="Script" path="res://scripts/hurtbox_area.gd" id="2_hurtbox"]
 [ext_resource type="Script" path="res://scripts/interaction/interaction_zone.gd" id="3_zone"]
+[ext_resource type="PackedScene" path="res://assets/models/buildings/iron_wall.gltf" id="4_model"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_wall"]
-size = Vector3(1.0, 2.0, 1.0)
-
-[sub_resource type="StandardMaterial3D" id="Mat_IronWall"]
-albedo_color = Color(0.28, 0.32, 0.38, 1.0)
-metallic = 0.85
-roughness = 0.25
-
-[sub_resource type="BoxMesh" id="BoxMesh_IronWall"]
-material = SubResource("Mat_IronWall")
 size = Vector3(1.0, 2.0, 1.0)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_hurt"]
@@ -37,15 +29,13 @@ iron_cost = 2
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, 0)
 shape = SubResource("BoxShape3D_wall")
 
-[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, 0)
-mesh = SubResource("BoxMesh_IronWall")
+[node name="Model" parent="." instance=ExtResource("4_model")]
 
 [node name="Hurtbox" type="Area3D" parent="."]
 collision_layer = 8
 collision_mask = 0
 script = ExtResource("2_hurtbox")
-mesh_to_flash_path = NodePath("../MeshInstance3D")
+mesh_to_flash_path = NodePath("../Model/Body")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Hurtbox"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, 0)
