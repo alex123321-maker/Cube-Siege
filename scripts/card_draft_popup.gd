@@ -61,6 +61,10 @@ const CARD_POOL: Array[Dictionary] = [
 @onready var cards_container: HBoxContainer = $CenterContainer/Panel/VBox/CardsContainer
 
 func _ready() -> void:
+	$CenterContainer/Panel.add_theme_stylebox_override("panel", PixelUI.panel("ui_action_slot_normal", Vector4(24, 20, 24, 20)))
+	for card: PanelContainer in cards_container.get_children():
+		card.add_theme_stylebox_override("panel", PixelUI.panel("ui_action_slot_normal", Vector4(12, 12, 12, 12)))
+		(card.get_node("VBox/NameLabel") as Label).autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	visible = false
 	process_mode = Node.PROCESS_MODE_ALWAYS
 

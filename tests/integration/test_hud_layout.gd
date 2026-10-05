@@ -54,8 +54,10 @@ func test_resolved_regions_and_all_slots_after_resize() -> void:
 				var visual: Control = slot.get_node("VisualRegion")
 				assert_eq(slot.size, Vector2(82, 120), "All six slot bounds must agree")
 				assert_eq(visual.size, Vector2(72, 72), "Visual region must be square")
-				for layer_name: String in ["Frame", "Icon", "CooldownOverlay"]:
+				for layer_name: String in ["Frame"]:
 					assert_eq(visual.get_node(layer_name).get_rect(), Rect2(Vector2.ZERO, visual.size), "Every visual layer uses the same bounds")
+				assert_true(visual.get_global_rect().encloses(slot.icon.get_global_rect()), "Icon must stay inside decorative rim")
+				assert_eq(slot.icon.get_global_rect(), slot.cooldown_overlay.get_global_rect(), "Cooldown covers the artwork only")
 				assert_false(visual.get_global_rect().intersects(slot.get_node("Keycap").get_global_rect()), "Key binding must stay outside the visual region")
 				assert_false(visual.get_global_rect().intersects(slot.name_label.get_global_rect()), "Name must stay outside the visual region")
 				if previous:
@@ -79,7 +81,7 @@ func test_action_switch_and_unavailable_clear_stale_cooldown() -> void:
 	assert_false(slot.cooldown_overlay.visible, "A new action must not inherit the old cooldown")
 	assert_eq(slot.cooldown_label.text, "")
 	slot.set_cooldown(0.0)
-	assert_true(slot.frame.texture.resource_path.ends_with("action_slot_normal_64.png"))
+	assert_eq(slot.frame.texture, PixelUI.texture("ui_action_slot_normal"))
 
 func test_missing_required_icon_is_diagnosed_and_unavailable() -> void:
 	var slot: HUDActionSlot = SLOT_SCENE.instantiate()

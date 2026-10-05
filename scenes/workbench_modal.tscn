@@ -40,10 +40,10 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -300.0
-offset_top = -220.0
-offset_right = 300.0
-offset_bottom = 220.0
+offset_left = -320.0
+offset_top = -250.0
+offset_right = 320.0
+offset_bottom = 250.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_modal")
@@ -53,10 +53,10 @@ layout_mode = 1
 anchors_preset = 5
 anchor_left = 0.5
 anchor_right = 0.5
-offset_left = -200.0
+offset_left = -240.0
 offset_top = 16.0
-offset_right = 200.0
-offset_bottom = 44.0
+offset_right = 270.0
+offset_bottom = 48.0
 grow_horizontal = 2
 theme_override_colors/font_color = Color(0.3, 0.9, 1, 1)
 theme_override_font_sizes/font_size = 18
@@ -93,17 +93,17 @@ theme_override_constants/separation = 12
 alignment = 1
 
 [node name="BtnWeapon" type="Button" parent="Panel/TabContainer/Crafting/VBox"]
-custom_minimum_size = Vector2(0, 50)
+custom_minimum_size = Vector2(0, 66)
 layout_mode = 2
 text = "⚔ Острый клинок (+15 Урона)\n[4 Камня + 4 Железа]"
 
 [node name="BtnArmor" type="Button" parent="Panel/TabContainer/Crafting/VBox"]
-custom_minimum_size = Vector2(0, 50)
+custom_minimum_size = Vector2(0, 66)
 layout_mode = 2
 text = "🛡 Латный доспех (+60 HP, -15% урона)\n[6 Железа]"
 
 [node name="BtnBoots" type="Button" parent="Panel/TabContainer/Crafting/VBox"]
-custom_minimum_size = Vector2(0, 50)
+custom_minimum_size = Vector2(0, 66)
 layout_mode = 2
 text = "👢 Сапоги странника (+25% Скорости, +2м рывок)\n[4 Дерева + 2 Железа]"
 
@@ -165,22 +165,22 @@ theme_override_constants/v_separation = 10
 columns = 2
 
 [node name="BtnBlood" type="Button" parent="Panel/TabContainer/Mastery/VBox/Grid"]
-custom_minimum_size = Vector2(250, 48)
+custom_minimum_size = Vector2(225, 58)
 layout_mode = 2
 text = "🩸 Кровожадность (0/25)\n[+2% Урона per rank]"
 
 [node name="BtnSurv" type="Button" parent="Panel/TabContainer/Mastery/VBox/Grid"]
-custom_minimum_size = Vector2(250, 48)
+custom_minimum_size = Vector2(225, 58)
 layout_mode = 2
 text = "🛡 Выживаемость (0/25)\n[+4 HP, +1% Защита]"
 
 [node name="BtnAgil" type="Button" parent="Panel/TabContainer/Mastery/VBox/Grid"]
-custom_minimum_size = Vector2(250, 48)
+custom_minimum_size = Vector2(225, 58)
 layout_mode = 2
 text = "⚡ Проворство (0/25)\n[+1.5% Скорость, -1.5% Откат]"
 
 [node name="BtnCraft" type="Button" parent="Panel/TabContainer/Mastery/VBox/Grid"]
-custom_minimum_size = Vector2(250, 48)
+custom_minimum_size = Vector2(225, 58)
 layout_mode = 2
 text = "🔨 Ремесло (0/25)\n[+3% Сбор, +4% HP Зданий]"
 

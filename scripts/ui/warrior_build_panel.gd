@@ -23,16 +23,18 @@ func _ready() -> void:
 	add_child(center)
 	var panel: PanelContainer = PanelContainer.new()
 	panel.custom_minimum_size = Vector2(860, 540)
+	panel.add_theme_stylebox_override("panel", PixelUI.panel("ui_action_slot_normal", Vector4(16, 16, 16, 16)))
 	center.add_child(panel)
 	var margin: MarginContainer = MarginContainer.new()
 	for side: String in ["left", "top", "right", "bottom"]:
-		margin.add_theme_constant_override("margin_" + side, 22)
+		margin.add_theme_constant_override("margin_" + side, 10)
 	panel.add_child(margin)
 	var layout: VBoxContainer = VBoxContainer.new()
 	layout.add_theme_constant_override("separation", 12)
 	margin.add_child(layout)
 	_title = Label.new()
 	_title.add_theme_font_size_override("font_size", 24)
+	_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	layout.add_child(_title)
 	var scroll: ScrollContainer = ScrollContainer.new()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -45,6 +47,7 @@ func _ready() -> void:
 	scroll.add_child(_body)
 	_close = Button.new()
 	_close.text = "Продолжить · P / Esc"
+	_close.custom_minimum_size.y = 38
 	_close.pressed.connect(close_panel)
 	layout.add_child(_close)
 	hide()
@@ -122,6 +125,7 @@ func _render_checkpoint() -> void:
 		card.icon = load(definition.icon_path) as Texture2D
 		card.expand_icon = true
 		card.add_theme_constant_override("icon_max_width", 44)
+		card.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		card.custom_minimum_size.y = 88
 		card.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		card.pressed.connect(_choose.bind(definition.id, _reward))
@@ -130,6 +134,8 @@ func _render_checkpoint() -> void:
 		_label("Все доступные открытые таланты уже взяты. Можно выбрать Сосредоточенность.")
 	var focus: Button = Button.new()
 	focus.text = "Сосредоточенность · +2 очка специализации"
+	focus.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	focus.custom_minimum_size.y = 38
 	focus.pressed.connect(_focus.bind(_reward))
 	_body.add_child(focus)
 	if _body.get_child_count() > 1 and _body.get_child(1) is Button:
@@ -157,9 +163,11 @@ func _render_specializations() -> void:
 		var text: Label = Label.new()
 		text.text = "%s · ранг %d · ×%.2f" % [WarriorRunBuild.AXIS_TITLES[axis], int(build.specializations.get(axis, 0)), build.get_property_multiplier(axis)]
 		text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		row.add_child(text)
 		var add: Button = Button.new()
 		add.text = "+"
+		add.custom_minimum_size = Vector2(32, 32)
 		add.disabled = build.unspent_specialization_points <= 0
 		add.pressed.connect(_invest.bind(axis))
 		row.add_child(add)
@@ -169,7 +177,22 @@ func _render_specializations() -> void:
 	_body.add_child(reset)
 	_label("Таланты: " + _talent_names())
 	for synergy: String in build.discovered_synergies:
-		_label("Открыта синергия: " + WarriorTalentCatalog.SYNERGY_TITLES[synergy]).modulate = Color.GOLD
+		var row: HBoxContainer = HBoxContainer.new()
+		row.add_theme_constant_override("separation", 10)
+		_body.add_child(row)
+		var icon: TextureRect = TextureRect.new()
+		icon.custom_minimum_size = Vector2(32, 32)
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icon.texture = PixelUI.texture("synergy_" + synergy)
+		row.add_child(icon)
+		var title: Label = Label.new()
+		title.text = "Открыта синергия: " + WarriorTalentCatalog.SYNERGY_TITLES[synergy]
+		title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		title.modulate = Color.GOLD
+		row.add_child(title)
 
 func _talent_names() -> String:
 	var names: PackedStringArray = []

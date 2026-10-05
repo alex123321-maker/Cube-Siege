@@ -1,6 +1,8 @@
 extends Control
 class_name HUDActionSlot
 
+const ACTION_BINDINGS: Dictionary[String, StringName] = {"ЛКМ": &"attack_lmb", "ПКМ": &"special_rmb", "SPACE": &"dash", "Q": &"class_utility", "F": &"ultimate", "TAB": &"build_menu"}
+
 @export var icon_texture: Texture2D
 @export var action_name: String = ""
 @export var key_binding: String = ""
@@ -13,64 +15,87 @@ class_name HUDActionSlot
 @onready var cooldown_label: Label = $VisualRegion/CooldownOverlay/CooldownLabel
 
 var _is_unavailable: bool = false
+var _hovered: bool = false
+var _pressed: bool = false
 var _is_on_cooldown: bool = false
 var _cooldown_seconds: float = 0.0
 
 func _make_custom_tooltip(for_text: String) -> Object:
-    return HUDTooltip.new(for_text)
+	return HUDTooltip.new(for_text)
 
 func _ready() -> void:
-    if icon_texture != null or not action_name.is_empty():
-        set_action(icon_texture, action_name, key_binding, tooltip_text)
-    else:
-        set_unavailable(true)
+	mouse_entered.connect(func() -> void: _hovered = true; _update_frame())
+	mouse_exited.connect(func() -> void: _hovered = false; _update_frame())
+	var mask: TextureRect = TextureRect.new()
+	mask.texture = PixelUI.texture("ui_cooldown_overlay")
+	mask.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	mask.stretch_mode = TextureRect.STRETCH_SCALE
+	mask.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	cooldown_overlay.add_child(mask)
+	mask.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	cooldown_overlay.move_child(mask, 0)
+	if icon_texture != null or not action_name.is_empty():
+		set_action(icon_texture, action_name, key_binding, tooltip_text)
+	else:
+		set_unavailable(true)
 
 func set_action(texture: Texture2D, short_name: String, binding: String, detail: String = "") -> void:
-    icon_texture = texture
-    action_name = short_name
-    key_binding = binding
-    _is_unavailable = icon_texture == null
-    _is_on_cooldown = false
-    _cooldown_seconds = 0.0
-    if _is_unavailable:
-        push_error("HUDActionSlot: missing required icon for %s (%s)" % [short_name, binding])
-    if not is_node_ready():
-        return
-    icon.texture = icon_texture
-    icon.visible = not _is_unavailable
-    name_label.text = action_name
-    name_label.modulate = Color(0.52, 0.58, 0.65, 1.0) if _is_unavailable else Color.WHITE
-    key_label.text = key_binding
-    tooltip_text = detail
-    _update_cooldown()
-    _update_frame()
+	icon_texture = texture
+	action_name = short_name
+	key_binding = binding
+	_is_unavailable = icon_texture == null
+	_is_on_cooldown = false
+	_cooldown_seconds = 0.0
+	if _is_unavailable:
+		push_error("HUDActionSlot: missing required icon for %s (%s)" % [short_name, binding])
+	if not is_node_ready():
+		return
+	icon.texture = icon_texture
+	icon.visible = not _is_unavailable
+	name_label.text = action_name
+	name_label.modulate = Color(0.52, 0.58, 0.65, 1.0) if _is_unavailable else Color.WHITE
+	key_label.text = key_binding
+	tooltip_text = detail
+	_update_cooldown()
+	_update_frame()
 
 func set_cooldown(seconds_left: float) -> void:
-    _cooldown_seconds = maxf(seconds_left, 0.0)
-    var on_cooldown: bool = _cooldown_seconds > 0.08
-    _update_cooldown()
-    if _is_on_cooldown != on_cooldown:
-        _is_on_cooldown = on_cooldown
-        _update_frame()
+	_cooldown_seconds = maxf(seconds_left, 0.0)
+	var on_cooldown: bool = _cooldown_seconds > 0.08
+	_update_cooldown()
+	if _is_on_cooldown != on_cooldown:
+		_is_on_cooldown = on_cooldown
+		_update_frame()
 
 func set_unavailable(unavailable: bool) -> void:
-    _is_unavailable = unavailable or icon_texture == null
-    icon.visible = not _is_unavailable
-    _update_cooldown()
-    name_label.modulate = Color(0.52, 0.58, 0.65, 1.0) if _is_unavailable else Color.WHITE
-    _update_frame()
+	_is_unavailable = unavailable or icon_texture == null
+	icon.visible = not _is_unavailable
+	_update_cooldown()
+	name_label.modulate = Color(0.52, 0.58, 0.65, 1.0) if _is_unavailable else Color.WHITE
+	_update_frame()
 
 func _update_cooldown() -> void:
-    var show_cooldown: bool = _cooldown_seconds > 0.08 and not _is_unavailable
-    cooldown_overlay.visible = show_cooldown
-    cooldown_label.text = "%.1f" % _cooldown_seconds if show_cooldown else ""
+	var show_cooldown: bool = _cooldown_seconds > 0.08 and not _is_unavailable
+	cooldown_overlay.visible = show_cooldown
+	cooldown_label.text = "%.1f" % _cooldown_seconds if show_cooldown else ""
+
+func _process(_delta: float) -> void:
+	var pressed: bool = Input.is_action_pressed(ACTION_BINDINGS.get(key_binding, &"ui_accept"))
+	if pressed != _pressed:
+		_pressed = pressed
+		_update_frame()
 
 func _update_frame() -> void:
-    if not is_node_ready():
-        return
-    if _is_unavailable:
-        frame.texture = preload("res://assets/ui/hud_visual_kit/frames/action_slot_disabled_64.png")
-    elif _is_on_cooldown:
-        frame.texture = preload("res://assets/ui/hud_visual_kit/frames/action_slot_cooldown_64.png")
-    else:
-        frame.texture = preload("res://assets/ui/hud_visual_kit/frames/action_slot_normal_64.png")
+	if not is_node_ready():
+		return
+	var state: String = "normal"
+	if _is_unavailable:
+		state = "disabled"
+	elif cooldown_overlay.visible:
+		state = "cooldown"
+	elif _pressed:
+		state = "pressed"
+	elif _hovered:
+		state = "hover"
+	frame.texture = PixelUI.texture("ui_action_slot_" + state)
+	($Keycap as TextureRect).texture = PixelUI.texture("ui_keycap_frame_pressed" if _pressed else "ui_keycap_frame_normal")

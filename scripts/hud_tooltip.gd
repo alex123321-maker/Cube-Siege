@@ -3,30 +3,30 @@ extends PanelContainer
 
 func _init(detail: String = "") -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var style: StyleBoxFlat = StyleBoxFlat.new()
-	style.bg_color = Color(0.025, 0.04, 0.065, 0.98)
-	style.border_color = Color(0.35, 0.65, 0.75)
-	style.set_border_width_all(2)
-	style.set_corner_radius_all(4)
-	style.content_margin_left = 16.0
-	style.content_margin_right = 16.0
-	style.content_margin_top = 12.0
-	style.content_margin_bottom = 12.0
-	style.shadow_color = Color(0, 0, 0, 0.45)
-	style.shadow_size = 6
-	add_theme_stylebox_override("panel", style)
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	custom_minimum_size.x = 362.0
+	add_theme_stylebox_override("panel", PixelUI.panel("ui_action_slot_normal", Vector4(16, 12, 16, 12)))
 	var body: VBoxContainer = VBoxContainer.new()
 	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	body.add_theme_constant_override("separation", 8)
 	add_child(body)
 	var newline: int = detail.find("\n")
 	var title: Label = Label.new()
+	title.custom_minimum_size.x = 330.0
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title.text = detail.substr(0, newline) if newline >= 0 else detail
 	title.add_theme_color_override("font_color", Color(1.0, 0.85, 0.45))
 	title.add_theme_font_size_override("font_size", 17)
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	body.add_child(title)
 	if newline >= 0:
+		var divider: TextureRect = TextureRect.new()
+		divider.texture = PixelUI.texture("ui_tooltip_divider")
+		divider.custom_minimum_size.y = 2.0
+		divider.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		divider.stretch_mode = TextureRect.STRETCH_SCALE
+		divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		body.add_child(divider)
 		var label: Label = Label.new()
 		label.custom_minimum_size.x = 330.0
 		label.text = detail.substr(newline + 1)

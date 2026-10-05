@@ -1,37 +1,34 @@
 class_name HUDStatusSlot
 extends Control
 
-const ICONS: Dictionary[StringName, Texture2D] = {
-	&"regeneration": preload("res://assets/ui/status_effects/regeneration.svg"),
-	&"invulnerability": preload("res://assets/ui/status_effects/invulnerability.svg"),
-	&"vampirism": preload("res://assets/ui/status_effects/vampirism.svg"),
-	&"harvest": preload("res://assets/ui/status_effects/harvest.svg"),
-	&"parry": preload("res://assets/ui/hud_visual_kit/icons/warrior_parry.png"),
-	&"duel": preload("res://assets/ui/hud_visual_kit/icons/warrior_duel.png"),
-	&"eagle_eye": preload("res://assets/ui/hud_visual_kit/icons/archer_eagle_eye.png"),
-	&"dash": preload("res://assets/ui/hud_visual_kit/icons/warrior_dash.png"),
-	&"counter": preload("res://assets/ui/talents/counterattack.svg"),
-	&"hot_blood": preload("res://assets/ui/talents/hot_blood.svg"),
-	&"morale": preload("res://assets/ui/talents/dismemberment.svg"),
-	&"triumph": preload("res://assets/ui/talents/loud_triumph.svg"),
-	&"tempered_blade": preload("res://assets/ui/talents/tempered_blade.svg"),
-	&"slow": preload("res://assets/ui/status_effects/slow.svg"),
-	&"stun": preload("res://assets/ui/status_effects/stun.svg"),
-	&"shield": preload("res://assets/ui/status_effects/shield.svg"),
+static var ICONS: Dictionary[StringName, Texture2D] = {
+	&"regeneration": PixelUI.texture("effect_regeneration"),
+	&"invulnerability": PixelUI.texture("effect_invulnerability"),
+	&"vampirism": PixelUI.texture("effect_lifesteal"),
+	&"harvest": PixelUI.texture("resource_wood"),
+	&"parry": PixelUI.texture("warrior_parry"),
+	&"duel": PixelUI.texture("warrior_duel"),
+	&"eagle_eye": PixelUI.texture("archer_sniper_eye"),
+	&"dash": PixelUI.texture("warrior_combat_dash"),
+	&"counter": PixelUI.texture("warrior_counterattack"),
+	&"hot_blood": PixelUI.texture("warrior_hot_blood"),
+	&"morale": PixelUI.texture("effect_morale"),
+	&"triumph": PixelUI.texture("warrior_loud_triumph"),
+	&"tempered_blade": PixelUI.texture("warrior_tempered_blade"),
+	&"slow": PixelUI.texture("effect_slow"),
+	&"stun": PixelUI.texture("effect_stun"),
+	&"shield": PixelUI.texture("effect_barrier"),
 }
 
 var effect: PlayerStatusEffect
 var _time: Label
-var _frame: StyleBoxFlat
+var _frame: StyleBoxTexture
 var _hovered: bool = false
 
 func _init() -> void:
 	custom_minimum_size = Vector2(52, 64)
 	mouse_filter = Control.MOUSE_FILTER_PASS
-	_frame = StyleBoxFlat.new()
-	_frame.bg_color = Color(0.025, 0.045, 0.065, 0.95)
-	_frame.set_border_width_all(2)
-	_frame.set_corner_radius_all(3)
+	_frame = PixelUI.panel("ui_action_slot_normal", Vector4.ZERO)
 	_time = Label.new()
 	_time.position = Vector2(0, 48)
 	_time.size = Vector2(52, 16)
@@ -57,7 +54,7 @@ func _make_custom_tooltip(for_text: String) -> Object:
 func _draw() -> void:
 	if not effect:
 		return
-	_frame.border_color = effect.accent if _hovered else effect.accent.darkened(0.42)
+	_frame = PixelUI.panel("ui_action_slot_hover" if _hovered else "ui_action_slot_normal", Vector4.ZERO)
 	draw_style_box(_frame, Rect2(2, 0, 48, 48))
 	var icon: Texture2D = ICONS.get(effect.icon_id) as Texture2D
 	if icon:

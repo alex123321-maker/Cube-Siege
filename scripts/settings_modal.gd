@@ -13,6 +13,7 @@ var _audio_sliders: Dictionary[StringName, HSlider] = {}
 func _ready() -> void:
 	_settings = get_node("/root/GameSettings")
 	visible = false
+	($Panel as Panel).add_theme_stylebox_override("panel", PixelUI.panel("ui_action_slot_normal", Vector4(16, 16, 16, 16)))
 	_build_audio_settings()
 	if btn_close:
 		btn_close.pressed.connect(close_modal)
@@ -82,12 +83,14 @@ func _build_audio_settings() -> void:
 	}
 	for audio_bus: StringName in _settings.AUDIO_BUSES:
 		var row: HBoxContainer = HBoxContainer.new()
-		row.add_theme_constant_override("separation", 16)
+		row.add_theme_constant_override("separation", 12)
 		rows.add_child(row)
 		rows.move_child(row, rows.get_child_count() - 2)
 		var label: Label = Label.new()
 		label.text = names[audio_bus]
 		label.custom_minimum_size.x = 152.0
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		row.add_child(label)
 		var slider: HSlider = HSlider.new()
 		slider.max_value = 100.0
