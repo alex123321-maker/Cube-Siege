@@ -1,4 +1,5 @@
 extends Control
+class_name RadialMenu
 
 signal prefab_selected(type: int)
 
@@ -13,12 +14,55 @@ var active_category: String = ""
 
 func _ready() -> void:
 	visible = false
+	_configure_presentation()
 	_configure_item($SubMenuPanel/VBox/BtnWoodWall, 1)
 	_configure_item($SubMenuPanel/VBox/BtnFloorSpikes, 2)
 	_configure_item($SubMenuPanel/VBox/BtnArcherTower, 3)
 	_configure_item($SubMenuPanel/VBox/BtnIronWall, 4)
 	_configure_item($SubMenuPanel/VBox/BtnBallista, 5)
 	_configure_item($SubMenuPanel/VBox/BtnCampfire, 6)
+
+func _configure_presentation() -> void:
+	panel.offset_left = -170.0
+	panel.offset_right = 170.0
+	panel.offset_top = -150.0
+	panel.offset_bottom = 150.0
+	var backdrop: Panel = Panel.new()
+	backdrop.name = "PixelFrame"
+	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	backdrop.add_theme_stylebox_override("panel", PixelUI.panel("ui_action_slot_normal", Vector4(16, 16, 16, 16)))
+	backdrop.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(backdrop)
+	panel.move_child(backdrop, 0)
+	var buttons: Array[Button] = [$CenterPanel/BtnWalls, $CenterPanel/BtnTraps, $CenterPanel/BtnTowers, $CenterPanel/BtnUtility]
+	var icons: Array[String] = ["building_wood_wall", "building_floor_spikes", "building_archer_tower", "building_campfire"]
+	for index: int in range(buttons.size()):
+		var button: Button = buttons[index]
+		_set_rect(button, Rect2(Vector2(18 + (index % 2) * 160, 62 + floori(float(index) / 2.0) * 76), Vector2(144, 60)))
+		button.icon = PixelUI.texture(icons[index])
+		button.expand_icon = true
+		button.add_theme_constant_override("icon_max_width", 24)
+		button.add_theme_font_size_override("font_size", 13)
+		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_set_rect($CenterPanel/Title, Rect2(16, 16, 308, 32))
+	_set_rect($CenterPanel/Hint, Rect2(16, 214, 308, 64))
+	var hint: Label = $CenterPanel/Hint
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	hint.add_theme_font_size_override("font_size", 12)
+	submenu.offset_left = 190.0
+	submenu.offset_right = 550.0
+	submenu.offset_top = -150.0
+	submenu.offset_bottom = 150.0
+	(submenu as Panel).add_theme_stylebox_override("panel", PixelUI.panel("ui_action_slot_normal", Vector4(16, 16, 16, 16)))
+	category_label.offset_left = -160.0
+	category_label.offset_right = 160.0
+	category_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+
+func _set_rect(control: Control, rectangle: Rect2) -> void:
+	control.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	control.position = rectangle.position
+	control.size = rectangle.size
 
 func _configure_item(button: Button, type_id: int) -> void:
 	var definition: BuildingDefinition = DEFINITIONS.get_definition(type_id)
@@ -36,6 +80,8 @@ func _configure_item(button: Button, type_id: int) -> void:
 	button.add_theme_constant_override("icon_max_width", 40)
 	button.custom_minimum_size = Vector2(0, 68)
 	button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	button.add_theme_font_size_override("font_size", 13)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("build_menu"):

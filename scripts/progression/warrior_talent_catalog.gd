@@ -74,5 +74,10 @@ static func _make(talent_id: String, talent_title: String, text: String, talent_
 	definition.unlock_cost = cost
 	definition.ring = talent_ring
 	definition.angle = deg_to_rad(degrees)
-	definition.icon_path = "res://assets/ui/talents/%s.svg" % talent_id
+	var icon_id: String = talent_id
+	if talent_id == "sweeping_strike":
+		icon_id = "splash_strike"
+	elif talent_id == "dismemberment":
+		icon_id = "corpse_dismemberment"
+	definition.icon_path = PixelUI.path("warrior_" + icon_id)
 	return definition

@@ -1,4 +1,5 @@
 extends Control
+class_name WorkbenchModal
 
 @export var building_system_path: NodePath = NodePath("../../BuildingSystem")
 var building_system: BuildingSystem = null
@@ -24,12 +25,36 @@ var has_boots: bool = false
 func _ready() -> void:
 	visible = false
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_configure_presentation()
 	if has_node(building_system_path):
 		building_system = get_node(building_system_path) as BuildingSystem
 	var bus = get_node_or_null("/root/EventBus")
 	if bus and bus.has_signal("workbench_opened"):
 		bus.workbench_opened.connect(open)
 	update_ui()
+
+func _configure_presentation() -> void:
+	tabs.set_tab_title(0, "Изготовление")
+	tabs.set_tab_title(1, "Разбор")
+	tabs.set_tab_title(2, "Мастерство")
+	($Panel as Panel).add_theme_stylebox_override("panel", PixelUI.panel("ui_action_slot_normal", Vector4(16, 16, 16, 16)))
+	var title: Label = $Panel/Title
+	title.text = "ВЕРСТАК ЭКИПИРОВКИ И МАСТЕРСТВА"
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	var icon: TextureRect = TextureRect.new()
+	icon.name = "WorkbenchIcon"
+	icon.position = Vector2(24, 20)
+	icon.size = Vector2(28, 28)
+	icon.texture = PixelUI.texture("building_workbench")
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	$Panel.add_child(icon)
+	for button: Button in [btn_weapon, btn_armor, btn_boots, btn_blood, btn_surv, btn_agil, btn_craft]:
+		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		button.add_theme_font_size_override("font_size", 13)
+	mastery_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	mastery_label.add_theme_font_size_override("font_size", 13)
 
 func _get_building_system() -> BuildingSystem:
 	if building_system:

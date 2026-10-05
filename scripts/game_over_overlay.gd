@@ -8,6 +8,9 @@ var _retry_save: bool = false
 @onready var restart_btn: Button = $Panel/VBox/RestartBtn
 
 func _ready() -> void:
+	$Panel.add_theme_stylebox_override("panel", PixelUI.panel("ui_action_slot_normal", Vector4(16, 16, 16, 16)))
+	title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	title_label.add_theme_font_size_override("font_size", 22)
 	visible = false
 	if restart_btn:
 		restart_btn.pressed.connect(_on_restart_pressed)

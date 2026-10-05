@@ -10,6 +10,10 @@ extends Control
 var inspecting_slot_index: int = 0
 
 func _ready() -> void:
+	theme = PixelHUDTheme.create()
+	(view_settings.get_node("Panel") as Panel).add_theme_stylebox_override("panel", PixelUI.panel("ui_action_slot_normal", Vector4(16, 16, 16, 16)))
+	for card: Control in slot_cards:
+		card.add_theme_stylebox_override("panel", PixelUI.panel("ui_action_slot_normal", Vector4(16, 16, 16, 16)))
 	_setup_settings_ui()
 	view_talents.play_requested.connect(start_run_with_slot)
 	view_talents.back_requested.connect(_on_btn_back_to_chars_pressed)

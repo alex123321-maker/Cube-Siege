@@ -97,12 +97,12 @@ func test_class_ability_names_and_engineer_mine_state_are_visible() -> void:
 	player.set_class(PlayerPrototype.CharacterClass.ARCHER, false)
 	await get_tree().process_frame
 	assert_eq(f_slot.action_name, "ОРЛ. ГЛАЗ", "Archer F slot should be named Eagle Eye")
-	assert_true(f_slot.icon_texture.resource_path.ends_with("archer_eagle_eye.png"), "Archer F should use Eagle Eye art")
+	assert_true(f_slot.icon_texture == PixelUI.texture("archer_sniper_eye"), "Archer F should use Eagle Eye art")
 
 	player.set_class(PlayerPrototype.CharacterClass.ENGINEER, false)
 	await get_tree().process_frame
 	assert_eq(f_slot.action_name, "ЯДЕРНЫЙ", "Engineer F slot should be named Tactical Nuke")
-	assert_true(f_slot.icon_texture.resource_path.ends_with("engineer_tactical_nuke.png"), "Engineer F should use Tactical Nuke art")
+	assert_true(f_slot.icon_texture == PixelUI.texture("engineer_orbital_strike"), "Engineer F should use Tactical Nuke art")
 	assert_eq(q_slot.action_name, "ПОСТАВИТЬ", "Engineer Q should describe placing a mine")
 	player.abilities.toggle_remote_mine(player)
 	assert_not_null(player.active_remote_mine, "The gameplay owner should create the mine")
@@ -113,25 +113,19 @@ func test_class_ability_names_and_engineer_mine_state_are_visible() -> void:
 	assert_eq(q_slot.action_name, "ПОСТАВИТЬ", "Detonation should restore the placement prompt")
 	assert_true(q_slot.cooldown_overlay.visible, "Actual mine reload should reach the HUD")
 
-func test_hero_portrait_frames_front_of_each_class_model() -> void:
-	var main = MAIN_SCENE.instantiate()
+func test_hero_portrait_tracks_each_class_without_changing_hud_bounds() -> void:
+	var main: Node = MAIN_SCENE.instantiate()
 	add_child_autoqfree(main)
 	await get_tree().process_frame
 	var player: PlayerPrototype = main.get_node("Player")
 	var portrait: HUDHeroPortrait = main.get_node("HUD/Margin/Resources/ResourceRows/HeroPortrait")
-	assert_eq(portrait.custom_minimum_size, Vector2(64, 64), "Hero portrait should have enough HUD space for a readable model crop")
-	assert_eq(portrait.viewport.size, Vector2i(64, 64), "Hero portrait SubViewport should render at its authored size")
-
-	for state in [
-		{"class_id": PlayerPrototype.CharacterClass.WARRIOR, "yaw": 0.0},
-		{"class_id": PlayerPrototype.CharacterClass.ARCHER, "yaw": PI},
-		{"class_id": PlayerPrototype.CharacterClass.ENGINEER, "yaw": PI},
-	]:
-		player.set_class(state.class_id, false)
+	assert_eq(portrait.custom_minimum_size, Vector2(64, 64))
+	for class_id: int in range(3):
+		player.set_class(class_id, false)
 		await get_tree().process_frame
-		var model: Node3D = portrait.model_root.get_child(0) as Node3D
-		assert_eq(portrait._active_class_id, state.class_id, "Portrait should follow the selected class")
-		assert_true(absf(model.rotation.y - state.yaw) < 0.001, "Portrait model should face its camera")
+		assert_eq(portrait._active_class_id, class_id, "Portrait must follow gameplay class")
+		assert_eq(portrait.texture, PixelUI.texture(HUDHeroPortrait.PORTRAIT_KEYS[class_id]))
+		assert_eq(portrait.size, Vector2(64, 64), "Large portrait sources must not widen the resource panel")
 
 func test_hud_skip_night_uses_explicit_dependency() -> void:
 	var main = MAIN_SCENE.instantiate()

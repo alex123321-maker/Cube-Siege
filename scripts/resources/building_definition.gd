@@ -39,7 +39,7 @@ static func _initialize_catalog() -> void:
 	wood_wall.preview_size = Vector3(1.0, 2.0, 1.0)
 	wood_wall.preview_offset_y = 1.0
 	wood_wall.visual_scene_path = "res://assets/models/buildings/wood_wall.gltf"
-	wood_wall.icon_path = "res://assets/ui/buildings/wood_wall.svg"
+	wood_wall.icon_path = PixelUI.path("building_wood_wall")
 	wood_wall.description = "Деревянный частокол • 250 HP. Перекрывает путь врагам. Замкнутый контур стен защищает базу от появления монстров внутри."
 	_catalog[wood_wall.id] = wood_wall
 
@@ -55,7 +55,7 @@ static func _initialize_catalog() -> void:
 	spikes.preview_size = Vector3(1.0, 0.2, 1.0)
 	spikes.preview_offset_y = 0.1
 	spikes.visual_scene_path = "res://assets/models/buildings/floor_spikes.gltf"
-	spikes.icon_path = "res://assets/ui/buildings/floor_spikes.svg"
+	spikes.icon_path = PixelUI.path("building_floor_spikes")
 	spikes.description = "Напольная ловушка • 100 HP. Наносит 25 урона врагам каждую секунду. Не мешает движению героя."
 	_catalog[spikes.id] = spikes
 
@@ -71,7 +71,7 @@ static func _initialize_catalog() -> void:
 	tower.preview_size = Vector3(1.0, 3.5, 1.0)
 	tower.preview_offset_y = 1.75
 	tower.visual_scene_path = "res://assets/models/buildings/archer_tower.gltf"
-	tower.icon_path = "res://assets/ui/buildings/archer_tower.svg"
+	tower.icon_path = PixelUI.path("building_archer_tower")
 	tower.description = "Деревянная вышка • 350 HP. Автоматически стреляет по ближайшему врагу: 30 урона, дальность 10 м, интервал 1,2 с."
 	_catalog[tower.id] = tower
 
@@ -87,7 +87,7 @@ static func _initialize_catalog() -> void:
 	iron_wall.preview_size = Vector3(1.0, 2.0, 1.0)
 	iron_wall.preview_offset_y = 1.0
 	iron_wall.visual_scene_path = "res://assets/models/buildings/iron_wall.gltf"
-	iron_wall.icon_path = "res://assets/ui/buildings/iron_wall.svg"
+	iron_wall.icon_path = PixelUI.path("building_iron_wall")
 	iron_wall.description = "Железная шипованная стена • 1200 HP. Возвращает атакующему врагу 25% полученного урона."
 	_catalog[iron_wall.id] = iron_wall
 
@@ -103,7 +103,7 @@ static func _initialize_catalog() -> void:
 	ballista.preview_size = Vector3(1.2, 2.8, 1.2)
 	ballista.preview_offset_y = 1.4
 	ballista.visual_scene_path = "res://assets/models/buildings/ballista.gltf"
-	ballista.icon_path = "res://assets/ui/buildings/ballista.svg"
+	ballista.icon_path = PixelUI.path("building_ballista")
 	ballista.description = "Тяжёлая баллиста • 600 HP. Пробивающий болт поражает до 3 врагов: 120 урона, дальность 14 м, интервал 2,4 с."
 	_catalog[ballista.id] = ballista
 
@@ -116,7 +116,7 @@ static func _initialize_catalog() -> void:
 	campfire.stone_cost = 3
 	campfire.scene_path = "res://scenes/prefabs/campfire.tscn"
 	campfire.visual_scene_path = "res://assets/models/buildings/campfire.gltf"
-	campfire.icon_path = "res://assets/ui/buildings/campfire.svg"
+	campfire.icon_path = PixelUI.path("building_campfire")
 	campfire.preview_size = Vector3(1.0, 1.0, 1.0)
 	campfire.preview_offset_y = 0.5
 	campfire.description = "Уютный очаг • 180 HP. Восстанавливает 3 HP/с герою в радиусе 5 м. Регенерация действует рядом с костром; лечение от разных источников складывается."

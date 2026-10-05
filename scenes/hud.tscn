@@ -1,14 +1,14 @@
-[gd_scene load_steps=17 format=3]
+[gd_scene load_steps=18 format=3]
 
 [ext_resource type="Script" path="res://scripts/hud.gd" id="1_hud"]
 [ext_resource type="Script" path="res://scripts/hud_status_bar.gd" id="19_status"]
 [ext_resource type="Theme" path="res://resources/hud_theme.tres" id="2_theme"]
-[ext_resource type="Texture2D" path="res://assets/ui/hud_visual_kit/icons/global_day.png" id="5_day_icon"]
-[ext_resource type="Texture2D" path="res://assets/ui/hud_visual_kit/icons/global_settings.png" id="7_settings_icon"]
-[ext_resource type="Texture2D" path="res://assets/ui/hud_visual_kit/icons/resource_wood.png" id="8_wood_icon"]
-[ext_resource type="Texture2D" path="res://assets/ui/hud_visual_kit/icons/resource_stone.png" id="9_stone_icon"]
-[ext_resource type="Texture2D" path="res://assets/ui/hud_visual_kit/icons/resource_iron.png" id="10_iron_icon"]
-[ext_resource type="Texture2D" path="res://assets/ui/hud_visual_kit/icons/resource_magic_stone.png" id="11_magic_icon"]
+[ext_resource type="Texture2D" path="res://assets/ui/pixel_catalogue/textures/global_day.tres" id="5_day_icon"]
+[ext_resource type="Texture2D" path="res://assets/ui/pixel_catalogue/textures/global_settings.tres" id="7_settings_icon"]
+[ext_resource type="Texture2D" path="res://assets/ui/pixel_catalogue/textures/resource_wood.tres" id="8_wood_icon"]
+[ext_resource type="Texture2D" path="res://assets/ui/pixel_catalogue/textures/resource_stone.tres" id="9_stone_icon"]
+[ext_resource type="Texture2D" path="res://assets/ui/pixel_catalogue/textures/resource_iron.tres" id="10_iron_icon"]
+[ext_resource type="Texture2D" path="res://assets/ui/pixel_catalogue/textures/resource_magic_stone.tres" id="11_magic_icon"]
 [ext_resource type="PackedScene" path="res://scenes/skills_action_bar.tscn" id="12_skills"]
 [ext_resource type="PackedScene" path="res://scenes/radial_menu.tscn" id="13_radial"]
 [ext_resource type="PackedScene" path="res://scenes/game_over_overlay.tscn" id="14_overlay"]
@@ -16,6 +16,7 @@
 [ext_resource type="PackedScene" path="res://scenes/workbench_modal.tscn" id="16_benchmodal"]
 [ext_resource type="PackedScene" path="res://scenes/settings_modal.tscn" id="17_settingsmodal"]
 [ext_resource type="PackedScene" path="res://scenes/hud_hero_portrait.tscn" id="18_portrait"]
+[ext_resource type="Script" path="res://scripts/ui/pixel_resource_cell.gd" id="20_resource_cell"]
 
 [node name="HUD" type="CanvasLayer"]
 process_mode = 3
@@ -164,7 +165,8 @@ layout_mode = 2
 tooltip_text = "Выбранный герой"
 
 [node name="WoodBox" type="HBoxContainer" parent="Margin/Resources/ResourceRows"]
-custom_minimum_size = Vector2(66, 32)
+custom_minimum_size = Vector2(66, 64)
+script = ExtResource("20_resource_cell")
 layout_mode = 2
 mouse_filter = 1
 size_flags_vertical = 4
@@ -190,7 +192,8 @@ horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="StoneBox" type="HBoxContainer" parent="Margin/Resources/ResourceRows"]
-custom_minimum_size = Vector2(66, 32)
+custom_minimum_size = Vector2(66, 64)
+script = ExtResource("20_resource_cell")
 layout_mode = 2
 mouse_filter = 1
 size_flags_vertical = 4
@@ -216,7 +219,8 @@ horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="IronBox" type="HBoxContainer" parent="Margin/Resources/ResourceRows"]
-custom_minimum_size = Vector2(66, 32)
+custom_minimum_size = Vector2(66, 64)
+script = ExtResource("20_resource_cell")
 layout_mode = 2
 mouse_filter = 1
 size_flags_vertical = 4
@@ -242,7 +246,8 @@ horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="MagicBox" type="HBoxContainer" parent="Margin/Resources/ResourceRows"]
-custom_minimum_size = Vector2(66, 32)
+custom_minimum_size = Vector2(66, 64)
+script = ExtResource("20_resource_cell")
 layout_mode = 2
 mouse_filter = 1
 size_flags_vertical = 4

@@ -1,7 +1,7 @@
 extends CanvasLayer
 
-const DAY_ICON: Texture2D = preload("res://assets/ui/hud_visual_kit/icons/global_day.png")
-const NIGHT_ICON: Texture2D = preload("res://assets/ui/hud_visual_kit/icons/global_night.png")
+static var DAY_ICON: Texture2D = PixelUI.texture("global_day")
+static var NIGHT_ICON: Texture2D = PixelUI.texture("global_night")
 
 @export var player_path: NodePath
 @export var displayed_talent_capacity: int = 6
@@ -33,6 +33,9 @@ var build_panel: WarriorBuildPanel
 var _build_button: Button
 
 func _ready() -> void:
+	$Margin.theme = PixelHUDTheme.create()
+	player_floating_hp.theme = $Margin.theme
+	$Margin/TopCenter.add_theme_stylebox_override("panel", PixelUI.panel("ui_day_night_panel", Vector4(10, 8, 10, 8)))
 	if not player_path.is_empty() and has_node(player_path):
 		player = get_node(player_path) as PlayerPrototype
 	if not day_night_cycle_path.is_empty() and has_node(day_night_cycle_path):
@@ -66,9 +69,14 @@ func _ready() -> void:
 		build_panel.bind_player(player)
 		_build_button = Button.new()
 		_build_button.text = "Специализации · P"
-		_build_button.position = Vector2(24, 180)
+		_build_button.position = Vector2(16, 180)
+		_build_button.custom_minimum_size = Vector2(420, 40)
+		_build_button.size.x = 420
+		_build_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_build_button.add_theme_font_size_override("font_size", 12)
 		_build_button.pressed.connect(build_panel.open_specializations)
 		$Margin.add_child(_build_button)
+		$Margin.move_child(_build_button, status_bar.get_index() + 1)
 		$Margin.move_child(build_panel, $Margin.get_child_count() - 1)
 		player.progression.run_build.build_changed.connect(_update_build_button)
 		_update_build_button()
