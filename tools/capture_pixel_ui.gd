@@ -268,7 +268,8 @@ func _collect_tooltips(node: Node, results: Array[HUDTooltip]) -> void:
 func _move_mouse(position: Vector2) -> void:
 	var motion: InputEventMouseMotion = InputEventMouseMotion.new()
 	motion.position = position
-	root.push_input(motion)
+	# Control rectangles are already in logical viewport coordinates.
+	root.push_input(motion, true)
 
 func _click(button: Button) -> void:
 	for pressed: bool in [true, false]:
@@ -276,7 +277,7 @@ func _click(button: Button) -> void:
 		event.button_index = MOUSE_BUTTON_LEFT
 		event.position = button.get_global_rect().get_center()
 		event.pressed = pressed
-		root.push_input(event)
+		root.push_input(event, true)
 		await process_frame
 
 func _capture_long_tooltip(hud: CanvasLayer) -> void:
