@@ -1,8 +1,8 @@
 extends SceneTree
 
 ## Capture the production UI, without touching the player's profile.
-## Run with a rendering display, --test-profile and a finite process timeout:
-## godot --path . -s tools/capture_pixel_ui.gd -- --test-profile --width=1280 --height=720 --output=res://tmp/pixel_ui
+## Requires the full checkout SHA in CUBE_SIEGE_CAPTURE_REVISION, a rendering
+## display, --test-profile and a finite outer timeout; see PIXEL_UI_INTEGRATION.md.
 var _resolution: Vector2i = Vector2i(1280, 720)
 var _output: String = "res://tmp/pixel_ui"
 var _failures: Array[String] = []
@@ -23,6 +23,12 @@ func _initialize() -> void:
 	call_deferred("_capture")
 
 func _capture() -> void:
+	var revision: String = OS.get_environment("CUBE_SIEGE_CAPTURE_REVISION").strip_edges().to_lower()
+	var revision_pattern: RegEx = RegEx.create_from_string("^[0-9a-f]{40}$")
+	if revision_pattern.search(revision) == null:
+		push_error("Set CUBE_SIEGE_CAPTURE_REVISION to the full 40-character Git SHA of the checkout before capturing.")
+		quit(1)
+		return
 	if DisplayServer.get_name() == "headless":
 		push_error("Pixel UI capture requires a rendering display.")
 		quit(1)
@@ -171,6 +177,7 @@ func _capture() -> void:
 	if player.progression.run_build.active_reward_id >= 0:
 		hud.build_panel._focus(player.progression.run_build.active_reward_id)
 	paused = false
+	await _capture_modal_windows(hud)
 	main.queue_free()
 	await _settle(2)
 	var menu: Control = preload("res://scenes/main_menu.tscn").instantiate() as Control
@@ -207,7 +214,7 @@ func _capture() -> void:
 	await _snapshot("talent_tree_opened")
 	menu.queue_free()
 	await _settle(2)
-	var report: Dictionary = {"revision": OS.get_environment("CUBE_SIEGE_CAPTURE_REVISION"), "resolution": [_resolution.x, _resolution.y], "logical_viewport": [_screen().size.x, _screen().size.y], "screenshots": _screenshots, "measurements": _measurements, "failures": _failures, "passed": _failures.is_empty()}
+	var report: Dictionary = {"revision": revision, "resolution": [_resolution.x, _resolution.y], "logical_viewport": [_screen().size.x, _screen().size.y], "screenshots": _screenshots, "measurements": _measurements, "failures": _failures, "passed": _failures.is_empty()}
 	var report_file: FileAccess = FileAccess.open(_output.path_join("geometry.json"), FileAccess.WRITE)
 	if report_file == null:
 		push_error("Cannot write geometry report.")
@@ -279,6 +286,52 @@ func _click(button: Button) -> void:
 		event.pressed = pressed
 		root.push_input(event, true)
 		await process_frame
+
+func _capture_modal_windows(hud: CanvasLayer) -> void:
+	# Exercise the HUD's actual windows without applying an upgrade or ending a run.
+	var draft: Control = hud.get_node("Margin/CardDraftPopup") as Control
+	seed(395668)
+	draft.open_draft(null, 5)
+	Engine.time_scale = 1.0
+	await _settle(3)
+	var draft_panel: Control = draft.get_node("CenterContainer/Panel") as Control
+	_check_modal_panel(draft_panel, "card_draft")
+	var cards: HBoxContainer = draft.cards_container as HBoxContainer
+	var previous: Control = null
+	for child: Node in cards.get_children():
+		var card: Control = child as Control
+		_check_panel_contents(card, card.get_global_rect(), "card_draft")
+		if previous and previous.get_global_rect().intersects(card.get_global_rect()):
+			_failures.append("card_draft: adjacent cards overlap")
+		previous = card
+	await _snapshot("card_draft")
+	draft.hide()
+	var result: Control = hud.get_node("Margin/GameOverOverlay") as Control
+	result.show_game_over()
+	await _settle(3)
+	_check_modal_panel(result.get_node("Panel") as Control, "game_over")
+	await _snapshot("game_over")
+	result.hide()
+
+func _check_modal_panel(panel: Control, scenario: String) -> void:
+	if not panel.is_visible_in_tree():
+		_failures.append(scenario + ": production modal did not open")
+		return
+	_check_subtree(panel, scenario)
+	_check_panel_contents(panel, panel.get_global_rect(), scenario)
+	if panel.get_global_rect().get_center().distance_to(_screen().get_center()) > 1.0:
+		_failures.append(scenario + ": modal panel is not centered")
+
+func _check_panel_contents(node: Node, bounds: Rect2, scenario: String) -> void:
+	if node is Control:
+		var control: Control = node as Control
+		if not control.is_visible_in_tree():
+			return
+		var rectangle: Rect2 = control.get_global_rect()
+		if rectangle.has_area() and not bounds.grow(1.0).encloses(rectangle):
+			_failures.append("%s: %s extends beyond its panel" % [scenario, control.name])
+	for child: Node in node.get_children():
+		_check_panel_contents(child, bounds, scenario)
 
 func _capture_long_tooltip(hud: CanvasLayer) -> void:
 	# A production tooltip with deliberately long localized text exercises wrapping.

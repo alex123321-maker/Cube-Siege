@@ -43,15 +43,28 @@ and `test_pixel_menu_layout.gd` under `tests/integration/`.
 For actual Vulkan-rendered screenshots, run the following with a rendering
 display and a 100-second outer process timeout. Repeat with 1920×1080,
 2560×1080 and 1920×1200; use a separate output/profile for each resolution.
+Start in the committed checkout being verified. Set the revision from its actual
+Git HEAD; the harness rejects a missing or malformed full SHA before creating
+screenshots or a passing report. In PowerShell, using the configured Godot path:
 
-```text
-godot --path . --resolution 1280x720 -s tools/capture_pixel_ui.gd -- --width=1280 --height=720 --test-profile=user://pixel_ui_capture/1280x720/ --output=res://.review_loop/pixel_ui/1280x720
+```powershell
+$captureRevision = git rev-parse HEAD
+if ($LASTEXITCODE -ne 0) { throw "Cannot resolve the checkout revision" }
+$env:CUBE_SIEGE_CAPTURE_REVISION = $captureRevision.Trim()
+$captureGodot = $env:GODOT_BIN
+if (-not $captureGodot) { $captureGodot = (Get-Content .godot_path -Raw).Trim() }
+& $captureGodot --path . --resolution 1280x720 -s tools/capture_pixel_ui.gd -- --width=1280 --height=720 --test-profile=user://pixel_ui_capture/1280x720/ --output=res://.review_loop/pixel_ui/1280x720
+if ($LASTEXITCODE -ne 0) { throw "Pixel UI capture failed" }
 ```
 
-The capture harness loads the real game/menu scenes and saves 49 screenshots:
+The capture harness loads the real game/menu scenes and saves 51 screenshots:
 all three classes, every action tooltip, active statuses, boss-pending caption,
 critical HP, boss health, long text, settings, all building categories, workbench tabs, specializations,
-checkpoint selection and locked/opened talent trees. Its `geometry.json` records
+checkpoint selection, locked/opened talent trees, card selection and the game-over
+window. The last two use the actual HUD instances and production opening APIs,
+without applying a card upgrade or completing a run. Their contents are checked
+against their panels as well as the viewport; card overlap and modal centering
+are checked too. Its `geometry.json` records the supplied full checkout SHA,
 screen/panel bounds, text measurements, slot spacing and failures. The stress
 fixture uses billion-scale resource counts and upgraded ability descriptions.
 This complements visual inspection; geometry checks alone do not approve art.
